@@ -228,7 +228,7 @@
     <ClInclude Include="inc\gameobject.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="inc\game.h">
+    <ClInclude Include="inc\game33.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -254,7 +254,7 @@
     <ClCompile Include="src\gameobject.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\game.cpp">
+    <ClCompile Include="src\game33.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
