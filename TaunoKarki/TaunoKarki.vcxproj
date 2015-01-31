@@ -12,7 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\component.h" />
-    <ClInclude Include="inc\game33.h" />
+    <ClInclude Include="inc\game.h" />
     <ClInclude Include="inc\gameobject.h" />
     <ClInclude Include="inc\gamescene.h" />
     <ClInclude Include="inc\menuscene.h" />
@@ -85,7 +85,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\component.cpp" />
-    <ClCompile Include="src\game33.cpp" />
+    <ClCompile Include="src\game.cpp" />
     <ClCompile Include="src\gameobject.cpp" />
     <ClCompile Include="src\gamescene.cpp" />
     <ClCompile Include="src\main.cpp" />
