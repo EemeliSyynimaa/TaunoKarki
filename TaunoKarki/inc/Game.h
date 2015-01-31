@@ -3,6 +3,7 @@
 
 #include <SDL\SDL.h>
 #include <GL\glew.h>
+#include "scenemanager.h"
 
 class Game
 {
@@ -17,6 +18,8 @@ private:
 
 	int screenWidth;
 	int screenHeight;
+
+	SceneManager sceneManager;
 
 	void update();
 	void draw();

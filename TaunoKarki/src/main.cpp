@@ -1,5 +1,4 @@
-#include <iostream>
-#include <Game.h>
+#include "game.h"
 
 int main(int argc, char **argv)
 {

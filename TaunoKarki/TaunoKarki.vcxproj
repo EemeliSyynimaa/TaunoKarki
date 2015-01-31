@@ -11,7 +11,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="inc\Game.h" />
+    <ClInclude Include="inc\component.h" />
+    <ClInclude Include="inc\game.h" />
+    <ClInclude Include="inc\gameobject.h" />
+    <ClInclude Include="inc\gamescene.h" />
+    <ClInclude Include="inc\menuscene.h" />
+    <ClInclude Include="inc\scene.h" />
+    <ClInclude Include="inc\scenemanager.h" />
     <ClInclude Include="inc\SDL\begin_code.h" />
     <ClInclude Include="inc\SDL\close_code.h" />
     <ClInclude Include="inc\SDL\SDL.h" />
@@ -78,8 +84,14 @@
     <ClInclude Include="inc\SDL\SDL_video.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Game.cpp" />
+    <ClCompile Include="src\component.cpp" />
+    <ClCompile Include="src\game.cpp" />
+    <ClCompile Include="src\gameobject.cpp" />
+    <ClCompile Include="src\gamescene.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\menuscene.cpp" />
+    <ClCompile Include="src\scene.cpp" />
+    <ClCompile Include="src\scenemanager.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{0BE06389-FFA1-4D0E-B130-C89565C9E364}</ProjectGuid>

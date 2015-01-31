@@ -1,6 +1,6 @@
 #include <cassert>
 #include <iostream>
-#include <Game.h>
+#include "game.h"
 
 
 Game::Game() : screenWidth(1280), screenHeight(720)
@@ -70,9 +70,11 @@ void Game::run()
 
 void Game::update()
 {
+	sceneManager.update();
 }
 
 void Game::draw()
 {
+	sceneManager.draw();
 	SDL_GL_SwapWindow(window);
 }
