@@ -2,6 +2,7 @@
 #include "menuscene.h"
 #include "game.h"
 #include <iostream>
+#include "gameobject.h"
 
 GameScene::GameScene(Game& game) : Scene(game)
 {
