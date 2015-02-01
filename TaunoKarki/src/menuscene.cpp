@@ -1,6 +1,9 @@
 #include "menuscene.h"
+#include "game.h"
+#include "gamescene.h"
+#include <iostream>
 
-MenuScene::MenuScene(SceneManager &sceneManager) : Scene(sceneManager)
+MenuScene::MenuScene(Game& game) : Scene(game)
 {
 }
 
@@ -10,6 +13,8 @@ MenuScene::~MenuScene()
 
 void MenuScene::update()
 {
+	std::cout << "MENUSCENE WORKS TOO" << std::endl;
+	game.getSceneManager().change(new GameScene(game));
 }
 
 void MenuScene::draw()

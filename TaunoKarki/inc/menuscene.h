@@ -6,7 +6,7 @@
 class MenuScene : public Scene
 {
 public:
-	MenuScene(SceneManager &sceneManager);
+	MenuScene(Game& game);
 	~MenuScene();
 
 	void update();

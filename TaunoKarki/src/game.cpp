@@ -1,6 +1,7 @@
 #include <cassert>
 #include <iostream>
 #include "game.h"
+#include "gamescene.h"
 
 
 Game::Game() : screenWidth(1280), screenHeight(720)
@@ -38,6 +39,8 @@ Game::Game() : screenWidth(1280), screenHeight(720)
 	glGetIntegerv(GL_MAJOR_VERSION, &versionMajor);
 	glGetIntegerv(GL_MINOR_VERSION, &versionMinor);
 	std::cout << "OpenGL context version: " << versionMajor << "." << versionMinor << std::endl;
+
+	sceneManager.change(new GameScene(*this));
 }
 
 Game::~Game()

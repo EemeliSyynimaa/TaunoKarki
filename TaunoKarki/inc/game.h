@@ -11,9 +11,11 @@ public:
 	Game();
 	~Game();
 
+	SceneManager& getSceneManager() { return sceneManager; }
+
 	void run();
 private:
-	SDL_Window *window;
+	SDL_Window* window;
 	SDL_GLContext context;
 
 	int screenWidth;

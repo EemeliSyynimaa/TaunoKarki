@@ -1,19 +1,19 @@
 #ifndef SCENE_H
 #define SCENE_H
 
-#include "scenemanager.h"
+class SceneManager;
+class Game;
 
 class Scene
 {
 public:
-	Scene(SceneManager &sceneManager);
+	Scene(Game& game);
 	virtual ~Scene();
 
 	virtual void update() = 0;
 	virtual void draw() = 0;
-
 protected:
-	SceneManager &sceneManager;
+	Game& game;
 };
 
 #endif

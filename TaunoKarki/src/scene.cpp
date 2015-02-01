@@ -1,6 +1,6 @@
 #include "scene.h"
 
-Scene::Scene(SceneManager &sceneManager) : sceneManager(sceneManager)
+Scene::Scene(Game& game) : game(game)
 {
 }
 
