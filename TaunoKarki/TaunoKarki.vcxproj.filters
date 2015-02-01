@@ -231,6 +231,9 @@
     <ClInclude Include="inc\game.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="inc\componentmanager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -255,6 +258,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\game.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\componentmanager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
