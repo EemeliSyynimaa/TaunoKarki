@@ -1,9 +1,11 @@
 #include "component.h"
+#include <iostream>
 
-Component::Component() : dead(false), enabled(true)
+Component::Component()
 {
 }
 
 Component::~Component()
 {
+	std::cout << "COMPONENT IS DIE" << std::endl;
 }

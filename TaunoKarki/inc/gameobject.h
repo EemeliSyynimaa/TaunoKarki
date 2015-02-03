@@ -1,7 +1,7 @@
 #ifndef GAMEOBJECT_H
 #define GAMEOBJECT_H
 
-#include <map>
+#include <vector>
 #include "component.h"
 
 
@@ -11,11 +11,12 @@ public:
 	GameObject();
 	~GameObject();
 
-	void addComponent(std::string tag, Component* component);
-	Component* getComponent(std::string tag);
-	void removeComponent(std::string tag);
+	void addComponent(Component* component);
+	//Component* getComponent(id); JOKU TÄLLÄNEN OIS KIVA 
+	//void removeComponent(std::string tag);
+	void update();
 private:
-	std::map<std::string, Component*> components;
+	std::vector<Component*> components;
 };
 
 #endif

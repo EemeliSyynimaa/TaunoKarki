@@ -6,20 +6,24 @@ GameObject::GameObject()
 
 GameObject::~GameObject()
 {
+	for (auto& component : components)
+	{
+		delete component;
+	}
+
+	components.clear();
 }
 
-void GameObject::addComponent(std::string tag, Component* component)
+void GameObject::addComponent(Component* component)
 {
 	component->setOwner(this);
-	components.insert(std::pair<std::string, Component*>(tag, component));
+	components.push_back(component);
 }
 
-Component* GameObject::getComponent(std::string tag)
+void GameObject::update()
 {
-	return components[tag];
-}
-
-void GameObject::removeComponent(std::string tag)
-{
-	components.erase(tag);
+	for (auto& component : components)
+	{
+		component->update();
+	}
 }

@@ -12,6 +12,8 @@ public:
 	void update();
 	void draw();
 private:
+
+	std::vector<GameObject*> gameObjects;
 };
 
 #endif

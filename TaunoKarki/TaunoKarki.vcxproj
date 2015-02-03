@@ -12,11 +12,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\component.h" />
-    <ClInclude Include="inc\componentmanager.h" />
     <ClInclude Include="inc\game.h" />
     <ClInclude Include="inc\gameobject.h" />
     <ClInclude Include="inc\gamescene.h" />
     <ClInclude Include="inc\menuscene.h" />
+    <ClInclude Include="inc\player.h" />
     <ClInclude Include="inc\scene.h" />
     <ClInclude Include="inc\scenemanager.h" />
     <ClInclude Include="inc\SDL\begin_code.h" />
@@ -86,12 +86,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\component.cpp" />
-    <ClCompile Include="src\componentmanager.cpp" />
     <ClCompile Include="src\game.cpp" />
     <ClCompile Include="src\gameobject.cpp" />
     <ClCompile Include="src\gamescene.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\menuscene.cpp" />
+    <ClCompile Include="src\player.cpp" />
     <ClCompile Include="src\scene.cpp" />
     <ClCompile Include="src\scenemanager.cpp" />
   </ItemGroup>
@@ -144,7 +144,8 @@
       <AdditionalDependencies>glew32s.lib;OpenGL32.lib;SDL2.lib;SDL2main.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>XCOPY "$(MSBuildProjectDirectory)\bin\*.dll" "$(TargetDir)" /D /K /Y</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -166,7 +167,8 @@
       <AdditionalDependencies>glew32s.lib;OpenGL32.lib;SDL2.lib;SDL2main.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>XCOPY "$(MSBuildProjectDirectory)\bin\*.dll" "$(TargetDir)" /D /K /Y</Command>
+      <Command>
+      </Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

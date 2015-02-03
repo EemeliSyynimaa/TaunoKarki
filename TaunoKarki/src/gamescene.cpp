@@ -3,9 +3,14 @@
 #include "game.h"
 #include <iostream>
 #include "gameobject.h"
+#include "player.h"
 
 GameScene::GameScene(Game& game) : Scene(game)
 {
+	// Testing
+	GameObject testi;
+
+	testi.addComponent(new Player());
 }
 
 GameScene::~GameScene()
@@ -14,9 +19,10 @@ GameScene::~GameScene()
 
 void GameScene::update()
 {
-	std::cout << "GAMESCENE WORKS" << std::endl;
-
-	game.getSceneManager().change(new MenuScene(game));
+	for (auto& gameObject : gameObjects)
+	{
+		gameObject->update();
+	}
 }
 
 void GameScene::draw()

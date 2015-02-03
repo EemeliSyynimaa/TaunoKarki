@@ -6,9 +6,6 @@ class GameObject;
 class Component
 {
 public:
-	bool dead;
-	bool enabled;
-
 	Component();
 	virtual ~Component();
 

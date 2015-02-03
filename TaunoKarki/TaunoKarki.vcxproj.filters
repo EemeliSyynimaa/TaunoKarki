@@ -16,6 +16,12 @@
     <Filter Include="Header Files\SDL">
       <UniqueIdentifier>{dbc9192f-3b6c-406b-b5ec-603fc5d186ff}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\components">
+      <UniqueIdentifier>{2bdeda65-650a-4206-9a22-50c5b4273a5f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\components">
+      <UniqueIdentifier>{0e92d0ab-b9b7-4dc3-af48-cbeaf9f6905a}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\SDL\begin_code.h">
@@ -231,8 +237,8 @@
     <ClInclude Include="inc\game.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="inc\componentmanager.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="inc\player.h">
+      <Filter>Header Files\components</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -260,8 +266,8 @@
     <ClCompile Include="src\game.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\componentmanager.cpp">
-      <Filter>Source Files</Filter>
+    <ClCompile Include="src\player.cpp">
+      <Filter>Source Files\components</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
