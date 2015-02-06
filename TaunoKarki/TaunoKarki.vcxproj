@@ -188,6 +188,9 @@
     <ClCompile Include="src\scene.cpp" />
     <ClCompile Include="src\scenemanager.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\SDL2.dll" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{0BE06389-FFA1-4D0E-B130-C89565C9E364}</ProjectGuid>
     <RootNamespace>TaunoKarki</RootNamespace>

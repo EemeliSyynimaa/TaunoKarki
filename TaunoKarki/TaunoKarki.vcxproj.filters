@@ -555,4 +555,7 @@
       <Filter>Source Files\Box2D</Filter>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="bin\SDL2.dll" />
+  </ItemGroup>
 </Project>
