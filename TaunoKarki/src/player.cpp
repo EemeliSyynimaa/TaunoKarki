@@ -3,6 +3,7 @@
 
 Player::Player()
 {
+	std::cout << "PLAYER IS HERE" << std::endl;
 }
 
 Player::~Player()

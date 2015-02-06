@@ -8,7 +8,7 @@ SceneManager::SceneManager()
 
 SceneManager::~SceneManager()
 {
-	for (auto &scene : scenes)
+	for (auto& scene : scenes)
 	{
 		delete scene;
 	}
@@ -26,7 +26,7 @@ void SceneManager::draw()
 	scenes.back()->draw();
 }
 
-void SceneManager::push(Scene *scene)
+void SceneManager::push(Scene* scene)
 {
 	scenes.push_back(scene);
 }
@@ -37,7 +37,7 @@ void SceneManager::pop()
 	scenes.pop_back();
 }
 
-void SceneManager::change(Scene *scene)
+void SceneManager::change(Scene* scene)
 {
 	if (!scenes.empty())
 	{

@@ -2,6 +2,7 @@
 #define GAMESCENE_H
 
 #include "scene.h"
+#include "gameobject.h"
 
 class GameScene : public Scene
 {
