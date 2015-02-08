@@ -14,6 +14,8 @@ public:
 	SceneManager& getSceneManager() { return sceneManager; }
 
 	void run();
+
+	GLuint VAO = 0;
 private:
 	SDL_Window* window;
 	SDL_GLContext context;

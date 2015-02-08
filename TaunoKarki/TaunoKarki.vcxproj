@@ -130,6 +130,7 @@
     <ClInclude Include="inc\SDL\SDL_types.h" />
     <ClInclude Include="inc\SDL\SDL_version.h" />
     <ClInclude Include="inc\SDL\SDL_video.h" />
+    <ClInclude Include="inc\ShaderSource.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="inc\Box2D\Collision\b2BroadPhase.cpp" />
@@ -187,6 +188,7 @@
     <ClCompile Include="src\player.cpp" />
     <ClCompile Include="src\scene.cpp" />
     <ClCompile Include="src\scenemanager.cpp" />
+    <ClCompile Include="src\ShaderSource.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="bin\SDL2.dll" />

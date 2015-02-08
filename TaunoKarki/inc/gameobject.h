@@ -12,9 +12,11 @@ public:
 	~GameObject();
 
 	void addComponent(Component* component);
-	//Component* getComponent(id); JOKU TÄLLÄNEN OIS KIVA 
-	//void removeComponent(std::string tag);
 	void update();
+
+	b2Vec3 position;
+	b2Vec3 rotation;
+	b2Vec3 scale;
 private:
 	std::vector<Component*> components;
 };

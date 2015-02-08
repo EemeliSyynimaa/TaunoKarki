@@ -387,6 +387,9 @@
     <ClInclude Include="inc\Box2D\Box2D.h">
       <Filter>Header Files\Box2D</Filter>
     </ClInclude>
+    <ClInclude Include="inc\ShaderSource.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -553,6 +556,9 @@
     </ClCompile>
     <ClCompile Include="inc\Box2D\Dynamics\b2WorldCallbacks.cpp">
       <Filter>Source Files\Box2D</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ShaderSource.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
