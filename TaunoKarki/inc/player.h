@@ -12,9 +12,6 @@ public:
 
 	void update();
 private:
-	GLuint IBO = 0;
-	GLuint VBO = 0;
-	GLuint program;
 };
 
 #endif

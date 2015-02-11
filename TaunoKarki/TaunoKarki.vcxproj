@@ -62,6 +62,7 @@
     <ClInclude Include="inc\game.h" />
     <ClInclude Include="inc\gameobject.h" />
     <ClInclude Include="inc\gamescene.h" />
+    <ClInclude Include="inc\lodepng.h" />
     <ClInclude Include="inc\menuscene.h" />
     <ClInclude Include="inc\player.h" />
     <ClInclude Include="inc\scene.h" />
@@ -131,6 +132,8 @@
     <ClInclude Include="inc\SDL\SDL_version.h" />
     <ClInclude Include="inc\SDL\SDL_video.h" />
     <ClInclude Include="inc\ShaderSource.h" />
+    <ClInclude Include="inc\sprite.h" />
+    <ClInclude Include="inc\texture.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="inc\Box2D\Collision\b2BroadPhase.cpp" />
@@ -183,12 +186,15 @@
     <ClCompile Include="src\game.cpp" />
     <ClCompile Include="src\gameobject.cpp" />
     <ClCompile Include="src\gamescene.cpp" />
+    <ClCompile Include="src\lodepng.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\menuscene.cpp" />
     <ClCompile Include="src\player.cpp" />
     <ClCompile Include="src\scene.cpp" />
     <ClCompile Include="src\scenemanager.cpp" />
     <ClCompile Include="src\ShaderSource.cpp" />
+    <ClCompile Include="src\sprite.cpp" />
+    <ClCompile Include="src\texture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="bin\SDL2.dll" />

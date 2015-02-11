@@ -4,11 +4,13 @@
 #include <iostream>
 #include "gameobject.h"
 #include "player.h"
+#include "sprite.h"
+#include "texture.h"
 #include <cstdarg>
 
 GameScene::GameScene(Game& game) : Scene(game)
 {
-	addGameObject(1, new Player());
+	addGameObject(2, new Player(), new Sprite(new Texture(GL_TEXTURE_2D, "assets/textures/cube.png")));
 }
 
 GameScene::~GameScene()

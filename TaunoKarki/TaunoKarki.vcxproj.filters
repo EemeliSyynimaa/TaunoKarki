@@ -390,6 +390,15 @@
     <ClInclude Include="inc\ShaderSource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="inc\texture.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\lodepng.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\sprite.h">
+      <Filter>Header Files\components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -559,6 +568,15 @@
     </ClCompile>
     <ClCompile Include="src\ShaderSource.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\texture.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\lodepng.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sprite.cpp">
+      <Filter>Source Files\components</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
