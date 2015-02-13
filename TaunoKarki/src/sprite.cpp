@@ -10,6 +10,7 @@ Sprite::Sprite(Texture* texture) : texture(texture)
 
 Sprite::~Sprite()
 {
+
 }
 
 void Sprite::update()

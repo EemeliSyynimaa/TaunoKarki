@@ -25,8 +25,11 @@
     <Filter Include="Source Files\Box2D">
       <UniqueIdentifier>{47a3da6a-f657-42e8-8e29-d2f67fa26d6e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\components">
+      <UniqueIdentifier>{2bdeda65-650a-4206-9a22-50c5b4273a5f}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Header Files\GLM">
-      <UniqueIdentifier>{08dd815b-932a-45f6-8ceb-c46d7aff637c}</UniqueIdentifier>
+      <UniqueIdentifier>{e0683d84-a441-4089-a6ec-596acf3d84d6}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -222,6 +225,27 @@
     <ClInclude Include="inc\SDL\SDL_video.h">
       <Filter>Header Files\SDL</Filter>
     </ClInclude>
+    <ClInclude Include="inc\scenemanager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\scene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\menuscene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\gamescene.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\component.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\gameobject.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\game.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="inc\player.h">
       <Filter>Header Files\components</Filter>
     </ClInclude>
@@ -366,8 +390,11 @@
     <ClInclude Include="inc\Box2D\Box2D.h">
       <Filter>Header Files\Box2D</Filter>
     </ClInclude>
-    <ClInclude Include="inc\sprite.h">
-      <Filter>Header Files\components</Filter>
+    <ClInclude Include="inc\lodepng.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\texture.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="inc\glm\detail\_features.hpp">
       <Filter>Header Files\GLM</Filter>
@@ -621,10 +648,10 @@
     <ClInclude Include="inc\glm\gtx\orthonormalize.hpp">
       <Filter>Header Files\GLM</Filter>
     </ClInclude>
-    <ClInclude Include="inc\glm\packing.hpp">
+    <ClInclude Include="inc\glm\gtc\packing.hpp">
       <Filter>Header Files\GLM</Filter>
     </ClInclude>
-    <ClInclude Include="inc\glm\gtc\packing.hpp">
+    <ClInclude Include="inc\glm\packing.hpp">
       <Filter>Header Files\GLM</Filter>
     </ClInclude>
     <ClInclude Include="inc\glm\gtx\perpendicular.hpp">
@@ -795,32 +822,8 @@
     <ClInclude Include="inc\glm\gtx\wrap.hpp">
       <Filter>Header Files\GLM</Filter>
     </ClInclude>
-    <ClInclude Include="inc\texture.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\component.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\game.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\gameobject.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\gamescene.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\lodepng.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\menuscene.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\scene.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\scenemanager.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="inc\sprite.h">
+      <Filter>Header Files\components</Filter>
     </ClInclude>
     <ClInclude Include="inc\ShaderSource.h">
       <Filter>Header Files</Filter>
@@ -992,13 +995,13 @@
     <ClCompile Include="inc\Box2D\Dynamics\b2WorldCallbacks.cpp">
       <Filter>Source Files\Box2D</Filter>
     </ClCompile>
+    <ClCompile Include="src\lodepng.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="src\ShaderSource.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\texture.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\lodepng.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\sprite.cpp">
@@ -1088,16 +1091,19 @@
     <None Include="inc\glm\detail\func_vector_relational.inl">
       <Filter>Header Files\GLM</Filter>
     </None>
+    <None Include="inc\glm\gtx\io.inl">
+      <Filter>Header Files\GLM</Filter>
+    </None>
     <None Include="inc\glm\gtx\gradient_paint.inl">
       <Filter>Header Files\GLM</Filter>
     </None>
     <None Include="inc\glm\gtx\handed_coordinate_space.inl">
       <Filter>Header Files\GLM</Filter>
     </None>
-    <None Include="inc\glm\gtc\integer.inl">
+    <None Include="inc\glm\gtx\integer.inl">
       <Filter>Header Files\GLM</Filter>
     </None>
-    <None Include="inc\glm\gtx\integer.inl">
+    <None Include="inc\glm\gtc\integer.inl">
       <Filter>Header Files\GLM</Filter>
     </None>
     <None Include="inc\glm\gtx\intersect.inl">
@@ -1122,9 +1128,6 @@
       <Filter>Header Files\GLM</Filter>
     </None>
     <None Include="inc\glm\detail\intrinsic_vector_relational.inl">
-      <Filter>Header Files\GLM</Filter>
-    </None>
-    <None Include="inc\glm\gtx\io.inl">
       <Filter>Header Files\GLM</Filter>
     </None>
     <None Include="inc\glm\gtx\log_base.inl">
@@ -1199,10 +1202,10 @@
     <None Include="inc\glm\gtx\projection.inl">
       <Filter>Header Files\GLM</Filter>
     </None>
-    <None Include="inc\glm\gtx\quaternion.inl">
+    <None Include="inc\glm\gtc\quaternion.inl">
       <Filter>Header Files\GLM</Filter>
     </None>
-    <None Include="inc\glm\gtc\quaternion.inl">
+    <None Include="inc\glm\gtx\quaternion.inl">
       <Filter>Header Files\GLM</Filter>
     </None>
     <None Include="inc\glm\gtc\random.inl">
@@ -1334,5 +1337,7 @@
     <None Include="inc\glm\gtx\wrap.inl">
       <Filter>Header Files\GLM</Filter>
     </None>
+    <None Include="assets\shaders\fragment.glsl" />
+    <None Include="assets\shaders\vertex.glsl" />
   </ItemGroup>
 </Project>

@@ -339,6 +339,8 @@
     <ClCompile Include="src\texture.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="assets\shaders\fragment.glsl" />
+    <None Include="assets\shaders\vertex.glsl" />
     <None Include="bin\SDL2.dll" />
     <None Include="inc\glm\detail\func_common.inl" />
     <None Include="inc\glm\detail\func_exponential.inl" />

@@ -10,7 +10,8 @@
 
 GameScene::GameScene(Game& game) : Scene(game)
 {
-	addGameObject(2, new Player(), new Sprite(new Texture(GL_TEXTURE_2D, "assets/textures/cube.png")));
+	texture = new Texture(GL_TEXTURE_2D, "assets/textures/cube.pn");
+	addGameObject(2, new Player(), new Sprite(texture));
 }
 
 GameScene::~GameScene()
@@ -21,6 +22,8 @@ GameScene::~GameScene()
 	}
 
 	gameObjects.clear();
+
+	delete texture;
 }
 
 void GameScene::addGameObject(int numberOfComponents, ...)
