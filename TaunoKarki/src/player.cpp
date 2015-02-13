@@ -1,4 +1,5 @@
 #include "player.h"
+#include "ShaderSource.h"
 #include <iostream>
 
 Player::Player()

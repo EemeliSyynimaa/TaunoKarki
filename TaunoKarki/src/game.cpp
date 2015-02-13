@@ -40,11 +40,16 @@ Game::Game() : screenWidth(1280), screenHeight(720)
 	glGetIntegerv(GL_MINOR_VERSION, &versionMinor);
 	std::cout << "OpenGL context version: " << versionMajor << "." << versionMinor << std::endl;
 
+	glGenVertexArrays(1, &VAO);
+	glBindVertexArray(VAO);
+
 	sceneManager.change(new GameScene(*this));
 }
 
 Game::~Game()
 {
+	glDeleteVertexArrays(1, &VAO);
+
 	SDL_GL_DeleteContext(context);
 	SDL_DestroyWindow(window);
 	SDL_Quit();

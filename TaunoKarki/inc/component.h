@@ -15,10 +15,6 @@ public:
 	GameObject* getOwner() { return owner; }
 protected:
 	GameObject* owner;
-
-	b2Vec3 position;
-	b2Vec3 rotation;
-	b2Vec3 scale;
 };
 
 #endif

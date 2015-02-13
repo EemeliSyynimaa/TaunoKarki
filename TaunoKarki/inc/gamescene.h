@@ -3,6 +3,7 @@
 
 #include "scene.h"
 #include "gameobject.h"
+#include "component.h"
 
 class GameScene : public Scene
 {
@@ -12,6 +13,7 @@ public:
 
 	void update();
 	void draw();
+	void addGameObject(int numberOfComponents, ...);
 private:
 
 	std::vector<GameObject*> gameObjects;
