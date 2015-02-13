@@ -16,9 +16,6 @@
     <Filter Include="Header Files\SDL">
       <UniqueIdentifier>{dbc9192f-3b6c-406b-b5ec-603fc5d186ff}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\components">
-      <UniqueIdentifier>{2bdeda65-650a-4206-9a22-50c5b4273a5f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\components">
       <UniqueIdentifier>{0e92d0ab-b9b7-4dc3-af48-cbeaf9f6905a}</UniqueIdentifier>
     </Filter>
@@ -27,6 +24,9 @@
     </Filter>
     <Filter Include="Source Files\Box2D">
       <UniqueIdentifier>{47a3da6a-f657-42e8-8e29-d2f67fa26d6e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\components">
+      <UniqueIdentifier>{2bdeda65-650a-4206-9a22-50c5b4273a5f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
