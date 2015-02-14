@@ -1,8 +1,9 @@
 #include "component.h"
 #include <iostream>
 
-Component::Component()
+Component::Component() : alive(false), enabled(false)
 {
+	std::cout << "COMPONENT IS HERE" << std::endl;
 }
 
 Component::~Component()

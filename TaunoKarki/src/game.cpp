@@ -71,20 +71,20 @@ void Game::run()
 			}
 
 			update();
-			//draw();
+			draw();
 		}
 	}
 }
 
 void Game::update()
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	sceneManager.update();
 	SDL_GL_SwapWindow(window);
 }
 
 void Game::draw()
 {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	sceneManager.draw();
 	SDL_GL_SwapWindow(window);
 }

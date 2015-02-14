@@ -11,6 +11,7 @@ public:
 	Sprite();
 	Sprite(Texture* texture);
 	~Sprite();
+	void reset();
 	void update();
 private:
 	Texture* texture;

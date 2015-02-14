@@ -59,6 +59,7 @@
     <ClInclude Include="inc\Box2D\Dynamics\Joints\b2WheelJoint.h" />
     <ClInclude Include="inc\Box2D\Rope\b2Rope.h" />
     <ClInclude Include="inc\component.h" />
+    <ClInclude Include="inc\componentmanager.h" />
     <ClInclude Include="inc\game.h" />
     <ClInclude Include="inc\gameobject.h" />
     <ClInclude Include="inc\gamescene.h" />

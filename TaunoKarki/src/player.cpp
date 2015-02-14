@@ -13,6 +13,10 @@ Player::~Player()
 	std::cout << "PLAYER IS DIE" << std::endl;
 }
 
+void Player::reset()
+{
+}
+
 void Player::update()
 {
 }

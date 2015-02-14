@@ -13,8 +13,6 @@ public:
 	~GameObject();
 
 	void addComponent(Component* component);
-	void update();
-
 
 	template<class T> 
 	T* const getComponent() const {

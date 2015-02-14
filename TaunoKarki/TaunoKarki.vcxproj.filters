@@ -828,6 +828,9 @@
     <ClInclude Include="inc\ShaderSource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="inc\componentmanager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">

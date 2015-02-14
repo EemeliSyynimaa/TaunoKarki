@@ -10,6 +10,7 @@ public:
 	Player();
 	~Player();
 
+	void reset();
 	void update();
 private:
 };

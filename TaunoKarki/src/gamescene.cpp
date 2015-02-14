@@ -6,12 +6,17 @@
 #include "player.h"
 #include "sprite.h"
 #include "texture.h"
+#include "componentmanager.h"
 #include <cstdarg>
 
-GameScene::GameScene(Game& game) : Scene(game)
+GameScene::GameScene(Game& game) : Scene(game), spriteComponents(1), playerComponents(1)
 {
 	texture = new Texture(GL_TEXTURE_2D, "assets/textures/cube.pn");
-	addGameObject(2, new Player(), new Sprite(texture));
+
+	GameObject *plr = addGameObject();
+	
+	spriteComponents.addComponent(plr);
+	playerComponents.addComponent(plr);
 }
 
 GameScene::~GameScene()
@@ -26,30 +31,20 @@ GameScene::~GameScene()
 	delete texture;
 }
 
-void GameScene::addGameObject(int numberOfComponents, ...)
+GameObject* GameScene::addGameObject()
 {
 	GameObject* gameObject = new GameObject();
-
-	va_list vl;
-	va_start(vl, numberOfComponents);
-	for (unsigned int i = 0; i < numberOfComponents; i++)
-	{
-		gameObject->addComponent(va_arg(vl, Component*));
-	}
-
-	va_end(vl);
-
 	gameObjects.push_back(gameObject);
+
+	return gameObject;
 }
 
 void GameScene::update()
 {
-	for (auto& gameObject : gameObjects)
-	{
-		gameObject->update();
-	}
+	playerComponents.update();
 }
 
 void GameScene::draw()
 {
+	spriteComponents.update();
 }
