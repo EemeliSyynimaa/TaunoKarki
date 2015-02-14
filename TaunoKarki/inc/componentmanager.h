@@ -37,8 +37,6 @@ public:
 		}
 	}
 
-
-
 	void addComponent(GameObject* gameobject)
 	{
 		for (auto& component : components)

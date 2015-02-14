@@ -831,6 +831,9 @@
     <ClInclude Include="inc\componentmanager.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="inc\shaderprogram.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -1009,6 +1012,9 @@
     </ClCompile>
     <ClCompile Include="src\sprite.cpp">
       <Filter>Source Files\components</Filter>
+    </ClCompile>
+    <ClCompile Include="src\shaderprogram.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

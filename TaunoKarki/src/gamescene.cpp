@@ -7,7 +7,7 @@
 #include "sprite.h"
 #include "texture.h"
 #include "componentmanager.h"
-#include <cstdarg>
+#include "shaderprogram.h"
 
 GameScene::GameScene(Game& game) : Scene(game), spriteComponents(1), playerComponents(1)
 {
@@ -17,6 +17,10 @@ GameScene::GameScene(Game& game) : Scene(game), spriteComponents(1), playerCompo
 	
 	spriteComponents.addComponent(plr);
 	playerComponents.addComponent(plr);
+
+	ShaderProgram shaderProgram;
+
+	shaderProgram.loadShaders("assets/shaders/vertex.glsl", "assets/shaders/fragment.glsl");
 }
 
 GameScene::~GameScene()
