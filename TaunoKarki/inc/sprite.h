@@ -1,6 +1,7 @@
 #ifndef SPRITE_H
 #define SPRITE_H
 
+#include <iostream>
 #include "component.h"
 #include "texture.h"
 

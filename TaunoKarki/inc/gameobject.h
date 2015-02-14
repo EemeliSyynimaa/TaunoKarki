@@ -2,6 +2,7 @@
 #define GAMEOBJECT_H
 
 #include <vector>
+#include <algorithm>
 #include "component.h"
 
 
@@ -14,9 +15,19 @@ public:
 	void addComponent(Component* component);
 	void update();
 
-	b2Vec3 position;
-	b2Vec3 rotation;
-	b2Vec3 scale;
+
+	template<class T> 
+	T* const getComponent() const {
+		T* foundComponent = nullptr;
+
+		std::find_if(components.begin(), components.end(), [=, &foundComponent](Component* component) {
+			foundComponent = dynamic_cast<T*>(component);
+
+			return foundComponent != nullptr;
+		});
+
+		return foundComponent;
+	}
 private:
 	std::vector<Component*> components;
 };

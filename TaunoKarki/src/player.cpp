@@ -1,5 +1,6 @@
 #include "player.h"
-#include "ShaderSource.h"
+#include "gameobject.h"
+#include "sprite.h"
 #include <iostream>
 
 Player::Player()
