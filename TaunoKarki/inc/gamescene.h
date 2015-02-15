@@ -21,7 +21,11 @@ public:
 	void draw();
 	GameObject* addGameObject();
 private:
+	ShaderProgram* shaderProgram;
 	Texture* texture;
+	glm::mat4 viewMatrix;
+	glm::mat4 projectionMatrix;
+
 	std::vector<GameObject*> gameObjects;
 	ComponentManager<Sprite> spriteComponents;
 	ComponentManager<Player> playerComponents;

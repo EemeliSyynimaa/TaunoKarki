@@ -12,6 +12,8 @@ public:
 	~Texture();
 
 	void bind(GLenum target);
+
+	GLuint getID() { return ID; }
 private:
 	GLuint ID;
 	GLuint width;

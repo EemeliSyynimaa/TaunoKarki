@@ -19,6 +19,8 @@ Game::Game() : screenWidth(1280), screenHeight(720)
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
 
 	window = SDL_CreateWindow("Tauno Kaerki", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
 		screenWidth, screenHeight, SDL_WINDOW_OPENGL);
@@ -39,6 +41,13 @@ Game::Game() : screenWidth(1280), screenHeight(720)
 	glGetIntegerv(GL_MAJOR_VERSION, &versionMajor);
 	glGetIntegerv(GL_MINOR_VERSION, &versionMinor);
 	std::cout << "OpenGL context version: " << versionMajor << "." << versionMinor << std::endl;
+
+	int parameter;
+	glGetIntegerv(GL_SAMPLES, &parameter);
+	std::cout << "Multisampling samples: " << parameter << '\n';
+	
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
 
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
@@ -69,17 +78,16 @@ void Game::run()
 			{
 				running = false;
 			}
-
-			update();
-			draw();
 		}
+
+		update();
+		draw();
 	}
 }
 
 void Game::update()
 {
 	sceneManager.update();
-	SDL_GL_SwapWindow(window);
 }
 
 void Game::draw()

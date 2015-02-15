@@ -14,22 +14,20 @@ ShaderProgram::~ShaderProgram()
 void ShaderProgram::loadShaders(const std::string& vertexPath, const std::string& fragmentPath)
 {
 	GLint result = GL_FALSE;
-	std::string temp;
-	const char* source;
 
 	GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 
-	temp = readFile(vertexPath);
-	source = temp.c_str();
-	glShaderSource(vertexShader, 1, &source, nullptr);
+	std::string vertexTemp = readFile(vertexPath);
+	const char* vertexSource = vertexTemp.c_str();
+	glShaderSource(vertexShader, 1, &vertexSource, nullptr);
 	glCompileShader(vertexShader);
 	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &result);
 	assert(result == GL_TRUE);
 
-	temp = readFile(fragmentPath);
-	source = temp.c_str();
-	glShaderSource(fragmentShader, 1, &source, nullptr);
+	std::string fragTemp = readFile(fragmentPath);
+	const char* fragSource = fragTemp.c_str();
+	glShaderSource(fragmentShader, 1, &fragSource, nullptr);
 	glCompileShader(fragmentShader);
 	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &result);
 	assert(result == GL_TRUE);

@@ -12,7 +12,8 @@ public:
 	~Game();
 
 	SceneManager& getSceneManager() { return sceneManager; }
-
+	int getScreenWidth() { return screenWidth; }
+	int getScreenHeight() { return screenHeight; }
 	void run();
 
 	GLuint VAO = 0;

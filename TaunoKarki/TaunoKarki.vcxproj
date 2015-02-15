@@ -275,7 +275,6 @@
     <ClInclude Include="inc\SDL\SDL_version.h" />
     <ClInclude Include="inc\SDL\SDL_video.h" />
     <ClInclude Include="inc\shaderprogram.h" />
-    <ClInclude Include="inc\ShaderSource.h" />
     <ClInclude Include="inc\sprite.h" />
     <ClInclude Include="inc\texture.h" />
   </ItemGroup>
@@ -337,7 +336,6 @@
     <ClCompile Include="src\scene.cpp" />
     <ClCompile Include="src\scenemanager.cpp" />
     <ClCompile Include="src\shaderprogram.cpp" />
-    <ClCompile Include="src\ShaderSource.cpp" />
     <ClCompile Include="src\sprite.cpp" />
     <ClCompile Include="src\texture.cpp" />
   </ItemGroup>
