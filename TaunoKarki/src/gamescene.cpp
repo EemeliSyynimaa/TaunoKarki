@@ -8,9 +8,11 @@
 #include "texture.h"
 #include "componentmanager.h"
 #include "shaderprogram.h"
-#include "glm/gtc/matrix_transform.hpp">
+#include "glm/gtc/matrix_transform.hpp"
 
-GameScene::GameScene(Game& game) : Scene(game), spriteComponents(1), playerComponents(1)
+// MIKSI TÄMÄ VITUN SYÖPÄ PASKA OPENGL VITUN SAATANA EI VOI TOIMIA VITTU SAATANAN UNISADE PERKELE PIDGIN VITU T PASIELIN PASKA SAATANA ENKON KEBABIT VITTU VFDVJODFVDFGVÖDFGDFÖDKGDLÖf
+
+GameScene::GameScene(Game& game) : Scene(game), spriteComponents(1), playerComponents(1), transformComponents(1)
 {
 	projectionMatrix = glm::perspective(glm::radians(60.0f),
 		static_cast <float>(game.getScreenWidth()) / game.getScreenHeight(),
@@ -29,6 +31,7 @@ GameScene::GameScene(Game& game) : Scene(game), spriteComponents(1), playerCompo
 
 	GameObject *plr = addGameObject();
 	
+	transformComponents.addComponent(plr);
 	spriteComponents.addComponent(plr);
 	playerComponents.addComponent(plr);
 
@@ -37,6 +40,8 @@ GameScene::GameScene(Game& game) : Scene(game), spriteComponents(1), playerCompo
 	temp->setTexture(texture);
 	temp->setViewMatrix(&viewMatrix);
 	temp->setProjectionMatrix(&projectionMatrix);
+
+	Transform* temp2 = plr->getComponent<Transform>();
 }
 
 GameScene::~GameScene()

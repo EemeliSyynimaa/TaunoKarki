@@ -44,10 +44,10 @@ public:
 			if (!component->isAlive())
 			{
 				component->setOwner(gameobject);
+				gameobject->addComponent(component);
 				component->reset();
 				component->revive();
 				component->enable();
-				gameobject->addComponent(component);
 			}
 		}
 	}

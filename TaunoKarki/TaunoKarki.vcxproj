@@ -277,6 +277,7 @@
     <ClInclude Include="inc\shaderprogram.h" />
     <ClInclude Include="inc\sprite.h" />
     <ClInclude Include="inc\texture.h" />
+    <ClInclude Include="inc\transform.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="inc\Box2D\Collision\b2BroadPhase.cpp" />
@@ -338,6 +339,7 @@
     <ClCompile Include="src\shaderprogram.cpp" />
     <ClCompile Include="src\sprite.cpp" />
     <ClCompile Include="src\texture.cpp" />
+    <ClCompile Include="src\transform.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\fragment.glsl" />

@@ -5,6 +5,7 @@
 #include "component.h"
 #include "texture.h"
 #include "shaderprogram.h"
+#include "transform.h"
 #include "glm/glm.hpp"
 
 class Sprite : public Component
@@ -21,15 +22,14 @@ public:
 private:
 	Texture* texture;
 	ShaderProgram* program;
+	Transform* transform;
 
-	glm::mat4* modelMatrix;
 	glm::mat4* projectionMatrix;
 	glm::mat4* viewMatrix;
 
 	GLuint vertexSize;
 	GLuint VBO;
 	GLuint IBO;
-	GLuint VAO;
 	GLint textureIndex;
 	GLint MVPIndex;
 };

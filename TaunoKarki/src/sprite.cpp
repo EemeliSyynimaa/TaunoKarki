@@ -1,7 +1,7 @@
 #include "sprite.h"
 #include "glm/gtc/type_ptr.hpp"
 #include <iostream>
-#include "glm/gtc/matrix_transform.hpp">
+#include "gameobject.h"
 
 Sprite::Sprite()
 {
@@ -44,7 +44,11 @@ void Sprite::reset()
 	texture = nullptr;
 	program = nullptr;
 
-	modelMatrix = new glm::mat4(1.0f);
+	if (owner)
+		transform = owner->getComponent<Transform>();
+	else
+		transform = nullptr;
+
 	projectionMatrix = nullptr;
 	viewMatrix = nullptr;
 
@@ -141,7 +145,7 @@ void Sprite::update()
 	program->bind();
 
 	glUniform1i(textureIndex, 0);
-	glUniformMatrix4fv(MVPIndex, 1, GL_FALSE, glm::value_ptr(*projectionMatrix * *viewMatrix * *modelMatrix));
+	glUniformMatrix4fv(MVPIndex, 1, GL_FALSE, glm::value_ptr(*projectionMatrix * *viewMatrix * transform->getTranslation() * transform->getOrientation() * transform->getScaling()));
 
 	texture->bind(GL_TEXTURE0);
 

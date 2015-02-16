@@ -843,6 +843,9 @@
     <ClInclude Include="inc\texture.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
+    <ClInclude Include="inc\transform.h">
+      <Filter>Header Files\components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -1021,6 +1024,9 @@
     </ClCompile>
     <ClCompile Include="src\texture.cpp">
       <Filter>Source Files\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\transform.cpp">
+      <Filter>Source Files\components</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

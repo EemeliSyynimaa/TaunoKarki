@@ -10,6 +10,7 @@
 // Components
 #include "sprite.h"
 #include "player.h"
+#include "transform.h"
 
 class GameScene : public Scene
 {
@@ -29,6 +30,7 @@ private:
 	std::vector<GameObject*> gameObjects;
 	ComponentManager<Sprite> spriteComponents;
 	ComponentManager<Player> playerComponents;
+	ComponentManager<Transform> transformComponents;
 };
 
 #endif
