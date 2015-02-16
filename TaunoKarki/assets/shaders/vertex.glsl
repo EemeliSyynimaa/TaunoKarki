@@ -9,6 +9,6 @@ out vec2 texcoords;
 
 void main()
 {
-	gl_Position = inPosition;
+	gl_Position = MVP * inPosition;
 	texcoords = inTexcoords;
 }

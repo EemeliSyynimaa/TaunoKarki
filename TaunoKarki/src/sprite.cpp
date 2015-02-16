@@ -48,9 +48,6 @@ void Sprite::reset()
 	projectionMatrix = nullptr;
 	viewMatrix = nullptr;
 
-	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO);
-
 	GLfloat vertexData[] = {
 		-1.0, -1.0, 1.0,
 		1.0, -1.0, 1.0,
@@ -95,7 +92,7 @@ void Sprite::reset()
 	for (int i = 1; i < 6; i++)
 		memcpy(&texcoords[i * 4 * 2], &texcoords[0], 2 * 4 * sizeof(GLfloat));
 
-	GLfloat indices[] = {
+	GLushort indices[] = {
 		0, 1, 2,
 		2, 3, 0,
 		// top
