@@ -26,6 +26,11 @@ void SceneManager::draw()
 	scenes.back()->draw();
 }
 
+void SceneManager::handleEvent(SDL_Event& event)
+{
+	scenes.back()->handleEvent(event);
+}
+
 void SceneManager::push(Scene* scene)
 {
 	scenes.push_back(scene);

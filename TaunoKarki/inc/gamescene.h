@@ -1,6 +1,7 @@
 #ifndef GAMESCENE_H
 #define GAMESCENE_H
 
+#include "SDL/SDL_events.h"
 #include "scene.h"
 #include "gameobject.h"
 #include "component.h"
@@ -16,6 +17,7 @@ public:
 
 	void update();
 	void draw();
+	void handleEvent(SDL_Event& event);
 private:
 	ShaderProgram* shaderProgram;
 	Texture* texture;
@@ -25,6 +27,13 @@ private:
 	glm::mat4 projectionMatrix;
 
 	std::vector<GameObject*> gameObjects;
+
+	bool moveForward;
+	bool moveBackward;
+	bool turnLeft;
+	bool turnRight;
+
+	GameObject* plr;
 };
 
 #endif

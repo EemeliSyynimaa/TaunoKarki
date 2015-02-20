@@ -72,12 +72,15 @@ void Game::run()
 
 	while (running)
 	{
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		while (SDL_PollEvent(&event) == 1)
 		{
 			if (event.type == SDL_QUIT)
 			{
 				running = false;
 			}
+			sceneManager.handleEvent(event);
 		}
 
 		update();
@@ -92,7 +95,6 @@ void Game::update()
 
 void Game::draw()
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	sceneManager.draw();
 	SDL_GL_SwapWindow(window);
 }

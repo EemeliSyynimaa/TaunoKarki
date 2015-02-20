@@ -20,3 +20,7 @@ void MenuScene::update()
 void MenuScene::draw()
 {
 }
+
+void MenuScene::handleEvent(SDL_Event& event)
+{
+}
