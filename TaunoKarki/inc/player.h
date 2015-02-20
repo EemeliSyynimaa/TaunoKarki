@@ -7,10 +7,9 @@
 class Player : public Component
 {
 public:
-	Player();
+	Player(GameObject* owner);
 	~Player();
 
-	void reset();
 	void update();
 private:
 };

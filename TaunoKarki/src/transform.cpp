@@ -1,8 +1,7 @@
 #include "transform.h"
 
-Transform::Transform()
+Transform::Transform(GameObject* owner) : Component(owner), position(1.0f), scale(1.0f), rotation(1.0f)
 {
-	reset();
 }
 
 Transform::~Transform()
@@ -11,25 +10,4 @@ Transform::~Transform()
 
 void Transform::update()
 {
-}
-
-void Transform::reset()
-{
-	needUpdate = true;
-	scale = glm::vec3(1.0f, 1.0f, 1.0f);
-}
-
-const glm::mat4& Transform::getOrientation()
-{
-	return orientation;
-}
-
-const glm::mat4& Transform::getTranslation()
-{
-	return translation;
-}
-
-const glm::mat4& Transform::getScaling()
-{
-	return scaling;
 }

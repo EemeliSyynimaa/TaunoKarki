@@ -2,22 +2,15 @@
 #include "menuscene.h"
 #include "game.h"
 #include <iostream>
-#include "gameobject.h"
-#include "player.h"
-#include "sprite.h"
-#include "texture.h"
-#include "componentmanager.h"
-#include "shaderprogram.h"
 #include "glm/gtc/matrix_transform.hpp"
+#include "meshrenderer.h"
+#include "transform.h"
 
-// MIKSI TÄMÄ VITUN SYÖPÄ PASKA OPENGL VITUN SAATANA EI VOI TOIMIA VITTU SAATANAN UNISADE PERKELE PIDGIN VITU T PASIELIN PASKA SAATANA ENKON KEBABIT VITTU VFDVJODFVDFGVÖDFGDFÖDKGDLÖf
-
-GameScene::GameScene(Game& game) : Scene(game), spriteComponents(1), playerComponents(1), transformComponents(1)
+GameScene::GameScene(Game& game) : Scene(game)
 {
 	projectionMatrix = glm::perspective(glm::radians(60.0f),
 		static_cast <float>(game.getScreenWidth()) / game.getScreenHeight(),
 		0.1f, 100.0f);
-
 	viewMatrix = glm::lookAt(
 		glm::vec3(0, 0, 10),
 		glm::vec3(0, 0, 0),
@@ -28,20 +21,21 @@ GameScene::GameScene(Game& game) : Scene(game), spriteComponents(1), playerCompo
 	texture = new Texture(GL_TEXTURE_2D, "assets/textures/cube.png");
 	shaderProgram = new ShaderProgram();
 	shaderProgram->loadShaders("assets/shaders/vertex.glsl", "assets/shaders/fragment.glsl");
+	mesh = new Mesh();
+	mesh->load("assets/meshes/cube.mesh");
 
-	GameObject *plr = addGameObject();
+	GameObject *plr = new GameObject();
+	plr->addComponent(new Transform(plr));
+	plr->addComponent(new MeshRenderer(plr));
+	plr->getComponent<MeshRenderer>()->setMesh(mesh);
+	plr->getComponent<MeshRenderer>()->setProgram(shaderProgram);
+	plr->getComponent<MeshRenderer>()->setProjectionMatrix(&projectionMatrix);
+	plr->getComponent<MeshRenderer>()->setViewMatrix(&viewMatrix);
+	plr->getComponent<MeshRenderer>()->setTexture(texture);
+
 	
-	transformComponents.addComponent(plr);
-	spriteComponents.addComponent(plr);
-	playerComponents.addComponent(plr);
 
-	Sprite* temp = plr->getComponent<Sprite>();
-	temp->setProgram(shaderProgram);
-	temp->setTexture(texture);
-	temp->setViewMatrix(&viewMatrix);
-	temp->setProjectionMatrix(&projectionMatrix);
-
-	Transform* temp2 = plr->getComponent<Transform>();
+	gameObjects.push_back(plr);
 }
 
 GameScene::~GameScene()
@@ -55,22 +49,15 @@ GameScene::~GameScene()
 
 	delete texture;
 	delete shaderProgram;
-}
-
-GameObject* GameScene::addGameObject()
-{
-	GameObject* gameObject = new GameObject();
-	gameObjects.push_back(gameObject);
-
-	return gameObject;
+	delete mesh;
 }
 
 void GameScene::update()
 {
-	playerComponents.update();
+	for (auto gameObject : gameObjects)
+		gameObject->update();
 }
 
 void GameScene::draw()
 {
-	spriteComponents.update();
 }

@@ -1,25 +1,27 @@
-#ifndef SPRITE_H
-#define SPRITE_H
+#ifndef MESHRENDERER_H
+#define MESHRENDERER_H
 
-#include <iostream>
 #include "component.h"
+#include "mesh.h"
 #include "texture.h"
-#include "shaderprogram.h"
 #include "transform.h"
+#include "shaderprogram.h"
 #include "glm/glm.hpp"
 
-class Sprite : public Component
+class MeshRenderer : public Component
 {
 public:
-	Sprite();
-	~Sprite();
-	void reset();
+	MeshRenderer(GameObject* owner);
+	~MeshRenderer();
+
 	void update();
+	void setMesh(Mesh* mesh);
 	void setTexture(Texture* texture);
 	void setProgram(ShaderProgram* program);
 	void setViewMatrix(glm::mat4* matrix);
 	void setProjectionMatrix(glm::mat4* matrix);
 private:
+	Mesh* mesh;
 	Texture* texture;
 	ShaderProgram* program;
 	Transform* transform;
@@ -27,7 +29,6 @@ private:
 	glm::mat4* projectionMatrix;
 	glm::mat4* viewMatrix;
 
-	GLuint vertexSize;
 	GLuint VBO;
 	GLuint IBO;
 	GLint textureIndex;

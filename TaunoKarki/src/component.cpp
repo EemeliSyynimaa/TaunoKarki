@@ -1,8 +1,10 @@
 #include "component.h"
 #include <iostream>
+#include "gameobject.h"
 
-Component::Component() : alive(false), enabled(false)
+Component::Component(GameObject* owner) : owner(owner)
 {
+	assert(owner);
 	std::cout << "COMPONENT IS HERE" << std::endl;
 }
 

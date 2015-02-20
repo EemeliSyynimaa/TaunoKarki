@@ -26,6 +26,9 @@ public:
 
 		return foundComponent;
 	}
+
+	void update();
+	void draw();
 private:
 	std::vector<Component*> components;
 };

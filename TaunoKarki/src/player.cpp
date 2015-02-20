@@ -1,19 +1,10 @@
 #include "player.h"
-#include "gameobject.h"
-#include "sprite.h"
-#include <iostream>
 
-Player::Player()
+Player::Player(GameObject* owner) : Component(owner)
 {
-	std::cout << "PLAYER IS HERE" << std::endl;
 }
 
 Player::~Player()
-{
-	std::cout << "PLAYER IS DIE" << std::endl;
-}
-
-void Player::reset()
 {
 }
 

@@ -43,6 +43,12 @@
     <Filter Include="Source Files\engine">
       <UniqueIdentifier>{315a9f92-0352-43e2-94cb-ebf210b46bb7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\assets">
+      <UniqueIdentifier>{63c4b6b9-b545-4ddb-b2ad-094d1759aa7c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\assets">
+      <UniqueIdentifier>{71fb78cc-f636-415a-97a2-40afa6896ffb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\SDL\begin_code.h">
@@ -807,9 +813,6 @@
     <ClInclude Include="inc\glm\gtx\wrap.hpp">
       <Filter>Header Files\GLM</Filter>
     </ClInclude>
-    <ClInclude Include="inc\sprite.h">
-      <Filter>Header Files\components</Filter>
-    </ClInclude>
     <ClInclude Include="inc\menuscene.h">
       <Filter>Header Files\scenes</Filter>
     </ClInclude>
@@ -817,9 +820,6 @@
       <Filter>Header Files\scenes</Filter>
     </ClInclude>
     <ClInclude Include="inc\component.h">
-      <Filter>Header Files\engine</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\componentmanager.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
     <ClInclude Include="inc\lodepng.h">
@@ -840,10 +840,16 @@
     <ClInclude Include="inc\shaderprogram.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
-    <ClInclude Include="inc\texture.h">
-      <Filter>Header Files\engine</Filter>
-    </ClInclude>
     <ClInclude Include="inc\transform.h">
+      <Filter>Header Files\components</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\mesh.h">
+      <Filter>Header Files\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\texture.h">
+      <Filter>Header Files\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\meshrenderer.h">
       <Filter>Header Files\components</Filter>
     </ClInclude>
   </ItemGroup>
@@ -992,9 +998,6 @@
     <ClCompile Include="inc\Box2D\Dynamics\b2WorldCallbacks.cpp">
       <Filter>Source Files\Box2D</Filter>
     </ClCompile>
-    <ClCompile Include="src\sprite.cpp">
-      <Filter>Source Files\components</Filter>
-    </ClCompile>
     <ClCompile Include="src\menuscene.cpp">
       <Filter>Source Files\scenes</Filter>
     </ClCompile>
@@ -1022,10 +1025,16 @@
     <ClCompile Include="src\shaderprogram.cpp">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
-    <ClCompile Include="src\texture.cpp">
-      <Filter>Source Files\engine</Filter>
-    </ClCompile>
     <ClCompile Include="src\transform.cpp">
+      <Filter>Source Files\components</Filter>
+    </ClCompile>
+    <ClCompile Include="src\mesh.cpp">
+      <Filter>Source Files\assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\texture.cpp">
+      <Filter>Source Files\assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\meshrenderer.cpp">
       <Filter>Source Files\components</Filter>
     </ClCompile>
   </ItemGroup>

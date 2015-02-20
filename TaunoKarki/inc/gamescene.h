@@ -5,12 +5,8 @@
 #include "gameobject.h"
 #include "component.h"
 #include "texture.h"
-#include "componentmanager.h"
-
-// Components
-#include "sprite.h"
-#include "player.h"
-#include "transform.h"
+#include "mesh.h"
+#include "shaderprogram.h"
 
 class GameScene : public Scene
 {
@@ -20,17 +16,15 @@ public:
 
 	void update();
 	void draw();
-	GameObject* addGameObject();
 private:
 	ShaderProgram* shaderProgram;
 	Texture* texture;
+	Mesh* mesh;
+
 	glm::mat4 viewMatrix;
 	glm::mat4 projectionMatrix;
 
 	std::vector<GameObject*> gameObjects;
-	ComponentManager<Sprite> spriteComponents;
-	ComponentManager<Player> playerComponents;
-	ComponentManager<Transform> transformComponents;
 };
 
 #endif

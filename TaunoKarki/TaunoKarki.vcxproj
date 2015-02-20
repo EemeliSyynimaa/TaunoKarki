@@ -59,7 +59,6 @@
     <ClInclude Include="inc\Box2D\Dynamics\Joints\b2WheelJoint.h" />
     <ClInclude Include="inc\Box2D\Rope\b2Rope.h" />
     <ClInclude Include="inc\component.h" />
-    <ClInclude Include="inc\componentmanager.h" />
     <ClInclude Include="inc\game.h" />
     <ClInclude Include="inc\gameobject.h" />
     <ClInclude Include="inc\gamescene.h" />
@@ -207,6 +206,8 @@
     <ClInclude Include="inc\glm\vector_relational.hpp" />
     <ClInclude Include="inc\lodepng.h" />
     <ClInclude Include="inc\menuscene.h" />
+    <ClInclude Include="inc\mesh.h" />
+    <ClInclude Include="inc\meshrenderer.h" />
     <ClInclude Include="inc\player.h" />
     <ClInclude Include="inc\scene.h" />
     <ClInclude Include="inc\scenemanager.h" />
@@ -275,7 +276,6 @@
     <ClInclude Include="inc\SDL\SDL_version.h" />
     <ClInclude Include="inc\SDL\SDL_video.h" />
     <ClInclude Include="inc\shaderprogram.h" />
-    <ClInclude Include="inc\sprite.h" />
     <ClInclude Include="inc\texture.h" />
     <ClInclude Include="inc\transform.h" />
   </ItemGroup>
@@ -333,11 +333,12 @@
     <ClCompile Include="src\lodepng.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\menuscene.cpp" />
+    <ClCompile Include="src\mesh.cpp" />
+    <ClCompile Include="src\meshrenderer.cpp" />
     <ClCompile Include="src\player.cpp" />
     <ClCompile Include="src\scene.cpp" />
     <ClCompile Include="src\scenemanager.cpp" />
     <ClCompile Include="src\shaderprogram.cpp" />
-    <ClCompile Include="src\sprite.cpp" />
     <ClCompile Include="src\texture.cpp" />
     <ClCompile Include="src\transform.cpp" />
   </ItemGroup>
