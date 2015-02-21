@@ -8,6 +8,7 @@
 #include "texture.h"
 #include "mesh.h"
 #include "shaderprogram.h"
+#include "tilemap.h"
 
 class GameScene : public Scene
 {
@@ -21,7 +22,9 @@ public:
 private:
 	ShaderProgram* shaderProgram;
 	Texture* texture;
+	Texture* mapTexture;
 	Mesh* mesh;
+	Tilemap* tilemap;
 
 	glm::mat4 viewMatrix;
 	glm::mat4 projectionMatrix;

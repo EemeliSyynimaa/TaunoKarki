@@ -7,11 +7,10 @@
 class ShaderProgram
 {
 public:
-	ShaderProgram();
+	ShaderProgram(const std::string& vertexPath, const std::string& fragmentPath);
 	~ShaderProgram();
 
 	GLuint& getID() { return programID; }
-	void loadShaders(const std::string& vertexPath, const std::string& fragmentPath);
 	std::string readFile(const std::string& path);
 	void bind() const;
 	void unbind() const;

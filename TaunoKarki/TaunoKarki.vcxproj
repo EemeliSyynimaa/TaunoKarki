@@ -277,6 +277,7 @@
     <ClInclude Include="inc\SDL\SDL_video.h" />
     <ClInclude Include="inc\shaderprogram.h" />
     <ClInclude Include="inc\texture.h" />
+    <ClInclude Include="inc\tilemap.h" />
     <ClInclude Include="inc\transform.h" />
   </ItemGroup>
   <ItemGroup>
@@ -340,6 +341,7 @@
     <ClCompile Include="src\scenemanager.cpp" />
     <ClCompile Include="src\shaderprogram.cpp" />
     <ClCompile Include="src\texture.cpp" />
+    <ClCompile Include="src\tilemap.cpp" />
     <ClCompile Include="src\transform.cpp" />
   </ItemGroup>
   <ItemGroup>

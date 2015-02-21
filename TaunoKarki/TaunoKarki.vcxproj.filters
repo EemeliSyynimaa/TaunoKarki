@@ -852,6 +852,9 @@
     <ClInclude Include="inc\meshrenderer.h">
       <Filter>Header Files\components</Filter>
     </ClInclude>
+    <ClInclude Include="inc\tilemap.h">
+      <Filter>Header Files\assets</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -1036,6 +1039,9 @@
     </ClCompile>
     <ClCompile Include="src\meshrenderer.cpp">
       <Filter>Source Files\components</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tilemap.cpp">
+      <Filter>Source Files\assets</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

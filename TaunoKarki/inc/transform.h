@@ -7,9 +7,12 @@
 class Transform : public Component
 {
 public:
-	Transform(GameObject* owner);
+	Transform(GameObject* owner, float x = 0.0f, float y = 0.0f, float z = 0.0f);
 	~Transform();
 
+	void setPosition(glm::vec3& vec);
+	void setRotation(float r, glm::vec3& axis);
+	void lookAt(glm::vec3& vec);
 	void translate(glm::vec3& vec);
 	void rotate(float r, glm::vec3& axis);
 

@@ -48,6 +48,7 @@ Game::Game() : screenWidth(1280), screenHeight(720)
 	
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
+	glEnable(GL_CULL_FACE);
 
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
@@ -79,6 +80,11 @@ void Game::run()
 			if (event.type == SDL_QUIT)
 			{
 				running = false;
+			}
+			else if (event.type == SDL_KEYDOWN)
+			{
+				if (event.key.keysym.sym == SDLK_ESCAPE)
+					running = false;
 			}
 			sceneManager.handleEvent(event);
 		}

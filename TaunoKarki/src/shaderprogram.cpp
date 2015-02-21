@@ -2,16 +2,7 @@
 #include <cassert>
 #include <fstream>
 
-ShaderProgram::ShaderProgram() : programID(glCreateProgram())
-{
-}
-
-ShaderProgram::~ShaderProgram()
-{
-	glDeleteProgram(programID);
-}
-
-void ShaderProgram::loadShaders(const std::string& vertexPath, const std::string& fragmentPath)
+ShaderProgram::ShaderProgram(const std::string& vertexPath, const std::string& fragmentPath) : programID(glCreateProgram())
 {
 	GLint result = GL_FALSE;
 
@@ -31,7 +22,7 @@ void ShaderProgram::loadShaders(const std::string& vertexPath, const std::string
 	glCompileShader(fragmentShader);
 	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &result);
 	assert(result == GL_TRUE);
-	
+
 	glAttachShader(programID, vertexShader);
 	glAttachShader(programID, fragmentShader);
 
@@ -41,6 +32,11 @@ void ShaderProgram::loadShaders(const std::string& vertexPath, const std::string
 
 	glDeleteShader(vertexShader);
 	glDeleteShader(fragmentShader);
+}
+
+ShaderProgram::~ShaderProgram()
+{
+	glDeleteProgram(programID);
 }
 
 std::string ShaderProgram::readFile(const std::string& path)

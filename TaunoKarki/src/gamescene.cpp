@@ -5,6 +5,7 @@
 #include "glm/gtc/matrix_transform.hpp"
 #include "meshrenderer.h"
 #include "transform.h"
+#include "tilemap.h"
 
 GameScene::GameScene(Game& game) : Scene(game), turnLeft(false), turnRight(false), moveForward(false), moveBackward(false)
 {
@@ -12,20 +13,19 @@ GameScene::GameScene(Game& game) : Scene(game), turnLeft(false), turnRight(false
 		static_cast <float>(game.getScreenWidth()) / game.getScreenHeight(),
 		0.1f, 100.0f);
 	viewMatrix = glm::lookAt(
-		glm::vec3(0, 0, 10),
+		glm::vec3(0, 0, 25),
 		glm::vec3(0, 0, 0),
 		glm::vec3(0, 1, 0));
 
 	glClearColor(0.5f, 0.0f, 0.0f, 0.0f);
 
 	texture = new Texture(GL_TEXTURE_2D, "assets/textures/cube.png");
-	shaderProgram = new ShaderProgram();
-	shaderProgram->loadShaders("assets/shaders/vertex.glsl", "assets/shaders/fragment.glsl");
-	mesh = new Mesh();
-	mesh->load("assets/meshes/cube.mesh");
+	mapTexture = new Texture(GL_TEXTURE_2D, "assets/textures/wall.png");
+	shaderProgram = new ShaderProgram("assets/shaders/vertex.glsl", "assets/shaders/fragment.glsl");
+	mesh = new Mesh("assets/meshes/cube.mesh");
 
 	plr = new GameObject();
-	plr->addComponent(new Transform(plr));
+	plr->addComponent(new Transform(plr, 4.0f, -4.0f, 0));
 
 	plr->addComponent(new MeshRenderer(plr));
 	plr->getComponent<MeshRenderer>()->setMesh(mesh);
@@ -35,6 +35,8 @@ GameScene::GameScene(Game& game) : Scene(game), turnLeft(false), turnRight(false
 	plr->getComponent<MeshRenderer>()->setTexture(texture);
 
 	gameObjects.push_back(plr);
+
+	tilemap = new Tilemap("assets/maps/mappi.txt", mesh, mapTexture, shaderProgram, &viewMatrix, &projectionMatrix);
 }
 
 GameScene::~GameScene()
@@ -53,33 +55,43 @@ GameScene::~GameScene()
 
 void GameScene::update()
 {
-	/* follows player :-D
-	viewMatrix = glm::lookAt(
-		glm::vec3(plr->getComponent<Transform>()->getPosition().x, plr->getComponent<Transform>()->getPosition().y, 10),
-		glm::vec3(plr->getComponent<Transform>()->getPosition().x, plr->getComponent<Transform>()->getPosition().y, 0),
-		glm::vec3(0, 1, 0));
-	*/
+	tilemap->draw();
 
+	int x, y, z;
+	
+	SDL_GetMouseState(&x, &y);
+	glReadPixels(x, y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
+	glm::vec3 mouse(x, y, z);
+	glm::vec4 viewport(0.0f, 0.0f, game.getScreenWidth(), game.getScreenHeight());
+	glm::vec3 mouseInDaWorld = glm::unProject(mouse, viewMatrix, projectionMatrix, viewport);
+	
+	//plr->getComponent<Transform>()->setPosition(glm::vec3(mouseInDaWorld.x, mouseInDaWorld.y, 0));
+	//std::cout << mouseInDaWorld.x << ", " << mouseInDaWorld.y << ", " << mouseInDaWorld.z << ", " << std::endl;
+
+	//plr->getComponent<Transform>()->lookAt(mouseInDaWorld);
 	float moveSpeed = 0.1f;
 	float turnSpeed = 0.05f;
 
 	if (turnLeft)
 	{
-		gameObjects.back()->getComponent<Transform>()->rotate(turnSpeed, glm::vec3(0.0f, 0.0f, 1.0f));
-		gameObjects.back()->getComponent<Transform>()->translate(glm::vec3(-moveSpeed, 0.0f, 0.0f));
+		plr->getComponent<Transform>()->translate(glm::vec3(-moveSpeed, 0.0f, 0.0f));
 	}
 
 	if (turnRight)
 	{ 
-		gameObjects.back()->getComponent<Transform>()->rotate(turnSpeed, glm::vec3(0.0f, 0.0f, -1.0f));
-		gameObjects.back()->getComponent<Transform>()->translate(glm::vec3(moveSpeed, 0.0f, 0.0f));
+		plr->getComponent<Transform>()->translate(glm::vec3(moveSpeed, 0.0f, 0.0f));
 	}
 
 	if (moveForward)
-		gameObjects.back()->getComponent<Transform>()->translate(glm::vec3(0.0f, moveSpeed, 0.0f));
+		plr->getComponent<Transform>()->translate(glm::vec3(0.0f, moveSpeed, 0.0f));
 
 	if (moveBackward)
-		gameObjects.back()->getComponent<Transform>()->translate(glm::vec3(0.0f, -moveSpeed, 0.0f));
+		plr->getComponent<Transform>()->translate(glm::vec3(0.0f, -moveSpeed, 0.0f));
+
+	viewMatrix = glm::lookAt(
+		glm::vec3(plr->getComponent<Transform>()->getPosition().x, plr->getComponent<Transform>()->getPosition().y, 25),
+		glm::vec3(plr->getComponent<Transform>()->getPosition().x, plr->getComponent<Transform>()->getPosition().y, 0),
+		glm::vec3(0, 1, 0));
 
 	for (auto gameObject : gameObjects)
 		gameObject->update();
@@ -87,30 +99,31 @@ void GameScene::update()
 
 void GameScene::draw()
 {
+
 }
 
 void GameScene::handleEvent(SDL_Event& event)
 {
 	if (event.type == SDL_KEYDOWN)
 	{ 
-		if (event.key.keysym.sym == SDLK_UP)
+		if (event.key.keysym.sym == SDLK_w)
 			moveForward = true;
-		if (event.key.keysym.sym == SDLK_DOWN)
+		if (event.key.keysym.sym == SDLK_s)
 			moveBackward = true;
-		if (event.key.keysym.sym == SDLK_RIGHT)
+		if (event.key.keysym.sym == SDLK_d)
 			turnRight = true;
-		if (event.key.keysym.sym == SDLK_LEFT)
+		if (event.key.keysym.sym == SDLK_a)
 			turnLeft = true;
 	}
 	else if (event.type == SDL_KEYUP)
 	{
-		if (event.key.keysym.sym == SDLK_UP)
+		if (event.key.keysym.sym == SDLK_w)
 			moveForward = false;
-		if (event.key.keysym.sym == SDLK_DOWN)
+		if (event.key.keysym.sym == SDLK_s)
 			moveBackward = false;
-		if (event.key.keysym.sym == SDLK_RIGHT)
+		if (event.key.keysym.sym == SDLK_d)
 			turnRight = false;
-		if (event.key.keysym.sym == SDLK_LEFT)
+		if (event.key.keysym.sym == SDLK_a)
 			turnLeft = false;
 	}
 
