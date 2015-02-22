@@ -33,6 +33,7 @@ GameScene::GameScene(Game& game) : Scene(game), turnLeft(false), turnRight(false
 	plr->getComponent<MeshRenderer>()->setTexture(texture);
 
 	plr->addComponent(new Rigidbody(plr, world));
+	//plr->getComponent<Rigidbody>()->getBody()->SetFixedRotation(true);
 
 	gameObjects.push_back(plr);
 
@@ -70,33 +71,39 @@ void GameScene::update()
 	//std::cout << mouseInDaWorld.x << ", " << mouseInDaWorld.y << ", " << mouseInDaWorld.z << ", " << std::endl;
 
 	//plr->getComponent<Transform>()->lookAt(mouseInDaWorld);
-	float moveSpeed = 0.1f;
+	float moveSpeed = 5.0f;
 	float turnSpeed = 0.05f;
 
 	b2Body* plrBody = plr->getComponent<Rigidbody>()->getBody();
-	b2Vec2 force(0.0f, 0.0f);
+	b2Vec2 desiredVel(0.0f, 0.0f);
 	b2Vec2 vel = plrBody->GetLinearVelocity();
 	if (turnLeft)
-	{
-		if (vel.x > -5) force.x = -50;
-	}
-
-	if (turnRight)
-	{ 
-		if (vel.x < 5) force.x = 50;
-	}
+		desiredVel.x = -moveSpeed;
+	else if (turnRight)
+		desiredVel.x = moveSpeed;
+	else 
+		desiredVel.x = 0.0f;
 
 	if (moveForward)
-		if (vel.y < 5) force.y = 50;
+		desiredVel.y = moveSpeed;
+	else if (moveBackward)
+		desiredVel.y = -moveSpeed;
+	else
+		desiredVel.y = 0.0f;
 
-	if (moveBackward)
-		if (vel.y > -5) force.y = -50;
+	b2Vec2 velChange(0.0f, 0.0f);
+	velChange.x = desiredVel.x - vel.x;
+	velChange.y = desiredVel.y - vel.y;
+	
+	b2Vec2 impulse(0.0f, 0.0f);
+	impulse.x = plrBody->GetMass() * velChange.x;
+	impulse.y = plrBody->GetMass() * velChange.y;
 
-	plrBody->ApplyForce(force, plrBody->GetWorldCenter(), true);
+	plrBody->ApplyLinearImpulse(impulse, plrBody->GetWorldCenter(), true);
 
 	viewMatrix = glm::lookAt(
-		glm::vec3(plr->getComponent<Transform>()->getPosition().x, plr->getComponent<Transform>()->getPosition().y, 25),
-		glm::vec3(plr->getComponent<Transform>()->getPosition().x, plr->getComponent<Transform>()->getPosition().y, 0),
+		glm::vec3(plr->getComponent<Transform>()->getPosition().x-5, plr->getComponent<Transform>()->getPosition().y-5, 25),
+		glm::vec3(plr->getComponent<Transform>()->getPosition().x+5, plr->getComponent<Transform>()->getPosition().y+5, 0),
 		glm::vec3(0, 1, 0));
 
 	for (auto gameObject : gameObjects)
