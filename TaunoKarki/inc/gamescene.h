@@ -9,6 +9,7 @@
 #include "mesh.h"
 #include "shaderprogram.h"
 #include "tilemap.h"
+#include "Box2D\Box2D.h"
 
 class GameScene : public Scene
 {
@@ -25,6 +26,7 @@ private:
 	Texture* mapTexture;
 	Mesh* mesh;
 	Tilemap* tilemap;
+	b2World world;
 
 	glm::mat4 viewMatrix;
 	glm::mat4 projectionMatrix;

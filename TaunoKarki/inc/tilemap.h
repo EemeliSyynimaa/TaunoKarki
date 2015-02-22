@@ -3,11 +3,12 @@
 
 #include <string>
 #include "meshrenderer.h"
+#include "Box2D\Box2D.h"
 
 class Tilemap
 {
 public:
-	Tilemap(const std::string& path, Mesh* mesh, Texture* texture, ShaderProgram* program, glm::mat4* viewMatrix, glm::mat4* projectionMatrix);
+	Tilemap(const std::string& path, Mesh* mesh, Texture* texture, ShaderProgram* program, glm::mat4* viewMatrix, glm::mat4* projectionMatrix, b2World& world);
 	~Tilemap();
 
 	void draw();

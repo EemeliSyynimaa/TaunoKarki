@@ -209,6 +209,7 @@
     <ClInclude Include="inc\mesh.h" />
     <ClInclude Include="inc\meshrenderer.h" />
     <ClInclude Include="inc\player.h" />
+    <ClInclude Include="inc\rigidbody.h" />
     <ClInclude Include="inc\scene.h" />
     <ClInclude Include="inc\scenemanager.h" />
     <ClInclude Include="inc\SDL\begin_code.h" />
@@ -337,6 +338,7 @@
     <ClCompile Include="src\mesh.cpp" />
     <ClCompile Include="src\meshrenderer.cpp" />
     <ClCompile Include="src\player.cpp" />
+    <ClCompile Include="src\rigidbody.cpp" />
     <ClCompile Include="src\scene.cpp" />
     <ClCompile Include="src\scenemanager.cpp" />
     <ClCompile Include="src\shaderprogram.cpp" />

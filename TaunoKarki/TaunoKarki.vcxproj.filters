@@ -855,6 +855,9 @@
     <ClInclude Include="inc\tilemap.h">
       <Filter>Header Files\assets</Filter>
     </ClInclude>
+    <ClInclude Include="inc\rigidbody.h">
+      <Filter>Header Files\components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -1042,6 +1045,9 @@
     </ClCompile>
     <ClCompile Include="src\tilemap.cpp">
       <Filter>Source Files\assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\rigidbody.cpp">
+      <Filter>Source Files\components</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

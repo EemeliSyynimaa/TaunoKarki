@@ -3,19 +3,17 @@
 #include "game.h"
 #include <iostream>
 #include "glm/gtc/matrix_transform.hpp"
-#include "meshrenderer.h"
-#include "transform.h"
 #include "tilemap.h"
 
-GameScene::GameScene(Game& game) : Scene(game), turnLeft(false), turnRight(false), moveForward(false), moveBackward(false)
+#include "meshrenderer.h"
+#include "transform.h"
+#include "rigidbody.h"
+
+GameScene::GameScene(Game& game) : Scene(game), turnLeft(false), turnRight(false), moveForward(false), moveBackward(false), world(b2Vec2(0.0f, 0.0f))
 {
 	projectionMatrix = glm::perspective(glm::radians(60.0f),
 		static_cast <float>(game.getScreenWidth()) / game.getScreenHeight(),
 		0.1f, 100.0f);
-	viewMatrix = glm::lookAt(
-		glm::vec3(0, 0, 25),
-		glm::vec3(0, 0, 0),
-		glm::vec3(0, 1, 0));
 
 	glClearColor(0.5f, 0.0f, 0.0f, 0.0f);
 
@@ -34,9 +32,11 @@ GameScene::GameScene(Game& game) : Scene(game), turnLeft(false), turnRight(false
 	plr->getComponent<MeshRenderer>()->setViewMatrix(&viewMatrix);
 	plr->getComponent<MeshRenderer>()->setTexture(texture);
 
+	plr->addComponent(new Rigidbody(plr, world));
+
 	gameObjects.push_back(plr);
 
-	tilemap = new Tilemap("assets/maps/mappi.txt", mesh, mapTexture, shaderProgram, &viewMatrix, &projectionMatrix);
+	tilemap = new Tilemap("assets/maps/mappi.txt", mesh, mapTexture, shaderProgram, &viewMatrix, &projectionMatrix, world);
 }
 
 GameScene::~GameScene()
@@ -55,6 +55,7 @@ GameScene::~GameScene()
 
 void GameScene::update()
 {
+	world.Step(1 / 60.0f, 8, 3);
 	tilemap->draw();
 
 	int x, y, z;
@@ -72,21 +73,26 @@ void GameScene::update()
 	float moveSpeed = 0.1f;
 	float turnSpeed = 0.05f;
 
+	b2Body* plrBody = plr->getComponent<Rigidbody>()->getBody();
+	b2Vec2 force(0.0f, 0.0f);
+	b2Vec2 vel = plrBody->GetLinearVelocity();
 	if (turnLeft)
 	{
-		plr->getComponent<Transform>()->translate(glm::vec3(-moveSpeed, 0.0f, 0.0f));
+		if (vel.x > -5) force.x = -50;
 	}
 
 	if (turnRight)
 	{ 
-		plr->getComponent<Transform>()->translate(glm::vec3(moveSpeed, 0.0f, 0.0f));
+		if (vel.x < 5) force.x = 50;
 	}
 
 	if (moveForward)
-		plr->getComponent<Transform>()->translate(glm::vec3(0.0f, moveSpeed, 0.0f));
+		if (vel.y < 5) force.y = 50;
 
 	if (moveBackward)
-		plr->getComponent<Transform>()->translate(glm::vec3(0.0f, -moveSpeed, 0.0f));
+		if (vel.y > -5) force.y = -50;
+
+	plrBody->ApplyForce(force, plrBody->GetWorldCenter(), true);
 
 	viewMatrix = glm::lookAt(
 		glm::vec3(plr->getComponent<Transform>()->getPosition().x, plr->getComponent<Transform>()->getPosition().y, 25),
