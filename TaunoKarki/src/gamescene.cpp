@@ -129,6 +129,33 @@ void GameScene::handleEvent(SDL_Event& event)
 			turnRight = true;
 		if (event.key.keysym.sym == SDLK_a)
 			turnLeft = true;
+		if (event.key.keysym.sym == SDLK_SPACE)
+		{
+			// Ammutaan! :D
+			GameObject* obj = new GameObject();
+			obj->addComponent(new Transform(obj, 
+				plr->getComponent<Transform>()->getPosition().x + plr->getComponent<Transform>()->getDirVec().x,
+				plr->getComponent<Transform>()->getPosition().y - plr->getComponent<Transform>()->getDirVec().y,
+				0));
+			obj->addComponent(new CircleCollider(obj, 0.1f));
+			obj->addComponent(new MeshRenderer(obj));
+			obj->addComponent(new Rigidbody(obj, world));
+
+			MeshRenderer* temp = obj->getComponent<MeshRenderer>();
+			temp->setMesh(sphereMesh);
+			temp->setTexture(sphereTexture);
+			temp->setProjectionMatrix(&projectionMatrix);
+			temp->setViewMatrix(&viewMatrix);
+			temp->setProgram(shaderProgram);
+
+			b2Body* body = obj->getComponent<Rigidbody>()->getBody();
+			b2Vec2 forceDir(plr->getComponent<Transform>()->getDirVec().x, -plr->getComponent<Transform>()->getDirVec().y);
+
+			forceDir *= 2.0f;
+			body->ApplyLinearImpulse(forceDir, body->GetWorldCenter(), true);
+
+			gameObjects.push_back(obj);
+		}
 	}
 	else if (event.type == SDL_KEYUP)
 	{
