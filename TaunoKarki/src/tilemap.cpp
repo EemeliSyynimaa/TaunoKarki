@@ -39,7 +39,7 @@ Tilemap::Tilemap(const std::string& path, Mesh* mesh, Texture* texture, ShaderPr
 				gameobject->getComponent<MeshRenderer>()->setViewMatrix(viewMatrix);
 				gameobject->getComponent<MeshRenderer>()->setTexture(texture);
 
-				//gameobject->getComponent<Rigidbody>()->getBody()->SetType(b2_staticBody);
+				gameobject->getComponent<Rigidbody>()->getBody()->SetType(b2_staticBody);
 
 				tiles.push_back(gameobject);
 			}

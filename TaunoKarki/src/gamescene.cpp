@@ -8,6 +8,7 @@
 #include "meshrenderer.h"
 #include "transform.h"
 #include "rigidbody.h"
+#define DEGTORAD 0.0174532925199432957f
 
 GameScene::GameScene(Game& game) : Scene(game), turnLeft(false), turnRight(false), moveForward(false), moveBackward(false), world(b2Vec2(0.0f, 0.0f))
 {
@@ -19,8 +20,10 @@ GameScene::GameScene(Game& game) : Scene(game), turnLeft(false), turnRight(false
 
 	texture = new Texture(GL_TEXTURE_2D, "assets/textures/cube.png");
 	mapTexture = new Texture(GL_TEXTURE_2D, "assets/textures/wall.png");
+	sphereTexture = new Texture(GL_TEXTURE_2D, "assets/textures/sphere.png");
 	shaderProgram = new ShaderProgram("assets/shaders/vertex.glsl", "assets/shaders/fragment.glsl");
 	mesh = new Mesh("assets/meshes/cube.mesh");
+	sphereMesh = new Mesh("assets/meshes/sphere.mesh");
 
 	plr = new GameObject();
 	plr->addComponent(new Transform(plr, 4.0f, -4.0f, 0));
@@ -33,7 +36,7 @@ GameScene::GameScene(Game& game) : Scene(game), turnLeft(false), turnRight(false
 	plr->getComponent<MeshRenderer>()->setTexture(texture);
 
 	plr->addComponent(new Rigidbody(plr, world));
-	//plr->getComponent<Rigidbody>()->getBody()->SetFixedRotation(true);
+	plr->getComponent<Rigidbody>()->getBody()->SetFixedRotation(true);
 
 	gameObjects.push_back(plr);
 
@@ -59,22 +62,20 @@ void GameScene::update()
 	world.Step(1 / 60.0f, 8, 3);
 	tilemap->draw();
 
-	int x, y, z;
-	
-	SDL_GetMouseState(&x, &y);
-	glReadPixels(x, y, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &z);
-	glm::vec3 mouse(x, y, z);
-	glm::vec4 viewport(0.0f, 0.0f, game.getScreenWidth(), game.getScreenHeight());
-	glm::vec3 mouseInDaWorld = glm::unProject(mouse, viewMatrix, projectionMatrix, viewport);
-	
-	//plr->getComponent<Transform>()->setPosition(glm::vec3(mouseInDaWorld.x, mouseInDaWorld.y, 0));
-	//std::cout << mouseInDaWorld.x << ", " << mouseInDaWorld.y << ", " << mouseInDaWorld.z << ", " << std::endl;
+	int x, y;
+	b2Body* plrBody = plr->getComponent<Rigidbody>()->getBody();
 
-	//plr->getComponent<Transform>()->lookAt(mouseInDaWorld);
+	SDL_GetMouseState(&x, &y);
+	float halfX = float(game.getScreenWidth()) / 2.0f;
+	float halfY = float(game.getScreenHeight()) / 2.0f;
+
+	glm::vec3 mouseInDaWorld((halfX - x) / -halfX, (halfY - y) / -halfY, 0.0f);
+
+	plr->getComponent<Transform>()->lookAt(plr->getComponent<Transform>()->getPosition()-mouseInDaWorld);
+
 	float moveSpeed = 5.0f;
 	float turnSpeed = 0.05f;
 
-	b2Body* plrBody = plr->getComponent<Rigidbody>()->getBody();
 	b2Vec2 desiredVel(0.0f, 0.0f);
 	b2Vec2 vel = plrBody->GetLinearVelocity();
 	if (turnLeft)
@@ -102,8 +103,8 @@ void GameScene::update()
 	plrBody->ApplyLinearImpulse(impulse, plrBody->GetWorldCenter(), true);
 
 	viewMatrix = glm::lookAt(
-		glm::vec3(plr->getComponent<Transform>()->getPosition().x-5, plr->getComponent<Transform>()->getPosition().y-5, 25),
-		glm::vec3(plr->getComponent<Transform>()->getPosition().x+5, plr->getComponent<Transform>()->getPosition().y+5, 0),
+		glm::vec3(plr->getComponent<Transform>()->getPosition().x, plr->getComponent<Transform>()->getPosition().y, 25),
+		glm::vec3(plr->getComponent<Transform>()->getPosition().x, plr->getComponent<Transform>()->getPosition().y, 0),
 		glm::vec3(0, 1, 0));
 
 	for (auto gameObject : gameObjects)

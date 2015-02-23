@@ -1,6 +1,7 @@
 #ifndef SCENE_H
 #define SCENE_H
 
+#include "SDL/SDL_events.h"
 class SceneManager;
 class Game;
 

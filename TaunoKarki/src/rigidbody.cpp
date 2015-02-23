@@ -16,7 +16,7 @@ Rigidbody::Rigidbody(GameObject* owner, b2World& world) : Component(owner), worl
 
 	b2FixtureDef fixtureDef;
 	fixtureDef.density = 1.0f;
-	fixtureDef.friction = 0.7f;
+	fixtureDef.friction = 0.0f;
 	fixtureDef.shape = &shape;
 	body->CreateFixture(&fixtureDef);
 }

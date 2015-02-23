@@ -24,7 +24,9 @@ private:
 	ShaderProgram* shaderProgram;
 	Texture* texture;
 	Texture* mapTexture;
+	Texture* sphereTexture;
 	Mesh* mesh;
+	Mesh* sphereMesh;
 	Tilemap* tilemap;
 	b2World world;
 

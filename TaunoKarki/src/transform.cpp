@@ -19,7 +19,7 @@ void Transform::lookAt(glm::vec3& vec)
 	glm::vec3 deltaPos = position - vec;
 	glm::vec3 axis(0.0f, 0.0f, 1.0f);
 	float angle;
-	angle = glm::atan(vec.x, vec.y);
+	angle = glm::atan(deltaPos.x, deltaPos.y);
 
 	rotation = glm::rotate(angle, axis);
 }
