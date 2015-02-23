@@ -5,6 +5,7 @@
 #include "gameobject.h"
 #include "transform.h"
 #include "rigidbody.h"
+#include "boxcollider.h"
 
 Tilemap::Tilemap(const std::string& path, Mesh* mesh, Texture* texture, ShaderProgram* program, glm::mat4* viewMatrix, glm::mat4* projectionMatrix, b2World& world)
 {
@@ -31,6 +32,7 @@ Tilemap::Tilemap(const std::string& path, Mesh* mesh, Texture* texture, ShaderPr
 				GameObject *gameobject = new GameObject();
 				gameobject->addComponent(new Transform(gameobject, float(x * 2), float(int(y) * -2)));
 				gameobject->addComponent(new MeshRenderer(gameobject));
+				gameobject->addComponent(new BoxCollider(gameobject, 1.0f, 1.0f));
 				gameobject->addComponent(new Rigidbody(gameobject, world));
 
 				gameobject->getComponent<MeshRenderer>()->setMesh(mesh);

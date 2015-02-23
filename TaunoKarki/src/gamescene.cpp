@@ -8,6 +8,7 @@
 #include "meshrenderer.h"
 #include "transform.h"
 #include "rigidbody.h"
+#include "circlecollider.h"
 #define DEGTORAD 0.0174532925199432957f
 
 GameScene::GameScene(Game& game) : Scene(game), turnLeft(false), turnRight(false), moveForward(false), moveBackward(false), world(b2Vec2(0.0f, 0.0f))
@@ -27,7 +28,7 @@ GameScene::GameScene(Game& game) : Scene(game), turnLeft(false), turnRight(false
 
 	plr = new GameObject();
 	plr->addComponent(new Transform(plr, 4.0f, -4.0f, 0));
-
+	plr->addComponent(new CircleCollider(plr, 1.0f));
 	plr->addComponent(new MeshRenderer(plr));
 	plr->getComponent<MeshRenderer>()->setMesh(mesh);
 	plr->getComponent<MeshRenderer>()->setProgram(shaderProgram);
@@ -73,7 +74,7 @@ void GameScene::update()
 
 	plr->getComponent<Transform>()->lookAt(plr->getComponent<Transform>()->getPosition()-mouseInDaWorld);
 
-	float moveSpeed = 5.0f;
+	float moveSpeed = 15.0f;
 	float turnSpeed = 0.05f;
 
 	b2Vec2 desiredVel(0.0f, 0.0f);
@@ -103,7 +104,7 @@ void GameScene::update()
 	plrBody->ApplyLinearImpulse(impulse, plrBody->GetWorldCenter(), true);
 
 	viewMatrix = glm::lookAt(
-		glm::vec3(plr->getComponent<Transform>()->getPosition().x, plr->getComponent<Transform>()->getPosition().y, 25),
+		glm::vec3(plr->getComponent<Transform>()->getPosition().x, plr->getComponent<Transform>()->getPosition().y, 15),
 		glm::vec3(plr->getComponent<Transform>()->getPosition().x, plr->getComponent<Transform>()->getPosition().y, 0),
 		glm::vec3(0, 1, 0));
 

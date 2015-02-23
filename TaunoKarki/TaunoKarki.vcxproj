@@ -58,6 +58,9 @@
     <ClInclude Include="inc\Box2D\Dynamics\Joints\b2WeldJoint.h" />
     <ClInclude Include="inc\Box2D\Dynamics\Joints\b2WheelJoint.h" />
     <ClInclude Include="inc\Box2D\Rope\b2Rope.h" />
+    <ClInclude Include="inc\boxcollider.h" />
+    <ClInclude Include="inc\circlecollider.h" />
+    <ClInclude Include="inc\collider.h" />
     <ClInclude Include="inc\component.h" />
     <ClInclude Include="inc\game.h" />
     <ClInclude Include="inc\gameobject.h" />
@@ -328,6 +331,8 @@
     <ClCompile Include="inc\Box2D\Dynamics\Joints\b2WeldJoint.cpp" />
     <ClCompile Include="inc\Box2D\Dynamics\Joints\b2WheelJoint.cpp" />
     <ClCompile Include="inc\Box2D\Rope\b2Rope.cpp" />
+    <ClCompile Include="src\boxcollider.cpp" />
+    <ClCompile Include="src\circlecollider.cpp" />
     <ClCompile Include="src\component.cpp" />
     <ClCompile Include="src\game.cpp" />
     <ClCompile Include="src\gameobject.cpp" />
