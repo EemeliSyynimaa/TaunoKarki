@@ -13,6 +13,7 @@ public:
 
 	void setPosition(glm::vec3& vec);
 	void setRotation(float r, glm::vec3& axis);
+	void setScale(glm::vec3& vec);
 	void lookAt(glm::vec3& vec);
 	void translate(glm::vec3& vec);
 	void rotate(float r, glm::vec3& axis);

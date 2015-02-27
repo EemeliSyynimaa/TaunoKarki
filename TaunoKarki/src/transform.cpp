@@ -42,6 +42,11 @@ void Transform::setRotation(float r, glm::vec3& axis)
 	rotation = glm::rotate(r, axis);
 }
 
+void Transform::setScale(glm::vec3& vec)
+{
+	scale = glm::scale(vec);
+}
+
 void Transform::translate(glm::vec3& vec)
 {
 	transform = glm::translate(transform, vec);
