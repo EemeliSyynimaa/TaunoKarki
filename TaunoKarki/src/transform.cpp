@@ -25,8 +25,9 @@ void Transform::lookAt(glm::vec3& vec)
 	glm::vec3 axis(0.0f, 0.0f, 1.0f);
 	float angle;
 	angle = glm::atan(deltaPos.x, deltaPos.y);
+	float length = sqrt(powf(deltaPos.x, 2) + powf(deltaPos.y, 2));
 
-	dirVec = glm::vec2(deltaPos.x, deltaPos.y);
+	dirVec = glm::vec2(deltaPos.x / length, deltaPos.y / length);
 
 	rotation = glm::rotate(angle, axis);
 }

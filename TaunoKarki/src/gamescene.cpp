@@ -67,10 +67,10 @@ void GameScene::update()
 	b2Body* plrBody = plr->getComponent<Rigidbody>()->getBody();
 
 	SDL_GetMouseState(&x, &y);
-	float halfX = float(game.getScreenWidth()) / 2.0f;
-	float halfY = float(game.getScreenHeight()) / 2.0f;
+	float halfX = (float(game.getScreenWidth()) / 2.0f - x) * -1;
+	float halfY = (float(game.getScreenHeight()) / 2.0f - y) * -1;
 
-	glm::vec3 mouseInDaWorld((halfX - x) / -halfX, (halfY - y) / -halfY, 0.0f);
+	glm::vec3 mouseInDaWorld(halfX, halfY, 0.0f);
 
 	plr->getComponent<Transform>()->lookAt(plr->getComponent<Transform>()->getPosition()-mouseInDaWorld);
 
