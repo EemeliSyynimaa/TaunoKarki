@@ -6,6 +6,7 @@
 #include "texture.h"
 #include "transform.h"
 #include "shaderprogram.h"
+#include "camera.h"
 #include "glm/glm.hpp"
 
 class MeshRenderer : public Component
@@ -18,8 +19,7 @@ public:
 	void setMesh(Mesh* mesh);
 	void setTexture(Texture* texture);
 	void setProgram(ShaderProgram* program);
-	void setViewMatrix(glm::mat4* matrix);
-	void setProjectionMatrix(glm::mat4* matrix);
+	void setCamera(Camera& camera);
 private:
 	Mesh* mesh;
 	Texture* texture;

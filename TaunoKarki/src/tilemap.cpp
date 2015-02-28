@@ -6,8 +6,9 @@
 #include "transform.h"
 #include "staticbody.h"
 #include "boxcollider.h"
+#include "camera.h"
 
-Tilemap::Tilemap(const std::string& path, Mesh* mesh, Texture* texture, ShaderProgram* program, glm::mat4* viewMatrix, glm::mat4* projectionMatrix, b2World& world)
+Tilemap::Tilemap(const std::string& path, Mesh* mesh, Texture* texture, ShaderProgram* program, Camera& camera, b2World& world)
 {
 	std::ifstream file(path);
 
@@ -37,8 +38,7 @@ Tilemap::Tilemap(const std::string& path, Mesh* mesh, Texture* texture, ShaderPr
 
 				gameobject->getComponent<MeshRenderer>()->setMesh(mesh);
 				gameobject->getComponent<MeshRenderer>()->setProgram(program);
-				gameobject->getComponent<MeshRenderer>()->setProjectionMatrix(projectionMatrix);
-				gameobject->getComponent<MeshRenderer>()->setViewMatrix(viewMatrix);
+				gameobject->getComponent<MeshRenderer>()->setCamera(camera);
 				gameobject->getComponent<MeshRenderer>()->setTexture(texture);
 
 				tiles.push_back(gameobject);

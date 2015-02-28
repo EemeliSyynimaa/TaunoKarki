@@ -9,6 +9,7 @@
 #include "mesh.h"
 #include "shaderprogram.h"
 #include "tilemap.h"
+#include "camera.h"
 #include "Box2D\Box2D.h"
 
 class GameScene : public Scene
@@ -28,10 +29,9 @@ private:
 	Mesh* mesh;
 	Mesh* sphereMesh;
 	Tilemap* tilemap;
-	b2World world;
 
-	glm::mat4 viewMatrix;
-	glm::mat4 projectionMatrix;
+	b2World world;
+	Camera camera;
 
 	std::vector<GameObject*> gameObjects;
 

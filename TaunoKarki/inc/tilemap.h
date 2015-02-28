@@ -8,7 +8,7 @@
 class Tilemap
 {
 public:
-	Tilemap(const std::string& path, Mesh* mesh, Texture* texture, ShaderProgram* program, glm::mat4* viewMatrix, glm::mat4* projectionMatrix, b2World& world);
+	Tilemap(const std::string& path, Mesh* mesh, Texture* texture, ShaderProgram* program, Camera& camera, b2World& world);
 	~Tilemap();
 
 	void draw();

@@ -9,13 +9,11 @@
 #include "transform.h"
 #include "rigidbody.h"
 #include "circlecollider.h"
-#define DEGTORAD 0.0174532925199432957f
 
 GameScene::GameScene(Game& game) : Scene(game), turnLeft(false), turnRight(false), moveForward(false), moveBackward(false), world(b2Vec2(0.0f, 0.0f))
 {
-	projectionMatrix = glm::perspective(glm::radians(60.0f),
-		static_cast <float>(game.getScreenWidth()) / game.getScreenHeight(),
-		0.1f, 100.0f);
+	camera.createNewPerspectiveMatrix(60.0f, (float)game.getScreenWidth(), (float)game.getScreenHeight(), 0.1f, 100.0f);
+	camera.setPosition(glm::vec3(0.0f, 0.0f, 20.0f));
 
 	glClearColor(0.5f, 0.0f, 0.0f, 0.0f);
 
@@ -32,8 +30,7 @@ GameScene::GameScene(Game& game) : Scene(game), turnLeft(false), turnRight(false
 	plr->addComponent(new MeshRenderer(plr));
 	plr->getComponent<MeshRenderer>()->setMesh(mesh);
 	plr->getComponent<MeshRenderer>()->setProgram(shaderProgram);
-	plr->getComponent<MeshRenderer>()->setProjectionMatrix(&projectionMatrix);
-	plr->getComponent<MeshRenderer>()->setViewMatrix(&viewMatrix);
+	plr->getComponent<MeshRenderer>()->setCamera(camera);
 	plr->getComponent<MeshRenderer>()->setTexture(texture);
 
 	plr->addComponent(new RigidBody(plr, world));
@@ -41,7 +38,7 @@ GameScene::GameScene(Game& game) : Scene(game), turnLeft(false), turnRight(false
 
 	gameObjects.push_back(plr);
 
-	tilemap = new Tilemap("assets/maps/mappi.txt", mesh, mapTexture, shaderProgram, &viewMatrix, &projectionMatrix, world);
+	tilemap = new Tilemap("assets/maps/mappi.txt", mesh, mapTexture, shaderProgram, camera, world);
 }
 
 GameScene::~GameScene()
@@ -103,10 +100,7 @@ void GameScene::update(float deltaTime)
 
 	plrBody->ApplyLinearImpulse(impulse, plrBody->GetWorldCenter(), true);
 
-	viewMatrix = glm::lookAt(
-		glm::vec3(plr->getComponent<Transform>()->getPosition().x, plr->getComponent<Transform>()->getPosition().y, 15),
-		glm::vec3(plr->getComponent<Transform>()->getPosition().x, plr->getComponent<Transform>()->getPosition().y, 0),
-		glm::vec3(0, 1, 0));
+	camera.follow(glm::vec2(plr->getComponent<Transform>()->getPosition().x, plr->getComponent<Transform>()->getPosition().y));
 
 	for (auto gameObject : gameObjects)
 		gameObject->update(deltaTime);
@@ -160,8 +154,7 @@ void GameScene::handleEvent(SDL_Event& event)
 			MeshRenderer* temp = obj->getComponent<MeshRenderer>();
 			temp->setMesh(sphereMesh);
 			temp->setTexture(sphereTexture);
-			temp->setProjectionMatrix(&projectionMatrix);
-			temp->setViewMatrix(&viewMatrix);
+			temp->setCamera(camera);
 			temp->setProgram(shaderProgram);
 
 			b2Body* body = obj->getComponent<RigidBody>()->getBody();

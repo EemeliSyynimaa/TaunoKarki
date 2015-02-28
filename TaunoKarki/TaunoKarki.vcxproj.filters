@@ -870,6 +870,9 @@
     <ClInclude Include="inc\staticbody.h">
       <Filter>Header Files\components</Filter>
     </ClInclude>
+    <ClInclude Include="inc\camera.h">
+      <Filter>Header Files\engine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -1069,6 +1072,9 @@
     </ClCompile>
     <ClCompile Include="src\staticbody.cpp">
       <Filter>Source Files\components</Filter>
+    </ClCompile>
+    <ClCompile Include="src\camera.cpp">
+      <Filter>Source Files\engine</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

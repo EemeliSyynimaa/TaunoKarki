@@ -84,12 +84,8 @@ void MeshRenderer::setProgram(ShaderProgram* prgrm)
 	program->unbind();
 }
 
-void MeshRenderer::setViewMatrix(glm::mat4* matrix)
+void MeshRenderer::setCamera(Camera& camera)
 {
-	viewMatrix = matrix;
-}
-
-void MeshRenderer::setProjectionMatrix(glm::mat4* matrix)
-{
-	projectionMatrix = matrix;
+	viewMatrix = &camera.getViewMatrix();
+	projectionMatrix = &camera.getProjectionMatrix();
 }
