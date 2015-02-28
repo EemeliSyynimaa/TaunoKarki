@@ -27,7 +27,7 @@ public:
 		return foundComponent;
 	}
 
-	void update();
+	void update(float deltaTime);
 	void draw();
 private:
 	std::vector<Component*> components;

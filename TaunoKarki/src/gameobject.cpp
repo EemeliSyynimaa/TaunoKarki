@@ -17,10 +17,10 @@ void GameObject::addComponent(Component* component)
 	components.push_back(component);
 }
 
-void GameObject::update()
+void GameObject::update(float deltaTime)
 {
 	for (auto component : components)
-		component->update();
+		component->update(deltaTime);
 }
 
 void GameObject::draw()

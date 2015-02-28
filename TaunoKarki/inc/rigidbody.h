@@ -7,13 +7,13 @@
 #include "transform.h"
 #include "collider.h"
 
-class Rigidbody : public Component
+class RigidBody : public Component
 {
 public:
-	Rigidbody(GameObject* owner, b2World& world);
-	~Rigidbody();
+	RigidBody(GameObject* owner, b2World& world);
+	~RigidBody();
 
-	void update();
+	void update(float deltaTime);
 	b2Body* getBody() const { return body; }
 private:
 	b2World& world;

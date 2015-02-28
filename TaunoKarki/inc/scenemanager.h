@@ -11,7 +11,7 @@ public:
 	SceneManager();
 	~SceneManager();
 
-	void update();
+	void update(float deltaTime);
 	void draw();
 
 	void push(Scene* scene);

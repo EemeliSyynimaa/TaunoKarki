@@ -4,7 +4,7 @@
 #include <iostream>
 #include "gameobject.h"
 #include "transform.h"
-#include "rigidbody.h"
+#include "staticbody.h"
 #include "boxcollider.h"
 
 Tilemap::Tilemap(const std::string& path, Mesh* mesh, Texture* texture, ShaderProgram* program, glm::mat4* viewMatrix, glm::mat4* projectionMatrix, b2World& world)
@@ -33,15 +33,13 @@ Tilemap::Tilemap(const std::string& path, Mesh* mesh, Texture* texture, ShaderPr
 				gameobject->addComponent(new Transform(gameobject, float(x * 2), float(int(y) * -2)));
 				gameobject->addComponent(new MeshRenderer(gameobject));
 				gameobject->addComponent(new BoxCollider(gameobject, 1.0f, 1.0f));
-				gameobject->addComponent(new Rigidbody(gameobject, world));
+				gameobject->addComponent(new StaticBody(gameobject, world));
 
 				gameobject->getComponent<MeshRenderer>()->setMesh(mesh);
 				gameobject->getComponent<MeshRenderer>()->setProgram(program);
 				gameobject->getComponent<MeshRenderer>()->setProjectionMatrix(projectionMatrix);
 				gameobject->getComponent<MeshRenderer>()->setViewMatrix(viewMatrix);
 				gameobject->getComponent<MeshRenderer>()->setTexture(texture);
-
-				gameobject->getComponent<Rigidbody>()->getBody()->SetType(b2_staticBody);
 
 				tiles.push_back(gameobject);
 			}
@@ -70,5 +68,5 @@ Tilemap::~Tilemap()
 void Tilemap::draw()
 {
 	for (auto tile : tiles)
-		tile->update();
+		tile->getComponent<MeshRenderer>()->update(0.0f);
 }

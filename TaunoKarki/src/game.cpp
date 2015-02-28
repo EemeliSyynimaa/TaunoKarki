@@ -68,6 +68,7 @@ Game::~Game()
 void Game::run()
 {
 	bool running = true;
+	float deltaTime = 0.0f;
 
 	SDL_Event event;
 
@@ -89,14 +90,14 @@ void Game::run()
 			sceneManager.handleEvent(event);
 		}
 
-		update();
+		update(deltaTime);
 		draw();
 	}
 }
 
-void Game::update()
+void Game::update(float deltaTime)
 {
-	sceneManager.update();
+	sceneManager.update(deltaTime);
 }
 
 void Game::draw()

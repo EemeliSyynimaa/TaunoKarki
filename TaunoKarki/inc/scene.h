@@ -11,7 +11,7 @@ public:
 	Scene(Game& game);
 	virtual ~Scene();
 
-	virtual void update() = 0;
+	virtual void update(float deltaTime) = 0;
 	virtual void draw() = 0;
 	virtual void handleEvent(SDL_Event& event) = 0;
 protected:

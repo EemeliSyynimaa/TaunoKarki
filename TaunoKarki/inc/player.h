@@ -10,7 +10,7 @@ public:
 	Player(GameObject* owner);
 	~Player();
 
-	void update();
+	void update(float deltaTime);
 private:
 };
 

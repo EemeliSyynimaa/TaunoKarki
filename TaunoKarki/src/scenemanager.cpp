@@ -16,9 +16,9 @@ SceneManager::~SceneManager()
 	scenes.clear();
 }
 
-void SceneManager::update()
+void SceneManager::update(float deltaTime)
 {
-	scenes.back()->update();
+	scenes.back()->update(deltaTime);
 }
 
 void SceneManager::draw()

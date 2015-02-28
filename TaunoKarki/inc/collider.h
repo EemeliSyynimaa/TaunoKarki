@@ -10,7 +10,7 @@ public:
 	Collider(GameObject* owner) : Component(owner) {}
 	~Collider() {};
 
-	void update() {};
+	void update(float deltaTime) {};
 	b2FixtureDef& getFixtureDef() { return fixtureDef; }
 
 protected:

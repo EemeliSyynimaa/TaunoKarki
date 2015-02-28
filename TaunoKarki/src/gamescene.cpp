@@ -36,8 +36,8 @@ GameScene::GameScene(Game& game) : Scene(game), turnLeft(false), turnRight(false
 	plr->getComponent<MeshRenderer>()->setViewMatrix(&viewMatrix);
 	plr->getComponent<MeshRenderer>()->setTexture(texture);
 
-	plr->addComponent(new Rigidbody(plr, world));
-	plr->getComponent<Rigidbody>()->getBody()->SetFixedRotation(true);
+	plr->addComponent(new RigidBody(plr, world));
+	plr->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
 
 	gameObjects.push_back(plr);
 
@@ -58,13 +58,13 @@ GameScene::~GameScene()
 	delete mesh;
 }
 
-void GameScene::update()
+void GameScene::update(float deltaTime)
 {
 	world.Step(1 / 60.0f, 8, 3);
 	tilemap->draw();
 
 	int x, y;
-	b2Body* plrBody = plr->getComponent<Rigidbody>()->getBody();
+	b2Body* plrBody = plr->getComponent<RigidBody>()->getBody();
 
 	SDL_GetMouseState(&x, &y);
 	float halfX = (float(game.getScreenWidth()) / 2.0f - x) * -1;
@@ -109,7 +109,7 @@ void GameScene::update()
 		glm::vec3(0, 1, 0));
 
 	for (auto gameObject : gameObjects)
-		gameObject->update();
+		gameObject->update(deltaTime);
 }
 
 void GameScene::draw()
@@ -154,7 +154,7 @@ void GameScene::handleEvent(SDL_Event& event)
 				0));
 			obj->addComponent(new CircleCollider(obj, 0.1f));
 			obj->addComponent(new MeshRenderer(obj));
-			obj->addComponent(new Rigidbody(obj, world));
+			obj->addComponent(new RigidBody(obj, world));
 			obj->getComponent<Transform>()->setScale(glm::vec3(0.1f));
 
 			MeshRenderer* temp = obj->getComponent<MeshRenderer>();
@@ -164,7 +164,7 @@ void GameScene::handleEvent(SDL_Event& event)
 			temp->setViewMatrix(&viewMatrix);
 			temp->setProgram(shaderProgram);
 
-			b2Body* body = obj->getComponent<Rigidbody>()->getBody();
+			b2Body* body = obj->getComponent<RigidBody>()->getBody();
 			body->SetBullet(true);
 			b2Vec2 forceDir(plr->getComponent<Transform>()->getDirVec().x, -plr->getComponent<Transform>()->getDirVec().y);
 

@@ -10,7 +10,7 @@ public:
 	Component(GameObject* owner);
 	virtual ~Component();
 
-	virtual void update() = 0;
+	virtual void update(float deltaTime) = 0;
 
 	GameObject* getOwner() { return owner; }
 protected:

@@ -11,7 +11,7 @@ public:
 	~MenuScene();
 
 	void handleEvent(SDL_Event& event);
-	void update();
+	void update(float deltaTime);
 	void draw();
 private:
 };

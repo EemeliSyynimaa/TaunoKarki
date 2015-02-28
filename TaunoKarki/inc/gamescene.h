@@ -17,7 +17,7 @@ public:
 	GameScene(Game& game);
 	~GameScene();
 
-	void update();
+	void update(float deltaTime);
 	void draw();
 	void handleEvent(SDL_Event& event);
 private:

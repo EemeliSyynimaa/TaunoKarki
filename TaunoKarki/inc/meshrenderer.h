@@ -14,7 +14,7 @@ public:
 	MeshRenderer(GameObject* owner);
 	~MeshRenderer();
 
-	void update();
+	void update(float deltaTime);
 	void setMesh(Mesh* mesh);
 	void setTexture(Texture* texture);
 	void setProgram(ShaderProgram* program);

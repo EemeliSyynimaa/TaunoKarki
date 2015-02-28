@@ -26,7 +26,7 @@ private:
 
 	SceneManager sceneManager;
 
-	void update();
+	void update(float deltaTime);
 	void draw();
 };
 

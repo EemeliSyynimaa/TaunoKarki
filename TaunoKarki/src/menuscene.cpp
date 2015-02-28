@@ -11,7 +11,7 @@ MenuScene::~MenuScene()
 {
 }
 
-void MenuScene::update()
+void MenuScene::update(float deltaTime)
 {
 	std::cout << "MENUSCENE WORKS TOO" << std::endl;
 	game.getSceneManager().change(new GameScene(game));

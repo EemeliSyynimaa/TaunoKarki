@@ -1,9 +1,9 @@
-#include "rigidbody.h"
+#include "staticbody.h"
 #include "gameobject.h"
 #include "circlecollider.h"
 #include "boxcollider.h"
 
-RigidBody::RigidBody(GameObject* owner, b2World& world) : Component(owner), world(world)
+StaticBody::StaticBody(GameObject* owner, b2World& world) : Component(owner), world(world)
 {
 	transform = owner->getComponent<Transform>();
 	assert(transform);
@@ -15,17 +15,15 @@ RigidBody::RigidBody(GameObject* owner, b2World& world) : Component(owner), worl
 
 	b2BodyDef bodyDef;
 	bodyDef.position = b2Vec2(transform->getPosition().x, transform->getPosition().y);
-	bodyDef.type = b2_dynamicBody;
+	bodyDef.type = b2_staticBody;
 	body = world.CreateBody(&bodyDef);
 	body->CreateFixture(&collider->getFixtureDef());
 }
 
-RigidBody::~RigidBody()
+StaticBody::~StaticBody()
 {
 }
 
-void RigidBody::update(float deltaTime)
+void StaticBody::update(float deltaTime)
 {
-	transform->setPosition(glm::vec3(body->GetPosition().x, body->GetPosition().y, 0.0f));
-	transform->setRotation(body->GetAngle(), glm::vec3(0.0f, 0.0f, 1.0f));
 }

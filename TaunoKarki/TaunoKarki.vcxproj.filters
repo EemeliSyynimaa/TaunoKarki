@@ -867,6 +867,9 @@
     <ClInclude Include="inc\boxcollider.h">
       <Filter>Header Files\components</Filter>
     </ClInclude>
+    <ClInclude Include="inc\staticbody.h">
+      <Filter>Header Files\components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -1062,6 +1065,9 @@
       <Filter>Source Files\components</Filter>
     </ClCompile>
     <ClCompile Include="src\boxcollider.cpp">
+      <Filter>Source Files\components</Filter>
+    </ClCompile>
+    <ClCompile Include="src\staticbody.cpp">
       <Filter>Source Files\components</Filter>
     </ClCompile>
   </ItemGroup>

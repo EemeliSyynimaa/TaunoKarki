@@ -25,7 +25,7 @@ MeshRenderer::~MeshRenderer()
 	glDeleteBuffers(1, &IBO);
 }
 
-void MeshRenderer::update()
+void MeshRenderer::update(float deltaTime)
 {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
