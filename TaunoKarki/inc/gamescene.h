@@ -4,13 +4,10 @@
 #include "SDL/SDL_events.h"
 #include "scene.h"
 #include "gameobject.h"
-#include "component.h"
-#include "texture.h"
-#include "mesh.h"
-#include "shaderprogram.h"
 #include "tilemap.h"
 #include "camera.h"
 #include "Box2D\Box2D.h"
+#include "assetmanager.h"
 
 class GameScene : public Scene
 {
@@ -22,24 +19,13 @@ public:
 	void draw();
 	void handleEvent(SDL_Event& event);
 private:
-	ShaderProgram* shaderProgram;
-	Texture* texture;
-	Texture* mapTexture;
-	Texture* sphereTexture;
-	Mesh* mesh;
-	Mesh* sphereMesh;
+	AssetManager assetManager;
 	Tilemap* tilemap;
 
 	b2World world;
 	Camera camera;
 
-	std::vector<GameObject*> gameObjects;
-
-	bool moveForward;
-	bool moveBackward;
-	bool turnLeft;
-	bool turnRight;
-
+	GameObjectManager gameObjectManager;
 	GameObject* plr;
 };
 

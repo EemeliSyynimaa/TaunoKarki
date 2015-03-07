@@ -4,12 +4,12 @@
 #include <vector>
 #include <algorithm>
 #include "component.h"
-
+#include "gameobjectmanager.h"
 
 class GameObject
 {
 public:
-	GameObject();
+	GameObject(GameObjectManager& gameObjectManager);
 	~GameObject();
 
 	void addComponent(Component* component);
@@ -31,6 +31,7 @@ public:
 	void draw();
 private:
 	std::vector<Component*> components;
+	GameObjectManager& gameObjectManager;
 };
 
 #endif

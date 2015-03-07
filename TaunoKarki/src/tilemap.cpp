@@ -8,7 +8,7 @@
 #include "boxcollider.h"
 #include "camera.h"
 
-Tilemap::Tilemap(const std::string& path, Mesh* mesh, Texture* texture, ShaderProgram* program, Camera& camera, b2World& world)
+Tilemap::Tilemap(const std::string& path, AssetManager& assetManager, Camera& camera, b2World& world) : gameObjectManager(assetManager)
 {
 	std::ifstream file(path);
 
@@ -30,18 +30,18 @@ Tilemap::Tilemap(const std::string& path, Mesh* mesh, Texture* texture, ShaderPr
 
 			if (data[y][x] == 1)
 			{
-				GameObject *gameobject = new GameObject();
+				GameObject *gameobject = gameObjectManager.createWall(glm::vec3(float(x * 2), float(int(y) * -2), 0.0f));
 				gameobject->addComponent(new Transform(gameobject, float(x * 2), float(int(y) * -2)));
 				gameobject->addComponent(new MeshRenderer(gameobject));
 				gameobject->addComponent(new BoxCollider(gameobject, 1.0f, 1.0f));
 				gameobject->addComponent(new StaticBody(gameobject, world));
 
-				gameobject->getComponent<MeshRenderer>()->setMesh(mesh);
-				gameobject->getComponent<MeshRenderer>()->setProgram(program);
+				gameobject->getComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
+				gameobject->getComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
 				gameobject->getComponent<MeshRenderer>()->setCamera(camera);
-				gameobject->getComponent<MeshRenderer>()->setTexture(texture);
+				gameobject->getComponent<MeshRenderer>()->setTexture(assetManager.wallTexture);
 
-				tiles.push_back(gameobject);
+				tileRenderers.push_back(gameobject->getComponent<MeshRenderer>());
 			}
 		}
 		std::cout << std::endl;
@@ -58,15 +58,10 @@ Tilemap::~Tilemap()
 	}
 
 	delete[] data;
-
-	for (auto tile : tiles)
-		delete tile;
-
-	tiles.clear();
 }
 
 void Tilemap::draw()
 {
-	for (auto tile : tiles)
-		tile->getComponent<MeshRenderer>()->update(0.0f);
+	for (auto tile : tileRenderers)
+		tile->update(0.0f);
 }

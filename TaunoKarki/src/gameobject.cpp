@@ -1,6 +1,6 @@
 #include "gameobject.h"
 
-GameObject::GameObject()
+GameObject::GameObject(GameObjectManager& gameObjectManager) : gameObjectManager(gameObjectManager)
 {
 }
 
