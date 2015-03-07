@@ -29,9 +29,10 @@ public:
 
 	void update(float deltaTime);
 	void draw();
+
+	GameObjectManager& gameObjectManager;
 private:
 	std::vector<Component*> components;
-	GameObjectManager& gameObjectManager;
 };
 
 #endif

@@ -8,7 +8,7 @@
 #include "boxcollider.h"
 #include "camera.h"
 
-Tilemap::Tilemap(const std::string& path, AssetManager& assetManager, Camera& camera, b2World& world) : gameObjectManager(assetManager)
+Tilemap::Tilemap(const std::string& path, AssetManager& assetManager, Camera& camera, b2World& world) : gameObjectManager(assetManager, world, camera)
 {
 	std::ifstream file(path);
 
@@ -31,16 +31,6 @@ Tilemap::Tilemap(const std::string& path, AssetManager& assetManager, Camera& ca
 			if (data[y][x] == 1)
 			{
 				GameObject *gameobject = gameObjectManager.createWall(glm::vec3(float(x * 2), float(int(y) * -2), 0.0f));
-				gameobject->addComponent(new Transform(gameobject, float(x * 2), float(int(y) * -2)));
-				gameobject->addComponent(new MeshRenderer(gameobject));
-				gameobject->addComponent(new BoxCollider(gameobject, 1.0f, 1.0f));
-				gameobject->addComponent(new StaticBody(gameobject, world));
-
-				gameobject->getComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
-				gameobject->getComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
-				gameobject->getComponent<MeshRenderer>()->setCamera(camera);
-				gameobject->getComponent<MeshRenderer>()->setTexture(assetManager.wallTexture);
-
 				tileRenderers.push_back(gameobject->getComponent<MeshRenderer>());
 			}
 		}

@@ -18,11 +18,17 @@ public:
 	glm::mat4& getProjectionMatrix() { return projectionMatrix; }
 
 	void follow(glm::vec2 position);
+
+	float getWidth() { return width; }
+	float getHeight() { return height; }
 private:
 	glm::mat4 viewMatrix;
 	glm::mat4 projectionMatrix;
 
 	glm::vec3 position;
+
+	float width;
+	float height;
 };
 
 #endif

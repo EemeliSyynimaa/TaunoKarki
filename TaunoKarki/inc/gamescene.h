@@ -3,7 +3,6 @@
 
 #include "SDL/SDL_events.h"
 #include "scene.h"
-#include "gameobject.h"
 #include "tilemap.h"
 #include "camera.h"
 #include "Box2D\Box2D.h"
@@ -26,7 +25,6 @@ private:
 	Camera camera;
 
 	GameObjectManager gameObjectManager;
-	GameObject* plr;
 };
 
 #endif

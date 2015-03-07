@@ -14,4 +14,12 @@ AssetManager::AssetManager()
 
 AssetManager::~AssetManager()
 {
+	delete playerTexture;
+	delete wallTexture;
+	delete sphereTexture;
+
+	delete shaderProgram;
+	
+	delete wallMesh;
+	delete sphereMesh;
 }
