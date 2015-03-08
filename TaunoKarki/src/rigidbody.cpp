@@ -18,10 +18,12 @@ RigidBody::RigidBody(GameObject* owner, b2World& world) : Component(owner), worl
 	bodyDef.type = b2_dynamicBody;
 	body = world.CreateBody(&bodyDef);
 	body->CreateFixture(&collider->getFixtureDef());
+	body->SetUserData(owner);
 }
 
 RigidBody::~RigidBody()
 {
+	world.DestroyBody(body);
 }
 
 void RigidBody::update(float deltaTime)

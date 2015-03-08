@@ -18,7 +18,6 @@ private:
 	unsigned int width;
 	unsigned int height;
 
-	std::vector<GameObject*> tiles;
 	std::vector<MeshRenderer*> tileRenderers;
 	GameObjectManager gameObjectManager;
 };

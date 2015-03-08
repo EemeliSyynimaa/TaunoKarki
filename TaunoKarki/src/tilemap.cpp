@@ -30,7 +30,7 @@ Tilemap::Tilemap(const std::string& path, AssetManager& assetManager, Camera& ca
 
 			if (data[y][x] == 1)
 			{
-				GameObject *gameobject = gameObjectManager.createWall(glm::vec3(float(x * 2), float(int(y) * -2), 0.0f));
+				GameObject* gameobject = gameObjectManager.createWall(glm::vec3(float(x * 2), float(int(y) * -2), 0.0f));
 				tileRenderers.push_back(gameobject->getComponent<MeshRenderer>());
 			}
 		}

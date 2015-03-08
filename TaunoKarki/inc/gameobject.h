@@ -6,6 +6,15 @@
 #include "component.h"
 #include "gameobjectmanager.h"
 
+const enum GAMEOBJECT_TYPES
+{
+	PLAYER,
+	ENEMY,
+	PLAYER_BULLET,
+	ENEMY_BULLET,
+	WALL
+};
+
 class GameObject
 {
 public:
@@ -31,8 +40,14 @@ public:
 	void draw();
 
 	GameObjectManager& gameObjectManager;
+	bool isAlive() { return alive; }
+	void kill() { alive = false; }
+	unsigned int getType() { return type; }
+	void setType(unsigned int type) { this->type = type; }
 private:
 	std::vector<Component*> components;
+	bool alive;
+	unsigned int type;
 };
 
 #endif

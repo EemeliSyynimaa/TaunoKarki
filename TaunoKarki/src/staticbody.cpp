@@ -18,10 +18,12 @@ StaticBody::StaticBody(GameObject* owner, b2World& world) : Component(owner), wo
 	bodyDef.type = b2_staticBody;
 	body = world.CreateBody(&bodyDef);
 	body->CreateFixture(&collider->getFixtureDef());
+	body->SetUserData(owner);
 }
 
 StaticBody::~StaticBody()
 {
+	world.DestroyBody(body);
 }
 
 void StaticBody::update(float deltaTime)

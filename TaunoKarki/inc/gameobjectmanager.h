@@ -1,7 +1,7 @@
 #ifndef GAMEOBJECTMANAGER_H
 #define GAMEOBJECTMANAGER_H
 
-#include <vector>
+#include <list>
 #include "glm\glm.hpp"
 #include "assetmanager.h"
 #include "Box2D\Box2D.h"
@@ -17,7 +17,7 @@ public:
 
 	void update(float deltaTime);
 	GameObject* createPlayer(glm::vec3 pos);
-	GameObject* createBullet(glm::vec3 pos, glm::vec2 direction);
+	GameObject* createBullet(glm::vec3 pos, glm::vec2 direction, unsigned int owner);
 	GameObject* createWall(glm::vec3 pos);
 
 	Camera& getCamera() { return camera; }
@@ -27,8 +27,8 @@ private:
 	AssetManager& assetManager;
 	b2World& world;
 	Camera& camera;
-	std::vector<GameObject*> gameObjects;
-	std::vector<GameObject*> newObjects;
+	std::list<GameObject*> gameObjects;
+	std::list<GameObject*> newObjects;
 };
 
 #endif

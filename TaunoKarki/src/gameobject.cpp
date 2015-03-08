@@ -1,6 +1,6 @@
 #include "gameobject.h"
 
-GameObject::GameObject(GameObjectManager& gameObjectManager) : gameObjectManager(gameObjectManager)
+GameObject::GameObject(GameObjectManager& gameObjectManager) : gameObjectManager(gameObjectManager), alive(true)
 {
 }
 
@@ -25,5 +25,4 @@ void GameObject::update(float deltaTime)
 
 void GameObject::draw()
 {
-	// TODO WHAT
 }

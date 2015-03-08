@@ -17,7 +17,8 @@ private:
 	const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
 	b2Body* body;
 	Transform* transform;
-	float speed;
+	float moveSpeed;
+	bool weaponFired;
 };
 
 #endif

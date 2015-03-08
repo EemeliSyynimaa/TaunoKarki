@@ -2,8 +2,10 @@
 #include "menuscene.h"
 #include "game.h"
 
-GameScene::GameScene(Game& game) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(assetManager, world, camera)
+GameScene::GameScene(Game& game) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(assetManager, world, camera), collisionHandler()
 {
+	world.SetContactListener(&collisionHandler);
+
 	camera.createNewPerspectiveMatrix(60.0f, (float)game.getScreenWidth(), (float)game.getScreenHeight(), 0.1f, 100.0f);
 	camera.setPosition(glm::vec3(0.0f, 0.0f, 20.0f));
 

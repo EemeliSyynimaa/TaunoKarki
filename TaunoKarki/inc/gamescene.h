@@ -7,6 +7,7 @@
 #include "camera.h"
 #include "Box2D\Box2D.h"
 #include "assetmanager.h"
+#include "collisionhandler.h"
 
 class GameScene : public Scene
 {
@@ -22,8 +23,8 @@ private:
 	Tilemap* tilemap;
 
 	b2World world;
+	CollisionHandler collisionHandler;
 	Camera camera;
-
 	GameObjectManager gameObjectManager;
 };
 

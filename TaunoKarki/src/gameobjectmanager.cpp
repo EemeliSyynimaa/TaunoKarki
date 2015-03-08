@@ -31,22 +31,37 @@ GameObjectManager::~GameObjectManager()
 
 void GameObjectManager::update(float deltaTime)
 {
+	// TODO 2HAX PLS FIX
+	std::list<GameObject*> gameObjectsToDelete;
+
 	for (auto gameObject : gameObjects)
 	{
 		gameObject->update(deltaTime);
+		if (!gameObject->isAlive()) gameObjectsToDelete.push_back(gameObject);
 	}
+
+	gameObjects.erase(std::remove_if(gameObjects.begin(), gameObjects.end(), [](GameObject *obj){ return !obj->isAlive(); }), gameObjects.end());
 
 	for (auto gameObject : newObjects)
 	{
 		gameObjects.push_back(gameObject);
 	}
 
+	for (auto gameObject : gameObjectsToDelete)
+	{
+
+		delete gameObject;
+	}
+
+	gameObjectsToDelete.clear();
 	newObjects.clear();
 }
 
-GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direction)
+GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direction, unsigned int owner)
 {
 	GameObject* gameObject = createObject();
+
+	gameObject->setType(owner);
 
 	gameObject->addComponent(new Transform(gameObject, position.x + direction.x, position.y - direction.y, 0));
 	gameObject->addComponent(new CircleCollider(gameObject, 0.1f));
@@ -65,7 +80,7 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
 	body->SetBullet(true);
 	b2Vec2 forceDir(direction.x, -direction.y);
 
-	forceDir *= 2.0f;
+	forceDir *= 1.0f;
 	body->ApplyLinearImpulse(forceDir, body->GetWorldCenter(), true);
 
 	return gameObject;
@@ -74,6 +89,8 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
 GameObject* GameObjectManager::createWall(glm::vec3 position)
 {
 	GameObject* gameObject = createObject();
+
+	gameObject->setType(GAMEOBJECT_TYPES::WALL);
 
 	gameObject->addComponent(new Transform(gameObject, position));
 	gameObject->addComponent(new MeshRenderer(gameObject));
@@ -91,6 +108,8 @@ GameObject* GameObjectManager::createWall(glm::vec3 position)
 GameObject* GameObjectManager::createPlayer(glm::vec3 position)
 {
 	GameObject* gameObject = createObject();
+
+	gameObject->setType(GAMEOBJECT_TYPES::PLAYER);
 
 	gameObject->addComponent(new Transform(gameObject, position.x, position.y, position.z));
 	gameObject->addComponent(new CircleCollider(gameObject, 1.0f));

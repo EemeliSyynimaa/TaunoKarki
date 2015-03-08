@@ -243,9 +243,6 @@
     <ClInclude Include="inc\SDL\SDL_video.h">
       <Filter>Header Files\SDL</Filter>
     </ClInclude>
-    <ClInclude Include="inc\player.h">
-      <Filter>Header Files\components</Filter>
-    </ClInclude>
     <ClInclude Include="inc\Box2D\Common\b2BlockAllocator.h">
       <Filter>Header Files\Box2D</Filter>
     </ClInclude>
@@ -882,13 +879,13 @@
     <ClInclude Include="inc\assetmanager.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
+    <ClInclude Include="inc\collisionhandler.h">
+      <Filter>Header Files\engine</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
       <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\player.cpp">
-      <Filter>Source Files\components</Filter>
     </ClCompile>
     <ClCompile Include="inc\Box2D\Common\b2BlockAllocator.cpp">
       <Filter>Source Files\Box2D</Filter>
@@ -1092,6 +1089,9 @@
       <Filter>Header Files\engine</Filter>
     </ClCompile>
     <ClCompile Include="src\assetmanager.cpp">
+      <Filter>Source Files\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\collisionhandler.cpp">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
   </ItemGroup>
