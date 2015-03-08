@@ -211,6 +211,7 @@
     <ClInclude Include="inc\glm\vec3.hpp" />
     <ClInclude Include="inc\glm\vec4.hpp" />
     <ClInclude Include="inc\glm\vector_relational.hpp" />
+    <ClInclude Include="inc\health.h" />
     <ClInclude Include="inc\lodepng.h" />
     <ClInclude Include="inc\menuscene.h" />
     <ClInclude Include="inc\mesh.h" />
@@ -346,6 +347,7 @@
     <ClCompile Include="src\gameobject.cpp" />
     <ClCompile Include="src\gameobjectmanager.cpp" />
     <ClCompile Include="src\gamescene.cpp" />
+    <ClCompile Include="src\health.cpp" />
     <ClCompile Include="src\lodepng.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\menuscene.cpp" />

@@ -8,6 +8,7 @@
 #include "playercontroller.h"
 #include "boxcollider.h"
 #include "staticbody.h"
+#include "health.h"
 
 GameObjectManager::GameObjectManager(AssetManager& assetManager, b2World& world, Camera& camera) : assetManager(assetManager), world(world), camera(camera)
 {
@@ -116,6 +117,28 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position)
 	gameObject->addComponent(new MeshRenderer(gameObject));
 	gameObject->addComponent(new RigidBody(gameObject, world));
 	gameObject->addComponent(new PlayerController(gameObject));
+	gameObject->addComponent(new Health(gameObject, 100));
+
+	gameObject->getComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
+	gameObject->getComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
+	gameObject->getComponent<MeshRenderer>()->setCamera(camera);
+	gameObject->getComponent<MeshRenderer>()->setTexture(assetManager.playerTexture);
+	gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
+
+	return gameObject;
+}
+
+GameObject* GameObjectManager::createEnemy(glm::vec3 position)
+{
+	GameObject* gameObject = createObject();
+
+	gameObject->setType(GAMEOBJECT_TYPES::ENEMY);
+
+	gameObject->addComponent(new Transform(gameObject, position.x, position.y, position.z));
+	gameObject->addComponent(new CircleCollider(gameObject, 1.0f));
+	gameObject->addComponent(new MeshRenderer(gameObject));
+	gameObject->addComponent(new RigidBody(gameObject, world));
+	gameObject->addComponent(new Health(gameObject, 100));
 
 	gameObject->getComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
 	gameObject->getComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);

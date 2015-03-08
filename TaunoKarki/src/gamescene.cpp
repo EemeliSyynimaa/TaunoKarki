@@ -11,7 +11,8 @@ GameScene::GameScene(Game& game) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameO
 
 	glClearColor(0.5f, 0.0f, 0.0f, 0.0f);
 
-	gameObjectManager.createPlayer(glm::vec3(4.0f, -4.0f, 0.0f));	
+	gameObjectManager.createPlayer(glm::vec3(4.0f, -4.0f, 0.0f));
+	gameObjectManager.createEnemy(glm::vec3(20.0f, -20.0f, 0.0f));
 
 	tilemap = new Tilemap("assets/maps/mappi.txt", assetManager, camera, world);
 }
