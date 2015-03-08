@@ -44,6 +44,7 @@ public:
 	void kill() { alive = false; }
 	unsigned int getType() { return type; }
 	void setType(unsigned int type) { this->type = type; }
+	void handleCollisionWith(GameObject* gameObject);
 private:
 	std::vector<Component*> components;
 	bool alive;

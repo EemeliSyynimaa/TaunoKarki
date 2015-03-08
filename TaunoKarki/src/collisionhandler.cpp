@@ -24,39 +24,6 @@ void CollisionHandler::handleCollision(GameObject* gameObjectA, GameObject* game
 	// TODO 2HAX :D
 	// Lets handle the collisions
 	// Bullet hits a wall
-	if ((gameObjectA->getType() == GAMEOBJECT_TYPES::ENEMY_BULLET || gameObjectA->getType() == GAMEOBJECT_TYPES::PLAYER_BULLET)
-		&& gameObjectB->getType() == GAMEOBJECT_TYPES::WALL)
-		gameObjectA->kill();
-
-	if ((gameObjectB->getType() == GAMEOBJECT_TYPES::ENEMY_BULLET || gameObjectB->getType() == GAMEOBJECT_TYPES::PLAYER_BULLET)
-		&& gameObjectA->getType() == GAMEOBJECT_TYPES::WALL)
-		gameObjectB->kill();
-
-	// Player bullet hits an enemy
-	if ((gameObjectA->getType() == GAMEOBJECT_TYPES::PLAYER_BULLET)
-		&& gameObjectB->getType() == GAMEOBJECT_TYPES::ENEMY)
-	{
-		gameObjectA->kill();
-		gameObjectB->getComponent<Health>()->change(-25);
-	}
-
-	if ((gameObjectB->getType() == GAMEOBJECT_TYPES::PLAYER_BULLET)
-		&& gameObjectA->getType() == GAMEOBJECT_TYPES::ENEMY)
-	{
-		gameObjectA->getComponent<Health>()->change(-25);
-		gameObjectB->kill();
-	}
-
-	// Enemy hits the player
-	if ((gameObjectB->getType() == GAMEOBJECT_TYPES::PLAYER)
-		&& gameObjectA->getType() == GAMEOBJECT_TYPES::ENEMY)
-	{
-		gameObjectB->getComponent<Health>()->change(-25);
-	}
-
-	if ((gameObjectA->getType() == GAMEOBJECT_TYPES::PLAYER)
-		&& gameObjectB->getType() == GAMEOBJECT_TYPES::ENEMY)
-	{
-		gameObjectA->getComponent<Health>()->change(-25);
-	}
+	gameObjectA->handleCollisionWith(gameObjectB);
+	gameObjectB->handleCollisionWith(gameObjectA);
 }
