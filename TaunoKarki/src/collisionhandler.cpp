@@ -21,9 +21,6 @@ void CollisionHandler::EndContact(b2Contact* contact)
 
 void CollisionHandler::handleCollision(GameObject* gameObjectA, GameObject* gameObjectB)
 {
-	// TODO 2HAX :D
-	// Lets handle the collisions
-	// Bullet hits a wall
 	gameObjectA->handleCollisionWith(gameObjectB);
 	gameObjectB->handleCollisionWith(gameObjectA);
 }
