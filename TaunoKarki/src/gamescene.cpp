@@ -2,24 +2,28 @@
 #include "menuscene.h"
 #include "game.h"
 
-GameScene::GameScene(Game& game) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(assetManager, world, camera), collisionHandler()
+// [13:15] <Pidgin> Pelituotannon tentti ylihuomenna. 
+// [13:15] <Pidgin> Pelituotannon perusteet + Scrum + tuotantosuunnitelma 
+// [13:16] <Pidgin> Kokeessa pit‰‰ kuvaille miten Scrumi toimii, mik‰ Agile on jne. 
+// [13:16] <Pidgin> Pit‰‰ vastata tuotantosuunnitelmaa koskeviin kysymyksiin kokeessa.
+
+GameScene::GameScene(Game& game) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(assetManager, world, camera), collisionHandler(), tilemap(assetManager, camera, world)
 {
 	world.SetContactListener(&collisionHandler);
 
 	camera.createNewPerspectiveMatrix(60.0f, (float)game.getScreenWidth(), (float)game.getScreenHeight(), 0.1f, 100.0f);
-	camera.setPosition(glm::vec3(0.0f, 0.0f, 20.0f));
+	camera.setPosition(glm::vec3(0.0f, 0.0f, 50.0f));
 
 	glClearColor(0.5f, 0.0f, 0.0f, 0.0f);
 
-	gameObjectManager.createPlayer(glm::vec3(4.0f, -4.0f, 0.0f));
-	gameObjectManager.createEnemy(glm::vec3(20.0f, -28.0f, 0.0f));
-
-	tilemap = new Tilemap("assets/maps/mappi.txt", assetManager, camera, world);
+	gameObjectManager.createPlayer(glm::vec3(4.0f, 4.0f, 0.0f));
+	gameObjectManager.createEnemy(glm::vec3(8.0f, -8.0f, 0.0f));
+	
+	tilemap.generate(20, 20);
 }
 
 GameScene::~GameScene()
 {
-	delete tilemap;
 }
 
 void GameScene::update(float deltaTime)
@@ -31,7 +35,7 @@ void GameScene::update(float deltaTime)
 
 void GameScene::draw()
 {
-	tilemap->draw();
+	tilemap.draw();
 }
 
 void GameScene::handleEvent(SDL_Event& event)

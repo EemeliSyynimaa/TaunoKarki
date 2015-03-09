@@ -849,9 +849,6 @@
     <ClInclude Include="inc\meshrenderer.h">
       <Filter>Header Files\components</Filter>
     </ClInclude>
-    <ClInclude Include="inc\tilemap.h">
-      <Filter>Header Files\assets</Filter>
-    </ClInclude>
     <ClInclude Include="inc\rigidbody.h">
       <Filter>Header Files\components</Filter>
     </ClInclude>
@@ -884,6 +881,9 @@
     </ClInclude>
     <ClInclude Include="inc\health.h">
       <Filter>Header Files\components</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\tilemap.h">
+      <Filter>Header Files\engine</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1067,9 +1067,6 @@
     <ClCompile Include="src\meshrenderer.cpp">
       <Filter>Source Files\components</Filter>
     </ClCompile>
-    <ClCompile Include="src\tilemap.cpp">
-      <Filter>Source Files\assets</Filter>
-    </ClCompile>
     <ClCompile Include="src\rigidbody.cpp">
       <Filter>Source Files\components</Filter>
     </ClCompile>
@@ -1099,6 +1096,9 @@
     </ClCompile>
     <ClCompile Include="src\health.cpp">
       <Filter>Source Files\components</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tilemap.cpp">
+      <Filter>Source Files\engine</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

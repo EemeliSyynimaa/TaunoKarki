@@ -20,9 +20,8 @@ public:
 	void handleEvent(SDL_Event& event);
 private:
 	AssetManager assetManager;
-	Tilemap* tilemap;
-
 	b2World world;
+	Tilemap tilemap;
 	CollisionHandler collisionHandler;
 	Camera camera;
 	GameObjectManager gameObjectManager;
