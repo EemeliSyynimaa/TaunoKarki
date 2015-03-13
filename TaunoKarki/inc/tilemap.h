@@ -22,7 +22,7 @@ private:
 		unsigned int width;
 		unsigned int height;
 
-		int distanceTo(Room& otherRoom);
+		bool conflictsWith(Room& otherRoom);
 	};
 
 	struct Data

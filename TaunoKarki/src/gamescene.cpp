@@ -2,11 +2,6 @@
 #include "menuscene.h"
 #include "game.h"
 
-// [13:15] <Pidgin> Pelituotannon tentti ylihuomenna. 
-// [13:15] <Pidgin> Pelituotannon perusteet + Scrum + tuotantosuunnitelma 
-// [13:16] <Pidgin> Kokeessa pit‰‰ kuvaille miten Scrumi toimii, mik‰ Agile on jne. 
-// [13:16] <Pidgin> Pit‰‰ vastata tuotantosuunnitelmaa koskeviin kysymyksiin kokeessa.
-
 GameScene::GameScene(Game& game) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(assetManager, world, camera), collisionHandler(), tilemap(assetManager, camera, world)
 {
 	world.SetContactListener(&collisionHandler);

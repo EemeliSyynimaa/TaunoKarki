@@ -34,9 +34,15 @@ Tilemap::Data::~Data()
 	delete[] data;
 }
 
-int Tilemap::Room::distanceTo(Room& otherRoom)
+bool Tilemap::Room::conflictsWith(Room& otherRoom)
 {
-	return 0;
+		if ((x - 1 > otherRoom.x - 1 && y - 1 > otherRoom.y - 1 && x - 1 < (otherRoom.x - 1 + otherRoom.width + 2) && y - 1 < (otherRoom.y - 1 + otherRoom.height + 2)) ||
+			((x - 1 + width + 2) > otherRoom.x - 1 && y - 1 > otherRoom.y - 1 && (x - 1 + width + 2) < (otherRoom.x - 1 + otherRoom.width + 2) && y - 1 < (otherRoom.y - 1 + otherRoom.height + 2)) ||
+			(x - 1 > otherRoom.x - 1 && (y - 1 + height + 2) > otherRoom.y - 1 && x - 1 < (otherRoom.x - 1 + otherRoom.width + 2) && (y - 1 + height + 2) < (otherRoom.y - 1 + otherRoom.height + 2)) ||
+			((x - 1 + width + 2) > otherRoom.x - 1 && (y - 1 + height + 2) > otherRoom.y - 1 && (x - 1 + width + 2) < (otherRoom.x - 1 + otherRoom.width + 2) && (y - 1 + height + 2) < (otherRoom.y - 1 + otherRoom.height + 2)))
+
+			return true;
+		return false;
 }
 
 Tilemap::Tilemap(AssetManager& assetManager, Camera& camera, b2World& world) : gameObjectManager(assetManager, world, camera)
@@ -62,7 +68,8 @@ void Tilemap::generate(unsigned int width, unsigned int height)
 
 void Tilemap::addRooms(Data& data)
 {
-	std::default_random_engine randomGenerator;
+	std::random_device randomDevice;
+	std::default_random_engine randomGenerator(randomDevice());
 	std::uniform_int_distribution<int> distrY(1, data.height-6);
 	std::uniform_int_distribution<int> distrX(1, data.width-6);
 
@@ -76,7 +83,18 @@ void Tilemap::addRooms(Data& data)
 		room.width = 5;
 		room.height = 5;
 
-		std::cout << room.x << ", " << room.y << std::endl;
+		// We check if the room we want to add conflicts with an existing room.
+		bool roomCanBeAdded = true;
+		for (auto& roomIterator : data.rooms)
+		{
+			if (room.conflictsWith(roomIterator))
+			{
+				roomCanBeAdded = false;
+				break;
+			}
+		}
+
+		if (!roomCanBeAdded) continue;
 
 		data.rooms.push_back(room);
 
