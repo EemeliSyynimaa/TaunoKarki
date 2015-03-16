@@ -122,7 +122,7 @@ unsigned int roomY = distrPosY(randomGenerator);
 roomX += 1 - roomX % 2;
 roomY += 1 - roomY % 2;
 
-// We check if the room we want to add conflicts with an existing room.
+// We check if the room conflicts with an existing room.
 if (roomConflictsWithOthers(roomX, roomY, roomW, roomH)) continue;
 
 carveRoom(roomX, roomY, roomW, roomH);
@@ -217,35 +217,9 @@ void Tilemap::Data::connectRegions()
 	{
 		bool operator()(const glm::uvec2& vec1, const glm::uvec2& vec2)
 		{
-			return vec1.x < vec2.x && vec1.y < vec2.y;
+			return true;
 		}
 	};
-
-	std::map<glm::uvec2, std::vector<unsigned short>, VecComparison> connectorRegions;
-	std::vector<glm::uvec2> connectors;
-
-	// K‰yd‰‰n tiilet l‰pi
-	// Ei kuitenkaan reunoja, koska ulos ei saa pelaajaa p‰‰st‰‰
-	for (unsigned short y = 1; y < height-1; y++)
-	{
-		for (unsigned short x = 1; x < width-1; x++)
-		{
-			std::vector<unsigned short> regions;
-			if (data[y][x] != WALL) continue;
-
-			// Meill‰ on tiili, katsotaan onko sen ymp‰rill‰ useampaa eri regionia
-			// Jos regioni lˆytyy jo vektorista, ni ei lis‰t‰ sit‰ sitte ni!
-			if (data[y][x + 1] != WALL && std::find(regions.begin(), regions.end(), data[y][x + 1]) == regions.end()) regions.push_back(data[y][x + 1]);
-			if (data[y][x - 1] != WALL && std::find(regions.begin(), regions.end(), data[y][x - 1]) == regions.end()) regions.push_back(data[y][x - 1]);
-			if (data[y + 1][x] != WALL && std::find(regions.begin(), regions.end(), data[y + 1][x]) == regions.end()) regions.push_back(data[y + 1][x]);
-			if (data[y - 1][x] != WALL && std::find(regions.begin(), regions.end(), data[y - 1][x]) == regions.end()) regions.push_back(data[y - 1][x]);
-
-			if (regions.size() < 2) continue;
-
-			connectorRegions[glm::uvec2(x, y)] = regions;
-			connectors.push_back(glm::uvec2(x, y));
-		}
-	}
 
 	std::map<int, int> merged;
 	std::vector<unsigned int> openRegions;
@@ -254,6 +228,65 @@ void Tilemap::Data::connectRegions()
 	{
 		merged[i] = i;
 		openRegions.push_back(i);
+	}
+
+	// Eli ny yhdistell‰‰n kaikki regionit
+	// Toistetaan looppia kunnes regioneita on yksi
+	while (openRegions.size() > 1)
+	{
+
+		std::map<glm::uvec2, std::vector<unsigned short>, VecComparison> connectorRegions;
+		std::vector<glm::uvec2> connectors;
+
+		// Ei kuitenkaan reunoja, koska ulos ei saa pelaajaa p‰‰st‰‰
+		for (unsigned short y = 1; y < height - 1; y++)
+		{
+			for (unsigned short x = 1; x < width - 1; x++)
+			{
+				std::vector<unsigned short> regions;
+				if (data[y][x] != WALL) continue;
+
+				// Meill‰ on tiili, katsotaan onko sen ymp‰rill‰ useampaa eri regionia
+				// Jos regioni lˆytyy jo vektorista, ni ei lis‰t‰ sit‰ sitte ni!
+				if (data[y][x + 1] != WALL && std::find(regions.begin(), regions.end(), data[y][x + 1]) == regions.end()) regions.push_back(data[y][x + 1]);
+				if (data[y][x - 1] != WALL && std::find(regions.begin(), regions.end(), data[y][x - 1]) == regions.end()) regions.push_back(data[y][x - 1]);
+				if (data[y + 1][x] != WALL && std::find(regions.begin(), regions.end(), data[y + 1][x]) == regions.end()) regions.push_back(data[y + 1][x]);
+				if (data[y - 1][x] != WALL && std::find(regions.begin(), regions.end(), data[y - 1][x]) == regions.end()) regions.push_back(data[y - 1][x]);
+
+				if (regions.size() < 2) continue;
+
+				connectorRegions[glm::uvec2(x, y)] = regions;
+				connectors.push_back(glm::uvec2(x, y));
+			}
+		}
+
+		// Otetaan eka connectori
+		glm::uvec2 connector = connectors.front();
+		std::vector<unsigned short> regions = connectorRegions[connector];
+		unsigned short regionID = regions.front();
+
+		// Muutetaan kaikki regionit samaan
+		for (auto region : regions) merged[region] = regionID;
+
+		// Otetaan eka regioni listalta pois!
+		regions.erase(regions.begin());
+
+		// Muutetaan regionit 
+		for (unsigned int i = 1; i <= currentRegion; i++)
+		{
+			for (unsigned int j = 0; j < regions.size(); j++)
+			{
+				if (merged[i] == regions[j]) merged[i] = regionID;
+			}
+		}
+
+		for (unsigned int i = 0; i < regions.size(); i++)
+		{
+			for (unsigned int j = openRegions.size(); j > 0; j--)
+			{
+				if (openRegions[j-1] == regions[i]) openRegions.erase(openRegions.begin() + j-1);
+			}
+		}
 	}
 
 	/*
