@@ -174,7 +174,7 @@ void Tilemap::Data::growMaze(glm::uvec2 pos)
 			std::uniform_int_distribution<int> windingPercent(0, 100);
 			std::uniform_int_distribution<int> randomDirection(0, unmadeCells.size() - 1);
 
-			if (std::find(unmadeCells.begin(), unmadeCells.end(), lastDir) != unmadeCells.end() && windingPercent(randomGenerator) > 25)
+			if (std::find(unmadeCells.begin(), unmadeCells.end(), lastDir) != unmadeCells.end() && windingPercent(randomGenerator) > 90)
 				dir = lastDir;
 			else
 				dir = unmadeCells.at(randomDirection(randomGenerator));
@@ -203,136 +203,101 @@ bool Tilemap::Data::canCarve(glm::uvec2 pos, glm::uvec2 dir)
 
 void Tilemap::Data::connectRegions()
 {
-	// ELI
-	// DONED: Etitään connectorit (eli muurinpalat, jotka on kahden regionin välissä)
-	// Katotaan joku huone (vaikka listan eka)
-	// Avataan yks sitä myötäilevistä connectoreista
-	// Se toinen alue jota connector myötäilee, sulautetaan se samaan alueeseen aloitushuoneen kanssa
-	// Discardataan muut connectorit jotka on tämän alueen välillä
-	// Haetaan sit seuraava connectori ja yhdistetään se jne jne.
-
-	// :D:D C++ on paras
-	// TODO siisti tätä 
-	struct VecComparison
+	struct Connector
 	{
-		bool operator()(const glm::uvec2& vec1, const glm::uvec2& vec2)
-		{
-			return true;
-		}
+		unsigned short x;
+		unsigned short y;
+
+		std::vector<unsigned short> regions;
 	};
 
-	std::map<int, int> merged;
 	std::vector<unsigned int> openRegions;
 
 	for (unsigned int i = 1; i <= currentRegion; i++)
 	{
-		merged[i] = i;
 		openRegions.push_back(i);
 	}
 
-	// Eli ny yhdistellään kaikki regionit
-	// Toistetaan looppia kunnes regioneita on yksi
 	while (openRegions.size() > 1)
 	{
+		std::vector<Connector> connectors;
 
-		std::map<glm::uvec2, std::vector<unsigned short>, VecComparison> connectorRegions;
-		std::vector<glm::uvec2> connectors;
-
-		// Ei kuitenkaan reunoja, koska ulos ei saa pelaajaa päästää
 		for (unsigned short y = 1; y < height - 1; y++)
 		{
 			for (unsigned short x = 1; x < width - 1; x++)
 			{
-				std::vector<unsigned short> regions;
+				Connector connector;
 				if (data[y][x] != WALL) continue;
 
-				// Meillä on tiili, katsotaan onko sen ympärillä useampaa eri regionia
-				// Jos regioni löytyy jo vektorista, ni ei lisätä sitä sitte ni!
-				if (data[y][x + 1] != WALL && std::find(regions.begin(), regions.end(), data[y][x + 1]) == regions.end()) regions.push_back(data[y][x + 1]);
-				if (data[y][x - 1] != WALL && std::find(regions.begin(), regions.end(), data[y][x - 1]) == regions.end()) regions.push_back(data[y][x - 1]);
-				if (data[y + 1][x] != WALL && std::find(regions.begin(), regions.end(), data[y + 1][x]) == regions.end()) regions.push_back(data[y + 1][x]);
-				if (data[y - 1][x] != WALL && std::find(regions.begin(), regions.end(), data[y - 1][x]) == regions.end()) regions.push_back(data[y - 1][x]);
+				if (data[y][x + 1] != WALL && std::find(connector.regions.begin(), connector.regions.end(), data[y][x + 1]) == connector.regions.end()) connector.regions.push_back(data[y][x + 1]);
+				if (data[y][x - 1] != WALL && std::find(connector.regions.begin(), connector.regions.end(), data[y][x - 1]) == connector.regions.end()) connector.regions.push_back(data[y][x - 1]);
+				if (data[y + 1][x] != WALL && std::find(connector.regions.begin(), connector.regions.end(), data[y + 1][x]) == connector.regions.end()) connector.regions.push_back(data[y + 1][x]);
+				if (data[y - 1][x] != WALL && std::find(connector.regions.begin(), connector.regions.end(), data[y - 1][x]) == connector.regions.end()) connector.regions.push_back(data[y - 1][x]);
 
-				if (regions.size() < 2) continue;
+				if (connector.regions.size() < 2) continue;
 
-				connectorRegions[glm::uvec2(x, y)] = regions;
-				connectors.push_back(glm::uvec2(x, y));
+				connector.x = x;
+				connector.y = y;
+
+				connectors.push_back(connector);
 			}
 		}
 
-		// Otetaan eka connectori
-		glm::uvec2 connector = connectors.front();
-		std::vector<unsigned short> regions = connectorRegions[connector];
-		unsigned short regionID = regions.front();
+		Connector& connector = connectors.front();
+		unsigned short regionID = connector.regions.front();
+		connector.regions.erase(connector.regions.begin());
 
-		// Muutetaan kaikki regionit samaan
-		for (auto region : regions) merged[region] = regionID;
-
-		// Otetaan eka regioni listalta pois!
-		regions.erase(regions.begin());
-
-		// Muutetaan regionit 
-		for (unsigned int i = 1; i <= currentRegion; i++)
+		for (unsigned int y = 1; y < height - 1; y++)
 		{
-			for (unsigned int j = 0; j < regions.size(); j++)
+			for (unsigned int x = 1; x < width - 1; x++)
 			{
-				if (merged[i] == regions[j]) merged[i] = regionID;
+				for (auto region : connector.regions)
+				{
+					if (data[y][x] == region) data[y][x] = regionID;
+				}
 			}
 		}
 
-		for (unsigned int i = 0; i < regions.size(); i++)
+		data[connector.y][connector.x] = regionID;
+
+		for (unsigned int i = 0; i < connector.regions.size(); i++)
 		{
 			for (unsigned int j = openRegions.size(); j > 0; j--)
 			{
-				if (openRegions[j-1] == regions[i]) openRegions.erase(openRegions.begin() + j-1);
+				if (openRegions[j - 1] == connector.regions[i]) openRegions.erase(openRegions.begin() + j - 1);
 			}
 		}
 	}
-
-	/*
-	BULLSHIT WALKS
-
-	while (openRegions.size() > 1)
-	{
-		glm::uvec2 connector = connectors.front();
-
-		carve(connector);
-
-		std::vector<unsigned short> regions = connectorRegions[connector];
-		int regionID = regions.front();
-
-		// Muutetaan kaikki regionit yhdeksi tai jotain
-		for (auto region : regions) merged[region] = regionID;
-
-		// Poistetaan eka
-		regions.erase(regions.begin());
-
-		// Muutetaan regionit sit lopulta
-		for (unsigned int i = 1; i <= currentRegion; i++)
-		{
-			if (std::find(regions.begin(), regions.end(), merged[i]) != regions.end())
-			{
-				merged[i] = regionID;
-			}
-		}
-
-		for (auto region : regions)
-		{
-			for (unsigned int i = 0; i < openRegions.size(); i++)
-			{
-				if (openRegions[i] == region) openRegions.erase(openRegions.begin() + i);
-			}
-		}
-	
-		for (unsigned int i = connectors.size(); i >= 0; i--)
-		{
-		}
-	}
-	*/
 }
 
 void Tilemap::Data::removeDeadEnds()
 {
+	bool done = false;
+
+	while (!done)
+	{
+		done = true;
+
+		for (unsigned int y = 1; y < height - 1; y++)
+		{
+			for (unsigned int x = 1; x < width - 1; x++)
+			{
+				if (data[y][x] == WALL) continue;
+
+				short exists = 0;
+
+				if (data[y][x + 1] != WALL) exists++;
+				if (data[y][x - 1] != WALL) exists++;
+				if (data[y + 1][x] != WALL) exists++;
+				if (data[y - 1][x] != WALL) exists++;
+
+				if (exists != 1) continue;
+
+				done = false;
+				data[y][x] = WALL;
+			}
+		}
+	}
 }
 
 void Tilemap::createWallObjects(Data& data)
