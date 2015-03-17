@@ -98,7 +98,7 @@ void Tilemap::Data::addRooms()
 	std::random_device randomDevice;
 	std::default_random_engine randomGenerator(randomDevice());
 
-	unsigned int numberOfTries = 10;
+	unsigned int numberOfTries = 100;
 
 	for (unsigned int i = 0; i < numberOfTries; i++)
 	{
@@ -174,7 +174,7 @@ void Tilemap::Data::growMaze(glm::uvec2 pos)
 			std::uniform_int_distribution<int> windingPercent(0, 100);
 			std::uniform_int_distribution<int> randomDirection(0, unmadeCells.size() - 1);
 
-			if (std::find(unmadeCells.begin(), unmadeCells.end(), lastDir) != unmadeCells.end() && windingPercent(randomGenerator) > 90)
+			if (std::find(unmadeCells.begin(), unmadeCells.end(), lastDir) != unmadeCells.end() && windingPercent(randomGenerator) > 50)
 				dir = lastDir;
 			else
 				dir = unmadeCells.at(randomDirection(randomGenerator));
@@ -266,6 +266,20 @@ void Tilemap::Data::connectRegions()
 			{
 				if (openRegions[j - 1] == connector.regions[i]) openRegions.erase(openRegions.begin() + j - 1);
 			}
+		}
+
+		// Lets open a random connector just for funz!
+		std::random_device randomDevice;
+		std::default_random_engine randomGenerator(randomDevice());
+
+		std::uniform_int_distribution<int> distrOpenConnectors(0, 100);
+		std::uniform_int_distribution<int> distrRandomConnector(0, connectors.size());
+
+		if (distrOpenConnectors(randomGenerator) > 25)
+		{
+			Connector& temp = connectors[distrRandomConnector(randomGenerator)];
+
+			data[temp.y][temp.x] = regionID;
 		}
 	}
 }

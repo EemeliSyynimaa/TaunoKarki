@@ -113,12 +113,13 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position)
 	gameObject->setType(GAMEOBJECT_TYPES::PLAYER);
 
 	gameObject->addComponent(new Transform(gameObject, position.x, position.y, position.z));
-	gameObject->addComponent(new CircleCollider(gameObject, 1.0f));
+	gameObject->addComponent(new CircleCollider(gameObject, 0.5f));
 	gameObject->addComponent(new MeshRenderer(gameObject));
 	gameObject->addComponent(new RigidBody(gameObject, world));
 	gameObject->addComponent(new PlayerController(gameObject));
 	gameObject->addComponent(new Health(gameObject, 100));
 
+	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.5f, 0.5f, 0.75f));
 	gameObject->getComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
 	gameObject->getComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
 	gameObject->getComponent<MeshRenderer>()->setCamera(camera);
@@ -135,11 +136,12 @@ GameObject* GameObjectManager::createEnemy(glm::vec3 position)
 	gameObject->setType(GAMEOBJECT_TYPES::ENEMY);
 
 	gameObject->addComponent(new Transform(gameObject, position.x, position.y, position.z));
-	gameObject->addComponent(new CircleCollider(gameObject, 1.0f));
+	gameObject->addComponent(new CircleCollider(gameObject, 0.5f));
 	gameObject->addComponent(new MeshRenderer(gameObject));
 	gameObject->addComponent(new RigidBody(gameObject, world));
 	gameObject->addComponent(new Health(gameObject, 100));
 
+	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.5f, 0.5f, 0.75f));
 	gameObject->getComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
 	gameObject->getComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
 	gameObject->getComponent<MeshRenderer>()->setCamera(camera);

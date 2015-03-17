@@ -7,11 +7,11 @@ GameScene::GameScene(Game& game) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameO
 	world.SetContactListener(&collisionHandler);
 
 	camera.createNewPerspectiveMatrix(60.0f, (float)game.getScreenWidth(), (float)game.getScreenHeight(), 0.1f, 100.0f);
-	camera.setPosition(glm::vec3(0.0f, 0.0f, 20.0f));
+	camera.setPosition(glm::vec3(0.0f, 0.0f, 15.0f));
 
 	glClearColor(0.5f, 0.0f, 0.0f, 0.0f);
 
-	tilemap.generate(31, 31);
+	tilemap.generate(41, 41);
 
 	gameObjectManager.createPlayer(tilemap.getPlayerStartingPosition());
 	gameObjectManager.createEnemy(glm::vec3(8.0f, -8.0f, 0.0f));
