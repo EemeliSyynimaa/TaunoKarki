@@ -13,8 +13,12 @@ GameScene::GameScene(Game& game) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameO
 
 	tilemap.generate(41, 41);
 
-	gameObjectManager.createPlayer(tilemap.getPlayerStartingPosition());
-	gameObjectManager.createEnemy(glm::vec3(8.0f, -8.0f, 0.0f));
+	gameObjectManager.createPlayer(tilemap.getStartingPosition());
+
+	while (tilemap.getNumberOfStartingPositions() > 0)
+	{
+		gameObjectManager.createEnemy(tilemap.getStartingPosition());
+	}
 }
 
 GameScene::~GameScene()

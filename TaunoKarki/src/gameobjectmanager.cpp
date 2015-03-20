@@ -65,11 +65,11 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
 	gameObject->setType(owner);
 
 	gameObject->addComponent(new Transform(gameObject, position.x + direction.x, position.y - direction.y, 0));
-	gameObject->addComponent(new CircleCollider(gameObject, 0.1f));
+	gameObject->addComponent(new CircleCollider(gameObject, 0.05f));
 	gameObject->addComponent(new MeshRenderer(gameObject));
 	gameObject->addComponent(new RigidBody(gameObject, world));
 
-	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.1f));
+	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.05f));
 
 	MeshRenderer* temp = gameObject->getComponent<MeshRenderer>();
 	temp->setMesh(assetManager.sphereMesh);
@@ -81,7 +81,7 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
 	body->SetBullet(true);
 	b2Vec2 forceDir(direction.x, -direction.y);
 
-	forceDir *= 1.0f;
+	forceDir *= 0.3f;
 	body->ApplyLinearImpulse(forceDir, body->GetWorldCenter(), true);
 
 	return gameObject;

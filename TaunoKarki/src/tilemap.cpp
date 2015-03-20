@@ -8,19 +8,19 @@
 #include "glm\glm.hpp"
 
 #define WALL 0
+#define randomInt std::uniform_int_distribution<int>
 
-
-// TODO http://journal.stuffwithstuff.com/2014/12/21/rooms-and-mazes/
+// TODO http://i.imgur.com/e81Fc0l.jpg :D
 
 Tilemap::Data::Data(unsigned int width, unsigned int height) : width(width), height(height), currentRegion(0)
 {
 	data = new unsigned short*[height];
 
-	for (unsigned int y = 0; y < height; y++)
+	for (size_t y = 0; y < height; y++)
 	{
 		data[y] = new unsigned short[width];
 
-		for (unsigned int x = 0; x < width; x++)
+		for (size_t x = 0; x < width; x++)
 		{
 			// All tiles are walls  before we start carving.
 			data[y][x] = WALL;
@@ -30,7 +30,7 @@ Tilemap::Data::Data(unsigned int width, unsigned int height) : width(width), hei
 
 Tilemap::Data::~Data()
 {
-	for (unsigned int i = 0; i < height; i++)
+	for (size_t i = 0; i < height; i++)
 	{
 		delete[] data[i];
 	}
@@ -38,12 +38,12 @@ Tilemap::Data::~Data()
 	delete[] data;
 }
 
-bool Tilemap::Data::roomConflictsWithOthers(unsigned int roomX, unsigned int roomY, unsigned int roomW, unsigned int roomH)
+bool Tilemap::Data::roomConflictsWithOthers(size_t roomX, size_t roomY, size_t roomW, size_t roomH)
 {
 	// +1 and -1 are for the borders of the room.
-	for (unsigned int y = roomY - 1; y < roomY + roomH + 1; y++)
+	for (size_t y = roomY - 1; y < roomY + roomH + 1; y++)
 	{
-		for (unsigned int x = roomX - 1; x < roomX + roomW + 1; x++)
+		for (size_t x = roomX - 1; x < roomX + roomW + 1; x++)
 		{
 			// Achievement unlocked: Use goto in C++
 			if (data[y][x] != WALL) goto conflicted;
@@ -65,80 +65,75 @@ Tilemap::~Tilemap()
 	tileRenderers.clear();
 }
 
-void Tilemap::generate(unsigned int width, unsigned int height)
+void Tilemap::generate(size_t width, size_t height)
 {
 	// We want our maps to be odd sized.
 	assert(width % 2 == 1 || height % 2 == 1);
 
 	Data data(width, height);
 
-	data.addRooms();
+	startingPositions = data.addRooms();
 
-	for (unsigned int y = 1; y < height; y += 2)
+	for (size_t y = 1; y < height; y += 2)
 	{
-		for (unsigned int x = 1; x < width; x += 2)
+		for (size_t x = 1; x < width; x += 2)
 		{
 			if (data.data[y][x] != WALL) continue;
 			data.growMaze(glm::uvec2(x, y));
 		}
 	}
 
-	playerStartingPosition = data.playerStartingPosition;
-	
 	data.connectRegions();
 	data.removeDeadEnds();
+	data.openClosedAreas();
 	createWallObjects(data);
 
 	// Update the manager. This needs to be done only once, because all the objects are static.
 	gameObjectManager.update(0.0f);
 }
 
-void Tilemap::Data::addRooms()
+std::vector<glm::vec3> Tilemap::Data::addRooms()
 {
 	std::random_device randomDevice;
 	std::default_random_engine randomGenerator(randomDevice());
+	std::vector<glm::vec3> startingPositions;
+	size_t numberOfTries = 100;
 
-	unsigned int numberOfTries = 100;
-
-	for (unsigned int i = 0; i < numberOfTries; i++)
+	for (size_t i = 0; i < numberOfTries; i++)
 	{
-		std::uniform_int_distribution<int> distrPosW(3, 9);
-		std::uniform_int_distribution<int> distrPosH(3, 9);
-
 		// We want our room size to be odd.
-		unsigned int roomW = distrPosW(randomGenerator);
-		unsigned int roomH = distrPosH(randomGenerator);
+		size_t roomW = randomInt(3, 9)(randomGenerator);
+		size_t roomH = randomInt(3, 9)(randomGenerator);
 
 		roomW += 1 - roomW % 2;
 		roomH += 1 - roomH % 2;
 
-		std::uniform_int_distribution<int> distrPosX(1, width - roomW - 1);
-		std::uniform_int_distribution<int> distrPosY(1, height - roomH - 1);
+		size_t roomX = randomInt(1, width - roomW - 1)(randomGenerator);
+		size_t roomY = randomInt(1, height - roomH - 1)(randomGenerator);
 
-unsigned int roomX = distrPosX(randomGenerator);
-unsigned int roomY = distrPosY(randomGenerator);
+		// We want our room position to be odd too.
+		roomX += 1 - roomX % 2;
+		roomY += 1 - roomY % 2;
 
-// We want our room position to be odd too.
-roomX += 1 - roomX % 2;
-roomY += 1 - roomY % 2;
+		// We check if the room conflicts with an existing room.
+		if (roomConflictsWithOthers(roomX, roomY, roomW, roomH)) continue;
 
-// We check if the room conflicts with an existing room.
-if (roomConflictsWithOthers(roomX, roomY, roomW, roomH)) continue;
+		carveRoom(roomX, roomY, roomW, roomH);
 
-carveRoom(roomX, roomY, roomW, roomH);
-
-// Player starts from the first room generated.
-if (currentRegion == 1) playerStartingPosition = glm::vec3(float((roomX + roomW / 2.f)* 2.f), float((roomY + roomH / 2.f) * -2.f), 0.0f);
+		// Every room has a random starting point
+		startingPositions.push_back(glm::vec3(float(randomInt(roomX + 1, roomX + roomW - 1)(randomGenerator)) * 2.0f, float(randomInt(roomY + 1, roomY + roomH - 1)(randomGenerator)) * -2.0f, 0.0f));
 	}
+
+	return startingPositions;
 }
 
-void Tilemap::Data::carveRoom(unsigned int roomX, unsigned int roomY, unsigned int roomW, unsigned int roomH)
+void Tilemap::Data::carveRoom(size_t roomX, size_t roomY, size_t roomW, size_t roomH)
 {
 	startRegion();
 
-	for (unsigned int y = roomY; y < (roomY + roomH); y++)
+	for (size_t y = roomY; y < (roomY + roomH); y++)
 	{
-		for (unsigned int x = roomX; x < (roomX + roomW); x++)
+		for (size_t x = roomX; x < (roomX + roomW); x++)
 		{
 			carve(x, y);
 		}
@@ -171,13 +166,11 @@ void Tilemap::Data::growMaze(glm::uvec2 pos)
 		if (!unmadeCells.empty())
 		{
 			glm::uvec2 dir;
-			std::uniform_int_distribution<int> windingPercent(0, 100);
-			std::uniform_int_distribution<int> randomDirection(0, unmadeCells.size() - 1);
 
-			if (std::find(unmadeCells.begin(), unmadeCells.end(), lastDir) != unmadeCells.end() && windingPercent(randomGenerator) > 50)
+			if (std::find(unmadeCells.begin(), unmadeCells.end(), lastDir) != unmadeCells.end() && randomInt(0, 100)(randomGenerator) > 50)
 				dir = lastDir;
 			else
-				dir = unmadeCells.at(randomDirection(randomGenerator));
+				dir = unmadeCells.at(randomInt(0, unmadeCells.size() - 1)(randomGenerator));
 
 			carve(cell + dir);
 			carve(cell + glm::uvec2(dir.x * 2, dir.y * 2));
@@ -211,9 +204,9 @@ void Tilemap::Data::connectRegions()
 		std::vector<unsigned short> regions;
 	};
 
-	std::vector<unsigned int> openRegions;
+	std::vector<size_t> openRegions;
 
-	for (unsigned int i = 1; i <= currentRegion; i++)
+	for (size_t i = 1; i <= currentRegion; i++)
 	{
 		openRegions.push_back(i);
 	}
@@ -247,9 +240,9 @@ void Tilemap::Data::connectRegions()
 		unsigned short regionID = connector.regions.front();
 		connector.regions.erase(connector.regions.begin());
 
-		for (unsigned int y = 1; y < height - 1; y++)
+		for (size_t y = 1; y < height - 1; y++)
 		{
-			for (unsigned int x = 1; x < width - 1; x++)
+			for (size_t x = 1; x < width - 1; x++)
 			{
 				for (auto region : connector.regions)
 				{
@@ -260,9 +253,9 @@ void Tilemap::Data::connectRegions()
 
 		data[connector.y][connector.x] = regionID;
 
-		for (unsigned int i = 0; i < connector.regions.size(); i++)
+		for (size_t i = 0; i < connector.regions.size(); i++)
 		{
-			for (unsigned int j = openRegions.size(); j > 0; j--)
+			for (size_t j = openRegions.size(); j > 0; j--)
 			{
 				if (openRegions[j - 1] == connector.regions[i]) openRegions.erase(openRegions.begin() + j - 1);
 			}
@@ -272,12 +265,9 @@ void Tilemap::Data::connectRegions()
 		std::random_device randomDevice;
 		std::default_random_engine randomGenerator(randomDevice());
 
-		std::uniform_int_distribution<int> distrOpenConnectors(0, 100);
-		std::uniform_int_distribution<int> distrRandomConnector(0, connectors.size());
-
-		if (distrOpenConnectors(randomGenerator) > 25)
+		if (randomInt(0, 100)(randomGenerator) > 75)
 		{
-			Connector& temp = connectors[distrRandomConnector(randomGenerator)];
+			Connector& temp = connectors[randomInt(0, connectors.size() - 1)(randomGenerator)];
 
 			data[temp.y][temp.x] = regionID;
 		}
@@ -292,9 +282,9 @@ void Tilemap::Data::removeDeadEnds()
 	{
 		done = true;
 
-		for (unsigned int y = 1; y < height - 1; y++)
+		for (size_t y = 1; y < height - 1; y++)
 		{
-			for (unsigned int x = 1; x < width - 1; x++)
+			for (size_t x = 1; x < width - 1; x++)
 			{
 				if (data[y][x] == WALL) continue;
 
@@ -314,11 +304,30 @@ void Tilemap::Data::removeDeadEnds()
 	}
 }
 
+void Tilemap::Data::openClosedAreas()
+{
+	startRegion();
+	for (size_t y = 1; y < height - 1; y++)
+	{
+		for (size_t x = 1; x < width - 1; x++)
+		{
+			if ((checkTile(x, y + 1, WALL) || checkTile(x, y + 1, currentRegion)) &&
+				(checkTile(x, y - 1, WALL) || checkTile(x, y - 1, currentRegion)) &&
+				(checkTile(x + 1, y, WALL) || checkTile(x + 1, y, currentRegion)) &&
+				(checkTile(x - 1, y, WALL) || checkTile(x - 1, y, currentRegion)) &&
+				(checkTile(x + 1, y + 1, WALL) || checkTile(x + 1, y + 1, currentRegion)) &&
+				(checkTile(x + 1, y - 1, WALL) || checkTile(x + 1, y - 1, currentRegion)) &&
+				(checkTile(x - 1, y + 1, WALL) || checkTile(x - 1, y + 1, currentRegion)) &&
+				(checkTile(x - 1, y - 1, WALL) || checkTile(x - 1, y - 1, currentRegion))) carve(x, y);
+		}
+	}
+}
+
 void Tilemap::createWallObjects(Data& data)
 {
-	for (unsigned int y = 0; y < data.height; y++)
+	for (size_t y = 0; y < data.height; y++)
 	{
-		for (unsigned int x = 0; x < data.width; x++)
+		for (size_t x = 0; x < data.width; x++)
 		{
 			if (data.data[y][x] == WALL)
 			{
@@ -333,4 +342,12 @@ void Tilemap::draw()
 {
 	for (auto tile : tileRenderers)
 		tile->update(0.0f);
+}
+
+glm::vec3 Tilemap::getStartingPosition()
+{
+	glm::vec3 position = startingPositions.back();
+	startingPositions.pop_back();
+
+	return position;
 }

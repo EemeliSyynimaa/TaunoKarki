@@ -14,7 +14,8 @@ public:
 
 	void draw();
 	void generate(unsigned int width, unsigned int height);
-	glm::vec3 getPlayerStartingPosition() { return playerStartingPosition; }
+	glm::vec3 getStartingPosition();
+	size_t getNumberOfStartingPositions() { return startingPositions.size(); }
 private:
 	// Data struct has the temporary data needed for generating the level.
 	struct Data
@@ -24,18 +25,18 @@ private:
 		unsigned int height;
 		unsigned short currentRegion;
 
-		glm::vec3 playerStartingPosition;
-
 		void startRegion() { currentRegion++; };
-		void addRooms();
+		std::vector<glm::vec3> addRooms();
 		bool roomConflictsWithOthers(unsigned int roomX, unsigned int roomY, unsigned int roomW, unsigned int roomH);
 		void carveRoom(unsigned int roomX, unsigned int roomY, unsigned int roomW, unsigned int roomH);
 		void growMaze(glm::uvec2 pos);
 		void connectRegions();
 		void removeDeadEnds();
+		void openClosedAreas();
 		void carve(unsigned short x, unsigned short y) { data[y][x] = currentRegion; }
 		void carve(glm::uvec2 pos) { carve(pos.x, pos.y); }
 		bool canCarve(glm::uvec2 pos, glm::uvec2 dir);
+		bool checkTile(size_t x, size_t y, size_t tile) { return data[y][x] == tile; };
 
 		Data(unsigned int width, unsigned int height);
 		~Data();
@@ -46,7 +47,7 @@ private:
 	std::vector<MeshRenderer*> tileRenderers;
 	GameObjectManager gameObjectManager;
 
-	glm::vec3 playerStartingPosition;
+	std::vector<glm::vec3> startingPositions;
 };
 
 #endif

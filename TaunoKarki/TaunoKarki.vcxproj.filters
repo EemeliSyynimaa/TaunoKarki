@@ -870,9 +870,6 @@
     <ClInclude Include="inc\playercontroller.h">
       <Filter>Header Files\components</Filter>
     </ClInclude>
-    <ClInclude Include="inc\gameobjectmanager.h">
-      <Filter>Source Files\engine</Filter>
-    </ClInclude>
     <ClInclude Include="inc\assetmanager.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
@@ -883,6 +880,9 @@
       <Filter>Header Files\components</Filter>
     </ClInclude>
     <ClInclude Include="inc\tilemap.h">
+      <Filter>Header Files\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\gameobjectmanager.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1085,9 +1085,6 @@
     <ClCompile Include="src\playercontroller.cpp">
       <Filter>Source Files\components</Filter>
     </ClCompile>
-    <ClCompile Include="src\gameobjectmanager.cpp">
-      <Filter>Header Files\engine</Filter>
-    </ClCompile>
     <ClCompile Include="src\assetmanager.cpp">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
@@ -1098,6 +1095,9 @@
       <Filter>Source Files\components</Filter>
     </ClCompile>
     <ClCompile Include="src\tilemap.cpp">
+      <Filter>Source Files\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gameobjectmanager.cpp">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
   </ItemGroup>
