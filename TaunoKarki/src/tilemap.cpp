@@ -321,6 +321,19 @@ void Tilemap::Data::openClosedAreas()
 				(checkTile(x - 1, y - 1, WALL) || checkTile(x - 1, y - 1, currentRegion))) carve(x, y);
 		}
 	}
+
+	// Borders!
+	for (size_t x = 0; x < width; x++)
+	{
+		if ((checkTile(x, 1, currentRegion))) carve(x, 0);
+		if ((checkTile(x, height - 2, currentRegion))) carve(x, height - 1);
+	}
+
+	for (size_t y = 0; y < height; y++)
+	{
+		if ((checkTile(1, y, currentRegion))) carve(0, y);
+		if ((checkTile(width - 2, y, currentRegion))) carve(width - 1, y);
+	}
 }
 
 void Tilemap::createWallObjects(Data& data)
