@@ -14,6 +14,7 @@ public:
 	std::string readFile(const std::string& path);
 	void bind() const;
 	void unbind() const;
+	GLuint getUniformLocation(char* uniformId) const { return glGetUniformLocation(programID, uniformId); }
 private:
 	GLuint programID;
 };

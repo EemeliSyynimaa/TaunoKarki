@@ -27,14 +27,14 @@ public:
 	Mesh(const std::string& path);
 	~Mesh();
 
-	bool getSimilarVertexIndex(Vertex& vertex, std::map<Vertex, GLushort>& vertexToOutIndex, GLushort& result);
-	void indexVBO(std::vector<glm::vec3>& vertices, std::vector<glm::vec2>& uvs, std::vector<glm::vec3>& normals);
 	const std::vector<Vertex>& getVertices() const { return vertices; }
 	const std::vector<GLushort>& getIndices() const { return indices; }
-
 private:
 	std::vector<GLushort> indices;
 	std::vector<Vertex> vertices;
+
+	bool getSimilarVertexIndex(Vertex& vertex, std::map<Vertex, GLushort>& vertexToOutIndex, GLushort& result);
+	void indexVBO(std::vector<glm::vec3>& vertices, std::vector<glm::vec2>& uvs, std::vector<glm::vec3>& normals);
 };
 
 #endif

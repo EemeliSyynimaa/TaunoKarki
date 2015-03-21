@@ -1,15 +1,15 @@
 #ifndef TILEMAP_H
 #define TILEMAP_H
 
-#include "meshrenderer.h"
-#include "gameobjectmanager.h"
-
-
+#include <vector>
+#include "assetmanager.h"
+#include "camera.h"
+#include "Box2D\Box2D.h"
 
 class Tilemap
 {
 public:
-	Tilemap(AssetManager& assetManager, Camera& camera, b2World& world);
+	Tilemap(glm::vec3 position, AssetManager& assetManager, Camera& camera, b2World& world);
 	~Tilemap();
 
 	void draw();
@@ -24,6 +24,8 @@ private:
 		unsigned int width;
 		unsigned int height;
 		unsigned short currentRegion;
+		unsigned int howManyTries;
+		int windingPercent;
 
 		void startRegion() { currentRegion++; };
 		std::vector<glm::vec3> addRooms();
@@ -42,12 +44,27 @@ private:
 		~Data();
 	};
 
-	void createWallObjects(Data& data);
-
-	std::vector<MeshRenderer*> tileRenderers;
-	GameObjectManager gameObjectManager;
+	void createMeshes(Data& data);
 
 	std::vector<glm::vec3> startingPositions;
+
+	Camera& camera;
+	AssetManager& assetManager;
+	b2World& world;
+	glm::vec3 position;
+
+	GLuint VBO;
+	GLuint IBO;
+	GLint textureIndex;
+	GLint MVPIndex;
+
+	std::vector<GLushort> indices;
+	std::vector<Vertex> vertices;
+
+	ShaderProgram& program;
+	Texture& texture;
+
+	glm::mat4 matrix;
 };
 
 #endif

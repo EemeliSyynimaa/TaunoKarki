@@ -21,6 +21,6 @@ void CollisionHandler::EndContact(b2Contact* contact)
 
 void CollisionHandler::handleCollision(GameObject* gameObjectA, GameObject* gameObjectB)
 {
-	gameObjectA->handleCollisionWith(gameObjectB);
-	gameObjectB->handleCollisionWith(gameObjectA);
+	if(gameObjectA) gameObjectA->handleCollisionWith(gameObjectB);
+	if(gameObjectB) gameObjectB->handleCollisionWith(gameObjectA);
 }

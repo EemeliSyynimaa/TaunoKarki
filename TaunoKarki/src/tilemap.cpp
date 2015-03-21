@@ -1,18 +1,27 @@
 #include <random>
 #include <algorithm>
-#include <map>
 #include "tilemap.h"
-#include "gameobject.h"
-
+#include "glm/gtc/type_ptr.hpp"
+#include "glm/gtx/transform.hpp"
+#include "glm/glm.hpp"
 #include <iostream>
-#include "glm\glm.hpp"
 
 #define WALL 0
 #define randomInt std::uniform_int_distribution<int>
 
-// TODO http://i.imgur.com/e81Fc0l.jpg :D
+Tilemap::Tilemap(glm::vec3 position, AssetManager& assetManager, Camera& camera, b2World& world) : assetManager(assetManager), world(world), camera(camera), VBO(0), IBO(0), textureIndex(0), MVPIndex(0), program(*assetManager.shaderProgram), texture(*assetManager.wallTexture), matrix(1.0f), position(position)
+{
+	matrix = glm::translate(position);
+}
 
-Tilemap::Data::Data(unsigned int width, unsigned int height) : width(width), height(height), currentRegion(0)
+Tilemap::~Tilemap()
+{
+	glDeleteBuffers(1, &VBO);
+	glDeleteBuffers(1, &IBO);
+}
+
+
+Tilemap::Data::Data(unsigned int width, unsigned int height) : width(width), height(height), currentRegion(0), howManyTries(10), windingPercent(50)
 {
 	data = new unsigned short*[height];
 
@@ -56,15 +65,6 @@ conflicted:
 	return true;
 }
 
-Tilemap::Tilemap(AssetManager& assetManager, Camera& camera, b2World& world) : gameObjectManager(assetManager, world, camera)
-{
-}
-
-Tilemap::~Tilemap()
-{
-	tileRenderers.clear();
-}
-
 void Tilemap::generate(size_t width, size_t height)
 {
 	// We want our maps to be odd sized.
@@ -86,10 +86,7 @@ void Tilemap::generate(size_t width, size_t height)
 	data.connectRegions();
 	data.removeDeadEnds();
 	data.openClosedAreas();
-	createWallObjects(data);
-
-	// Update the manager. This needs to be done only once, because all the objects are static.
-	gameObjectManager.update(0.0f);
+	createMeshes(data);
 }
 
 std::vector<glm::vec3> Tilemap::Data::addRooms()
@@ -97,9 +94,8 @@ std::vector<glm::vec3> Tilemap::Data::addRooms()
 	std::random_device randomDevice;
 	std::default_random_engine randomGenerator(randomDevice());
 	std::vector<glm::vec3> startingPositions;
-	size_t numberOfTries = 100;
 
-	for (size_t i = 0; i < numberOfTries; i++)
+	for (size_t i = 0; i < howManyTries; i++)
 	{
 		// We want our room size to be odd.
 		size_t roomW = randomInt(3, 9)(randomGenerator);
@@ -121,7 +117,7 @@ std::vector<glm::vec3> Tilemap::Data::addRooms()
 		carveRoom(roomX, roomY, roomW, roomH);
 
 		// Every room has a random starting point
-		startingPositions.push_back(glm::vec3(float(randomInt(roomX + 1, roomX + roomW - 1)(randomGenerator)) * 2.0f, float(randomInt(roomY + 1, roomY + roomH - 1)(randomGenerator)) * -2.0f, 0.0f));
+		startingPositions.push_back(glm::vec3(float(randomInt(roomX + 1, roomX + roomW - 1)(randomGenerator)) * 2.0f, float(randomInt(roomY + 1, roomY + roomH - 1)(randomGenerator)) * 2.0f, 0.0f));
 	}
 
 	return startingPositions;
@@ -167,7 +163,7 @@ void Tilemap::Data::growMaze(glm::uvec2 pos)
 		{
 			glm::uvec2 dir;
 
-			if (std::find(unmadeCells.begin(), unmadeCells.end(), lastDir) != unmadeCells.end() && randomInt(0, 100)(randomGenerator) > 50)
+			if (std::find(unmadeCells.begin(), unmadeCells.end(), lastDir) != unmadeCells.end() && randomInt(0, 100)(randomGenerator) > windingPercent)
 				dir = lastDir;
 			else
 				dir = unmadeCells.at(randomInt(0, unmadeCells.size() - 1)(randomGenerator));
@@ -336,25 +332,105 @@ void Tilemap::Data::openClosedAreas()
 	}
 }
 
-void Tilemap::createWallObjects(Data& data)
+void Tilemap::createMeshes(Data& data)
 {
+	GLushort counter = 0;
+
+	const std::vector<Vertex>& meshVertices = assetManager.wallMesh->getVertices();
+	const std::vector<GLushort>& meshIndices = assetManager.wallMesh->getIndices();
+
 	for (size_t y = 0; y < data.height; y++)
 	{
 		for (size_t x = 0; x < data.width; x++)
 		{
 			if (data.data[y][x] == WALL)
 			{
-				GameObject* gameObject = gameObjectManager.createWall(glm::vec3(float(x * 2), float(int(y) * -2), 0.0f));
-				tileRenderers.push_back(gameObject->getComponent<MeshRenderer>());
+				for (const Vertex& vertex : meshVertices)
+				{
+					Vertex newVertex;
+
+					newVertex.position.x = x * 2.0f + vertex.position.x;
+					newVertex.position.y = y * 2.0f + vertex.position.y;
+					newVertex.position.z = vertex.position.z;
+
+					newVertex.uv = vertex.uv;
+					newVertex.normal = vertex.normal;
+
+					vertices.push_back(newVertex);
+					
+				}
+
+				for (GLushort index : meshIndices)
+					indices.push_back(index + counter);
+
+				counter += meshIndices.size();
+
+				b2BodyDef bodyDef;
+				bodyDef.position = b2Vec2(x * 2 + position.x, y * 2 + position.y);
+				bodyDef.type = b2_staticBody;
+				
+				b2Body* body = world.CreateBody(&bodyDef);
+				
+				b2PolygonShape shape;
+				shape.SetAsBox(1.0f, 1.0f);
+
+				b2FixtureDef fixtureDef;
+				fixtureDef.density = 1.0f;
+				fixtureDef.friction = 0.0f;
+				fixtureDef.shape = &shape;
+
+				body->CreateFixture(&fixtureDef);
 			}
 		}
 	}
+
+	glGenBuffers(1, &VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glGenBuffers(1, &IBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLushort), indices.data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	program.bind();
+
+	MVPIndex = program.getUniformLocation("MVP");
+	textureIndex = program.getUniformLocation("texture");
+
+	program.unbind();
 }
 
 void Tilemap::draw()
 {
-	for (auto tile : tileRenderers)
-		tile->update(0.0f);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, position)));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, uv)));
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)(offsetof(Vertex, normal)));
+
+	program.bind();
+
+	glUniform1i(textureIndex, 0);
+	glUniformMatrix4fv(MVPIndex, 1, GL_FALSE, glm::value_ptr(camera.getProjectionMatrix() * camera.getViewMatrix() * matrix));
+
+	texture.bind(GL_TEXTURE0);
+
+	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, nullptr);
+
+	program.unbind();
+
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glDisableVertexAttribArray(2);
+
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 glm::vec3 Tilemap::getStartingPosition()

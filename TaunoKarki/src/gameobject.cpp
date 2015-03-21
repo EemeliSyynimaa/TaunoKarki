@@ -34,39 +34,53 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
 	{
 	case PLAYER:
 	{
-		switch (gameObject->getType())
+		if (gameObject)
 		{
-		case ENEMY_BULLET: getComponent<Health>()->change(-25); break;
-		case ENEMY: getComponent<Health>()->change(-25); break;
-		default: break;
+			switch (gameObject->getType())
+			{
+			case ENEMY_BULLET: getComponent<Health>()->change(-25); break;
+			case ENEMY: getComponent<Health>()->change(-25); break;
+			default: break;
 		}
+	}
 		break;
 	}
 	case ENEMY:
 	{
-		switch (gameObject->getType())
+		if (gameObject)
 		{
-		case PLAYER_BULLET: getComponent<Health>()->change(-10); break;
-		default: break;
+			switch (gameObject->getType())
+			{
+			case PLAYER_BULLET: getComponent<Health>()->change(-10); break;
+			default: break;
+			}
 		}
 		break;
 	}
 	case PLAYER_BULLET:
 	{
-		switch (gameObject->getType())
+		if (gameObject)
 		{
-		case PLAYER: break;
-		default: kill(); break;
-		}
+			switch (gameObject->getType())
+			{
+			case PLAYER: break;
+			default: break;
+			}
+		} 
+		kill();
 		break;
 	}
 	case ENEMY_BULLET:
 	{
-		switch (gameObject->getType())
+		if (gameObject)
 		{
-		case ENEMY: break;
-		default: kill(); break;
+			switch (gameObject->getType())
+			{
+			case ENEMY: break;
+			default: break;
+			}
 		}
+		kill();
 		break;
 	}
 	default: break;

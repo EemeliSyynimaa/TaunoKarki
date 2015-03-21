@@ -2,16 +2,16 @@
 #include "menuscene.h"
 #include "game.h"
 
-GameScene::GameScene(Game& game) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(assetManager, world, camera), collisionHandler(), tilemap(assetManager, camera, world)
+GameScene::GameScene(Game& game) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(assetManager, world, camera), collisionHandler(), tilemap(glm::vec3(0.0f), assetManager, camera, world)
 {
 	world.SetContactListener(&collisionHandler);
 
 	camera.createNewPerspectiveMatrix(60.0f, (float)game.getScreenWidth(), (float)game.getScreenHeight(), 0.1f, 100.0f);
-	camera.setPosition(glm::vec3(0.0f, 0.0f, 15.0f));
+	camera.setPosition(glm::vec3(0.0f, 0.0f, 95.0f));
 
-	glClearColor(0.5f, 0.0f, 0.0f, 0.0f);
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
-	tilemap.generate(41, 41);
+	tilemap.generate(101, 101);
 
 	gameObjectManager.createPlayer(tilemap.getStartingPosition());
 

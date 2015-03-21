@@ -8,6 +8,7 @@
 #include "Box2D\Box2D.h"
 #include "assetmanager.h"
 #include "collisionhandler.h"
+#include "gameobjectmanager.h"
 
 class GameScene : public Scene
 {

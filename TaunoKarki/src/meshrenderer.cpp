@@ -2,21 +2,9 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "gameobject.h"
 
-MeshRenderer::MeshRenderer(GameObject* owner) : Component(owner)
+MeshRenderer::MeshRenderer(GameObject* owner) : Component(owner), textureIndex(0), MVPIndex(0), IBO(0), VBO(0), mesh(nullptr), texture(nullptr), program(nullptr), viewMatrix(nullptr), projectionMatrix(nullptr), transform(owner->getComponent<Transform>())
 {
-	mesh = nullptr;
-	texture = nullptr;
-	program = nullptr;
-	projectionMatrix = nullptr;
-	viewMatrix = nullptr;
-
-	transform = owner->getComponent<Transform>();
 	assert(transform);
-
-	textureIndex = 0;
-	MVPIndex = 0;
-	IBO = 0;
-	VBO = 0;
 }
 
 MeshRenderer::~MeshRenderer()
@@ -59,12 +47,12 @@ void MeshRenderer::setMesh(Mesh* mesh)
 
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, mesh->getVertices().size() * sizeof(Vertex), mesh->getVertices().data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, mesh->getVertices().size() * sizeof(Vertex), mesh->getVertices().data(), GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glGenBuffers(1, &IBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->getIndices().size() * sizeof(GLushort), mesh->getIndices().data(), GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->getIndices().size() * sizeof(GLushort), mesh->getIndices().data(), GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
@@ -78,8 +66,8 @@ void MeshRenderer::setProgram(ShaderProgram* prgrm)
 	program = prgrm;
 	program->bind();
 
-	MVPIndex = glGetUniformLocation(program->getID(), "MVP");
-	textureIndex = glGetUniformLocation(program->getID(), "texture");
+	MVPIndex = program->getUniformLocation("MVP");
+	textureIndex = program->getUniformLocation("texture");
 
 	program->unbind();
 }
