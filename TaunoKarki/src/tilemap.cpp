@@ -5,6 +5,7 @@
 #include "glm/gtx/transform.hpp"
 #include "glm/glm.hpp"
 #include <iostream>
+#include <climits>
 
 #define WALL 0
 #define randomInt std::uniform_int_distribution<int>
@@ -334,10 +335,10 @@ void Tilemap::Data::openClosedAreas()
 
 void Tilemap::createMeshes(Data& data)
 {
-	GLushort counter = 0;
+	GLuint counter = 0;
 
 	const std::vector<Vertex>& meshVertices = assetManager.wallMesh->getVertices();
-	const std::vector<GLushort>& meshIndices = assetManager.wallMesh->getIndices();
+	const std::vector<GLuint>& meshIndices = assetManager.wallMesh->getIndices();
 
 	for (size_t y = 0; y < data.height; y++)
 	{
@@ -360,10 +361,10 @@ void Tilemap::createMeshes(Data& data)
 					
 				}
 
-				for (GLushort index : meshIndices)
+				for (GLuint index : meshIndices)
 					indices.push_back(index + counter);
 
-				counter += meshIndices.size();
+				counter += meshVertices.size();
 
 				b2BodyDef bodyDef;
 				bodyDef.position = b2Vec2(x * 2 + position.x, y * 2 + position.y);
@@ -384,6 +385,9 @@ void Tilemap::createMeshes(Data& data)
 		}
 	}
 
+	std::cout << USHRT_MAX;
+
+
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
@@ -391,7 +395,7 @@ void Tilemap::createMeshes(Data& data)
 
 	glGenBuffers(1, &IBO);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLushort), indices.data(), GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 	program.bind();
@@ -421,7 +425,7 @@ void Tilemap::draw()
 
 	texture.bind(GL_TEXTURE0);
 
-	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, nullptr);
+	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, nullptr);
 
 	program.unbind();
 

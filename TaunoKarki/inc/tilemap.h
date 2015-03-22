@@ -58,7 +58,7 @@ private:
 	GLint textureIndex;
 	GLint MVPIndex;
 
-	std::vector<GLushort> indices;
+	std::vector<GLuint> indices;
 	std::vector<Vertex> vertices;
 
 	ShaderProgram& program;

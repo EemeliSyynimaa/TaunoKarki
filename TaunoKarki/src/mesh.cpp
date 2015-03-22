@@ -7,7 +7,7 @@ Mesh::Mesh(const std::string& path)
 
 	assert(file.is_open());
 
-	std::vector<GLushort> vIndices, tIndices, nIndices;
+	std::vector<GLuint> vIndices, tIndices, nIndices;
 	std::vector<glm::vec3> inVertices, inNormals;
 	std::vector<glm::vec2> inUvs;
 
@@ -77,9 +77,9 @@ Mesh::~Mesh()
 {
 }
 
-bool Mesh::getSimilarVertexIndex(Vertex& vertex, std::map<Vertex, GLushort>& vertexToOutIndex, GLushort& result)
+bool Mesh::getSimilarVertexIndex(Vertex& vertex, std::map<Vertex, GLuint>& vertexToOutIndex, GLuint& result)
 {
-	std::map<Vertex, GLushort>::iterator it = vertexToOutIndex.find(vertex);
+	std::map<Vertex, GLuint>::iterator it = vertexToOutIndex.find(vertex);
 
 	if (it == vertexToOutIndex.end())
 		return false;
@@ -92,13 +92,13 @@ bool Mesh::getSimilarVertexIndex(Vertex& vertex, std::map<Vertex, GLushort>& ver
 
 void Mesh::indexVBO(std::vector<glm::vec3>& inVertices, std::vector<glm::vec2>& inUvs, std::vector<glm::vec3>& inNormals)
 {
-	std::map<Vertex, GLushort> vertexToOutIndex;
+	std::map<Vertex, GLuint> vertexToOutIndex;
 
 	for (unsigned int i = 0; i < inVertices.size(); i++)
 	{
 		Vertex vertex = { inVertices[i], inUvs[i], inNormals[i] };
 
-		GLushort index;
+		GLuint index;
 		bool found = getSimilarVertexIndex(vertex, vertexToOutIndex, index);
 
 		if (found)
@@ -107,7 +107,7 @@ void Mesh::indexVBO(std::vector<glm::vec3>& inVertices, std::vector<glm::vec2>& 
 		{
 			vertices.push_back(vertex);
 
-			GLushort newIndex = (GLushort)vertices.size() - 1;
+			GLuint newIndex = (GLuint)vertices.size() - 1;
 			indices.push_back(newIndex);
 			vertexToOutIndex[vertex] = newIndex;
 		}
