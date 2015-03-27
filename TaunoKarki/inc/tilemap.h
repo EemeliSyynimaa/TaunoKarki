@@ -24,7 +24,6 @@ private:
 		unsigned int width;
 		unsigned int height;
 		unsigned short currentRegion;
-		unsigned int howManyTries;
 		int windingPercent;
 
 		void startRegion() { currentRegion++; };

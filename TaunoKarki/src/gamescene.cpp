@@ -11,7 +11,7 @@ GameScene::GameScene(Game& game) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameO
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
-	tilemap.generate(101, 101);
+	tilemap.generate(31, 31);
 
 	gameObjectManager.createPlayer(tilemap.getStartingPosition());
 

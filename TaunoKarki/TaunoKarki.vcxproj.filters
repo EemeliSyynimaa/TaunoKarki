@@ -834,6 +834,9 @@
     <ClInclude Include="inc\game.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
+    <ClInclude Include="inc\shaderprogram.h">
+      <Filter>Header Files\engine</Filter>
+    </ClInclude>
     <ClInclude Include="inc\transform.h">
       <Filter>Header Files\components</Filter>
     </ClInclude>
@@ -867,6 +870,9 @@
     <ClInclude Include="inc\playercontroller.h">
       <Filter>Header Files\components</Filter>
     </ClInclude>
+    <ClInclude Include="inc\gameobjectmanager.h">
+      <Filter>Source Files\engine</Filter>
+    </ClInclude>
     <ClInclude Include="inc\assetmanager.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
@@ -879,11 +885,8 @@
     <ClInclude Include="inc\tilemap.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
-    <ClInclude Include="inc\gameobjectmanager.h">
-      <Filter>Header Files\engine</Filter>
-    </ClInclude>
-    <ClInclude Include="inc\shaderprogram.h">
-      <Filter>Header Files\assets</Filter>
+    <ClInclude Include="inc\aicontroller.h">
+      <Filter>Header Files\components</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1052,6 +1055,9 @@
     <ClCompile Include="src\scenemanager.cpp">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
+    <ClCompile Include="src\shaderprogram.cpp">
+      <Filter>Source Files\engine</Filter>
+    </ClCompile>
     <ClCompile Include="src\transform.cpp">
       <Filter>Source Files\components</Filter>
     </ClCompile>
@@ -1082,6 +1088,9 @@
     <ClCompile Include="src\playercontroller.cpp">
       <Filter>Source Files\components</Filter>
     </ClCompile>
+    <ClCompile Include="src\gameobjectmanager.cpp">
+      <Filter>Header Files\engine</Filter>
+    </ClCompile>
     <ClCompile Include="src\assetmanager.cpp">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
@@ -1094,11 +1103,8 @@
     <ClCompile Include="src\tilemap.cpp">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
-    <ClCompile Include="src\gameobjectmanager.cpp">
-      <Filter>Source Files\engine</Filter>
-    </ClCompile>
-    <ClCompile Include="src\shaderprogram.cpp">
-      <Filter>Source Files\assets</Filter>
+    <ClCompile Include="src\aicontroller.cpp">
+      <Filter>Source Files\components</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

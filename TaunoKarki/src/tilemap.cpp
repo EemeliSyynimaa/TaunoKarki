@@ -4,8 +4,6 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/gtx/transform.hpp"
 #include "glm/glm.hpp"
-#include <iostream>
-#include <climits>
 
 #define WALL 0
 #define randomInt std::uniform_int_distribution<int>
@@ -22,7 +20,7 @@ Tilemap::~Tilemap()
 }
 
 
-Tilemap::Data::Data(unsigned int width, unsigned int height) : width(width), height(height), currentRegion(0), howManyTries(10), windingPercent(50)
+Tilemap::Data::Data(unsigned int width, unsigned int height) : width(width), height(height), currentRegion(0), windingPercent(50)
 {
 	data = new unsigned short*[height];
 
@@ -95,6 +93,8 @@ std::vector<glm::vec3> Tilemap::Data::addRooms()
 	std::random_device randomDevice;
 	std::default_random_engine randomGenerator(randomDevice());
 	std::vector<glm::vec3> startingPositions;
+
+	size_t howManyTries = (width * height) / 2;
 
 	for (size_t i = 0; i < howManyTries; i++)
 	{
@@ -384,9 +384,6 @@ void Tilemap::createMeshes(Data& data)
 			}
 		}
 	}
-
-	std::cout << USHRT_MAX;
-
 
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);

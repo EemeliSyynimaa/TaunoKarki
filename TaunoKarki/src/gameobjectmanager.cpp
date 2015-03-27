@@ -9,6 +9,7 @@
 #include "boxcollider.h"
 #include "staticbody.h"
 #include "health.h"
+#include "aicontroller.h"
 
 GameObjectManager::GameObjectManager(AssetManager& assetManager, b2World& world, Camera& camera) : assetManager(assetManager), world(world), camera(camera)
 {
@@ -140,6 +141,7 @@ GameObject* GameObjectManager::createEnemy(glm::vec3 position)
 	gameObject->addComponent(new MeshRenderer(gameObject));
 	gameObject->addComponent(new RigidBody(gameObject, world));
 	gameObject->addComponent(new Health(gameObject, 100));
+	gameObject->addComponent(new AIController(gameObject));
 
 	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.5f, 0.5f, 0.75f));
 	gameObject->getComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
