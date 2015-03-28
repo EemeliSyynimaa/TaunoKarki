@@ -13,6 +13,8 @@
 #include "health.h"
 #include "aicontroller.h"
 
+#include "pistol.h"
+
 GameObjectManager::GameObjectManager(AssetManager& assetManager, b2World& world, Camera& camera) : assetManager(assetManager), world(world), camera(camera)
 {
 }
@@ -128,7 +130,8 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position)
 	gameObject->getComponent<MeshRenderer>()->setCamera(camera);
 	gameObject->getComponent<MeshRenderer>()->setTexture(assetManager.playerTexture);
 	gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
-
+	gameObject->getComponent<PlayerController>()->giveWeapon(new Pistol(*this));
+	
 	return gameObject;
 }
 

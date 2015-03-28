@@ -5,6 +5,7 @@
 #include "SDL\SDL.h"
 #include "Box2D\Box2D.h"
 #include "transform.h"
+#include "weapon.h"
 
 class PlayerController : public Component
 {
@@ -13,12 +14,13 @@ public:
 	~PlayerController();
 
 	void update(float deltaTime);
+	void giveWeapon(Weapon* weapon) { this->weapon = weapon; weapon->setOwner(this->owner); }
 private:
 	const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
 	b2Body* body;
 	Transform* transform;
+	Weapon* weapon;
 	float moveSpeed;
-	bool weaponFired;
 };
 
 #endif

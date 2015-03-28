@@ -49,6 +49,12 @@
     <Filter Include="Source Files\assets">
       <UniqueIdentifier>{71fb78cc-f636-415a-97a2-40afa6896ffb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\weapons">
+      <UniqueIdentifier>{84162f1b-f701-4b65-8dc2-bdc724dd36ce}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\weapons">
+      <UniqueIdentifier>{ccc0d21a-8c1e-4e44-abae-61991ac856e0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\SDL\begin_code.h">
@@ -834,9 +840,6 @@
     <ClInclude Include="inc\game.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
-    <ClInclude Include="inc\shaderprogram.h">
-      <Filter>Header Files\engine</Filter>
-    </ClInclude>
     <ClInclude Include="inc\transform.h">
       <Filter>Header Files\components</Filter>
     </ClInclude>
@@ -887,6 +890,15 @@
     </ClInclude>
     <ClInclude Include="inc\gameobjectmanager.h">
       <Filter>Header Files\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\shaderprogram.h">
+      <Filter>Header Files\assets</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\weapon.h">
+      <Filter>Header Files\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\pistol.h">
+      <Filter>Header Files\weapons</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1055,9 +1067,6 @@
     <ClCompile Include="src\scenemanager.cpp">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
-    <ClCompile Include="src\shaderprogram.cpp">
-      <Filter>Source Files\engine</Filter>
-    </ClCompile>
     <ClCompile Include="src\transform.cpp">
       <Filter>Source Files\components</Filter>
     </ClCompile>
@@ -1105,6 +1114,12 @@
     </ClCompile>
     <ClCompile Include="src\gameobjectmanager.cpp">
       <Filter>Source Files\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\shaderprogram.cpp">
+      <Filter>Source Files\assets</Filter>
+    </ClCompile>
+    <ClCompile Include="src\pistol.cpp">
+      <Filter>Source Files\weapons</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

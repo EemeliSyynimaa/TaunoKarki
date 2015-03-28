@@ -3,9 +3,7 @@
 #include "rigidbody.h"
 #include "SDL\SDL.h"
 
-#include <iostream>
-
-PlayerController::PlayerController(GameObject* owner) : Component(owner), moveSpeed(10.0f), weaponFired(false)
+PlayerController::PlayerController(GameObject* owner) : Component(owner), moveSpeed(10.0f)
 {
 	RigidBody* rigidbody = owner->getComponent<RigidBody>();
 	assert(rigidbody);
@@ -52,19 +50,18 @@ void PlayerController::update(float deltaTime)
 
 	body->ApplyLinearImpulse(impulse, body->GetWorldCenter(), true);
 
-	if (!weaponFired && mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
-	{
-		owner->gameObjectManager.createBullet(owner->getComponent<Transform>()->getPosition(), owner->getComponent<Transform>()->getDirVec(), GAMEOBJECT_TYPES::PLAYER_BULLET);
-		weaponFired = true;
-	}
+	// Lets check if we start or stop firing
+	if (!weapon->isTriggerPulled() && mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
+		weapon->pullTheTrigger();
 	else if (!mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
-		weaponFired = false;
+		weapon->releaseTheTrigger();
+
+	// Maybe weapon should be a component?
+	weapon->update(deltaTime);
 
 	halfX = (owner->gameObjectManager.getCamera().getWidth() / 2.0f - x) * -1;
 	halfY = (owner->gameObjectManager.getCamera().getHeight() / 2.0f - y) * -1;
 	mouseCoords = glm::vec3(halfX, -halfY, 0.0f);
-
-	std::cout << halfX << ", " << halfY << ": " << owner->getComponent<Transform>()->getPosition().x << "," << owner->getComponent<Transform>()->getPosition().y << std::endl;
 
 	owner->getComponent<Transform>()->lookAt(owner->getComponent<Transform>()->getPosition() + mouseCoords);
 	owner->gameObjectManager.getCamera().follow(glm::vec2(owner->getComponent<Transform>()->getPosition().x, owner->getComponent<Transform>()->getPosition().y));

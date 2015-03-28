@@ -217,6 +217,7 @@
     <ClInclude Include="inc\menuscene.h" />
     <ClInclude Include="inc\mesh.h" />
     <ClInclude Include="inc\meshrenderer.h" />
+    <ClInclude Include="inc\pistol.h" />
     <ClInclude Include="inc\playercontroller.h" />
     <ClInclude Include="inc\rigidbody.h" />
     <ClInclude Include="inc\scene.h" />
@@ -290,6 +291,7 @@
     <ClInclude Include="inc\texture.h" />
     <ClInclude Include="inc\tilemap.h" />
     <ClInclude Include="inc\transform.h" />
+    <ClInclude Include="inc\weapon.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="inc\Box2D\Collision\b2BroadPhase.cpp" />
@@ -355,6 +357,7 @@
     <ClCompile Include="src\menuscene.cpp" />
     <ClCompile Include="src\mesh.cpp" />
     <ClCompile Include="src\meshrenderer.cpp" />
+    <ClCompile Include="src\pistol.cpp" />
     <ClCompile Include="src\playercontroller.cpp" />
     <ClCompile Include="src\rigidbody.cpp" />
     <ClCompile Include="src\scene.cpp" />
