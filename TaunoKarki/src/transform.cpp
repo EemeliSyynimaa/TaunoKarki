@@ -19,12 +19,12 @@ void Transform::update(float deltaTime)
 {
 }
 
-void Transform::lookAt(glm::vec3& vec)
+void Transform::lookAt(const glm::vec3& target)
 {
-	glm::vec3 deltaPos = position - vec;
+	glm::vec3 deltaPos = target - position;
 	glm::vec3 axis(0.0f, 0.0f, 1.0f);
 	float angle;
-	angle = glm::atan(deltaPos.x, deltaPos.y);
+	angle = glm::atan(deltaPos.y, deltaPos.x);
 	float length = sqrt(powf(deltaPos.x, 2) + powf(deltaPos.y, 2));
 
 	dirVec = glm::vec2(deltaPos.x / length, deltaPos.y / length);

@@ -13,11 +13,14 @@ public:
 
 	ShaderProgram* shaderProgram;
 	Texture* wallTexture;
+	Texture* floorTexture;
 	Texture* sphereTexture;
 	Texture* playerTexture;
+	Texture* enemyTexture;
 
 	Mesh* wallMesh;
 	Mesh* sphereMesh;
+	Mesh* floorMesh;
 };
 
 #endif

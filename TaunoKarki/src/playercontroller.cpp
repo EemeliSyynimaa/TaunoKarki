@@ -3,6 +3,8 @@
 #include "rigidbody.h"
 #include "SDL\SDL.h"
 
+#include <iostream>
+
 PlayerController::PlayerController(GameObject* owner) : Component(owner), moveSpeed(10.0f), weaponFired(false)
 {
 	RigidBody* rigidbody = owner->getComponent<RigidBody>();
@@ -60,8 +62,10 @@ void PlayerController::update(float deltaTime)
 
 	halfX = (owner->gameObjectManager.getCamera().getWidth() / 2.0f - x) * -1;
 	halfY = (owner->gameObjectManager.getCamera().getHeight() / 2.0f - y) * -1;
-	mouseCoords = glm::vec3(halfX, halfY, 0.0f);
+	mouseCoords = glm::vec3(halfX, -halfY, 0.0f);
 
-	owner->getComponent<Transform>()->lookAt(owner->getComponent<Transform>()->getPosition() - mouseCoords);
+	std::cout << halfX << ", " << halfY << ": " << owner->getComponent<Transform>()->getPosition().x << "," << owner->getComponent<Transform>()->getPosition().y << std::endl;
+
+	owner->getComponent<Transform>()->lookAt(owner->getComponent<Transform>()->getPosition() + mouseCoords);
 	owner->gameObjectManager.getCamera().follow(glm::vec2(owner->getComponent<Transform>()->getPosition().x, owner->getComponent<Transform>()->getPosition().y));
 }

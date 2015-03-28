@@ -1,6 +1,8 @@
 #include "gameobjectmanager.h"
 #include "gameobject.h"
 
+#include <algorithm>
+
 #include "transform.h"
 #include "circlecollider.h"
 #include "meshrenderer.h"
@@ -65,7 +67,7 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
 
 	gameObject->setType(owner);
 
-	gameObject->addComponent(new Transform(gameObject, position.x + direction.x, position.y - direction.y, 0));
+	gameObject->addComponent(new Transform(gameObject, position.x + direction.x, position.y + direction.y, 0));
 	gameObject->addComponent(new CircleCollider(gameObject, 0.05f));
 	gameObject->addComponent(new MeshRenderer(gameObject));
 	gameObject->addComponent(new RigidBody(gameObject, world));
@@ -80,7 +82,7 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
 
 	b2Body* body = gameObject->getComponent<RigidBody>()->getBody();
 	body->SetBullet(true);
-	b2Vec2 forceDir(direction.x, -direction.y);
+	b2Vec2 forceDir(direction.x, direction.y);
 
 	forceDir *= 0.3f;
 	body->ApplyLinearImpulse(forceDir, body->GetWorldCenter(), true);
@@ -147,10 +149,20 @@ GameObject* GameObjectManager::createEnemy(glm::vec3 position)
 	gameObject->getComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
 	gameObject->getComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
 	gameObject->getComponent<MeshRenderer>()->setCamera(camera);
-	gameObject->getComponent<MeshRenderer>()->setTexture(assetManager.playerTexture);
+	gameObject->getComponent<MeshRenderer>()->setTexture(assetManager.enemyTexture);
 	gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
 
 	return gameObject;
+}
+
+GameObject* GameObjectManager::getFirstObjectOfType(size_t type) const
+{
+	for (GameObject* gameObject : gameObjects)
+	{
+		if (gameObject->getType() == type) return gameObject;
+	}
+
+	return nullptr;
 }
 
 GameObject* GameObjectManager::createObject()

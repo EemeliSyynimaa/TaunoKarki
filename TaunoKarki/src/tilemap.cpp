@@ -337,16 +337,13 @@ void Tilemap::createMeshes(Data& data)
 {
 	GLuint counter = 0;
 
-	const std::vector<Vertex>& meshVertices = assetManager.wallMesh->getVertices();
-	const std::vector<GLuint>& meshIndices = assetManager.wallMesh->getIndices();
-
 	for (size_t y = 0; y < data.height; y++)
 	{
 		for (size_t x = 0; x < data.width; x++)
 		{
 			if (data.data[y][x] == WALL)
 			{
-				for (const Vertex& vertex : meshVertices)
+				for (const Vertex& vertex : assetManager.wallMesh->getVertices())
 				{
 					Vertex newVertex;
 
@@ -361,10 +358,10 @@ void Tilemap::createMeshes(Data& data)
 					
 				}
 
-				for (GLuint index : meshIndices)
+				for (GLuint index : assetManager.wallMesh->getIndices())
 					indices.push_back(index + counter);
 
-				counter += meshVertices.size();
+				counter += assetManager.wallMesh->getVertices().size();
 
 				b2BodyDef bodyDef;
 				bodyDef.position = b2Vec2(x * 2 + position.x, y * 2 + position.y);

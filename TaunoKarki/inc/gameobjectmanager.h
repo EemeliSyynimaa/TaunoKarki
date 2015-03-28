@@ -22,6 +22,8 @@ public:
 	GameObject* createWall(glm::vec3 pos);
 
 	Camera& getCamera() { return camera; }
+
+	GameObject* getFirstObjectOfType(size_t type) const;
 private:
 	GameObject* createObject();
 

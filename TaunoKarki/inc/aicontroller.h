@@ -1,7 +1,9 @@
 #ifndef AICONTROLLER_H
 #define AICONTROLLER_H
 
+#include <vector>
 #include "component.h"
+#include "transform.h"
 
 class AIController : public Component
 {
@@ -26,6 +28,11 @@ private:
 	};
 
 	states state;
+
+	// The current target player
+	GameObject* targetPlayer;
+
+	Transform* transform;
 };
 
 #endif
