@@ -1,5 +1,6 @@
 #include "gameobject.h"
 #include "health.h"
+#include "damage.h"
 
 GameObject::GameObject(GameObjectManager& gameObjectManager) : gameObjectManager(gameObjectManager), alive(true)
 {
@@ -38,8 +39,8 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
 		{
 			switch (gameObject->getType())
 			{
-			case ENEMY_BULLET: getComponent<Health>()->change(-25); break;
-			case ENEMY: getComponent<Health>()->change(-50); break;
+			case ENEMY_BULLET: getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage()); break;
+			case ENEMY: getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage()); break;
 			default: break;
 		}
 	}
@@ -51,7 +52,7 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
 		{
 			switch (gameObject->getType())
 			{
-			case PLAYER_BULLET: getComponent<Health>()->change(-50); break;
+			case PLAYER_BULLET: getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage()); break;
 			default: break;
 			}
 		}

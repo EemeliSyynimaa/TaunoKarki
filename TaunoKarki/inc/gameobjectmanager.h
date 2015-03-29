@@ -18,7 +18,7 @@ public:
 	void update(float deltaTime);
 	GameObject* createPlayer(glm::vec3 pos);
 	GameObject* createEnemy(glm::vec3 pos);
-	GameObject* createBullet(glm::vec3 pos, glm::vec2 direction, unsigned int owner);
+	GameObject* createBullet(glm::vec3 pos, glm::vec2 direction, unsigned int owner, float damage);
 	GameObject* createWall(glm::vec3 pos);
 
 	Camera& getCamera() { return camera; }

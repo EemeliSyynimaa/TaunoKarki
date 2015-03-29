@@ -900,6 +900,9 @@
     <ClInclude Include="inc\pistol.h">
       <Filter>Header Files\weapons</Filter>
     </ClInclude>
+    <ClInclude Include="inc\damage.h">
+      <Filter>Header Files\components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">

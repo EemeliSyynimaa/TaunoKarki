@@ -66,6 +66,7 @@
     <ClInclude Include="inc\collider.h" />
     <ClInclude Include="inc\collisionhandler.h" />
     <ClInclude Include="inc\component.h" />
+    <ClInclude Include="inc\damage.h" />
     <ClInclude Include="inc\game.h" />
     <ClInclude Include="inc\gameobject.h" />
     <ClInclude Include="inc\gameobjectmanager.h" />

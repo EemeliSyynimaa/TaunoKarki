@@ -12,6 +12,7 @@
 #include "staticbody.h"
 #include "health.h"
 #include "aicontroller.h"
+#include "damage.h"
 
 #include "pistol.h"
 
@@ -63,7 +64,7 @@ void GameObjectManager::update(float deltaTime)
 	newObjects.clear();
 }
 
-GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direction, unsigned int owner)
+GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direction, unsigned int owner, float damage)
 {
 	GameObject* gameObject = createObject();
 
@@ -73,6 +74,7 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
 	gameObject->addComponent(new CircleCollider(gameObject, 0.05f));
 	gameObject->addComponent(new MeshRenderer(gameObject));
 	gameObject->addComponent(new RigidBody(gameObject, world));
+	gameObject->addComponent(new Damage(gameObject, damage));
 
 	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.05f));
 
@@ -86,7 +88,7 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
 	body->SetBullet(true);
 	b2Vec2 forceDir(direction.x, direction.y);
 
-	forceDir *= 0.3f;
+	forceDir *= 0.1f;
 	body->ApplyLinearImpulse(forceDir, body->GetWorldCenter(), true);
 
 	return gameObject;
@@ -147,6 +149,7 @@ GameObject* GameObjectManager::createEnemy(glm::vec3 position)
 	gameObject->addComponent(new RigidBody(gameObject, world));
 	gameObject->addComponent(new Health(gameObject, 100));
 	gameObject->addComponent(new AIController(gameObject));
+	gameObject->addComponent(new Damage(gameObject, 50.0f));
 
 	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.5f, 0.5f, 0.75f));
 	gameObject->getComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);

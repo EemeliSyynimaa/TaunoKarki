@@ -54,7 +54,7 @@ void AIController::attack()
 void AIController::shoot()
 {
 	Uint32 time = SDL_GetTicks();
-	if (!weapon->isTriggerPulled() && (time - lastShot) > 250)
+	if (!weapon->isTriggerPulled() && (time - lastShot) > 450)
 	{
 		weapon->pullTheTrigger();
 		lastShot = time;
