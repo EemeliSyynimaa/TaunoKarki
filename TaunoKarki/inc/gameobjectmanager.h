@@ -24,6 +24,7 @@ public:
 	Camera& getCamera() { return camera; }
 
 	GameObject* getFirstObjectOfType(size_t type) const;
+	size_t getNumberOfObjectsOfType(size_t type) const;
 private:
 	GameObject* createObject();
 

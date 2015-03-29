@@ -5,16 +5,16 @@
 
 MenuScene::MenuScene(Game& game) : Scene(game)
 {
+	std::cout << "MENUSCENE ALIVE" << std::endl;
 }
 
 MenuScene::~MenuScene()
 {
+	std::cout << "MENUSCENE DIE" << std::endl;
 }
 
 void MenuScene::update(float deltaTime)
 {
-	std::cout << "MENUSCENE WORKS TOO" << std::endl;
-	game.getSceneManager().change(new GameScene(game));
 }
 
 void MenuScene::draw()
@@ -23,4 +23,6 @@ void MenuScene::draw()
 
 void MenuScene::handleEvent(SDL_Event& event)
 {
+	if (event.key.keysym.sym == SDLK_SPACE)
+		game.getSceneManager().change(new GameScene(game));
 }

@@ -22,7 +22,7 @@ void Camera::follow(glm::vec2 pos)
 	position.y = pos.y;
 
 	viewMatrix = glm::lookAt(
-		glm::vec3(position.x, position.y, position.z),
+		glm::vec3(position.x, position.y - 5.0f, position.z),
 		glm::vec3(position.x, position.y, 0),
 		glm::vec3(0, 1, 0));
 }

@@ -172,6 +172,18 @@ GameObject* GameObjectManager::getFirstObjectOfType(size_t type) const
 	return nullptr;
 }
 
+size_t GameObjectManager::getNumberOfObjectsOfType(size_t type) const
+{
+	size_t counter = 0;
+
+	for (GameObject* gameObject : gameObjects)
+	{
+		if (gameObject->getType() == type) counter++;
+	}
+
+	return counter;
+}
+
 GameObject* GameObjectManager::createObject()
 {
 	GameObject* gameObject = new GameObject(*this);

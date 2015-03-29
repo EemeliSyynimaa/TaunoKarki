@@ -1,7 +1,7 @@
 #include <cassert>
 #include <iostream>
 #include "game.h"
-#include "gamescene.h"
+#include "menuscene.h"
 
 
 Game::Game() : screenWidth(1280), screenHeight(720)
@@ -53,7 +53,7 @@ Game::Game() : screenWidth(1280), screenHeight(720)
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
-	sceneManager.change(new GameScene(*this));
+	sceneManager.change(new MenuScene(*this));
 }
 
 Game::~Game()
