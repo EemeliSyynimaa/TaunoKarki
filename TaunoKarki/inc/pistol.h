@@ -9,7 +9,7 @@ public:
 	Pistol(GameObjectManager& gameObjectManager);
 	~Pistol();
 
-	void update(float deltaTime);
+	void update();
 private:
 	bool fired;
 };

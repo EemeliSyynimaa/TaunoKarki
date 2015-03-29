@@ -10,7 +10,7 @@ Pistol::~Pistol()
 
 }
 
-void Pistol::update(float deltaTime)
+void Pistol::update()
 {
 	if (triggerPulled && !fired)
 	{

@@ -2,7 +2,7 @@
 #include "gameobject.h"
 #include "gameobjectmanager.h"
 
-AIController::AIController(GameObject* owner) : Component(owner)
+AIController::AIController(GameObject* owner) : Component(owner), lastShot(SDL_GetTicks())
 {
 	state = WANDER;
 
@@ -46,7 +46,22 @@ void AIController::attack()
 		transform->lookAt(player->getComponent<Transform>()->getPosition());
 
 		if (sqrt(powf(player->getComponent<Transform>()->getPosition().x - transform->getPosition().x, 2) + powf(player->getComponent<Transform>()->getPosition().y - transform->getPosition().y, 2)) > minDistance) state = WANDER;
+
+		if (weapon) shoot();
 	}
+}
+
+void AIController::shoot()
+{
+	Uint32 time = SDL_GetTicks();
+	if (!weapon->isTriggerPulled() && (time - lastShot) > 250)
+	{
+		weapon->pullTheTrigger();
+		lastShot = time;
+	}
+	else weapon->releaseTheTrigger();
+
+	weapon->update();
 }
 
 void AIController::pursue()

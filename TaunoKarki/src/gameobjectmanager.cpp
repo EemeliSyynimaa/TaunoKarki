@@ -154,6 +154,7 @@ GameObject* GameObjectManager::createEnemy(glm::vec3 position)
 	gameObject->getComponent<MeshRenderer>()->setCamera(camera);
 	gameObject->getComponent<MeshRenderer>()->setTexture(assetManager.enemyTexture);
 	gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
+	gameObject->getComponent<AIController>()->giveWeapon(new Pistol(*this));
 
 	return gameObject;
 }

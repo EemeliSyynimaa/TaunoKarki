@@ -2,8 +2,10 @@
 #define AICONTROLLER_H
 
 #include <vector>
+#include <SDL\SDL_timer.h>
 #include "component.h"
 #include "transform.h"
+#include "weapon.h"
 
 class AIController : public Component
 {
@@ -12,12 +14,14 @@ public:
 	~AIController();
 
 	void update(float deltaTime);
+	void giveWeapon(Weapon* weapon) { this->weapon = weapon; weapon->setOwner(this->owner); }
 private:
 
 	void wander();
 	void attack();
 	void pursue();
 	void escape();
+	void shoot();
 
 	enum states
 	{
@@ -28,11 +32,10 @@ private:
 	};
 
 	states state;
-
-	// The current target player
-	GameObject* targetPlayer;
-
 	Transform* transform;
+	Weapon* weapon;
+
+	Uint32 lastShot;
 };
 
 #endif

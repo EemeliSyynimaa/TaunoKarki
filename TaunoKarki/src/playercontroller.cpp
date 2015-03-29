@@ -57,7 +57,7 @@ void PlayerController::update(float deltaTime)
 		weapon->releaseTheTrigger();
 
 	// Maybe weapon should be a component?
-	weapon->update(deltaTime);
+	weapon->update();
 
 	halfX = (owner->gameObjectManager.getCamera().getWidth() / 2.0f - x) * -1;
 	halfY = (owner->gameObjectManager.getCamera().getHeight() / 2.0f - y) * -1;

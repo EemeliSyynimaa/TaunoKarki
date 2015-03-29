@@ -13,7 +13,7 @@ public:
 	void releaseTheTrigger() { triggerPulled = false; }
 	void setOwner(GameObject* owner) { this->owner = owner; }
 	bool isTriggerPulled() { return triggerPulled; }
-	virtual void update(float deltaTime) = 0;
+	virtual void update() = 0;
 protected:
 	GameObjectManager& gameObjectManager;
 	GameObject* owner;
