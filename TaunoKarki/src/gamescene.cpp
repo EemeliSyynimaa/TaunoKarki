@@ -5,7 +5,7 @@
 
 #include <iostream>
 
-GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(assetManager, world, camera), collisionHandler(), tilemap(glm::vec3(0.0f), assetManager, camera, world), level(level)
+GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(assetManager, world, camera), collisionHandler(), tilemap(glm::vec3(0.0f), assetManager, camera, world), level(level), accumulator(0.0f), step(1.0f / 60.0f)
 {
 	std::cout << "GAMESCENE ALIVE - entering level " << level << std::endl;
 
@@ -33,9 +33,16 @@ GameScene::~GameScene()
 
 void GameScene::update(float deltaTime)
 {
-	world.Step(1 / 60.0f, 8, 3);
+	accumulator += deltaTime;
 
-	gameObjectManager.update(deltaTime);
+	while (accumulator >= step)
+	{
+		world.Step(step, 8, 3);
+		accumulator -= step;
+		gameObjectManager.update(deltaTime);
+	}
+
+	gameObjectManager.interpolate(accumulator / step);
 
 	if (gameObjectManager.getNumberOfObjectsOfType(GAMEOBJECT_TYPES::PLAYER) == 0)
 	{

@@ -361,7 +361,6 @@
     <ClCompile Include="src\pistol.cpp" />
     <ClCompile Include="src\playercontroller.cpp" />
     <ClCompile Include="src\rigidbody.cpp" />
-    <ClCompile Include="src\scene.cpp" />
     <ClCompile Include="src\scenemanager.cpp" />
     <ClCompile Include="src\shaderprogram.cpp" />
     <ClCompile Include="src\staticbody.cpp" />

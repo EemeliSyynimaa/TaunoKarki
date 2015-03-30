@@ -27,6 +27,10 @@ private:
 	Camera camera;
 	GameObjectManager gameObjectManager;
 	int level;
+
+	// Variables for fixed timestep
+	float accumulator;
+	float step;
 };
 
 #endif

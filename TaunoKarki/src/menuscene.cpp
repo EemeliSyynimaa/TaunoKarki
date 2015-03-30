@@ -13,7 +13,7 @@ MenuScene::~MenuScene()
 	std::cout << "MENUSCENE DIE" << std::endl;
 }
 
-void MenuScene::update(float deltaTime)
+void MenuScene::update(float accumulator)
 {
 }
 

@@ -8,8 +8,8 @@ class Game;
 class Scene
 {
 public:
-	Scene(Game& game);
-	virtual ~Scene();
+	Scene(Game& game) : game(game) {}
+	virtual ~Scene() {};
 
 	virtual void update(float deltaTime) = 0;
 	virtual void draw() = 0;

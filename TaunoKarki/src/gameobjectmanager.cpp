@@ -88,7 +88,7 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
 	body->SetBullet(true);
 	b2Vec2 forceDir(direction.x, direction.y);
 
-	forceDir *= 0.1f;
+	forceDir *= 0.3f;
 	body->ApplyLinearImpulse(forceDir, body->GetWorldCenter(), true);
 
 	return gameObject;
@@ -182,6 +182,27 @@ size_t GameObjectManager::getNumberOfObjectsOfType(size_t type) const
 	}
 
 	return counter;
+}
+
+void GameObjectManager::interpolate(float alpha)
+{
+	for (GameObject* gameObject : gameObjects)
+	{
+		Transform* transform = gameObject->getComponent<Transform>();
+		RigidBody* rigidBody = gameObject->getComponent<RigidBody>();
+
+		// We are only interested in moving objects
+		if (transform && rigidBody)
+		{
+			glm::vec3 position = transform->getPosition();
+			b2Vec2 bodyPosition = rigidBody->getBody()->GetPosition();
+
+			position.x = bodyPosition.x * alpha + position.x * (1.0f - alpha);
+			position.y = bodyPosition.y * alpha + position.y * (1.0f - alpha);
+
+			transform->setPosition(position);
+		}
+	}
 }
 
 GameObject* GameObjectManager::createObject()

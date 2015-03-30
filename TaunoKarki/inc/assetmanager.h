@@ -7,7 +7,6 @@
 
 struct AssetManager
 {
-public:
 	AssetManager();
 	~AssetManager();
 

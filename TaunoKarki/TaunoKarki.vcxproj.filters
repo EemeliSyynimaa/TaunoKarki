@@ -1064,9 +1064,6 @@
     <ClCompile Include="src\lodepng.cpp">
       <Filter>Source Files\engine</Filter>
     </ClCompile>
-    <ClCompile Include="src\scene.cpp">
-      <Filter>Source Files\engine</Filter>
-    </ClCompile>
     <ClCompile Include="src\scenemanager.cpp">
       <Filter>Source Files\engine</Filter>
     </ClCompile>

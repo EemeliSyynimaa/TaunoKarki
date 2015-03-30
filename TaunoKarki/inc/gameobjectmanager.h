@@ -25,6 +25,8 @@ public:
 
 	GameObject* getFirstObjectOfType(size_t type) const;
 	size_t getNumberOfObjectsOfType(size_t type) const;
+
+	void interpolate(float alpha);
 private:
 	GameObject* createObject();
 
