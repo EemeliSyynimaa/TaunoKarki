@@ -24,5 +24,5 @@ void MenuScene::draw()
 void MenuScene::handleEvent(SDL_Event& event)
 {
 	if (event.key.keysym.sym == SDLK_SPACE)
-		game.getSceneManager().change(new GameScene(game));
+		game.getSceneManager().change(new GameScene(game, 1));
 }

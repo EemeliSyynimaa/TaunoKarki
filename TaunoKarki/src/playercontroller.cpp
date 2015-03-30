@@ -53,7 +53,7 @@ void PlayerController::update(float deltaTime)
 	// Lets check if we start or stop firing
 	if (!weapon->isTriggerPulled() && mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
 		weapon->pullTheTrigger();
-	else if (!mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
+	else if (!(mouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
 		weapon->releaseTheTrigger();
 
 	// Maybe weapon should be a component?

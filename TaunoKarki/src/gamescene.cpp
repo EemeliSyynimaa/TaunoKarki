@@ -5,9 +5,9 @@
 
 #include <iostream>
 
-GameScene::GameScene(Game& game) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(assetManager, world, camera), collisionHandler(), tilemap(glm::vec3(0.0f), assetManager, camera, world)
+GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(assetManager, world, camera), collisionHandler(), tilemap(glm::vec3(0.0f), assetManager, camera, world), level(level)
 {
-	std::cout << "GAMESCENE ALIVE" << std::endl;
+	std::cout << "GAMESCENE ALIVE - entering level " << level << std::endl;
 
 	world.SetContactListener(&collisionHandler);
 
@@ -16,7 +16,7 @@ GameScene::GameScene(Game& game) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameO
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
-	tilemap.generate(31, 31);
+	tilemap.generate(7 + level * 4, 7 + level * 4);
 
 	gameObjectManager.createPlayer(tilemap.getStartingPosition());
 
@@ -28,7 +28,7 @@ GameScene::GameScene(Game& game) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameO
 
 GameScene::~GameScene()
 {
-	std::cout << "GAMESCENE DIE" << std::endl;
+	std::cout << "GAMESCENE DIE - leaving level " << level << std::endl;
 }
 
 void GameScene::update(float deltaTime)
@@ -39,13 +39,13 @@ void GameScene::update(float deltaTime)
 
 	if (gameObjectManager.getNumberOfObjectsOfType(GAMEOBJECT_TYPES::PLAYER) == 0)
 	{
-		std::cout << "PLAYER LOST" << std::endl;
+		std::cout << "PLAYER LOST - died on level " << level << std::endl;
 		game.getSceneManager().change(new MenuScene(game));
 	}
 	else if (gameObjectManager.getNumberOfObjectsOfType(GAMEOBJECT_TYPES::ENEMY) == 0)
 	{
-		std::cout << "PLAYER WON" << std::endl;
-		game.getSceneManager().change(new MenuScene(game));
+		std::cout << "PLAYER WON - cleared level " << level << std::endl;
+		game.getSceneManager().change(new GameScene(game, level + 1));
 	}
 }
 

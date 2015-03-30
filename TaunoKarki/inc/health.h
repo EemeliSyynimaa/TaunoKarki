@@ -6,14 +6,14 @@
 class Health : public Component
 {
 public:
-	Health(GameObject* owner, int max);
+	Health(GameObject* owner, float max);
 	~Health();
 
 	void update(float deltaTime);
-	void change(int amount);
+	void change(float amount);
 private:
-	int current;
-	int max;
+	float current;
+	float max;
 };
 
 #endif

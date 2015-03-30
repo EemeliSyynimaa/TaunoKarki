@@ -13,7 +13,7 @@
 class GameScene : public Scene
 {
 public:
-	GameScene(Game& game);
+	GameScene(Game& game, int level);
 	~GameScene();
 
 	void update(float deltaTime);
@@ -26,6 +26,7 @@ private:
 	CollisionHandler collisionHandler;
 	Camera camera;
 	GameObjectManager gameObjectManager;
+	int level;
 };
 
 #endif
