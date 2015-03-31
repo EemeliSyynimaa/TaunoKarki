@@ -79,7 +79,7 @@ void Game::run()
 		newTime = SDL_GetTicks() / 1000.0f;
 		deltaTime = std::min(newTime - currentTime, 0.25f);
 		currentTime = newTime;
-		
+
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		while (SDL_PollEvent(&event) == 1)

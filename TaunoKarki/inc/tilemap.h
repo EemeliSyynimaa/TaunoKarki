@@ -52,6 +52,8 @@ private:
 	b2World& world;
 	glm::vec3 position;
 
+	std::vector<b2Body*> wallBodies;
+
 	GLuint VBO;
 	GLuint IBO;
 	GLint textureIndex;

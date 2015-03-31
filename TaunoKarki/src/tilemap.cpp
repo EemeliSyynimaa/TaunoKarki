@@ -8,13 +8,18 @@
 #define WALL 0
 #define randomInt std::uniform_int_distribution<int>
 
-Tilemap::Tilemap(glm::vec3 position, AssetManager& assetManager, Camera& camera, b2World& world) : assetManager(assetManager), world(world), camera(camera), VBO(0), IBO(0), textureIndex(0), MVPIndex(0), program(*assetManager.shaderProgram), texture(*assetManager.wallTexture), matrix(1.0f), position(position)
+Tilemap::Tilemap(glm::vec3 position, AssetManager& assetManager, Camera& camera, b2World& world) : assetManager(assetManager), world(world), camera(camera), VBO(0), IBO(0), textureIndex(0), MVPIndex(0), program(*assetManager.shaderProgram), texture(*assetManager.tilesetTexture), matrix(1.0f), position(position)
 {
 	matrix = glm::translate(position);
 }
 
 Tilemap::~Tilemap()
 {
+	for (b2Body* body : wallBodies)
+		world.DestroyBody(body);
+
+	wallBodies.clear();
+
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &IBO);
 }
@@ -94,7 +99,7 @@ std::vector<glm::vec3> Tilemap::Data::addRooms()
 	std::default_random_engine randomGenerator(randomDevice());
 	std::vector<glm::vec3> startingPositions;
 
-	size_t howManyTries = (width * height) / 2;
+	size_t howManyTries = (width * height);
 
 	for (size_t i = 0; i < howManyTries; i++)
 	{
@@ -378,6 +383,30 @@ void Tilemap::createMeshes(Data& data)
 				fixtureDef.shape = &shape;
 
 				body->CreateFixture(&fixtureDef);
+
+				wallBodies.push_back(body);
+			}
+			else if (data.data[y][x] != data.currentRegion)
+			{
+				for (const Vertex& vertex : assetManager.floorMesh->getVertices())
+				{
+					Vertex newVertex;
+
+					newVertex.position.x = x * 2.0f + vertex.position.x;
+					newVertex.position.y = y * 2.0f + vertex.position.y;
+					newVertex.position.z = vertex.position.z - 2.0f;
+
+					newVertex.uv = vertex.uv;
+					newVertex.normal = vertex.normal;
+
+					vertices.push_back(newVertex);
+
+				}
+
+				for (GLuint index : assetManager.floorMesh->getIndices())
+					indices.push_back(index + counter);
+
+				counter += assetManager.floorMesh->getVertices().size();
 			}
 		}
 	}

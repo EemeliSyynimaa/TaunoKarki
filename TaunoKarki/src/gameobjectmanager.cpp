@@ -98,25 +98,6 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
 	return gameObject;
 }
 
-GameObject* GameObjectManager::createWall(glm::vec3 position)
-{
-	GameObject* gameObject = createObject();
-
-	gameObject->setType(GAMEOBJECT_TYPES::WALL);
-
-	gameObject->addComponent(new Transform(gameObject, position));
-	gameObject->addComponent(new BoxCollider(gameObject, 1.0f, 1.0f));
-	gameObject->addComponent(new StaticBody(gameObject, world));
-	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
-
-	gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
-	gameObject->getDrawableComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
-	gameObject->getDrawableComponent<MeshRenderer>()->setCamera(camera);
-	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.wallTexture);
-
-	return gameObject;
-}
-
 GameObject* GameObjectManager::createPlayer(glm::vec3 position)
 {
  	GameObject* gameObject = createObject();
@@ -131,7 +112,7 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position)
 	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
 	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.5f, 0.5f, 0.75f));
-	gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
+	gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.cubeMesh);
 	gameObject->getDrawableComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
 	gameObject->getDrawableComponent<MeshRenderer>()->setCamera(camera);
 	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.playerTexture);
@@ -156,7 +137,7 @@ GameObject* GameObjectManager::createEnemy(glm::vec3 position)
 	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
 	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.5f, 0.5f, 0.75f));
-	gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
+	gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.cubeMesh);
 	gameObject->getDrawableComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
 	gameObject->getDrawableComponent<MeshRenderer>()->setCamera(camera);
 	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.enemyTexture);

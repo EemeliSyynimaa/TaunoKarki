@@ -11,13 +11,14 @@ struct AssetManager
 	~AssetManager();
 
 	ShaderProgram* shaderProgram;
-	Texture* wallTexture;
-	Texture* floorTexture;
+
+	Texture* tilesetTexture;
 	Texture* sphereTexture;
 	Texture* playerTexture;
 	Texture* enemyTexture;
 
 	Mesh* wallMesh;
+	Mesh* cubeMesh;
 	Mesh* sphereMesh;
 	Mesh* floorMesh;
 };

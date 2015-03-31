@@ -22,7 +22,7 @@ public:
 private:
 	AssetManager assetManager;
 	b2World world;
-	Tilemap tilemap;
+	Tilemap* tilemap;
 	CollisionHandler collisionHandler;
 	Camera camera;
 	GameObjectManager gameObjectManager;

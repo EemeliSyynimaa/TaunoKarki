@@ -5,7 +5,7 @@
 
 #include <iostream>
 
-GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(assetManager, world, camera), collisionHandler(), tilemap(glm::vec3(0.0f), assetManager, camera, world), level(level), accumulator(0.0f), step(1.0f / 60.0f)
+GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(assetManager, world, camera), collisionHandler(), level(level), accumulator(0.0f), step(1.0f / 60.0f)
 {
 	std::cout << "GAMESCENE ALIVE - entering level " << level << std::endl;
 
@@ -16,13 +16,21 @@ GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
-	tilemap.generate(11 + level * 4, 11 + level * 4);
 
-	gameObjectManager.createPlayer(tilemap.getStartingPosition());
-
-	while (tilemap.getNumberOfStartingPositions() > 0)
+	while (true)
 	{
-		gameObjectManager.createEnemy(tilemap.getStartingPosition());
+		tilemap = new Tilemap(glm::vec3(0.0f), assetManager, camera, world);
+		tilemap->generate(7 + level * 4, 7 + level * 4);
+
+		if (tilemap->getNumberOfStartingPositions() > 1) break;
+		else delete tilemap;
+	}
+
+	gameObjectManager.createPlayer(tilemap->getStartingPosition());
+
+	while (tilemap->getNumberOfStartingPositions() > 0)
+	{
+		gameObjectManager.createEnemy(tilemap->getStartingPosition());
 	}
 
 	// We need to update objects once before the game starts
@@ -66,7 +74,7 @@ void GameScene::update(float deltaTime)
 
 void GameScene::draw()
 {
-	tilemap.draw();
+	tilemap->draw();
 	gameObjectManager.draw();
 }
 
