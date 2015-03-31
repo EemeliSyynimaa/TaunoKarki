@@ -15,7 +15,7 @@ public:
 	int getScreenWidth() { return screenWidth; }
 	int getScreenHeight() { return screenHeight; }
 	void run();
-
+	void stop() { running = false; }
 	GLuint VAO = 0;
 private:
 	SDL_Window* window;
@@ -23,6 +23,8 @@ private:
 
 	int screenWidth;
 	int screenHeight;
+
+	bool running;
 
 	SceneManager sceneManager;
 

@@ -23,6 +23,11 @@ void MenuScene::draw()
 
 void MenuScene::handleEvent(SDL_Event& event)
 {
-	if (event.key.keysym.sym == SDLK_SPACE)
-		game.getSceneManager().change(new GameScene(game, 1));
+	if (event.type == SDL_KEYDOWN)
+	{
+		if (event.key.keysym.sym == SDLK_SPACE)
+			game.getSceneManager().change(new GameScene(game, 1));
+		else if (event.key.keysym.sym == SDLK_ESCAPE)
+			game.stop();
+	}
 }

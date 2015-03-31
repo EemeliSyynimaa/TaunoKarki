@@ -5,7 +5,7 @@
 #include "menuscene.h"
 
 
-Game::Game() : screenWidth(1280), screenHeight(720)
+Game::Game() : screenWidth(1280), screenHeight(720), running(true)
 {
 	int result = SDL_Init(SDL_INIT_VIDEO);
 
@@ -68,7 +68,6 @@ Game::~Game()
 
 void Game::run()
 {
-	bool running = true;
 	float deltaTime = 0.0f;
 	float newTime = 0.0f;
 	float currentTime = SDL_GetTicks() / 1000.0f;
@@ -87,11 +86,6 @@ void Game::run()
 			if (event.type == SDL_QUIT)
 			{
 				running = false;
-			}
-			else if (event.type == SDL_KEYDOWN)
-			{
-				if (event.key.keysym.sym == SDLK_ESCAPE)
-					running = false;
 			}
 			sceneManager.handleEvent(event);
 		}

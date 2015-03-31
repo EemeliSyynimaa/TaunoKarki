@@ -341,6 +341,10 @@ void Tilemap::Data::openClosedAreas()
 void Tilemap::createMeshes(Data& data)
 {
 	GLuint counter = 0;
+	unsigned short currentRegion = 0;
+	std::random_device randomDevice;
+	std::default_random_engine randomGenerator(randomDevice());
+	float floorTileOffset = 0.0f + 0.125f * randomInt(0, 7) (randomGenerator);
 
 	for (size_t y = 0; y < data.height; y++)
 	{
@@ -396,7 +400,8 @@ void Tilemap::createMeshes(Data& data)
 					newVertex.position.y = y * 2.0f + vertex.position.y;
 					newVertex.position.z = vertex.position.z - 2.0f;
 
-					newVertex.uv = vertex.uv;
+					newVertex.uv.x = vertex.uv.x + floorTileOffset;
+					newVertex.uv.y = vertex.uv.y;
 					newVertex.normal = vertex.normal;
 
 					vertices.push_back(newVertex);

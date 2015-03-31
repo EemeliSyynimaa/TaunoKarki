@@ -80,4 +80,9 @@ void GameScene::draw()
 
 void GameScene::handleEvent(SDL_Event& event)
 {
+	if (event.type == SDL_KEYDOWN)
+	{
+		if (event.key.keysym.sym == SDLK_ESCAPE)
+			game.getSceneManager().change(new MenuScene(game));
+	}
 }
