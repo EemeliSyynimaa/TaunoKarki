@@ -64,6 +64,12 @@ void GameObjectManager::update(float deltaTime)
 	newObjects.clear();
 }
 
+void GameObjectManager::draw()
+{
+	for (auto gameObject : gameObjects)
+		gameObject->draw();
+}
+
 GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direction, unsigned int owner, float damage)
 {
 	GameObject* gameObject = createObject();
@@ -72,17 +78,15 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
 
 	gameObject->addComponent(new Transform(gameObject, position.x + direction.x, position.y + direction.y, 0));
 	gameObject->addComponent(new CircleCollider(gameObject, 0.05f));
-	gameObject->addComponent(new MeshRenderer(gameObject));
 	gameObject->addComponent(new RigidBody(gameObject, world));
 	gameObject->addComponent(new Damage(gameObject, damage));
+	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
 	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.05f));
-
-	MeshRenderer* temp = gameObject->getComponent<MeshRenderer>();
-	temp->setMesh(assetManager.sphereMesh);
-	temp->setTexture(assetManager.sphereTexture);
-	temp->setCamera(camera);
-	temp->setProgram(assetManager.shaderProgram);
+	gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.sphereMesh);
+	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.sphereTexture);
+	gameObject->getDrawableComponent<MeshRenderer>()->setCamera(camera);
+	gameObject->getDrawableComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
 
 	b2Body* body = gameObject->getComponent<RigidBody>()->getBody();
 	body->SetBullet(true);
@@ -101,36 +105,36 @@ GameObject* GameObjectManager::createWall(glm::vec3 position)
 	gameObject->setType(GAMEOBJECT_TYPES::WALL);
 
 	gameObject->addComponent(new Transform(gameObject, position));
-	gameObject->addComponent(new MeshRenderer(gameObject));
 	gameObject->addComponent(new BoxCollider(gameObject, 1.0f, 1.0f));
 	gameObject->addComponent(new StaticBody(gameObject, world));
+	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
-	gameObject->getComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
-	gameObject->getComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
-	gameObject->getComponent<MeshRenderer>()->setCamera(camera);
-	gameObject->getComponent<MeshRenderer>()->setTexture(assetManager.wallTexture);
+	gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
+	gameObject->getDrawableComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
+	gameObject->getDrawableComponent<MeshRenderer>()->setCamera(camera);
+	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.wallTexture);
 
 	return gameObject;
 }
 
 GameObject* GameObjectManager::createPlayer(glm::vec3 position)
 {
-	GameObject* gameObject = createObject();
+ 	GameObject* gameObject = createObject();
 
 	gameObject->setType(GAMEOBJECT_TYPES::PLAYER);
 
 	gameObject->addComponent(new Transform(gameObject, position.x, position.y, position.z));
 	gameObject->addComponent(new CircleCollider(gameObject, 0.5f));
-	gameObject->addComponent(new MeshRenderer(gameObject));
 	gameObject->addComponent(new RigidBody(gameObject, world));
 	gameObject->addComponent(new PlayerController(gameObject));
 	gameObject->addComponent(new Health(gameObject, 100));
+	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
 	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.5f, 0.5f, 0.75f));
-	gameObject->getComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
-	gameObject->getComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
-	gameObject->getComponent<MeshRenderer>()->setCamera(camera);
-	gameObject->getComponent<MeshRenderer>()->setTexture(assetManager.playerTexture);
+	gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
+	gameObject->getDrawableComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
+	gameObject->getDrawableComponent<MeshRenderer>()->setCamera(camera);
+	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.playerTexture);
 	gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
 	gameObject->getComponent<PlayerController>()->giveWeapon(new Pistol(*this));
 	
@@ -145,17 +149,17 @@ GameObject* GameObjectManager::createEnemy(glm::vec3 position)
 
 	gameObject->addComponent(new Transform(gameObject, position.x, position.y, position.z));
 	gameObject->addComponent(new CircleCollider(gameObject, 0.5f));
-	gameObject->addComponent(new MeshRenderer(gameObject));
 	gameObject->addComponent(new RigidBody(gameObject, world));
 	gameObject->addComponent(new Health(gameObject, 100));
 	gameObject->addComponent(new AIController(gameObject));
 	gameObject->addComponent(new Damage(gameObject, 50.0f));
+	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
 	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.5f, 0.5f, 0.75f));
-	gameObject->getComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
-	gameObject->getComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
-	gameObject->getComponent<MeshRenderer>()->setCamera(camera);
-	gameObject->getComponent<MeshRenderer>()->setTexture(assetManager.enemyTexture);
+	gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
+	gameObject->getDrawableComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
+	gameObject->getDrawableComponent<MeshRenderer>()->setCamera(camera);
+	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.enemyTexture);
 	gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
 	gameObject->getComponent<AIController>()->giveWeapon(new Pistol(*this));
 

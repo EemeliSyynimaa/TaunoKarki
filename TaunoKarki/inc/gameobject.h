@@ -22,6 +22,7 @@ public:
 	~GameObject();
 
 	void addComponent(Component* component);
+	void addDrawableComponent(Component* component);
 
 	template<class T> 
 	T* const getComponent() const {
@@ -29,6 +30,19 @@ public:
 
 		std::find_if(components.begin(), components.end(), [=, &foundComponent](Component* component) {
 			foundComponent = dynamic_cast<T*>(component);
+
+			return foundComponent != nullptr;
+		});
+
+		return foundComponent;
+	}
+
+	template<class TB>
+	TB* const getDrawableComponent() const {
+		TB* foundComponent = nullptr;
+
+		std::find_if(drawableComponents.begin(), drawableComponents.end(), [=, &foundComponent](Component* component) {
+			foundComponent = dynamic_cast<TB*>(component);
 
 			return foundComponent != nullptr;
 		});
@@ -47,6 +61,7 @@ public:
 	void handleCollisionWith(GameObject* gameObject);
 private:
 	std::vector<Component*> components;
+	std::vector<Component*> drawableComponents;
 	bool alive;
 	unsigned int type;
 };

@@ -16,7 +16,7 @@ GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
-	tilemap.generate(7 + level * 4, 7 + level * 4);
+	tilemap.generate(11 + level * 4, 11 + level * 4);
 
 	gameObjectManager.createPlayer(tilemap.getStartingPosition());
 
@@ -24,6 +24,9 @@ GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.
 	{
 		gameObjectManager.createEnemy(tilemap.getStartingPosition());
 	}
+
+	// We need to update objects once before the game starts
+	gameObjectManager.update(0.0f);
 }
 
 GameScene::~GameScene()
@@ -44,6 +47,11 @@ void GameScene::update(float deltaTime)
 
 	gameObjectManager.interpolate(accumulator / step);
 
+	//world.Step(1.0f / 60.0f, 8, 3);
+
+	//gameObjectManager.update(deltaTime);
+
+
 	if (gameObjectManager.getNumberOfObjectsOfType(GAMEOBJECT_TYPES::PLAYER) == 0)
 	{
 		std::cout << "PLAYER LOST - died on level " << level << std::endl;
@@ -59,6 +67,7 @@ void GameScene::update(float deltaTime)
 void GameScene::draw()
 {
 	tilemap.draw();
+	gameObjectManager.draw();
 }
 
 void GameScene::handleEvent(SDL_Event& event)

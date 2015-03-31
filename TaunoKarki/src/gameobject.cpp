@@ -11,12 +11,21 @@ GameObject::~GameObject()
 	for (auto component : components)
 		delete component;
 
+	for (auto component : drawableComponents)
+		delete component;
+
 	components.clear();
+	drawableComponents.clear();
 }
 
 void GameObject::addComponent(Component* component)
 {
 	components.push_back(component);
+}
+
+void GameObject::addDrawableComponent(Component* component)
+{
+	drawableComponents.push_back(component);
 }
 
 void GameObject::update(float deltaTime)
@@ -27,6 +36,8 @@ void GameObject::update(float deltaTime)
 
 void GameObject::draw()
 {
+	for (auto component : drawableComponents)
+		component->update(0.0f);
 }
 
 void GameObject::handleCollisionWith(GameObject* gameObject)
