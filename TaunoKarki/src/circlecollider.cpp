@@ -1,6 +1,6 @@
 #include "circlecollider.h"
 
-CircleCollider::CircleCollider(GameObject* owner, float radius) : Collider(owner)
+CircleCollider::CircleCollider(GameObject* owner, float radius, uint16 categoryBits, uint16 maskBits) : Collider(owner, categoryBits, maskBits)
 {
 	shape.m_radius = radius;
 

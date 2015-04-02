@@ -385,6 +385,8 @@ void Tilemap::createMeshes(Data& data)
 				fixtureDef.density = 1.0f;
 				fixtureDef.friction = 0.0f;
 				fixtureDef.shape = &shape;
+				fixtureDef.filter.categoryBits = COL_WALL;
+				fixtureDef.filter.maskBits = (COL_PLAYER | COL_ENEMY | COL_PLAYER_BULLET | COL_ENEMY_BULLET);
 
 				body->CreateFixture(&fixtureDef);
 

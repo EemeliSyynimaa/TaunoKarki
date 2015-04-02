@@ -23,8 +23,7 @@ void Transform::lookAt(const glm::vec3& target)
 {
 	glm::vec3 deltaPos = target - position;
 	glm::vec3 axis(0.0f, 0.0f, 1.0f);
-	float angle;
-	angle = glm::atan(deltaPos.y, deltaPos.x);
+	float angle = glm::atan(deltaPos.y, deltaPos.x);
 	float length = sqrt(powf(deltaPos.x, 2) + powf(deltaPos.y, 2));
 
 	dirVec = glm::vec2(deltaPos.x / length, deltaPos.y / length);
@@ -57,9 +56,4 @@ void Transform::translate(glm::vec3& vec)
 void Transform::rotate(float r, glm::vec3& axis)
 {
 	rotation = glm::rotate(rotation, r, axis);
-}
-
-float Transform::getAngle() const
-{
-	return 0.0f;
 }

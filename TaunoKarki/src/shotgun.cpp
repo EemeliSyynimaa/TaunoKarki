@@ -1,6 +1,6 @@
 #include "shotgun.h"
 
-Shotgun::Shotgun(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager), lastShot(SDL_GetTicks()), fired(false), fireRate(750.0f), numberOfShells(12)
+Shotgun::Shotgun(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager), lastShot(0), fired(false), fireRate(500.0f), numberOfShells(12)
 {
 }
 
@@ -22,13 +22,18 @@ void Shotgun::update()
 
 		for (size_t i = 0; i < numberOfShells; i++)
 		{
-			glm::vec2 dirVec = owner->getComponent<Transform>()->getDirVec();
+			float angle = glm::atan(owner->getComponent<Transform>()->getDirVec().y, owner->getComponent<Transform>()->getDirVec().x);
 
-			dirVec.x *= randomFloat(0.750f, 1.250f)(randomGenerator);
-			dirVec.y *= randomFloat(0.750f, 1.250f)(randomGenerator);
+			angle += randomFloat(-0.125f, 0.125f)(randomGenerator);
+			
+			glm::vec2 dirVec;
+			dirVec.x = glm::cos(angle);
+			dirVec.y = glm::sin(angle);
 
-			owner->gameObjectManager.createBullet(owner->getComponent<Transform>()->getPosition(), dirVec, ownero, 25.0f);
+			owner->gameObjectManager.createBullet(owner->getComponent<Transform>()->getPosition(), dirVec, ownero, 10.0f);
 		}
+
+		lastShot = SDL_GetTicks();
 	}
 	else if (!triggerPulled && fired) fired = false;
 }

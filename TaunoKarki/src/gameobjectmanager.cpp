@@ -79,7 +79,8 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
 	gameObject->setType(owner);
 
 	gameObject->addComponent(new Transform(gameObject, position.x + direction.x, position.y + direction.y, 0));
-	gameObject->addComponent(new CircleCollider(gameObject, 0.05f));
+	if (owner == GAMEOBJECT_TYPES::PLAYER_BULLET)  gameObject->addComponent(new CircleCollider(gameObject, 0.05f, COL_PLAYER_BULLET, ( COL_WALL | COL_ENEMY )));
+	else  gameObject->addComponent(new CircleCollider(gameObject, 0.05f, COL_ENEMY_BULLET, (COL_WALL | COL_PLAYER)));
 	gameObject->addComponent(new RigidBody(gameObject, world));
 	gameObject->addComponent(new Damage(gameObject, damage));
 	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
@@ -93,7 +94,6 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
 	b2Body* body = gameObject->getComponent<RigidBody>()->getBody();
 	body->SetBullet(true);
 	b2Vec2 forceDir(direction.x, direction.y);
-
 	forceDir *= 0.3f;
 	body->ApplyLinearImpulse(forceDir, body->GetWorldCenter(), true);
 
@@ -107,7 +107,7 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position)
 	gameObject->setType(GAMEOBJECT_TYPES::PLAYER);
 
 	gameObject->addComponent(new Transform(gameObject, position.x, position.y, position.z));
-	gameObject->addComponent(new CircleCollider(gameObject, 0.5f));
+	gameObject->addComponent(new CircleCollider(gameObject, 0.5f, COL_PLAYER, (COL_WALL | COL_ENEMY | COL_ENEMY_BULLET)));
 	gameObject->addComponent(new RigidBody(gameObject, world));
 	gameObject->addComponent(new PlayerController(gameObject));
 	gameObject->addComponent(new Health(gameObject, 100));
@@ -131,7 +131,7 @@ GameObject* GameObjectManager::createEnemy(glm::vec3 position)
 	gameObject->setType(GAMEOBJECT_TYPES::ENEMY);
 
 	gameObject->addComponent(new Transform(gameObject, position.x, position.y, position.z));
-	gameObject->addComponent(new CircleCollider(gameObject, 0.5f));
+	gameObject->addComponent(new CircleCollider(gameObject, 0.5f, COL_ENEMY, (COL_WALL | COL_PLAYER | COL_PLAYER_BULLET)));
 	gameObject->addComponent(new RigidBody(gameObject, world));
 	gameObject->addComponent(new Health(gameObject, 100));
 	gameObject->addComponent(new AIController(gameObject));

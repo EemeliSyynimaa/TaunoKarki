@@ -7,7 +7,7 @@
 class Collider : public Component
 {
 public:
-	Collider(GameObject* owner) : Component(owner) {}
+	Collider(GameObject* owner, uint16 categoryBits, uint16 maskBits) : Component(owner) { fixtureDef.filter.maskBits = maskBits; fixtureDef.filter.categoryBits = categoryBits; }
 	~Collider() {};
 
 	void update(float deltaTime) {};
