@@ -1,5 +1,4 @@
 #include "pistol.h"
-#include "transform.h"
 
 Pistol::Pistol(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager), fired(false)
 {

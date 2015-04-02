@@ -903,6 +903,12 @@
     <ClInclude Include="inc\damage.h">
       <Filter>Header Files\components</Filter>
     </ClInclude>
+    <ClInclude Include="inc\machinegun.h">
+      <Filter>Header Files\weapons</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\shotgun.h">
+      <Filter>Header Files\weapons</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -1119,6 +1125,12 @@
       <Filter>Source Files\assets</Filter>
     </ClCompile>
     <ClCompile Include="src\pistol.cpp">
+      <Filter>Source Files\weapons</Filter>
+    </ClCompile>
+    <ClCompile Include="src\machinegun.cpp">
+      <Filter>Source Files\weapons</Filter>
+    </ClCompile>
+    <ClCompile Include="src\shotgun.cpp">
       <Filter>Source Files\weapons</Filter>
     </ClCompile>
   </ItemGroup>

@@ -58,3 +58,8 @@ void Transform::rotate(float r, glm::vec3& axis)
 {
 	rotation = glm::rotate(rotation, r, axis);
 }
+
+float Transform::getAngle() const
+{
+	return 0.0f;
+}

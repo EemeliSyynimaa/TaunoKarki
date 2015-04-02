@@ -3,6 +3,10 @@
 
 #include "gameobjectmanager.h"
 #include "gameobject.h"
+#include "transform.h"
+#include "SDL\SDL_timer.h"
+#include <random>
+#define randomFloat std::uniform_real_distribution<float>
 
 class Weapon
 {

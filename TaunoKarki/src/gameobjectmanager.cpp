@@ -15,6 +15,8 @@
 #include "damage.h"
 
 #include "pistol.h"
+#include "machinegun.h"
+#include "shotgun.h"
 
 GameObjectManager::GameObjectManager(AssetManager& assetManager, b2World& world, Camera& camera) : assetManager(assetManager), world(world), camera(camera)
 {
@@ -117,7 +119,7 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position)
 	gameObject->getDrawableComponent<MeshRenderer>()->setCamera(camera);
 	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.playerTexture);
 	gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
-	gameObject->getComponent<PlayerController>()->giveWeapon(new Pistol(*this));
+	gameObject->getComponent<PlayerController>()->giveWeapon(new MachineGun(*this));
 	
 	return gameObject;
 }
