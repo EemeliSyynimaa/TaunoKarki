@@ -909,6 +909,15 @@
     <ClInclude Include="inc\shotgun.h">
       <Filter>Header Files\weapons</Filter>
     </ClInclude>
+    <ClInclude Include="inc\locator.h">
+      <Filter>Header Files\engine</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\audio.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\SDL\SDL_mixer.h">
+      <Filter>Header Files\SDL</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -1132,6 +1141,9 @@
     </ClCompile>
     <ClCompile Include="src\shotgun.cpp">
       <Filter>Source Files\weapons</Filter>
+    </ClCompile>
+    <ClCompile Include="src\audio.cpp">
+      <Filter>Source Files\engine</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

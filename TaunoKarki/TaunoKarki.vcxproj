@@ -13,6 +13,7 @@
   <ItemGroup>
     <ClInclude Include="inc\aicontroller.h" />
     <ClInclude Include="inc\assetmanager.h" />
+    <ClInclude Include="inc\audio.h" />
     <ClInclude Include="inc\Box2D\Box2D.h" />
     <ClInclude Include="inc\Box2D\Collision\b2BroadPhase.h" />
     <ClInclude Include="inc\Box2D\Collision\b2Collision.h" />
@@ -214,6 +215,7 @@
     <ClInclude Include="inc\glm\vec4.hpp" />
     <ClInclude Include="inc\glm\vector_relational.hpp" />
     <ClInclude Include="inc\health.h" />
+    <ClInclude Include="inc\locator.h" />
     <ClInclude Include="inc\lodepng.h" />
     <ClInclude Include="inc\machinegun.h" />
     <ClInclude Include="inc\menuscene.h" />
@@ -250,6 +252,7 @@
     <ClInclude Include="inc\SDL\SDL_log.h" />
     <ClInclude Include="inc\SDL\SDL_main.h" />
     <ClInclude Include="inc\SDL\SDL_messagebox.h" />
+    <ClInclude Include="inc\SDL\SDL_mixer.h" />
     <ClInclude Include="inc\SDL\SDL_mouse.h" />
     <ClInclude Include="inc\SDL\SDL_mutex.h" />
     <ClInclude Include="inc\SDL\SDL_name.h" />
@@ -345,6 +348,7 @@
     <ClCompile Include="inc\Box2D\Rope\b2Rope.cpp" />
     <ClCompile Include="src\aicontroller.cpp" />
     <ClCompile Include="src\assetmanager.cpp" />
+    <ClCompile Include="src\audio.cpp" />
     <ClCompile Include="src\boxcollider.cpp" />
     <ClCompile Include="src\camera.cpp" />
     <ClCompile Include="src\circlecollider.cpp" />
@@ -532,7 +536,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>$(ProjectDir)\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glew32s.lib;OpenGL32.lib;SDL2.lib;SDL2main.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>SDL2_mixer.lib;glew32s.lib;OpenGL32.lib;SDL2.lib;SDL2main.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <Profile>true</Profile>
     </Link>
     <PostBuildEvent>
@@ -555,7 +559,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <SubSystem>Console</SubSystem>
       <AdditionalLibraryDirectories>$(ProjectDir)\lib\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>glew32s.lib;OpenGL32.lib;SDL2.lib;SDL2main.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>SDL2_mixer.lib;glew32s.lib;OpenGL32.lib;SDL2.lib;SDL2main.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>
