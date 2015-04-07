@@ -3,7 +3,7 @@
 #include "rigidbody.h"
 #include "SDL\SDL.h"
 
-PlayerController::PlayerController(GameObject* owner) : Component(owner), moveSpeed(5.0f)
+PlayerController::PlayerController(GameObject* owner) : Component(owner), moveSpeed(7.5f)
 {
 	RigidBody* rigidbody = owner->getComponent<RigidBody>();
 	assert(rigidbody);

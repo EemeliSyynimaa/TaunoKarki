@@ -11,7 +11,7 @@
 class Weapon
 {
 public:
-	Weapon(GameObjectManager& gameObjectManager) : gameObjectManager(gameObjectManager), owner(nullptr), triggerPulled(false) {}
+	Weapon(GameObjectManager& gameObjectManager) : gameObjectManager(gameObjectManager), owner(nullptr), triggerPulled(false), damage(0.0f), speed(0.0f) {}
 	virtual ~Weapon() {}
 	void pullTheTrigger() { triggerPulled = true; }
 	void releaseTheTrigger() { triggerPulled = false; }
@@ -22,6 +22,8 @@ protected:
 	GameObjectManager& gameObjectManager;
 	GameObject* owner;
 	bool triggerPulled;
+	float damage;
+	float speed;
 };
 
 #endif

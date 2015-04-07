@@ -13,6 +13,8 @@ public:
 	
 	void setViewMatrix(glm::mat4 matrix) { viewMatrix = matrix; }
 	void setPosition(glm::vec3 pos) { position = pos; }
+	void setOffset(glm::vec3 vec) { offset = vec; }
+	void setOffset(float x, float y, float z) { offset.x = x; offset.y = y; offset.z = z; }
 
 	glm::mat4& getViewMatrix() { return viewMatrix; }
 	glm::mat4& getProjectionMatrix() { return projectionMatrix; }
@@ -26,6 +28,7 @@ private:
 	glm::mat4 projectionMatrix;
 
 	glm::vec3 position;
+	glm::vec3 offset;
 
 	float width;
 	float height;

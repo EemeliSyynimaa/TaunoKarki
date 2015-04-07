@@ -234,7 +234,7 @@ void Tilemap::Data::connectRegions()
 				connector.x = x;
 				connector.y = y;
 
-				connectors.push_back(connector);
+				connectors.push_back(connector);aaaaaaw
 			}
 		}
 

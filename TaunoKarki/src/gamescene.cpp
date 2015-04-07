@@ -3,16 +3,23 @@
 #include "game.h"
 #include "gameobject.h"
 
+#include <random>
 #include <iostream>
+
+#define randomFloat std::uniform_real_distribution<float>
 
 GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(assetManager, world, camera), collisionHandler(), level(level), accumulator(0.0f), step(1.0f / 60.0f)
 {
+	std::random_device randomDevice;
+	std::default_random_engine randomGenerator(randomDevice());
+
 	std::cout << "GAMESCENE ALIVE - entering level " << level << std::endl;
 
 	world.SetContactListener(&collisionHandler);
 
 	camera.createNewPerspectiveMatrix(60.0f, (float)game.getScreenWidth(), (float)game.getScreenHeight(), 0.1f, 100.0f);
 	camera.setPosition(glm::vec3(0.0f, 0.0f, 20.0f));
+	camera.setOffset(randomFloat(-1.5f, 1.5f)(randomGenerator), randomFloat(-7.5f, 0.0f)(randomGenerator), 0.0f);
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 

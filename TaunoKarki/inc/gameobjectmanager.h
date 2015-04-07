@@ -19,7 +19,7 @@ public:
 	void draw();
 	GameObject* createPlayer(glm::vec3 pos);
 	GameObject* createEnemy(glm::vec3 pos);
-	GameObject* createBullet(glm::vec3 pos, glm::vec2 direction, unsigned int owner, float damage);
+	GameObject* createBullet(glm::vec3 pos, glm::vec2 direction, unsigned int owner, float damage, float speed);
 
 	Camera& getCamera() { return camera; }
 

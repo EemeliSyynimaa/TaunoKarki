@@ -72,7 +72,7 @@ void GameObjectManager::draw()
 		gameObject->draw();
 }
 
-GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direction, unsigned int owner, float damage)
+GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direction, unsigned int owner, float damage, float speed)
 {
 	GameObject* gameObject = createObject();
 
@@ -94,7 +94,7 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
 	b2Body* body = gameObject->getComponent<RigidBody>()->getBody();
 	body->SetBullet(true);
 	b2Vec2 forceDir(direction.x, direction.y);
-	forceDir *= 0.3f;
+	forceDir *= speed;
 	body->ApplyLinearImpulse(forceDir, body->GetWorldCenter(), true);
 
 	return gameObject;
