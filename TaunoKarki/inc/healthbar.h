@@ -10,9 +10,11 @@ public:
 	HealthBar(GameObject* owner);
 	~HealthBar();
 
+	void setOffsetPosition(glm::vec3 pos) { offsetPosition = pos; }
 	void update();
 private:
 	Transform* transform;
+	glm::vec3 offsetPosition;
 };
 
 #endif

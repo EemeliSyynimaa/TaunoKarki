@@ -41,7 +41,7 @@ GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.
 		gameObjectManager.createEnemy(tilemap->getStartingPosition());
 	}
 
-	gameObjectManager.createPlayerHealthBar(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec2(5.0f, 0.5f), assetManager.sphereTexture);
+	gameObjectManager.createPlayerHealthBar(glm::vec3(-10.0f, -7.0f, 5.0f), glm::vec2(8.0f, 0.5f), assetManager.sphereTexture);
 
 	// We need to update objects once before the game starts
 	gameObjectManager.update();

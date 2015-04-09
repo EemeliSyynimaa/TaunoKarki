@@ -161,7 +161,7 @@ GameObject* GameObjectManager::createPlayerHealthBar(glm::vec3 position, glm::ve
 
 	gameObject->setType(GAMEOBJECT_TYPES::GUI);
 
-	gameObject->addComponent(new Transform(gameObject, position.x, position.y, position.z));
+	gameObject->addComponent(new Transform(gameObject, 0.0f, 0.0f, 0.0f));
 	gameObject->addComponent(new HealthBar(gameObject));
 	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
@@ -171,11 +171,14 @@ GameObject* GameObjectManager::createPlayerHealthBar(glm::vec3 position, glm::ve
 	{
 
 		std::cout << vertex.position.x << ", " << vertex.position.y << " => ";
-		vertex.position.x *= size.x;
+		if(vertex.position.x > 0.0f) vertex.position.x *= size.x;
+		else if (vertex.position.x < 0.0f) vertex.position.x = 0.0f;
 		vertex.position.y *= size.y;
 
 		std::cout << vertex.position.x << ", " << vertex.position.y << std::endl;
 	}
+
+	gameObject->getComponent<HealthBar>()->setOffsetPosition(position);
 
 	MeshRenderer* meshRenderer = gameObject->getDrawableComponent<MeshRenderer>();
 	meshRenderer->setMesh(mesh);
