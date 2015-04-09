@@ -918,6 +918,9 @@
     <ClInclude Include="inc\SDL\SDL_mixer.h">
       <Filter>Header Files\SDL</Filter>
     </ClInclude>
+    <ClInclude Include="inc\healthbar.h">
+      <Filter>Header Files\components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -1144,6 +1147,9 @@
     </ClCompile>
     <ClCompile Include="src\audio.cpp">
       <Filter>Source Files\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\healthbar.cpp">
+      <Filter>Source Files\components</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -13,7 +13,7 @@ MeshRenderer::~MeshRenderer()
 	glDeleteBuffers(1, &IBO);
 }
 
-void MeshRenderer::update(float deltaTime)
+void MeshRenderer::update()
 {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -72,8 +72,13 @@ void MeshRenderer::setProgram(ShaderProgram* prgrm)
 	program->unbind();
 }
 
-void MeshRenderer::setCamera(Camera& camera)
+void MeshRenderer::setViewMatrix(glm::mat4& matrix)
 {
-	viewMatrix = &camera.getViewMatrix();
-	projectionMatrix = &camera.getProjectionMatrix();
+	viewMatrix = &matrix;
 }
+
+void MeshRenderer::setProjectionMatrix(glm::mat4& matrix)
+{
+	projectionMatrix = &matrix;
+}
+

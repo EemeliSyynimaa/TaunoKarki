@@ -26,7 +26,7 @@ RigidBody::~RigidBody()
 	world.DestroyBody(body);
 }
 
-void RigidBody::update(float deltaTime)
+void RigidBody::update( )
 {
 	transform->setPosition(glm::vec3(body->GetPosition().x, body->GetPosition().y, 0.0f));
 	//transform->setRotation(body->GetAngle(), glm::vec3(0.0f, 0.0f, 1.0f));

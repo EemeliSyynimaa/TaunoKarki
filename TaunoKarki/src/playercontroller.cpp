@@ -17,7 +17,7 @@ PlayerController::~PlayerController()
 {
 }
 
-void PlayerController::update(float deltaTime)
+void PlayerController::update( )
 {
 	b2Vec2 desiredVelocity(0.0f, 0.0f);
 	b2Vec2 velocityChange(0.0f, 0.0f);

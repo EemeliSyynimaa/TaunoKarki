@@ -9,7 +9,7 @@ Health::~Health()
 {
 }
 
-void Health::update(float deltaTime)
+void Health::update( )
 {
 }
 

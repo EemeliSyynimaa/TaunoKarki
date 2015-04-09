@@ -1,6 +1,7 @@
 #ifndef ASSETMANAGER_H
 #define ASSETMANAGER_H
 
+#include <vector>
 #include "texture.h"
 #include "mesh.h"
 #include "shaderprogram.h"
@@ -29,6 +30,10 @@ struct AssetManager
 	Mesh* cubeMesh;
 	Mesh* sphereMesh;
 	Mesh* floorMesh;
+
+	Mesh* addSprite(const Mesh& mesh) { spriteMeshes.push_back(mesh); return &spriteMeshes.back(); }
+
+	std::vector<Mesh> spriteMeshes;
 };
 
 #endif

@@ -12,7 +12,7 @@ public:
 	StaticBody(GameObject* owner, b2World& world);
 	~StaticBody();
 
-	void update(float deltaTime);
+	void update( );
 private:
 	b2Body* body;
 	b2World& world;

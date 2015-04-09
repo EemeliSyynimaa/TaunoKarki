@@ -28,4 +28,6 @@ AssetManager::~AssetManager()
 	delete cubeMesh;
 	delete sphereMesh;
 	delete floorMesh;
+
+	spriteMeshes.clear();
 }

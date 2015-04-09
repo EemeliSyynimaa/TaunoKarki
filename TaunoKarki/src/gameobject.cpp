@@ -28,16 +28,16 @@ void GameObject::addDrawableComponent(Component* component)
 	drawableComponents.push_back(component);
 }
 
-void GameObject::update(float deltaTime)
+void GameObject::update( )
 {
 	for (auto component : components)
-		component->update(deltaTime);
+		component->update();
 }
 
 void GameObject::draw()
 {
 	for (auto component : drawableComponents)
-		component->update(0.0f);
+		component->update();
 }
 
 void GameObject::handleCollisionWith(GameObject* gameObject)

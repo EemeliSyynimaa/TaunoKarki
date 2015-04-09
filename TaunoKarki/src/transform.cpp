@@ -15,7 +15,7 @@ Transform::~Transform()
 {
 }
 
-void Transform::update(float deltaTime)
+void Transform::update( )
 {
 }
 

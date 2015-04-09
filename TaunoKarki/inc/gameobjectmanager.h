@@ -15,11 +15,13 @@ public:
 	GameObjectManager(AssetManager& assetManager, b2World& world, Camera& camera);
 	~GameObjectManager();
 
-	void update(float deltaTime);
+	void update( );
 	void draw();
 	GameObject* createPlayer(glm::vec3 pos);
 	GameObject* createEnemy(glm::vec3 pos);
 	GameObject* createBullet(glm::vec3 pos, glm::vec2 direction, unsigned int owner, float damage, float speed);
+	GameObject* createPlayerHealthBar(glm::vec3 pos, glm::vec2 size, Texture* texture);
+	GameObject* createPlayerAmmoBar(glm::vec3 pos, glm::vec2 size, Texture* texture);
 
 	Camera& getCamera() { return camera; }
 

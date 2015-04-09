@@ -14,7 +14,7 @@ AIController::~AIController()
 {
 }
 
-void AIController::update(float deltaTime)
+void AIController::update( )
 {
 	switch (state)
 	{

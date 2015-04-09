@@ -18,6 +18,7 @@ GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.
 	world.SetContactListener(&collisionHandler);
 
 	camera.createNewPerspectiveMatrix(60.0f, (float)game.getScreenWidth(), (float)game.getScreenHeight(), 0.1f, 100.0f);
+	camera.createNewOrthographicMatrix((float)game.getScreenWidth(), (float)game.getScreenHeight());
 	camera.setPosition(glm::vec3(0.0f, 0.0f, 20.0f));
 	camera.setOffset(randomFloat(-1.5f, 1.5f)(randomGenerator), randomFloat(-7.5f, 0.0f)(randomGenerator), 0.0f);
 
@@ -40,8 +41,10 @@ GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.
 		gameObjectManager.createEnemy(tilemap->getStartingPosition());
 	}
 
+	gameObjectManager.createPlayerHealthBar(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec2(5.0f, 0.5f), assetManager.sphereTexture);
+
 	// We need to update objects once before the game starts
-	gameObjectManager.update(0.0f);
+	gameObjectManager.update();
 }
 
 GameScene::~GameScene()
@@ -57,7 +60,7 @@ void GameScene::update(float deltaTime)
 	{
 		world.Step(step, 8, 3);
 		accumulator -= step;
-		gameObjectManager.update(deltaTime);
+		gameObjectManager.update();
 	}
 
 	gameObjectManager.interpolate(accumulator / step);

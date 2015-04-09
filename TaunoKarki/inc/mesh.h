@@ -27,8 +27,8 @@ public:
 	Mesh(const std::string& path);
 	~Mesh();
 
-	const std::vector<Vertex>& getVertices() const { return vertices; }
-	const std::vector<GLuint>& getIndices() const { return indices; }
+	std::vector<Vertex>& getVertices() { return vertices; }
+	std::vector<GLuint>& getIndices() { return indices; }
 private:
 	std::vector<GLuint> indices;
 	std::vector<Vertex> vertices;

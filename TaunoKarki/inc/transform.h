@@ -18,7 +18,7 @@ public:
 	void translate(glm::vec3& vec);
 	void rotate(float r, glm::vec3& axis);
 
-	void update(float deltaTime);
+	void update( );
 	const glm::vec3 getPosition() const { return position; }
 	const glm::mat4 getMatrix() const { return transform * rotation * scale; }
 	const glm::vec2 getDirVec() const { return dirVec; }

@@ -234,7 +234,7 @@ void Tilemap::Data::connectRegions()
 				connector.x = x;
 				connector.y = y;
 
-				connectors.push_back(connector);aaaaaaw
+				connectors.push_back(connector);
 			}
 		}
 
@@ -451,7 +451,7 @@ void Tilemap::draw()
 	program.bind();
 
 	glUniform1i(textureIndex, 0);
-	glUniformMatrix4fv(MVPIndex, 1, GL_FALSE, glm::value_ptr(camera.getProjectionMatrix() * camera.getViewMatrix() * matrix));
+	glUniformMatrix4fv(MVPIndex, 1, GL_FALSE, glm::value_ptr(camera.getPerspectiveMatrix() * camera.getViewMatrix() * matrix));
 
 	texture.bind(GL_TEXTURE0);
 

@@ -9,8 +9,11 @@ public:
 	Health(GameObject* owner, float max);
 	~Health();
 
-	void update(float deltaTime);
+	void update( );
 	void change(float amount);
+
+	float getCurrent() { return current; }
+	float getMax() { return max; }
 private:
 	float current;
 	float max;
