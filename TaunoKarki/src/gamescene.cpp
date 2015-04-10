@@ -41,7 +41,6 @@ GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.
 	}
 	gameObjectManager.createPlayerAmmoBar(glm::vec3(10.0f, -7.0f, 3.0f), glm::vec2(8.0f, 0.5f));
 	gameObjectManager.createPlayerHealthBar(glm::vec3(-10.0f, -7.0f, 3.0f), glm::vec2(8.0f, 0.5f));
-    
 
 	// We need to update objects once before the game starts
 	gameObjectManager.update();

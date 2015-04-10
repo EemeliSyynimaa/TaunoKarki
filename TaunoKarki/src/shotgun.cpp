@@ -6,6 +6,7 @@ Shotgun::Shotgun(GameObjectManager& gameObjectManager) : Weapon(gameObjectManage
 	speed = 0.3f;
 	clipSize = 7.0f;
 	currentAmmo = clipSize;
+	reloadTime = 2500.0f;
 }
 
 Shotgun::~Shotgun()
@@ -14,7 +15,7 @@ Shotgun::~Shotgun()
 
 void Shotgun::update()
 {
-	if (triggerPulled && !fired && (SDL_GetTicks() - lastShot) > fireRate)
+	if (triggerPulled && !fired && currentAmmo > 0.0f && !reloading && (SDL_GetTicks() - lastShot) > fireRate)
 	{
 		std::random_device randomDevice;
 		std::default_random_engine randomGenerator(randomDevice());
@@ -39,7 +40,17 @@ void Shotgun::update()
 		}
 
 		lastShot = SDL_GetTicks();
-		currentAmmo--;
+		if (--currentAmmo <= 0.0f) reload();
 	}
 	else if (!triggerPulled && fired) fired = false;
+	else if (reloading)
+	{
+		Uint32 deltaTime = SDL_GetTicks() - startedReloading;
+		if (deltaTime > reloadTime)
+		{
+			reloading = false;
+			currentAmmo = clipSize;
+		}
+		else currentAmmo = clipSize * (deltaTime / reloadTime);
+	}
 }

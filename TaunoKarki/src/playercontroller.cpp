@@ -42,6 +42,9 @@ void PlayerController::update( )
 	else
 		desiredVelocity.y = 0.0f;
 
+	if (keyboardState[SDL_SCANCODE_R] && !weapon->isReloading())
+		weapon->reload();
+
 	velocityChange.x = desiredVelocity.x - velocity.x;
 	velocityChange.y = desiredVelocity.y - velocity.y;
 

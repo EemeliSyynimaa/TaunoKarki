@@ -29,11 +29,8 @@ AssetManager::~AssetManager()
 	delete sphereMesh;
 	delete floorMesh;
 
-	spriteMeshes.clear();
-}
+	for (auto sprite : spriteMeshes)
+		delete sprite;
 
-Mesh* AssetManager::addSprite(Mesh sprite)
-{
-	spriteMeshes.push_back(sprite); 
-	return &spriteMeshes.back();
+	spriteMeshes.clear();
 }

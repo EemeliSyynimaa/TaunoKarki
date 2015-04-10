@@ -6,6 +6,7 @@ MachineGun::MachineGun(GameObjectManager& gameObjectManager) : Weapon(gameObject
 	speed = 0.3f;
 	clipSize = 30.0f;
 	currentAmmo = clipSize;
+	reloadTime = 1500.0f;
 }
 
 MachineGun::~MachineGun()
@@ -14,7 +15,7 @@ MachineGun::~MachineGun()
 
 void MachineGun::update()
 {
-	if (triggerPulled && (SDL_GetTicks() - lastShot) > fireRate)
+	if (triggerPulled && currentAmmo > 0.0f && !reloading && (SDL_GetTicks() - lastShot) > fireRate)
 	{
 		std::random_device randomDevice;
 		std::default_random_engine randomGenerator(randomDevice());
@@ -33,6 +34,17 @@ void MachineGun::update()
 		dirVec.y = glm::sin(angle);
 
 		owner->gameObjectManager.createBullet(owner->getComponent<Transform>()->getPosition(), dirVec, ownero, damage, finalSpeed);
-		currentAmmo--;
+		
+		if (--currentAmmo <= 0.0f) reload();
+	}
+	else if (reloading)
+	{
+		Uint32 deltaTime = SDL_GetTicks() - startedReloading;
+		if (deltaTime > reloadTime)
+		{
+			reloading = false;
+			currentAmmo = clipSize;
+		}
+		else currentAmmo = clipSize * (deltaTime/reloadTime);
 	}
 }

@@ -125,7 +125,7 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position)
 	gameObject->getDrawableComponent<MeshRenderer>()->setProjectionMatrix(camera.getPerspectiveMatrix());
 	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.playerTexture);
 	gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
-	gameObject->getComponent<PlayerController>()->giveWeapon(new MachineGun(*this));
+	gameObject->getComponent<PlayerController>()->giveWeapon(new Shotgun(*this));
 	
 	return gameObject;
 }
@@ -166,7 +166,8 @@ GameObject* GameObjectManager::createPlayerHealthBar(glm::vec3 position, glm::ve
 	gameObject->addComponent(new HealthBar(gameObject));
 	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
-	Mesh* mesh = assetManager.addSprite(*assetManager.floorMesh);
+	Mesh* mesh = new Mesh(*assetManager.floorMesh);
+	assetManager.addSprite(mesh);
 
 	for (Vertex& vertex : mesh->getVertices())
 	{
@@ -197,7 +198,8 @@ GameObject* GameObjectManager::createPlayerAmmoBar(glm::vec3 position, glm::vec2
 	gameObject->addComponent(new AmmoBar(gameObject));
 	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
-	Mesh* mesh = assetManager.addSprite(*assetManager.floorMesh);
+	Mesh* mesh = new Mesh(*assetManager.floorMesh);
+	assetManager.addSprite(mesh);
 
 	for (Vertex& vertex : mesh->getVertices())
 	{
