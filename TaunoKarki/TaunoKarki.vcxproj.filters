@@ -921,6 +921,12 @@
     <ClInclude Include="inc\healthbar.h">
       <Filter>Header Files\components</Filter>
     </ClInclude>
+    <ClInclude Include="inc\guibar.h">
+      <Filter>Header Files\components</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\ammobar.h">
+      <Filter>Header Files\components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -1149,6 +1155,9 @@
       <Filter>Source Files\engine</Filter>
     </ClCompile>
     <ClCompile Include="src\healthbar.cpp">
+      <Filter>Source Files\components</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ammobar.cpp">
       <Filter>Source Files\components</Filter>
     </ClCompile>
   </ItemGroup>

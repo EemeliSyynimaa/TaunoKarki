@@ -4,6 +4,8 @@ Shotgun::Shotgun(GameObjectManager& gameObjectManager) : Weapon(gameObjectManage
 {
 	damage = 8.5f;
 	speed = 0.3f;
+	clipSize = 7.0f;
+	currentAmmo = clipSize;
 }
 
 Shotgun::~Shotgun()
@@ -37,6 +39,7 @@ void Shotgun::update()
 		}
 
 		lastShot = SDL_GetTicks();
+		currentAmmo--;
 	}
 	else if (!triggerPulled && fired) fired = false;
 }

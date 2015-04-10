@@ -2,9 +2,8 @@
 #include "gameobject.h"
 #include "health.h"
 
-HealthBar::HealthBar(GameObject* owner) : Component(owner), transform(owner->getComponent<Transform>())
+HealthBar::HealthBar(GameObject* owner) : GuiBar(owner)
 {
-	assert(transform);
 }
 
 HealthBar::~HealthBar()

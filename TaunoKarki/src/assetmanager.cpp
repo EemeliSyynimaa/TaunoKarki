@@ -31,3 +31,9 @@ AssetManager::~AssetManager()
 
 	spriteMeshes.clear();
 }
+
+Mesh* AssetManager::addSprite(Mesh sprite)
+{
+	spriteMeshes.push_back(sprite); 
+	return &spriteMeshes.back();
+}

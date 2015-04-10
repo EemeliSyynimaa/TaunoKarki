@@ -1,20 +1,15 @@
-#ifndef GUIBAR_H
-#define GUIBAR_H
+#ifndef HEALTHBAR_H
+#define HEALTHBAR_H
 
-#include "component.h"
-#include "transform.h"
+#include "guibar.h"
 
-class HealthBar : public Component
+class HealthBar : public GuiBar
 {
 public:
 	HealthBar(GameObject* owner);
 	~HealthBar();
 
-	void setOffsetPosition(glm::vec3 pos) { offsetPosition = pos; }
 	void update();
-private:
-	Transform* transform;
-	glm::vec3 offsetPosition;
 };
 
 #endif

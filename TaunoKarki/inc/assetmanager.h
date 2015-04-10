@@ -31,7 +31,7 @@ struct AssetManager
 	Mesh* sphereMesh;
 	Mesh* floorMesh;
 
-	Mesh* addSprite(const Mesh& mesh) { spriteMeshes.push_back(mesh); return &spriteMeshes.back(); }
+	Mesh* addSprite(Mesh sprite);
 
 	std::vector<Mesh> spriteMeshes;
 };

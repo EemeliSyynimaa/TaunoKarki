@@ -4,6 +4,8 @@ MachineGun::MachineGun(GameObjectManager& gameObjectManager) : Weapon(gameObject
 {
 	damage = 10.0f;
 	speed = 0.3f;
+	clipSize = 30.0f;
+	currentAmmo = clipSize;
 }
 
 MachineGun::~MachineGun()
@@ -31,5 +33,6 @@ void MachineGun::update()
 		dirVec.y = glm::sin(angle);
 
 		owner->gameObjectManager.createBullet(owner->getComponent<Transform>()->getPosition(), dirVec, ownero, damage, finalSpeed);
+		currentAmmo--;
 	}
 }

@@ -14,6 +14,7 @@
 #include "aicontroller.h"
 #include "damage.h"
 #include "healthbar.h"
+#include "ammobar.h"
 
 #include "pistol.h"
 #include "machinegun.h"
@@ -124,7 +125,7 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position)
 	gameObject->getDrawableComponent<MeshRenderer>()->setProjectionMatrix(camera.getPerspectiveMatrix());
 	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.playerTexture);
 	gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
-	gameObject->getComponent<PlayerController>()->giveWeapon(new Shotgun(*this));
+	gameObject->getComponent<PlayerController>()->giveWeapon(new MachineGun(*this));
 	
 	return gameObject;
 }
@@ -155,7 +156,7 @@ GameObject* GameObjectManager::createEnemy(glm::vec3 position)
 	return gameObject;
 }
 
-GameObject* GameObjectManager::createPlayerHealthBar(glm::vec3 position, glm::vec2 size, Texture* texture)
+GameObject* GameObjectManager::createPlayerHealthBar(glm::vec3 position, glm::vec2 size)
 {
 	GameObject* gameObject = createObject();
 
@@ -169,13 +170,9 @@ GameObject* GameObjectManager::createPlayerHealthBar(glm::vec3 position, glm::ve
 
 	for (Vertex& vertex : mesh->getVertices())
 	{
-
-		std::cout << vertex.position.x << ", " << vertex.position.y << " => ";
 		if(vertex.position.x > 0.0f) vertex.position.x *= size.x;
 		else if (vertex.position.x < 0.0f) vertex.position.x = 0.0f;
 		vertex.position.y *= size.y;
-
-		std::cout << vertex.position.x << ", " << vertex.position.y << std::endl;
 	}
 
 	gameObject->getComponent<HealthBar>()->setOffsetPosition(position);
@@ -183,39 +180,38 @@ GameObject* GameObjectManager::createPlayerHealthBar(glm::vec3 position, glm::ve
 	MeshRenderer* meshRenderer = gameObject->getDrawableComponent<MeshRenderer>();
 	meshRenderer->setMesh(mesh);
 	meshRenderer->setProgram(assetManager.shaderProgram);
-	meshRenderer->setTexture(texture);
+	meshRenderer->setTexture(assetManager.sphereTexture);
 	meshRenderer->setViewMatrix(camera.getViewMatrix());
 	meshRenderer->setProjectionMatrix(camera.getPerspectiveMatrix());
 
 	return gameObject;
 }
 
-GameObject* GameObjectManager::createPlayerAmmoBar(glm::vec3 position, glm::vec2 size, Texture* texture)
+GameObject* GameObjectManager::createPlayerAmmoBar(glm::vec3 position, glm::vec2 size)
 {
 	GameObject* gameObject = createObject();
 
 	gameObject->setType(GAMEOBJECT_TYPES::GUI);
 
-	gameObject->addComponent(new Transform(gameObject, position.x, position.y, position.z));
-	//gameObject->addComponent(new GuiBar(gameObject, getFirstObjectOfType(GAMEOBJECT_TYPES::PLAYER)->getComponent<Health>()->getCurrent(), getFirstObjectOfType(GAMEOBJECT_TYPES::PLAYER)->getComponent<Health>()->getMax()));
+	gameObject->addComponent(new Transform(gameObject, 0.0f, 0.0f, 0.0f));
+	gameObject->addComponent(new AmmoBar(gameObject));
 	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
 	Mesh* mesh = assetManager.addSprite(*assetManager.floorMesh);
 
 	for (Vertex& vertex : mesh->getVertices())
 	{
-
-		std::cout << vertex.position.x << ", " << vertex.position.y << " => ";
-		vertex.position.x *= size.x;
+		if (vertex.position.x < 0.0f) vertex.position.x *= size.x;
+		else if (vertex.position.x > 0.0f) vertex.position.x = 0.0f;
 		vertex.position.y *= size.y;
-
-		std::cout << vertex.position.x << ", " << vertex.position.y << std::endl;
 	}
+
+	gameObject->getComponent<AmmoBar>()->setOffsetPosition(position);
 
 	MeshRenderer* meshRenderer = gameObject->getDrawableComponent<MeshRenderer>();
 	meshRenderer->setMesh(mesh);
 	meshRenderer->setProgram(assetManager.shaderProgram);
-	meshRenderer->setTexture(texture);
+	meshRenderer->setTexture(assetManager.sphereTexture);
 	meshRenderer->setViewMatrix(camera.getViewMatrix());
 	meshRenderer->setProjectionMatrix(camera.getPerspectiveMatrix());
 

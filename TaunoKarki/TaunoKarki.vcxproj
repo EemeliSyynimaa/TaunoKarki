@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="inc\aicontroller.h" />
+    <ClInclude Include="inc\ammobar.h" />
     <ClInclude Include="inc\assetmanager.h" />
     <ClInclude Include="inc\audio.h" />
     <ClInclude Include="inc\Box2D\Box2D.h" />
@@ -214,6 +215,7 @@
     <ClInclude Include="inc\glm\vec3.hpp" />
     <ClInclude Include="inc\glm\vec4.hpp" />
     <ClInclude Include="inc\glm\vector_relational.hpp" />
+    <ClInclude Include="inc\guibar.h" />
     <ClInclude Include="inc\healthbar.h" />
     <ClInclude Include="inc\health.h" />
     <ClInclude Include="inc\locator.h" />
@@ -348,6 +350,7 @@
     <ClCompile Include="inc\Box2D\Dynamics\Joints\b2WheelJoint.cpp" />
     <ClCompile Include="inc\Box2D\Rope\b2Rope.cpp" />
     <ClCompile Include="src\aicontroller.cpp" />
+    <ClCompile Include="src\ammobar.cpp" />
     <ClCompile Include="src\assetmanager.cpp" />
     <ClCompile Include="src\audio.cpp" />
     <ClCompile Include="src\boxcollider.cpp" />

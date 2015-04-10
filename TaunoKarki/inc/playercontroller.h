@@ -15,6 +15,7 @@ public:
 
 	void update( );
 	void giveWeapon(Weapon* weapon) { this->weapon = weapon; weapon->setOwner(this->owner); }
+	Weapon* getWeapon() { return weapon; }
 private:
 	const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
 	b2Body* body;

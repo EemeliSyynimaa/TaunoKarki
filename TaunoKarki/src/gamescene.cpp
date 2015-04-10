@@ -24,7 +24,6 @@ GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
-
 	while (true)
 	{
 		tilemap = new Tilemap(glm::vec3(0.0f), assetManager, camera, world);
@@ -40,8 +39,9 @@ GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.
 	{
 		gameObjectManager.createEnemy(tilemap->getStartingPosition());
 	}
-
-	gameObjectManager.createPlayerHealthBar(glm::vec3(-10.0f, -7.0f, 5.0f), glm::vec2(8.0f, 0.5f), assetManager.sphereTexture);
+	gameObjectManager.createPlayerAmmoBar(glm::vec3(10.0f, -7.0f, 3.0f), glm::vec2(8.0f, 0.5f));
+	gameObjectManager.createPlayerHealthBar(glm::vec3(-10.0f, -7.0f, 3.0f), glm::vec2(8.0f, 0.5f));
+    
 
 	// We need to update objects once before the game starts
 	gameObjectManager.update();

@@ -11,19 +11,25 @@
 class Weapon
 {
 public:
-	Weapon(GameObjectManager& gameObjectManager) : gameObjectManager(gameObjectManager), owner(nullptr), triggerPulled(false), damage(0.0f), speed(0.0f) {}
+	Weapon(GameObjectManager& gameObjectManager) : gameObjectManager(gameObjectManager), owner(nullptr), triggerPulled(false), reloading(false), damage(0.0f), speed(0.0f), clipSize(0.0f), currentAmmo(0.0f) {}
 	virtual ~Weapon() {}
 	void pullTheTrigger() { triggerPulled = true; }
 	void releaseTheTrigger() { triggerPulled = false; }
+	void reload() { reloading = true; }
 	void setOwner(GameObject* owner) { this->owner = owner; }
+	float getClipSize() { return clipSize; }
+	float getCurrentAmmo() { return currentAmmo; }
 	bool isTriggerPulled() { return triggerPulled; }
 	virtual void update() = 0;
 protected:
 	GameObjectManager& gameObjectManager;
 	GameObject* owner;
 	bool triggerPulled;
+	bool reloading;
 	float damage;
 	float speed;
+	float clipSize;
+	float currentAmmo;
 };
 
 #endif
