@@ -21,8 +21,8 @@ GameScene::GameScene(Game& game, int level, Weapon* weapon) : Scene(game), world
 
 	camera.createNewPerspectiveMatrix(60.0f, (float)game.getScreenWidth(), (float)game.getScreenHeight(), 0.1f, 100.0f);
 	camera.createNewOrthographicMatrix((float)game.getScreenWidth(), (float)game.getScreenHeight());
-	camera.setPosition(glm::vec3(0.0f, 0.0f, 20.0f));
-	camera.setOffset(randomFloat(-1.5f, 1.5f)(randomGenerator), randomFloat(-7.5f, 0.0f)(randomGenerator), 0.0f);
+	camera.setPosition(glm::vec3(0.0f, 0.0f, 17.5f));
+	camera.setOffset(0.0f, -7.5f, 0.0f);
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
@@ -42,8 +42,8 @@ GameScene::GameScene(Game& game, int level, Weapon* weapon) : Scene(game), world
 		gameObjectManager.createEnemy(tilemap->getStartingPosition());
 	}
 
-	gameObjectManager.createPlayerAmmoBar(glm::vec3(10.0f, -7.0f, 3.0f), glm::vec2(8.0f, 0.5f));
-	gameObjectManager.createPlayerHealthBar(glm::vec3(-10.0f, -7.0f, 3.0f), glm::vec2(8.0f, 0.5f));
+	gameObjectManager.createPlayerAmmoBar(glm::vec3(10.0f, -6.0f, 5.0f), glm::vec3(9.0f, 0.5f, 0.5f));
+	gameObjectManager.createPlayerHealthBar(glm::vec3(-10.0f, -6.0f, 5.0f), glm::vec3(9.0f, 0.5f, 0.5f));
 }
 
 GameScene::~GameScene()

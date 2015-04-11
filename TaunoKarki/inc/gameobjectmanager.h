@@ -25,8 +25,8 @@ public:
 	GameObject* createPlayer(glm::vec3 pos, Weapon* weapon);
 	GameObject* createEnemy(glm::vec3 pos);
 	GameObject* createBullet(glm::vec3 pos, glm::vec2 direction, unsigned int owner, float damage, float speed);
-	GameObject* createPlayerHealthBar(glm::vec3 pos, glm::vec2 size);
-	GameObject* createPlayerAmmoBar(glm::vec3 pos, glm::vec2 size);
+	GameObject* createPlayerHealthBar(glm::vec3 pos, glm::vec3 size);
+	GameObject* createPlayerAmmoBar(glm::vec3 pos, glm::vec3 size);
 	GameObject* createRandomItem(glm::vec3 position);
 
 	Camera& getCamera() { return camera; }

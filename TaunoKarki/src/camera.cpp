@@ -30,4 +30,9 @@ void Camera::follow(glm::vec2 pos)
 		glm::vec3(position.x + offset.x, position.y + offset.y, position.z + offset.z),
 		glm::vec3(position.x, position.y, 0),
 		glm::vec3(0, 1, 0));
+
+	viewMatrixWithoutOffset = glm::lookAt(
+		glm::vec3(position.x, position.y, position.z),
+		glm::vec3(position.x, position.y, 0),
+		glm::vec3(0, 1, 0));
 }

@@ -170,7 +170,7 @@ GameObject* GameObjectManager::createEnemy(glm::vec3 position)
 	return gameObject;
 }
 
-GameObject* GameObjectManager::createPlayerHealthBar(glm::vec3 position, glm::vec2 size)
+GameObject* GameObjectManager::createPlayerHealthBar(glm::vec3 position, glm::vec3 size)
 {
 	GameObject* gameObject = createObject();
 
@@ -180,7 +180,7 @@ GameObject* GameObjectManager::createPlayerHealthBar(glm::vec3 position, glm::ve
 	gameObject->addComponent(new HealthBar(gameObject));
 	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
-	Mesh* mesh = new Mesh(*assetManager.floorMesh);
+	Mesh* mesh = new Mesh(*assetManager.healthBarMesh);
 	assetManager.addMesh(mesh);
 
 	for (Vertex& vertex : mesh->getVertices())
@@ -188,6 +188,7 @@ GameObject* GameObjectManager::createPlayerHealthBar(glm::vec3 position, glm::ve
 		if(vertex.position.x > 0.0f) vertex.position.x *= size.x;
 		else if (vertex.position.x < 0.0f) vertex.position.x = 0.0f;
 		vertex.position.y *= size.y;
+		vertex.position.z *= size.z;
 	}
 
 	gameObject->getComponent<HealthBar>()->setOffsetPosition(position);
@@ -195,14 +196,14 @@ GameObject* GameObjectManager::createPlayerHealthBar(glm::vec3 position, glm::ve
 	MeshRenderer* meshRenderer = gameObject->getDrawableComponent<MeshRenderer>();
 	meshRenderer->setMesh(mesh);
 	meshRenderer->setProgram(assetManager.shaderProgram);
-	meshRenderer->setTexture(assetManager.sphereTexture);
-	meshRenderer->setViewMatrix(camera.getViewMatrix());
+	meshRenderer->setTexture(assetManager.tilesetTexture);
+	meshRenderer->setViewMatrix(camera.getViewMatrixWithoutOffset());
 	meshRenderer->setProjectionMatrix(camera.getPerspectiveMatrix());
 
 	return gameObject;
 }
 
-GameObject* GameObjectManager::createPlayerAmmoBar(glm::vec3 position, glm::vec2 size)
+GameObject* GameObjectManager::createPlayerAmmoBar(glm::vec3 position, glm::vec3 size)
 {
 	GameObject* gameObject = createObject();
 
@@ -212,7 +213,7 @@ GameObject* GameObjectManager::createPlayerAmmoBar(glm::vec3 position, glm::vec2
 	gameObject->addComponent(new AmmoBar(gameObject));
 	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
-	Mesh* mesh = new Mesh(*assetManager.floorMesh);
+	Mesh* mesh = new Mesh(*assetManager.ammoBarMesh);
 	assetManager.addMesh(mesh);
 
 	for (Vertex& vertex : mesh->getVertices())
@@ -220,6 +221,7 @@ GameObject* GameObjectManager::createPlayerAmmoBar(glm::vec3 position, glm::vec2
 		if (vertex.position.x < 0.0f) vertex.position.x *= size.x;
 		else if (vertex.position.x > 0.0f) vertex.position.x = 0.0f;
 		vertex.position.y *= size.y;
+		vertex.position.z *= size.z;
 	}
 
 	gameObject->getComponent<AmmoBar>()->setOffsetPosition(position);
@@ -227,8 +229,8 @@ GameObject* GameObjectManager::createPlayerAmmoBar(glm::vec3 position, glm::vec2
 	MeshRenderer* meshRenderer = gameObject->getDrawableComponent<MeshRenderer>();
 	meshRenderer->setMesh(mesh);
 	meshRenderer->setProgram(assetManager.shaderProgram);
-	meshRenderer->setTexture(assetManager.sphereTexture);
-	meshRenderer->setViewMatrix(camera.getViewMatrix());
+	meshRenderer->setTexture(assetManager.tilesetTexture);
+	meshRenderer->setViewMatrix(camera.getViewMatrixWithoutOffset());
 	meshRenderer->setProjectionMatrix(camera.getPerspectiveMatrix());
 
 	return gameObject;

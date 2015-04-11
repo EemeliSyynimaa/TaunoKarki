@@ -18,6 +18,9 @@ AssetManager::AssetManager()
 	machinegunMesh = new Mesh("assets/meshes/machinegun.mesh");
 	shotgunMesh = new Mesh("assets/meshes/shotgun.mesh");
 	healthpackMesh = new Mesh("assets/meshes/healthpack.mesh");
+	ammoBarMesh = new Mesh("assets/meshes/ammobar.mesh");
+	healthBarMesh = new Mesh("assets/meshes/healthbar.mesh");
+
 }
 
 AssetManager::~AssetManager()
@@ -38,6 +41,8 @@ AssetManager::~AssetManager()
 	delete machinegunMesh;
 	delete shotgunMesh;
 	delete healthpackMesh;
+	delete ammoBarMesh;
+	delete healthBarMesh;
 
 	for (auto sprite : meshDump)
 		delete sprite;

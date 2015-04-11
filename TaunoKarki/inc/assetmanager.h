@@ -45,6 +45,8 @@ struct AssetManager
 	Mesh* machinegunMesh;
 	Mesh* shotgunMesh;
 	Mesh* healthpackMesh;
+	Mesh* ammoBarMesh;
+	Mesh* healthBarMesh;
 
 	Mesh* addMesh(Mesh mesh);
 

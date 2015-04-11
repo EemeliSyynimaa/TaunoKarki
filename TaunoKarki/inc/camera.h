@@ -17,6 +17,7 @@ public:
 	void setOffset(float x, float y, float z) { offset.x = x; offset.y = y; offset.z = z; }
 
 	glm::mat4& getViewMatrix() { return viewMatrix; }
+	glm::mat4& getViewMatrixWithoutOffset() { return viewMatrixWithoutOffset; }
 	glm::mat4& getPerspectiveMatrix() { return perspectiveMatrix; }
 	glm::mat4& getOrthographicMatrix() { return orthographicMatrix; }
 
@@ -27,6 +28,7 @@ public:
 	glm::vec3 getPosition() { return position; }
 private:
 	glm::mat4 viewMatrix;
+	glm::mat4 viewMatrixWithoutOffset;
 	glm::mat4 orthographicMatrix;
 	glm::mat4 perspectiveMatrix;
 
