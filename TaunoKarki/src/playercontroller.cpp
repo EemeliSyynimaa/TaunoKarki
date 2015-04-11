@@ -3,6 +3,12 @@
 #include "rigidbody.h"
 #include "SDL\SDL.h"
 
+#include "health.h"
+
+#include "pistol.h"
+#include "machinegun.h"
+#include "shotgun.h"
+
 PlayerController::PlayerController(GameObject* owner) : Component(owner), moveSpeed(7.5f)
 {
 	RigidBody* rigidbody = owner->getComponent<RigidBody>();
@@ -17,7 +23,7 @@ PlayerController::~PlayerController()
 {
 }
 
-void PlayerController::update( )
+void PlayerController::update()
 {
 	b2Vec2 desiredVelocity(0.0f, 0.0f);
 	b2Vec2 velocityChange(0.0f, 0.0f);
@@ -68,4 +74,24 @@ void PlayerController::update( )
 
 	owner->getComponent<Transform>()->lookAt(owner->getComponent<Transform>()->getPosition() + mouseCoords);
 	owner->gameObjectManager.getCamera().follow(glm::vec2(owner->getComponent<Transform>()->getPosition().x, owner->getComponent<Transform>()->getPosition().y));
+}
+
+void PlayerController::giveWeapon(Weapon* weapon)
+{
+	if (this->weapon) delete this->weapon;
+
+	this->weapon = weapon; 
+	weapon->setOwner(this->owner);
+}
+
+void PlayerController::handleItem(unsigned int item)
+{
+	switch (item)
+	{
+	case COLLECTIBLES::PISTOL: giveWeapon(new Pistol(owner->gameObjectManager)); break;
+	case COLLECTIBLES::MACHINEGUN: giveWeapon(new MachineGun(owner->gameObjectManager)); break;
+	case COLLECTIBLES::SHOTGUN: giveWeapon(new Shotgun(owner->gameObjectManager)); break;
+	case COLLECTIBLES::HEALTHPACK: owner->getComponent<Health>()->change(25); break;
+	default: break;
+	}
 }

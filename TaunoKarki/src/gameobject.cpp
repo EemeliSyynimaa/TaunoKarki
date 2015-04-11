@@ -1,6 +1,9 @@
 #include "gameobject.h"
 #include "health.h"
 #include "damage.h"
+#include "transform.h"
+#include "playercontroller.h"
+#include "collectible.h"
 
 GameObject::GameObject(GameObjectManager& gameObjectManager) : gameObjectManager(gameObjectManager), alive(true)
 {
@@ -28,7 +31,7 @@ void GameObject::addDrawableComponent(Component* component)
 	drawableComponents.push_back(component);
 }
 
-void GameObject::update( )
+void GameObject::update()
 {
 	for (auto component : components)
 		component->update();
@@ -52,9 +55,10 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
 			{
 			case ENEMY_BULLET: getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage()); break;
 			case ENEMY: getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage()); break;
+			case ITEM: getComponent<PlayerController>()->handleItem(gameObject->getComponent<Collectible>()->getType()); break;
 			default: break;
+			}
 		}
-	}
 		break;
 	}
 	case ENEMY:
@@ -63,7 +67,17 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
 		{
 			switch (gameObject->getType())
 			{
-			case PLAYER_BULLET: getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage()); break;
+			case PLAYER_BULLET:
+			{
+				getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage());
+
+				if(!isAlive()) 
+					gameObjectManager.addNewObject([this]()
+					{
+						this->gameObjectManager.createRandomItem(this->getComponent<Transform>()->getPosition());
+					});
+			} 
+			break;
 			default: break;
 			}
 		}
@@ -95,6 +109,7 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
 		kill();
 		break;
 	}
+	case ITEM: kill(); break;
 	default: break;
 	}
 }

@@ -2,6 +2,7 @@
 #include "gameobject.h"
 
 #include <algorithm>
+#include <random>
 
 #include "transform.h"
 #include "circlecollider.h"
@@ -15,12 +16,15 @@
 #include "damage.h"
 #include "healthbar.h"
 #include "ammobar.h"
+#include "collectible.h"
 
 #include "pistol.h"
 #include "machinegun.h"
 #include "shotgun.h"
 
 #include <iostream>
+
+#define randomInt std::uniform_int_distribution<int>
 
 GameObjectManager::GameObjectManager(AssetManager& assetManager, b2World& world, Camera& camera) : assetManager(assetManager), world(world), camera(camera)
 {
@@ -33,41 +37,47 @@ GameObjectManager::~GameObjectManager()
 		delete gameObject;
 	}
 
-	for (auto gameObject : newObjects)
-	{
-		delete gameObject;
-	}
-
 	gameObjects.clear();
 	newObjects.clear();
 }
 
-void GameObjectManager::update( )
+void GameObjectManager::addNewObject(std::function< void(void)> gameObject)
 {
-	// TODO 2HAX PLS FIX
-	std::list<GameObject*> gameObjectsToDelete;
+	newObjects.push_back(gameObject);
+}
 
+void GameObjectManager::update()
+{
 	for (auto gameObject : gameObjects)
 	{
 		gameObject->update();
-		if (!gameObject->isAlive()) gameObjectsToDelete.push_back(gameObject);
+		if (!gameObject->isAlive()) deadObjects.push_back(gameObject);
 	}
 
+	createObjects();
+	deleteObjects();
+}
+
+void GameObjectManager::createObjects()
+{
+	for (auto newObject : newObjects)
+	{
+		newObject();
+	}
+
+	newObjects.clear();
+}
+
+void GameObjectManager::deleteObjects()
+{
 	gameObjects.erase(std::remove_if(gameObjects.begin(), gameObjects.end(), [](GameObject *obj){ return !obj->isAlive(); }), gameObjects.end());
 
-	for (auto gameObject : newObjects)
+	for (auto gameObject : deadObjects)
 	{
-		gameObjects.push_back(gameObject);
-	}
-
-	for (auto gameObject : gameObjectsToDelete)
-	{
-
 		delete gameObject;
 	}
 
-	gameObjectsToDelete.clear();
-	newObjects.clear();
+	deadObjects.clear();
 }
 
 void GameObjectManager::draw()
@@ -125,7 +135,7 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position)
 	gameObject->getDrawableComponent<MeshRenderer>()->setProjectionMatrix(camera.getPerspectiveMatrix());
 	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.playerTexture);
 	gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
-	gameObject->getComponent<PlayerController>()->giveWeapon(new Shotgun(*this));
+	gameObject->getComponent<PlayerController>()->giveWeapon(new Pistol(*this));
 	
 	return gameObject;
 }
@@ -167,7 +177,7 @@ GameObject* GameObjectManager::createPlayerHealthBar(glm::vec3 position, glm::ve
 	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
 	Mesh* mesh = new Mesh(*assetManager.floorMesh);
-	assetManager.addSprite(mesh);
+	assetManager.addMesh(mesh);
 
 	for (Vertex& vertex : mesh->getVertices())
 	{
@@ -199,7 +209,7 @@ GameObject* GameObjectManager::createPlayerAmmoBar(glm::vec3 position, glm::vec2
 	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
 	Mesh* mesh = new Mesh(*assetManager.floorMesh);
-	assetManager.addSprite(mesh);
+	assetManager.addMesh(mesh);
 
 	for (Vertex& vertex : mesh->getVertices())
 	{
@@ -216,6 +226,46 @@ GameObject* GameObjectManager::createPlayerAmmoBar(glm::vec3 position, glm::vec2
 	meshRenderer->setTexture(assetManager.sphereTexture);
 	meshRenderer->setViewMatrix(camera.getViewMatrix());
 	meshRenderer->setProjectionMatrix(camera.getPerspectiveMatrix());
+
+	return gameObject;
+}
+
+GameObject* GameObjectManager::createRandomItem(glm::vec3 position)
+{
+	GameObject* gameObject = createObject();
+
+	gameObject->setType(GAMEOBJECT_TYPES::ITEM);
+
+	gameObject->addComponent(new Transform(gameObject, position.x, position.y, position.z));
+	gameObject->addComponent(new CircleCollider(gameObject, 0.25f, COL_WALL, (COL_PLAYER)));
+	gameObject->addComponent(new RigidBody(gameObject, world));
+	gameObject->addComponent(new Collectible(gameObject));
+	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
+
+	std::random_device randomDevice;
+	std::default_random_engine randomGenerator(randomDevice());
+
+	int randomItem = randomInt(0, 3)(randomGenerator);
+
+	Mesh* mesh = new Mesh(*assetManager.itemMesh);
+	assetManager.addMesh(mesh);
+
+	for (Vertex& vertex : mesh->getVertices())
+	{
+		vertex.uv.y -= randomItem * 0.25f;
+	}
+
+	gameObject->getComponent<Collectible>()->setType(randomItem);
+	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.35f, 0.35f, 0.35f));
+	gameObject->getDrawableComponent<MeshRenderer>()->setMesh(mesh);
+	gameObject->getDrawableComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
+	gameObject->getDrawableComponent<MeshRenderer>()->setViewMatrix(camera.getViewMatrix());
+	gameObject->getDrawableComponent<MeshRenderer>()->setProjectionMatrix(camera.getPerspectiveMatrix());
+	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.itemsTexture);
+
+
+
+	gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
 
 	return gameObject;
 }
@@ -266,7 +316,7 @@ void GameObjectManager::interpolate(float alpha)
 GameObject* GameObjectManager::createObject()
 {
 	GameObject* gameObject = new GameObject(*this);
-	newObjects.push_back(gameObject);
+	gameObjects.push_back(gameObject);
 
 	return gameObject;
 }

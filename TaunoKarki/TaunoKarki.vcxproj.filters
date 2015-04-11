@@ -927,6 +927,9 @@
     <ClInclude Include="inc\ammobar.h">
       <Filter>Header Files\components</Filter>
     </ClInclude>
+    <ClInclude Include="inc\collectible.h">
+      <Filter>Header Files\components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -1158,6 +1161,9 @@
       <Filter>Source Files\components</Filter>
     </ClCompile>
     <ClCompile Include="src\ammobar.cpp">
+      <Filter>Source Files\components</Filter>
+    </ClCompile>
+    <ClCompile Include="src\collectible.cpp">
       <Filter>Source Files\components</Filter>
     </ClCompile>
   </ItemGroup>

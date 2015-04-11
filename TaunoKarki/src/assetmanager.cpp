@@ -6,6 +6,7 @@ AssetManager::AssetManager()
 	sphereTexture = new Texture(GL_TEXTURE_2D, "assets/textures/sphere.png");
 	tilesetTexture = new Texture(GL_TEXTURE_2D, "assets/textures/tileset.png");
 	enemyTexture = new Texture(GL_TEXTURE_2D, "assets/textures/enemy.png");
+	itemsTexture = new Texture(GL_TEXTURE_2D, "assets/textures/items.png");
 
 	shaderProgram = new ShaderProgram("assets/shaders/vertex.glsl", "assets/shaders/fragment.glsl");
 	
@@ -13,6 +14,7 @@ AssetManager::AssetManager()
 	cubeMesh = new Mesh("assets/meshes/cube.mesh");
 	sphereMesh = new Mesh("assets/meshes/sphere.mesh");
 	floorMesh = new Mesh("assets/meshes/floor.mesh");
+	itemMesh = new Mesh("assets/meshes/item.mesh");
 }
 
 AssetManager::~AssetManager()
@@ -21,6 +23,7 @@ AssetManager::~AssetManager()
 	delete sphereTexture;
 	delete tilesetTexture;
 	delete enemyTexture;
+	delete itemsTexture;
 
 	delete shaderProgram;
 	
@@ -28,9 +31,10 @@ AssetManager::~AssetManager()
 	delete cubeMesh;
 	delete sphereMesh;
 	delete floorMesh;
+	delete itemMesh;
 
-	for (auto sprite : spriteMeshes)
+	for (auto sprite : meshDump)
 		delete sprite;
 
-	spriteMeshes.clear();
+	meshDump.clear();
 }

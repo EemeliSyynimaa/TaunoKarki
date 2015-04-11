@@ -9,7 +9,7 @@ public:
 	Health(GameObject* owner, float max);
 	~Health();
 
-	void update( );
+	void update();
 	void change(float amount);
 
 	float getCurrent() { return current; }

@@ -34,16 +34,14 @@ GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.
 	}
 
 	gameObjectManager.createPlayer(tilemap->getStartingPosition());
-
+	
 	while (tilemap->getNumberOfStartingPositions() > 0)
 	{
 		gameObjectManager.createEnemy(tilemap->getStartingPosition());
 	}
+
 	gameObjectManager.createPlayerAmmoBar(glm::vec3(10.0f, -7.0f, 3.0f), glm::vec2(8.0f, 0.5f));
 	gameObjectManager.createPlayerHealthBar(glm::vec3(-10.0f, -7.0f, 3.0f), glm::vec2(8.0f, 0.5f));
-
-	// We need to update objects once before the game starts
-	gameObjectManager.update();
 }
 
 GameScene::~GameScene()
@@ -63,11 +61,6 @@ void GameScene::update(float deltaTime)
 	}
 
 	gameObjectManager.interpolate(accumulator / step);
-
-	//world.Step(1.0f / 60.0f, 8, 3);
-
-	//gameObjectManager.update(deltaTime);
-
 
 	if (gameObjectManager.getNumberOfObjectsOfType(GAMEOBJECT_TYPES::PLAYER) == 0)
 	{

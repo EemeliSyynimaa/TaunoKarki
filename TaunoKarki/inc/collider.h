@@ -10,7 +10,7 @@ public:
 	Collider(GameObject* owner, uint16 categoryBits, uint16 maskBits) : Component(owner) { fixtureDef.filter.maskBits = maskBits; fixtureDef.filter.categoryBits = categoryBits; }
 	~Collider() {};
 
-	void update( ) {};
+	void update() {};
 	b2FixtureDef& getFixtureDef() { return fixtureDef; }
 
 protected:

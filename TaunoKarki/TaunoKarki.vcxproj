@@ -65,6 +65,7 @@
     <ClInclude Include="inc\boxcollider.h" />
     <ClInclude Include="inc\camera.h" />
     <ClInclude Include="inc\circlecollider.h" />
+    <ClInclude Include="inc\collectible.h" />
     <ClInclude Include="inc\collider.h" />
     <ClInclude Include="inc\collisionhandler.h" />
     <ClInclude Include="inc\component.h" />
@@ -356,6 +357,7 @@
     <ClCompile Include="src\boxcollider.cpp" />
     <ClCompile Include="src\camera.cpp" />
     <ClCompile Include="src\circlecollider.cpp" />
+    <ClCompile Include="src\collectible.cpp" />
     <ClCompile Include="src\collisionhandler.cpp" />
     <ClCompile Include="src\component.cpp" />
     <ClCompile Include="src\game.cpp" />

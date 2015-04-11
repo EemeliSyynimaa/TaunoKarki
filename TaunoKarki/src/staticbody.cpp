@@ -26,6 +26,6 @@ StaticBody::~StaticBody()
 	world.DestroyBody(body);
 }
 
-void StaticBody::update( )
+void StaticBody::update()
 {
 }

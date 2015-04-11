@@ -13,9 +13,10 @@ public:
 	PlayerController(GameObject* owner);
 	~PlayerController();
 
-	void update( );
-	void giveWeapon(Weapon* weapon) { this->weapon = weapon; weapon->setOwner(this->owner); }
+	void update();
+	void giveWeapon(Weapon* weapon);
 	Weapon* getWeapon() { return weapon; }
+	void handleItem(unsigned int item);
 private:
 	const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
 	b2Body* body;

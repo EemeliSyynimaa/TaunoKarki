@@ -14,7 +14,7 @@ AIController::~AIController()
 {
 }
 
-void AIController::update( )
+void AIController::update()
 {
 	switch (state)
 	{

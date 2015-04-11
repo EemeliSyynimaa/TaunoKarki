@@ -13,7 +13,7 @@ public:
 	AIController(GameObject* owner);
 	~AIController();
 
-	void update( );
+	void update();
 	void giveWeapon(Weapon* weapon) { this->weapon = weapon; weapon->setOwner(this->owner); }
 private:
 

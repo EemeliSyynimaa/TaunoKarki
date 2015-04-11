@@ -13,7 +13,8 @@ const enum GAMEOBJECT_TYPES
 	PLAYER_BULLET,
 	ENEMY_BULLET,
 	WALL,
-	GUI
+	GUI,
+	ITEM
 };
 
 class GameObject
@@ -51,7 +52,7 @@ public:
 		return foundComponent;
 	}
 
-	void update( );
+	void update();
 	void draw();
 
 	GameObjectManager& gameObjectManager;

@@ -1,5 +1,6 @@
 #include "health.h"
 #include "gameobject.h"
+#include "transform.h"
 
 Health::Health(GameObject* owner, float max) : Component(owner), max(max), current(max)
 {
@@ -9,7 +10,7 @@ Health::~Health()
 {
 }
 
-void Health::update( )
+void Health::update()
 {
 }
 

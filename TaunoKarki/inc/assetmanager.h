@@ -12,6 +12,15 @@ enum COLLISION_TYPES {
 	COL_ENEMY = 0x0004,
 	COL_ENEMY_BULLET = 0x0008,
 	COL_PLAYER_BULLET = 0x0010,
+	COL_ITEM = 0x0020
+};
+
+enum COLLECTIBLES
+{
+	PISTOL = 0,
+	MACHINEGUN,
+	SHOTGUN,
+	HEALTHPACK
 };
 
 struct AssetManager
@@ -25,17 +34,19 @@ struct AssetManager
 	Texture* sphereTexture;
 	Texture* playerTexture;
 	Texture* enemyTexture;
+	Texture* itemsTexture;
 
 	Mesh* wallMesh;
 	Mesh* cubeMesh;
 	Mesh* sphereMesh;
 	Mesh* floorMesh;
+	Mesh* itemMesh;
 
-	Mesh* addSprite(Mesh sprite);
+	Mesh* addMesh(Mesh mesh);
 
-	std::vector<Mesh*> spriteMeshes;
+	std::vector<Mesh*> meshDump;
 
-	void addSprite(Mesh* mesh) { spriteMeshes.push_back(mesh); }
+	void addMesh(Mesh* mesh) { meshDump.push_back(mesh); }
 };
 
 #endif
