@@ -21,6 +21,7 @@ PlayerController::PlayerController(GameObject* owner) : Component(owner), moveSp
 
 PlayerController::~PlayerController()
 {
+	delete weapon;
 }
 
 void PlayerController::update()
@@ -81,17 +82,31 @@ void PlayerController::giveWeapon(Weapon* weapon)
 	if (this->weapon) delete this->weapon;
 
 	this->weapon = weapon; 
-	weapon->setOwner(this->owner);
+	this->weapon->setOwner(this->owner);
+	this->weapon->reload();
 }
 
-void PlayerController::handleItem(unsigned int item)
+void PlayerController::handleItem(COLLECTIBLES item)
 {
 	switch (item)
 	{
-	case COLLECTIBLES::PISTOL: giveWeapon(new Pistol(owner->gameObjectManager)); break;
-	case COLLECTIBLES::MACHINEGUN: giveWeapon(new MachineGun(owner->gameObjectManager)); break;
-	case COLLECTIBLES::SHOTGUN: giveWeapon(new Shotgun(owner->gameObjectManager)); break;
-	case COLLECTIBLES::HEALTHPACK: owner->getComponent<Health>()->change(25); break;
+	case COLLECTIBLES::PISTOL:
+	{
+		if (weapon->getType() == item) weapon->levelUp();
+		else giveWeapon(new Pistol(owner->gameObjectManager));
+		break;
+	}
+	case COLLECTIBLES::MACHINEGUN: {
+		if (weapon->getType() == item) weapon->levelUp();
+		else giveWeapon(new MachineGun(owner->gameObjectManager));
+		break;
+	}
+	case COLLECTIBLES::SHOTGUN: {
+		if (weapon->getType() == item) weapon->levelUp();
+		else giveWeapon(new Shotgun(owner->gameObjectManager));
+		break;
+	}
+	case COLLECTIBLES::HEALTHPACK: owner->getComponent<Health>()->change(25.0f); break;
 	default: break;
 	}
 }

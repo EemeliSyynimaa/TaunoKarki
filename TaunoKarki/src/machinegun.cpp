@@ -1,12 +1,15 @@
 #include "machinegun.h"
 
-MachineGun::MachineGun(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager), fireRate(100.0f), lastShot(0)
+MachineGun::MachineGun(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager), lastShot(0)
 {
 	damage = 10.0f;
 	speed = 0.3f;
 	clipSize = 30.0f;
 	currentAmmo = clipSize;
 	reloadTime = 1500.0f;
+	fireRate = 100.0f;
+	bulletSpread = 0.05f;
+	type = COLLECTIBLES::MACHINEGUN;
 }
 
 MachineGun::~MachineGun()
@@ -28,7 +31,7 @@ void MachineGun::update()
 		float finalSpeed = speed;
 		glm::vec2 dirVec;
 		
-		angle += randomFloat(-0.05f, 0.05f)(randomGenerator);
+		angle += randomFloat(-bulletSpread, bulletSpread)(randomGenerator);
 		finalSpeed *= randomFloat(0.85f, 1.15f)(randomGenerator);
 		dirVec.x = glm::cos(angle);
 		dirVec.y = glm::sin(angle);

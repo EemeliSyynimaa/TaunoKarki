@@ -15,6 +15,7 @@ public:
 
 	void update();
 	void giveWeapon(Weapon* weapon) { this->weapon = weapon; weapon->setOwner(this->owner); }
+	bool droppedItem;
 private:
 
 	void wander();

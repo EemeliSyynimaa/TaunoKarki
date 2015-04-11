@@ -10,9 +10,8 @@ public:
 	~MachineGun();
 
 	void update();
-
+	Weapon* getCopy() { return new MachineGun(*this); }
 private:
-	float fireRate;
 	Uint32 lastShot;
 };
 

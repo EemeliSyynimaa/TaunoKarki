@@ -7,6 +7,8 @@ Pistol::Pistol(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager)
 	clipSize = 12.0f;
 	currentAmmo = clipSize;
 	reloadTime = 750.0f;
+	bulletSpread = 0.01f;
+	type = COLLECTIBLES::PISTOL;
 }
 
 Pistol::~Pistol()
@@ -18,10 +20,20 @@ void Pistol::update()
 {
 	if (triggerPulled && currentAmmo > 0.0f && !reloading && !fired)
 	{
+		std::random_device randomDevice;
+		std::default_random_engine randomGenerator(randomDevice());
+		glm::vec2 dirVec;
+
 		size_t ownero = ENEMY_BULLET;;
 		if (owner->getType() == PLAYER) ownero = PLAYER_BULLET;
 
-		owner->gameObjectManager.createBullet(owner->getComponent<Transform>()->getPosition(), owner->getComponent<Transform>()->getDirVec(), ownero, damage, speed);
+		float angle = glm::atan(owner->getComponent<Transform>()->getDirVec().y, owner->getComponent<Transform>()->getDirVec().x);
+		
+		angle += randomFloat(-bulletSpread, bulletSpread)(randomGenerator);
+		dirVec.x = glm::cos(angle);
+		dirVec.y = glm::sin(angle);
+
+		owner->gameObjectManager.createBullet(owner->getComponent<Transform>()->getPosition(), dirVec, ownero, damage, speed);
 		fired = true;
 		if (--currentAmmo <= 0.0f) reload();
 	}

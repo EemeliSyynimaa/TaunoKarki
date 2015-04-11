@@ -9,11 +9,12 @@
 #include "assetmanager.h"
 #include "collisionhandler.h"
 #include "gameobjectmanager.h"
+#include "weapon.h"
 
 class GameScene : public Scene
 {
 public:
-	GameScene(Game& game, int level);
+	GameScene(Game& game, int level, Weapon* weapon);
 	~GameScene();
 
 	void update(float deltaTime);

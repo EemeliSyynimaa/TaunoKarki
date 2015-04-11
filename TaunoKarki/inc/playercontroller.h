@@ -16,7 +16,7 @@ public:
 	void update();
 	void giveWeapon(Weapon* weapon);
 	Weapon* getWeapon() { return weapon; }
-	void handleItem(unsigned int item);
+	void handleItem(COLLECTIBLES item);
 private:
 	const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
 	b2Body* body;

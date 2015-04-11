@@ -3,12 +3,14 @@
 #include "game.h"
 #include "gameobject.h"
 
+#include "playercontroller.h"
+
 #include <random>
 #include <iostream>
 
 #define randomFloat std::uniform_real_distribution<float>
 
-GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(assetManager, world, camera), collisionHandler(), level(level), accumulator(0.0f), step(1.0f / 60.0f)
+GameScene::GameScene(Game& game, int level, Weapon* weapon) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(assetManager, world, camera), collisionHandler(), level(level), accumulator(0.0f), step(1.0f / 60.0f)
 {
 	std::random_device randomDevice;
 	std::default_random_engine randomGenerator(randomDevice());
@@ -33,7 +35,7 @@ GameScene::GameScene(Game& game, int level) : Scene(game), world(b2Vec2(0.0f, 0.
 		else delete tilemap;
 	}
 
-	gameObjectManager.createPlayer(tilemap->getStartingPosition());
+	gameObjectManager.createPlayer(tilemap->getStartingPosition(), weapon);
 	
 	while (tilemap->getNumberOfStartingPositions() > 0)
 	{
@@ -69,8 +71,10 @@ void GameScene::update(float deltaTime)
 	}
 	else if (gameObjectManager.getNumberOfObjectsOfType(GAMEOBJECT_TYPES::ENEMY) == 0)
 	{
+		Weapon* weapon = gameObjectManager.getFirstObjectOfType(GAMEOBJECT_TYPES::PLAYER)->getComponent<PlayerController>()->getWeapon()->getCopy();
+		
 		std::cout << "PLAYER WON - cleared level " << level << std::endl;
-		game.getSceneManager().change(new GameScene(game, level + 1));
+		game.getSceneManager().change(new GameScene(game, level + 1, weapon));
 	}
 }
 

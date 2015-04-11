@@ -1,12 +1,15 @@
 #include "shotgun.h"
 
-Shotgun::Shotgun(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager), lastShot(0), fired(false), fireRate(500.0f), numberOfShells(12)
+Shotgun::Shotgun(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager), lastShot(0), fired(false), numberOfShells(12)
 {
 	damage = 8.5f;
 	speed = 0.3f;
 	clipSize = 7.0f;
 	currentAmmo = clipSize;
 	reloadTime = 2500.0f;
+	fireRate = 500.0f;
+	bulletSpread = 0.125f;
+	type = COLLECTIBLES::SHOTGUN;
 }
 
 Shotgun::~Shotgun()
@@ -29,7 +32,7 @@ void Shotgun::update()
 		{
 			float angle = glm::atan(owner->getComponent<Transform>()->getDirVec().y, owner->getComponent<Transform>()->getDirVec().x);
 			float finalSpeed = speed;
-			angle += randomFloat(-0.125f, 0.125f)(randomGenerator);
+			angle += randomFloat(-bulletSpread, bulletSpread)(randomGenerator);
 			finalSpeed *= randomFloat(0.9f, 1.1f)(randomGenerator);
 
 			glm::vec2 dirVec;

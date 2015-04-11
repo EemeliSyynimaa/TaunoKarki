@@ -20,7 +20,8 @@ enum COLLECTIBLES
 	PISTOL = 0,
 	MACHINEGUN,
 	SHOTGUN,
-	HEALTHPACK
+	HEALTHPACK,
+	NONE
 };
 
 struct AssetManager
@@ -40,7 +41,10 @@ struct AssetManager
 	Mesh* cubeMesh;
 	Mesh* sphereMesh;
 	Mesh* floorMesh;
-	Mesh* itemMesh;
+	Mesh* pistolMesh;
+	Mesh* machinegunMesh;
+	Mesh* shotgunMesh;
+	Mesh* healthpackMesh;
 
 	Mesh* addMesh(Mesh mesh);
 

@@ -3,6 +3,7 @@
 
 #include "component.h"
 #include "transform.h"
+#include "assetmanager.h"
 
 class Collectible : public Component
 {
@@ -11,11 +12,11 @@ public:
 	~Collectible();
 
 	void update();
-	void setType(unsigned int type) { this->type = type; }
-	unsigned int getType() { return type; }
+	void setType(COLLECTIBLES type) { this->type = type; }
+	COLLECTIBLES getType() { return type; }
 private:
 	Transform* transform;
-	unsigned int type;
+	COLLECTIBLES type;
 };
 
 #endif

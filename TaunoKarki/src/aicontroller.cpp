@@ -2,7 +2,7 @@
 #include "gameobject.h"
 #include "gameobjectmanager.h"
 
-AIController::AIController(GameObject* owner) : Component(owner), lastShot(SDL_GetTicks())
+AIController::AIController(GameObject* owner) : Component(owner), lastShot(SDL_GetTicks()), droppedItem(false)
 {
 	state = WANDER;
 

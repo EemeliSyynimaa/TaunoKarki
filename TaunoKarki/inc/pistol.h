@@ -10,6 +10,7 @@ public:
 	~Pistol();
 
 	void update();
+	Weapon* getCopy() { return new Pistol(*this); }
 private:
 	bool fired;
 };

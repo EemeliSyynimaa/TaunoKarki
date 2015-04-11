@@ -14,7 +14,10 @@ AssetManager::AssetManager()
 	cubeMesh = new Mesh("assets/meshes/cube.mesh");
 	sphereMesh = new Mesh("assets/meshes/sphere.mesh");
 	floorMesh = new Mesh("assets/meshes/floor.mesh");
-	itemMesh = new Mesh("assets/meshes/item.mesh");
+	pistolMesh = new Mesh("assets/meshes/pistol.mesh");
+	machinegunMesh = new Mesh("assets/meshes/machinegun.mesh");
+	shotgunMesh = new Mesh("assets/meshes/shotgun.mesh");
+	healthpackMesh = new Mesh("assets/meshes/healthpack.mesh");
 }
 
 AssetManager::~AssetManager()
@@ -31,7 +34,10 @@ AssetManager::~AssetManager()
 	delete cubeMesh;
 	delete sphereMesh;
 	delete floorMesh;
-	delete itemMesh;
+	delete pistolMesh;
+	delete machinegunMesh;
+	delete shotgunMesh;
+	delete healthpackMesh;
 
 	for (auto sprite : meshDump)
 		delete sprite;

@@ -10,9 +10,9 @@ public:
 	~Shotgun();
 
 	void update();
+	Weapon* getCopy() { return new Shotgun(*this); }
 private:
 	Uint32 lastShot;
-	float fireRate;
 	bool fired;
 	size_t numberOfShells;
 };

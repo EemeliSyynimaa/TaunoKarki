@@ -26,7 +26,7 @@ void MenuScene::handleEvent(SDL_Event& event)
 	if (event.type == SDL_KEYDOWN)
 	{
 		if (event.key.keysym.sym == SDLK_SPACE)
-			game.getSceneManager().change(new GameScene(game, 1));
+			game.getSceneManager().change(new GameScene(game, 1, nullptr));
 		else if (event.key.keysym.sym == SDLK_ESCAPE)
 			game.stop();
 	}

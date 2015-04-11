@@ -8,6 +8,7 @@
 #include "Box2D\Box2D.h"
 #include "camera.h"
 
+class Weapon;
 class GameObject;
 
 class GameObjectManager
@@ -21,7 +22,7 @@ public:
 	void createObjects();
 	void deleteObjects();
 	void addNewObject(std::function< void(void)> gameObject);
-	GameObject* createPlayer(glm::vec3 pos);
+	GameObject* createPlayer(glm::vec3 pos, Weapon* weapon);
 	GameObject* createEnemy(glm::vec3 pos);
 	GameObject* createBullet(glm::vec3 pos, glm::vec2 direction, unsigned int owner, float damage, float speed);
 	GameObject* createPlayerHealthBar(glm::vec3 pos, glm::vec2 size);

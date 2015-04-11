@@ -115,7 +115,7 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
 	return gameObject;
 }
 
-GameObject* GameObjectManager::createPlayer(glm::vec3 position)
+GameObject* GameObjectManager::createPlayer(glm::vec3 position, Weapon* weapon)
 {
  	GameObject* gameObject = createObject();
 
@@ -135,8 +135,12 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position)
 	gameObject->getDrawableComponent<MeshRenderer>()->setProjectionMatrix(camera.getPerspectiveMatrix());
 	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.playerTexture);
 	gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
-	gameObject->getComponent<PlayerController>()->giveWeapon(new Pistol(*this));
-	
+
+	if (weapon)
+		gameObject->getComponent<PlayerController>()->giveWeapon(weapon);
+	else
+		gameObject->getComponent<PlayerController>()->giveWeapon(new Pistol(*this));
+
 	return gameObject;
 }
 
@@ -245,19 +249,16 @@ GameObject* GameObjectManager::createRandomItem(glm::vec3 position)
 	std::random_device randomDevice;
 	std::default_random_engine randomGenerator(randomDevice());
 
-	int randomItem = randomInt(0, 3)(randomGenerator);
-
-	Mesh* mesh = new Mesh(*assetManager.itemMesh);
-	assetManager.addMesh(mesh);
-
-	for (Vertex& vertex : mesh->getVertices())
+	switch (randomInt(0, 3)(randomGenerator))
 	{
-		vertex.uv.y -= randomItem * 0.25f;
+	case 0: gameObject->getComponent<Collectible>()->setType(COLLECTIBLES::PISTOL); gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.pistolMesh); break;
+	case 1: gameObject->getComponent<Collectible>()->setType(COLLECTIBLES::MACHINEGUN); gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.machinegunMesh); break;
+	case 2: gameObject->getComponent<Collectible>()->setType(COLLECTIBLES::SHOTGUN); gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.shotgunMesh); break;
+	case 3: gameObject->getComponent<Collectible>()->setType(COLLECTIBLES::HEALTHPACK); gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.healthpackMesh); break;
+	default: break;
 	}
 
-	gameObject->getComponent<Collectible>()->setType(randomItem);
 	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.35f, 0.35f, 0.35f));
-	gameObject->getDrawableComponent<MeshRenderer>()->setMesh(mesh);
 	gameObject->getDrawableComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
 	gameObject->getDrawableComponent<MeshRenderer>()->setViewMatrix(camera.getViewMatrix());
 	gameObject->getDrawableComponent<MeshRenderer>()->setProjectionMatrix(camera.getPerspectiveMatrix());

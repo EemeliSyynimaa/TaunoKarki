@@ -1,7 +1,8 @@
 #include "collectible.h"
 #include "gameobject.h"
 
-Collectible::Collectible(GameObject* owner) : Component(owner), type(0), transform(owner->getComponent<Transform>())
+
+Collectible::Collectible(GameObject* owner) : Component(owner), type(COLLECTIBLES::NONE), transform(owner->getComponent<Transform>())
 {
 	assert(transform);
 }

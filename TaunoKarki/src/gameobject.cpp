@@ -3,6 +3,7 @@
 #include "damage.h"
 #include "transform.h"
 #include "playercontroller.h"
+#include "aicontroller.h"
 #include "collectible.h"
 
 GameObject::GameObject(GameObjectManager& gameObjectManager) : gameObjectManager(gameObjectManager), alive(true)
@@ -71,11 +72,15 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
 			{
 				getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage());
 
-				if(!isAlive()) 
+				if (!isAlive() && !getComponent<AIController>()->droppedItem)
+				{
 					gameObjectManager.addNewObject([this]()
 					{
 						this->gameObjectManager.createRandomItem(this->getComponent<Transform>()->getPosition());
 					});
+
+					getComponent<AIController>()->droppedItem = true;
+				}
 			} 
 			break;
 			default: break;
@@ -83,32 +88,8 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
 		}
 		break;
 	}
-	case PLAYER_BULLET:
-	{
-		if (gameObject)
-		{
-			switch (gameObject->getType())
-			{
-			case PLAYER: break;
-			default: break;
-			}
-		} 
-		kill();
-		break;
-	}
-	case ENEMY_BULLET:
-	{
-		if (gameObject)
-		{
-			switch (gameObject->getType())
-			{
-			case ENEMY: break;
-			default: break;
-			}
-		}
-		kill();
-		break;
-	}
+	case PLAYER_BULLET: kill(); break;
+	case ENEMY_BULLET: kill(); break;
 	case ITEM: kill(); break;
 	default: break;
 	}
