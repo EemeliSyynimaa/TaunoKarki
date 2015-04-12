@@ -16,23 +16,34 @@ public:
 	virtual ~Weapon() {}
 	void pullTheTrigger() { triggerPulled = true; }
 	void releaseTheTrigger() { triggerPulled = false; }
-	void reload() { reloading = true; startedReloading = SDL_GetTicks(); }
+	void reload(bool instantReload = false) 
+	{ 
+		if (instantReload) currentAmmo = clipSize;
+		else
+		{
+			reloading = true;
+			startedReloading = SDL_GetTicks();
+		}
+	}
 	void setOwner(GameObject* owner) { this->owner = owner; }
 	float getClipSize() { return clipSize; }
 	float getCurrentAmmo() { return currentAmmo; }
 	bool isTriggerPulled() { return triggerPulled; }
 	bool isReloading() { return reloading; }
 	bool canShoot() { return !reloading && currentAmmo > 0; }
-	void levelUp()
+	void levelUp(int level = 1, bool instantReload = false)
 	{
-		damage *= 1.05f;
-		clipSize = clipSize * 1.05f;
-		fireRate *= 0.95f;
-		speed *= 1.025f;
-		reloadTime *= 0.95f;
-		bulletSpread *= 0.95f;
+		for (int i = 0; i < level; i++)
+		{
+			damage *= 1.05f;
+			clipSize *= 1.05f;
+			fireRate *= 0.95f;
+			speed *= 1.025f;
+			reloadTime *= 0.95f;
+			bulletSpread *= 0.95f;
+		}
 
-		reload();
+		reload(instantReload);
 	}
 	COLLECTIBLES getType() { return type; }
 	virtual Weapon* getCopy() = 0;

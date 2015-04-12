@@ -2,12 +2,12 @@
 
 MachineGun::MachineGun(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager), lastShot(0)
 {
-	damage = 10.0f;
+	damage = 12.5f;
 	speed = 0.3f;
 	clipSize = 30.0f;
 	currentAmmo = clipSize;
-	reloadTime = 1500.0f;
-	fireRate = 100.0f;
+	reloadTime = 2500.0f;
+	fireRate = 175.0f;
 	bulletSpread = 0.05f;
 	type = COLLECTIBLES::MACHINEGUN;
 }

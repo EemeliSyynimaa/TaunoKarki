@@ -6,14 +6,13 @@ Pistol::Pistol(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager)
 	speed = 0.3f;
 	clipSize = 12.0f;
 	currentAmmo = clipSize;
-	reloadTime = 750.0f;
+	reloadTime = 1500.0f;
 	bulletSpread = 0.01f;
 	type = COLLECTIBLES::PISTOL;
 }
 
 Pistol::~Pistol()
 {
-
 }
 
 void Pistol::update()

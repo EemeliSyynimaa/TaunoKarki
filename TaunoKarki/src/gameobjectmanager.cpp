@@ -125,7 +125,7 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position, Weapon* weapon)
 	gameObject->addComponent(new CircleCollider(gameObject, 0.5f, COL_PLAYER, (COL_WALL | COL_ENEMY | COL_ENEMY_BULLET)));
 	gameObject->addComponent(new RigidBody(gameObject, world));
 	gameObject->addComponent(new PlayerController(gameObject));
-	gameObject->addComponent(new Health(gameObject, 100));
+	gameObject->addComponent(new Health(gameObject, 200));
 	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
 	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.5f, 0.5f, 0.75f));
@@ -144,28 +144,40 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position, Weapon* weapon)
 	return gameObject;
 }
 
-GameObject* GameObjectManager::createEnemy(glm::vec3 position)
+GameObject* GameObjectManager::createEnemy(glm::vec3 position, int level)
 {
 	GameObject* gameObject = createObject();
 
 	gameObject->setType(GAMEOBJECT_TYPES::ENEMY);
 
 	gameObject->addComponent(new Transform(gameObject, position.x, position.y, position.z));
-	gameObject->addComponent(new CircleCollider(gameObject, 0.5f, COL_ENEMY, (COL_WALL | COL_PLAYER | COL_PLAYER_BULLET)));
+	gameObject->addComponent(new CircleCollider(gameObject, 0.5f + 0.0125f * level, COL_ENEMY, (COL_WALL | COL_PLAYER | COL_PLAYER_BULLET)));
 	gameObject->addComponent(new RigidBody(gameObject, world));
-	gameObject->addComponent(new Health(gameObject, 100));
+	gameObject->addComponent(new Health(gameObject, 100 + 10.0f * level));
 	gameObject->addComponent(new AIController(gameObject));
-	gameObject->addComponent(new Damage(gameObject, 50.0f));
+	gameObject->addComponent(new Damage(gameObject, 50.0f + 5.0f * level));
 	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
-	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.5f, 0.5f, 0.75f));
+	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.5f + 0.0125f * level, 0.5f + 0.0125f * level, 0.75f));
 	gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.cubeMesh);
 	gameObject->getDrawableComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
 	gameObject->getDrawableComponent<MeshRenderer>()->setViewMatrix(camera.getViewMatrix());
 	gameObject->getDrawableComponent<MeshRenderer>()->setProjectionMatrix(camera.getPerspectiveMatrix());
 	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.enemyTexture);
 	gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
-	gameObject->getComponent<AIController>()->giveWeapon(new Pistol(*this));
+
+	std::random_device randomDevice;
+	std::default_random_engine randomGenerator(randomDevice());
+
+	switch (randomInt(0, 2)(randomGenerator))
+	{
+	case 0: gameObject->getComponent<AIController>()->giveWeapon(new Pistol(*this)); break;
+	case 1: gameObject->getComponent<AIController>()->giveWeapon(new MachineGun(*this)); break;
+	case 2: gameObject->getComponent<AIController>()->giveWeapon(new Shotgun(*this)); break;
+	default: break;
+	}
+
+	gameObject->getComponent<AIController>()->getWeapon()->levelUp(level, true);
 
 	return gameObject;
 }

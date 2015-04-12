@@ -12,6 +12,7 @@ AIController::AIController(GameObject* owner) : Component(owner), lastShot(SDL_G
 
 AIController::~AIController()
 {
+	delete weapon;
 }
 
 void AIController::update()
@@ -45,7 +46,12 @@ void AIController::attack()
 	{ 
 		transform->lookAt(player->getComponent<Transform>()->getPosition());
 
-		if (sqrt(powf(player->getComponent<Transform>()->getPosition().x - transform->getPosition().x, 2) + powf(player->getComponent<Transform>()->getPosition().y - transform->getPosition().y, 2)) > minDistance) state = WANDER;
+		if (sqrt(powf(player->getComponent<Transform>()->getPosition().x - transform->getPosition().x, 2) + powf(player->getComponent<Transform>()->getPosition().y - transform->getPosition().y, 2)) > minDistance)
+		{
+			state = WANDER;
+
+			if (weapon) weapon->releaseTheTrigger();
+		}
 
 		if (weapon) shoot();
 	}
@@ -53,13 +59,28 @@ void AIController::attack()
 
 void AIController::shoot()
 {
-	Uint32 time = SDL_GetTicks();
-	if (!weapon->isTriggerPulled() && (time - lastShot) > 450)
+	switch (weapon->getType())
 	{
-		weapon->pullTheTrigger();
-		lastShot = time;
+	case COLLECTIBLES::PISTOL:
+	{
+		Uint32 time = SDL_GetTicks();
+		if (!weapon->isTriggerPulled() && (time - lastShot) > 450)
+		{
+			weapon->pullTheTrigger();
+			lastShot = time;
+		}
+		else weapon->releaseTheTrigger();
+		break;
 	}
-	else weapon->releaseTheTrigger();
+	case COLLECTIBLES::SHOTGUN:
+	{
+		if (!weapon->isTriggerPulled()) weapon->pullTheTrigger();
+		else weapon->releaseTheTrigger();
+		break;
+	}
+	case COLLECTIBLES::MACHINEGUN: weapon->pullTheTrigger(); break;
+	default: break;
+	}
 
 	weapon->update();
 }

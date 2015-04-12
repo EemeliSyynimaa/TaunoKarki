@@ -14,8 +14,9 @@ public:
 	~AIController();
 
 	void update();
-	void giveWeapon(Weapon* weapon) { this->weapon = weapon; weapon->setOwner(this->owner); }
+	void giveWeapon(Weapon* weapon) { this->weapon = weapon; this->weapon->setOwner(this->owner); this->weapon->reload(true); }
 	bool droppedItem;
+	Weapon* getWeapon() { return weapon; }
 private:
 
 	void wander();

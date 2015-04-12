@@ -6,8 +6,8 @@ Shotgun::Shotgun(GameObjectManager& gameObjectManager) : Weapon(gameObjectManage
 	speed = 0.3f;
 	clipSize = 7.0f;
 	currentAmmo = clipSize;
-	reloadTime = 2500.0f;
-	fireRate = 500.0f;
+	reloadTime = 4000.0f;
+	fireRate = 1000.0f;
 	bulletSpread = 0.125f;
 	type = COLLECTIBLES::SHOTGUN;
 }
