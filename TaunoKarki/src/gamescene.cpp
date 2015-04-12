@@ -21,7 +21,7 @@ GameScene::GameScene(Game& game, int level, Weapon* weapon) : Scene(game), world
 
 	camera.createNewPerspectiveMatrix(60.0f, (float)game.getScreenWidth(), (float)game.getScreenHeight(), 0.1f, 100.0f);
 	camera.createNewOrthographicMatrix((float)game.getScreenWidth(), (float)game.getScreenHeight());
-	camera.setPosition(glm::vec3(0.0f, 0.0f, 17.5f));
+	camera.setPosition(glm::vec3(0.0f, 0.0f, 20.0f));
 	camera.setOffset(0.0f, -7.5f, 0.0f);
 
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
