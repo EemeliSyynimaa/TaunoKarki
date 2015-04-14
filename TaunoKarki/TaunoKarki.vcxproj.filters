@@ -930,6 +930,9 @@
     <ClInclude Include="inc\collectible.h">
       <Filter>Header Files\components</Filter>
     </ClInclude>
+    <ClInclude Include="inc\menubutton.h">
+      <Filter>Header Files\components</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp">
@@ -1168,6 +1171,9 @@
     </ClCompile>
     <ClCompile Include="src\scene.cpp">
       <Filter>Source Files\engine</Filter>
+    </ClCompile>
+    <ClCompile Include="src\menubutton.cpp">
+      <Filter>Source Files\components</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -28,9 +28,11 @@ public:
 	GameObject* createPlayerHealthBar(glm::vec3 pos, glm::vec3 size);
 	GameObject* createPlayerAmmoBar(glm::vec3 pos, glm::vec3 size);
 	GameObject* createRandomItem(glm::vec3 position);
-	GameObject* createMenuBlock(glm::vec3 position);
+	GameObject* createMenuBlock(glm::vec3 position, int id);
+	GameObject* createTitleBlock(glm::vec3 position);
 
 	Camera& getCamera() { return camera; }
+	AssetManager& getAssetManager() { return assetManager; }
 
 	GameObject* getFirstObjectOfType(size_t type) const;
 	size_t getNumberOfObjectsOfType(size_t type) const;

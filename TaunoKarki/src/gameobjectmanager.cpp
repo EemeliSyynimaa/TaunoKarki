@@ -17,6 +17,7 @@
 #include "healthbar.h"
 #include "ammobar.h"
 #include "collectible.h"
+#include "menubutton.h"
 
 #include "pistol.h"
 #include "machinegun.h"
@@ -291,13 +292,14 @@ GameObject* GameObjectManager::createRandomItem(glm::vec3 position)
 	return gameObject;
 }
 
-GameObject* GameObjectManager::createMenuBlock(glm::vec3 position)
+GameObject* GameObjectManager::createMenuBlock(glm::vec3 position, int id)
 {
  	GameObject* gameObject = createObject();
 
 	gameObject->setType(GAMEOBJECT_TYPES::GUI);
 
 	gameObject->addComponent(new Transform(gameObject, position));
+	gameObject->addComponent(new MenuButton(gameObject, id));
 	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
 	gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.cubeMesh);
@@ -305,6 +307,29 @@ GameObject* GameObjectManager::createMenuBlock(glm::vec3 position)
 	gameObject->getDrawableComponent<MeshRenderer>()->setViewMatrix(camera.getViewMatrix());
 	gameObject->getDrawableComponent<MeshRenderer>()->setProjectionMatrix(camera.getPerspectiveMatrix());
 	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.enemyTexture);
+	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.5f, 0.5f, 1.0f));
+	gameObject->getComponent<Transform>()->setRotation(180.0f, glm::vec3(0.0f, 1.0f, 0.0f));
+
+
+	return gameObject;
+}
+
+GameObject* GameObjectManager::createTitleBlock(glm::vec3 position)
+{
+	GameObject* gameObject = createObject();
+
+	gameObject->setType(GAMEOBJECT_TYPES::GUI);
+
+	gameObject->addComponent(new Transform(gameObject, position));
+	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
+
+	gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
+	gameObject->getDrawableComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
+	gameObject->getDrawableComponent<MeshRenderer>()->setViewMatrix(camera.getViewMatrix());
+	gameObject->getDrawableComponent<MeshRenderer>()->setProjectionMatrix(camera.getPerspectiveMatrix());
+	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.tilesetTexture);
+	gameObject->getComponent<Transform>()->setScale(glm::vec3(1.0f, 1.0f, 2.0f));
+
 
 	return gameObject;
 }

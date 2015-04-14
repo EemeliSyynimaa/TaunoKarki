@@ -15,6 +15,7 @@ public:
 	void update(float deltaTime);
 	void draw();
 private:
+	void writeText(char* text, int width, int height, glm::vec2 position, bool title, int id = 0);
 	GameObjectManager gameObjectManager;
 	Camera camera;
 };

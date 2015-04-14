@@ -1,7 +1,7 @@
 #include "camera.h"
 #include "glm/gtc/matrix_transform.hpp"
 
-Camera::Camera() : viewMatrix(1.0f), perspectiveMatrix(1.0f), orthographicMatrix(1.0f), position(0.0f), width(0.0f), height(0.0f), offset(0.0f)
+Camera::Camera() : viewMatrix(1.0f), viewMatrixWithoutOffset(1.0f), perspectiveMatrix(1.0f), orthographicMatrix(1.0f), position(0.0f), width(0.0f), height(0.0f), offset(0.0f)
 {
 }
 
