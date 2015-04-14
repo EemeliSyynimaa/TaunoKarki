@@ -10,7 +10,7 @@
 
 #define randomFloat std::uniform_real_distribution<float>
 
-GameScene::GameScene(Game& game, int level, Weapon* weapon) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(assetManager, world, camera), collisionHandler(), level(level), accumulator(0.0f), step(1.0f / 60.0f)
+GameScene::GameScene(Game& game, int level, Weapon* weapon) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(game.getAssetManager(), camera, &world), collisionHandler(), level(level)
 {
 	std::random_device randomDevice;
 	std::default_random_engine randomGenerator(randomDevice());
@@ -28,7 +28,7 @@ GameScene::GameScene(Game& game, int level, Weapon* weapon) : Scene(game), world
 
 	while (true)
 	{
-		tilemap = new Tilemap(glm::vec3(0.0f), assetManager, camera, world);
+		tilemap = new Tilemap(glm::vec3(0.0f), game.getAssetManager(), camera, world);
 		tilemap->generate(7 + level * 4, 7 + level * 4);
 
 		if (tilemap->getNumberOfStartingPositions() > 1) break;

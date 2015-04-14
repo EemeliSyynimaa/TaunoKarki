@@ -3,6 +3,7 @@
 
 #include "SDL/SDL_events.h"
 #include "scene.h"
+#include "gameobjectmanager.h"
 
 class MenuScene : public Scene
 {
@@ -14,6 +15,8 @@ public:
 	void update(float deltaTime);
 	void draw();
 private:
+	GameObjectManager gameObjectManager;
+	Camera camera;
 };
 
 #endif

@@ -8,7 +8,7 @@ class Game;
 class Scene
 {
 public:
-	Scene(Game& game) : game(game) {}
+	Scene(Game& game);
 	virtual ~Scene() {};
 
 	virtual void update(float deltaTime) = 0;
@@ -16,6 +16,10 @@ public:
 	virtual void handleEvent(SDL_Event& event) = 0;
 protected:
 	Game& game;
+
+	// Variables for fixed timestep
+	float accumulator;
+	float step;
 };
 
 #endif

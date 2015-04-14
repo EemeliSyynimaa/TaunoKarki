@@ -4,6 +4,7 @@
 #include <SDL\SDL.h>
 #include <GL\glew.h>
 #include "scenemanager.h"
+#include "assetmanager.h"
 
 class Game
 {
@@ -12,8 +13,10 @@ public:
 	~Game();
 
 	SceneManager& getSceneManager() { return sceneManager; }
+	AssetManager& getAssetManager() { return assetManager; }
 	int getScreenWidth() { return screenWidth; }
 	int getScreenHeight() { return screenHeight; }
+	float getStep() { return step; }
 	void run();
 	void stop() { running = false; }
 	GLuint VAO = 0;
@@ -27,9 +30,12 @@ private:
 	bool running;
 
 	SceneManager sceneManager;
+	AssetManager assetManager;
 
 	void update(float deltaTime);
 	void draw();
+
+	float step;
 };
 
 #endif

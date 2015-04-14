@@ -14,7 +14,7 @@ class GameObject;
 class GameObjectManager
 {
 public:
-	GameObjectManager(AssetManager& assetManager, b2World& world, Camera& camera);
+	GameObjectManager(AssetManager& assetManager, Camera& camera, b2World* world = nullptr);
 	~GameObjectManager();
 
 	void update();
@@ -28,6 +28,7 @@ public:
 	GameObject* createPlayerHealthBar(glm::vec3 pos, glm::vec3 size);
 	GameObject* createPlayerAmmoBar(glm::vec3 pos, glm::vec3 size);
 	GameObject* createRandomItem(glm::vec3 position);
+	GameObject* createMenuBlock(glm::vec3 position);
 
 	Camera& getCamera() { return camera; }
 
@@ -39,7 +40,7 @@ private:
 	GameObject* createObject();
 
 	AssetManager& assetManager;
-	b2World& world;
+	b2World* world;
 	Camera& camera;
 	std::list<GameObject*> gameObjects;
 	std::list<GameObject*> deadObjects;

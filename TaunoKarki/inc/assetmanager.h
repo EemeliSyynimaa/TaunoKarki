@@ -52,6 +52,7 @@ struct AssetManager
 
 	std::vector<Mesh*> meshDump;
 
+	void loadAssets();
 	void addMesh(Mesh* mesh) { meshDump.push_back(mesh); }
 };
 

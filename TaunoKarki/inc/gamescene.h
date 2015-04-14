@@ -6,7 +6,6 @@
 #include "tilemap.h"
 #include "camera.h"
 #include "Box2D\Box2D.h"
-#include "assetmanager.h"
 #include "collisionhandler.h"
 #include "gameobjectmanager.h"
 #include "weapon.h"
@@ -21,17 +20,12 @@ public:
 	void draw();
 	void handleEvent(SDL_Event& event);
 private:
-	AssetManager assetManager;
 	b2World world;
 	Tilemap* tilemap;
 	CollisionHandler collisionHandler;
 	Camera camera;
 	GameObjectManager gameObjectManager;
 	int level;
-
-	// Variables for fixed timestep
-	float accumulator;
-	float step;
 };
 
 #endif

@@ -5,7 +5,7 @@
 #include "menuscene.h"
 
 
-Game::Game() : screenWidth(1280), screenHeight(720), running(true)
+Game::Game() : screenWidth(1280), screenHeight(720), running(true), step(1.0f / 60.0f)
 {
 	int result = SDL_Init(SDL_INIT_VIDEO);
 
@@ -53,6 +53,8 @@ Game::Game() : screenWidth(1280), screenHeight(720), running(true)
 
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
+
+	assetManager.loadAssets();
 
 	sceneManager.change(new MenuScene(*this));
 }
