@@ -307,9 +307,18 @@ GameObject* GameObjectManager::createMenuBlock(glm::vec3 position, int id)
 	gameObject->getDrawableComponent<MeshRenderer>()->setViewMatrix(camera.getViewMatrix());
 	gameObject->getDrawableComponent<MeshRenderer>()->setProjectionMatrix(camera.getPerspectiveMatrix());
 	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.enemyTexture);
-	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.5f, 0.5f, 1.0f));
 	gameObject->getComponent<Transform>()->setRotation(180.0f, glm::vec3(0.0f, 1.0f, 0.0f));
 
+	if (gameObject->getComponent<MenuButton>()->selected())
+	{
+		gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.enemyTexture);
+		gameObject->getComponent<Transform>()->setScale(glm::vec3(0.75f));
+	}
+	else
+	{
+		gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.playerTexture);
+		gameObject->getComponent<Transform>()->setScale(glm::vec3(0.5f));
+	}
 
 	return gameObject;
 }

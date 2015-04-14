@@ -11,6 +11,7 @@ public:
 	~MenuButton();
 
 	void update();
+	bool selected() { return id == state; }
 	static bool exitGame;
 	static bool startGame;
 private:
