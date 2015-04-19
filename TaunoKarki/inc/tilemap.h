@@ -17,6 +17,10 @@ public:
 	glm::vec3 getStartingPosition();
 	size_t getNumberOfStartingPositions() { return startingPositions.size(); }
 	unsigned short** getData() const { return data; }
+	unsigned int getWidth() const { return width; }
+	unsigned int getHeight() const { return height; }
+	glm::vec3 getRandomFreePosition();
+	bool isPositionFree(unsigned int x, unsigned int y);
 private:
 	unsigned short** data;
 	unsigned int width;

@@ -10,6 +10,7 @@
 
 class Weapon;
 class GameObject;
+class Tilemap;
 
 class GameObjectManager
 {
@@ -23,7 +24,7 @@ public:
 	void deleteObjects();
 	void addNewObject(std::function< void(void)> gameObject);
 	GameObject* createPlayer(glm::vec3 pos, Weapon* weapon);
-	GameObject* createEnemy(glm::vec3 pos, int level = 1);
+	GameObject* createEnemy(glm::vec3 pos, int level = 1, Tilemap* tilemap = nullptr);
 	GameObject* createBullet(glm::vec3 pos, glm::vec2 direction, unsigned int owner, float damage, float speed);
 	GameObject* createPlayerHealthBar(glm::vec3 pos, glm::vec3 size);
 	GameObject* createPlayerAmmoBar(glm::vec3 pos, glm::vec3 size);

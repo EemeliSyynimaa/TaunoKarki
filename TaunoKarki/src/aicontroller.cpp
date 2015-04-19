@@ -2,16 +2,18 @@
 #include "gameobject.h"
 #include "rigidbody.h"
 #include "gameobjectmanager.h"
+#include "tilemap.h"
 
-AIController::AIController(GameObject* owner) : Component(owner), lastShot(SDL_GetTicks()), droppedItem(false), moveSpeed(5.0f)
+#define randomInt std::uniform_int_distribution<int>
+
+AIController::AIController(GameObject* owner, Tilemap* tilemap) : Component(owner), tilemap(tilemap), lastShot(SDL_GetTicks()), droppedItem(false), moveSpeed(5.0f), target(0.0f)
 {
-	state = WANDER;
-
 	transform = owner->getComponent<Transform>();
 	RigidBody* rigidbody = owner->getComponent<RigidBody>();
 	assert(transform && rigidbody);
-
 	body = rigidbody->getBody();
+
+	initWander();
 }
 
 AIController::~AIController()
@@ -29,6 +31,9 @@ void AIController::update()
 	case ESCAPE: escape(); break;
 	default: break;
 	}
+
+	if (weapon)
+		weapon->update();
 }
 
 void AIController::wander()
@@ -37,7 +42,16 @@ void AIController::wander()
 
 	GameObject* player = getOwner()->gameObjectManager.getFirstObjectOfType(GAMEOBJECT_TYPES::PLAYER);
 
-	if (player && sqrt(powf(player->getComponent<Transform>()->getPosition().x - transform->getPosition().x, 2) + powf(player->getComponent<Transform>()->getPosition().y - transform->getPosition().y, 2)) < minDistance) state = ATTACK;
+	if (player && transform->distanceTo(player->getComponent<Transform>()->getPosition()) < minDistance)
+		initAttack();
+	else
+	{
+		if (transform->distanceTo(target) < 0.1f)
+			getNewTarget();
+
+		moveTo(target);
+	}
+		
 }
 
 void AIController::attack()
@@ -50,16 +64,11 @@ void AIController::attack()
 	{ 
 		moveTo(player->getComponent<Transform>()->getPosition());
 
-		if (sqrt(powf(player->getComponent<Transform>()->getPosition().x - transform->getPosition().x, 2) + powf(player->getComponent<Transform>()->getPosition().y - transform->getPosition().y, 2)) > minDistance)
+		if (transform->distanceTo(player->getComponent<Transform>()->getPosition()) > minDistance)
 		{
-			state = WANDER;
-
-			body->SetLinearVelocity(b2Vec2_zero);
-
-			if (weapon) weapon->releaseTheTrigger();
+			initWander();
 		}
-
-		if (weapon) shoot();
+		else if (weapon) shoot();
 	}
 }
 
@@ -87,8 +96,6 @@ void AIController::shoot()
 	case COLLECTIBLES::MACHINEGUN: weapon->pullTheTrigger(); break;
 	default: break;
 	}
-
-	weapon->update();
 }
 
 void AIController::moveTo(glm::vec3 position)
@@ -111,4 +118,39 @@ void AIController::pursue()
 
 void AIController::escape()
 {
+}
+
+void AIController::initAttack()
+{
+	state = ATTACK;
+}
+
+void AIController::initWander()
+{
+	state = WANDER;
+
+	body->SetLinearVelocity(b2Vec2_zero);
+
+	if (weapon)
+	{
+		weapon->releaseTheTrigger();
+		weapon->reload();
+	}
+	
+	getNewTarget();
+}
+
+void AIController::initEscape()
+{
+	state = ESCAPE;
+}
+
+void AIController::initPursue()
+{
+	state = PURSUE;
+}
+
+void AIController::getNewTarget()
+{
+	target = tilemap->getRandomFreePosition();
 }

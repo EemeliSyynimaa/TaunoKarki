@@ -470,3 +470,28 @@ glm::vec3 Tilemap::getStartingPosition()
 
 	return position;
 }
+
+bool Tilemap::isPositionFree(unsigned int x, unsigned int y)
+{
+	if (x > 0 && x < width && y > 0 && y < height && data[y][x] != WALL && data[y][x] != currentRegion)
+		return true;
+
+	return false;
+}
+
+glm::vec3 Tilemap::getRandomFreePosition()
+{
+	std::random_device randomDevice;
+	std::default_random_engine randomGenerator(randomDevice());
+
+	unsigned int x = 0;
+	unsigned int y = 0;
+
+	do
+	{
+		x = randomInt(1, width - 1)(randomGenerator);
+		y = randomInt(1, height - 1)(randomGenerator);
+	} while (!isPositionFree(x, y));
+
+	return glm::vec3(float(x) * 2.0f, float(y) * 2.0f, 0.0f);
+}

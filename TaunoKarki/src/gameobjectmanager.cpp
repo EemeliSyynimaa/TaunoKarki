@@ -23,6 +23,8 @@
 #include "machinegun.h"
 #include "shotgun.h"
 
+#include "tilemap.h"
+
 #include <iostream>
 
 #define randomInt std::uniform_int_distribution<int>
@@ -149,19 +151,19 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position, Weapon* weapon)
 	return gameObject;
 }
 
-GameObject* GameObjectManager::createEnemy(glm::vec3 position, int level)
+GameObject* GameObjectManager::createEnemy(glm::vec3 position, int level, Tilemap* tilemap)
 {
-	assert(world);
+	assert(world && tilemap);
 
 	GameObject* gameObject = createObject();
 
 	gameObject->setType(GAMEOBJECT_TYPES::ENEMY);
 
 	gameObject->addComponent(new Transform(gameObject, position));
-	gameObject->addComponent(new CircleCollider(gameObject, 0.5f + 0.0125f * level, COL_ENEMY, (COL_WALL | COL_PLAYER | COL_PLAYER_BULLET)));
+	gameObject->addComponent(new CircleCollider(gameObject, 0.5f + 0.0125f * level, COL_ENEMY, (COL_WALL | COL_PLAYER | COL_PLAYER_BULLET | COL_ENEMY)));
 	gameObject->addComponent(new RigidBody(gameObject, *world));
 	gameObject->addComponent(new Health(gameObject, 100 + 10.0f * level));
-	gameObject->addComponent(new AIController(gameObject));
+	gameObject->addComponent(new AIController(gameObject, tilemap));
 	gameObject->addComponent(new Damage(gameObject, 50.0f + 5.0f * level));
 	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 

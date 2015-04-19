@@ -11,19 +11,26 @@
 class AIController : public Component
 {
 public:
-	AIController(GameObject* owner);
+	AIController(GameObject* owner, Tilemap* tilemap);
 	~AIController();
 
 	void update();
 	void giveWeapon(Weapon* weapon) { this->weapon = weapon; this->weapon->setOwner(this->owner); this->weapon->reload(true); }
 	bool droppedItem;
 	Weapon* getWeapon() { return weapon; }
+	void getNewTarget();
 private:
 
 	void wander();
 	void attack();
 	void pursue();
 	void escape();
+
+	void initWander();
+	void initAttack();
+	void initPursue();
+	void initEscape();
+
 	void shoot();
 	void moveTo(glm::vec3 position);
 
@@ -39,6 +46,9 @@ private:
 	Transform* transform;
 	Weapon* weapon;
 	b2Body* body;
+	Tilemap* tilemap;
+
+	glm::vec3 target;
 
 	Uint32 lastShot;
 	float moveSpeed;

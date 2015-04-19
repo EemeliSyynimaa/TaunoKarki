@@ -22,6 +22,7 @@ public:
 	const glm::vec3 getPosition() const { return position; }
 	const glm::mat4 getMatrix() const { return transform * rotation * scale; }
 	const glm::vec2 getDirVec() const { return dirVec; }
+	float distanceTo(glm::vec3 position);
 private:
 	glm::vec3 position;
 	glm::mat4 transform;

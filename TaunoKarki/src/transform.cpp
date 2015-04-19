@@ -57,3 +57,8 @@ void Transform::rotate(float r, glm::vec3& axis)
 {
 	rotation = glm::rotate(rotation, r, axis);
 }
+
+float Transform::distanceTo(glm::vec3 pos)
+{
+	return sqrt(powf(pos.x - position.x, 2) + powf(pos.y - position.y, 2));
+}
