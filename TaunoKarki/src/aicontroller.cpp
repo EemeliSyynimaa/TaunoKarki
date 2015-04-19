@@ -1,13 +1,17 @@
 #include "aicontroller.h"
 #include "gameobject.h"
+#include "rigidbody.h"
 #include "gameobjectmanager.h"
 
-AIController::AIController(GameObject* owner) : Component(owner), lastShot(SDL_GetTicks()), droppedItem(false)
+AIController::AIController(GameObject* owner) : Component(owner), lastShot(SDL_GetTicks()), droppedItem(false), moveSpeed(5.0f)
 {
 	state = WANDER;
 
 	transform = owner->getComponent<Transform>();
-	assert(transform);
+	RigidBody* rigidbody = owner->getComponent<RigidBody>();
+	assert(transform && rigidbody);
+
+	body = rigidbody->getBody();
 }
 
 AIController::~AIController()
@@ -44,11 +48,13 @@ void AIController::attack()
 
 	if (player)
 	{ 
-		transform->lookAt(player->getComponent<Transform>()->getPosition());
+		moveTo(player->getComponent<Transform>()->getPosition());
 
 		if (sqrt(powf(player->getComponent<Transform>()->getPosition().x - transform->getPosition().x, 2) + powf(player->getComponent<Transform>()->getPosition().y - transform->getPosition().y, 2)) > minDistance)
 		{
 			state = WANDER;
+
+			body->SetLinearVelocity(b2Vec2_zero);
 
 			if (weapon) weapon->releaseTheTrigger();
 		}
@@ -83,6 +89,20 @@ void AIController::shoot()
 	}
 
 	weapon->update();
+}
+
+void AIController::moveTo(glm::vec3 position)
+{
+	b2Vec2 impulse(0.0f, 0.0f);
+	b2Vec2 velocity = body->GetLinearVelocity();
+	int x = 0, y = 0;
+
+	transform->lookAt(position);
+
+	impulse.x = body->GetMass() * transform->getDirVec().x * moveSpeed - velocity.x;
+	impulse.y = body->GetMass() * transform->getDirVec().y * moveSpeed - velocity.y;
+
+	body->ApplyLinearImpulse(impulse, body->GetWorldCenter(), true);
 }
 
 void AIController::pursue()

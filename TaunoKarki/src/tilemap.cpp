@@ -8,13 +8,20 @@
 #define WALL 0
 #define randomInt std::uniform_int_distribution<int>
 
-Tilemap::Tilemap(glm::vec3 position, AssetManager& assetManager, Camera& camera, b2World& world) : assetManager(assetManager), world(world), camera(camera), VBO(0), IBO(0), textureIndex(0), MVPIndex(0), program(*assetManager.shaderProgram), texture(*assetManager.tilesetTexture), matrix(1.0f), position(position)
+Tilemap::Tilemap(glm::vec3 position, AssetManager& assetManager, Camera& camera, b2World& world) : assetManager(assetManager), world(world), camera(camera), VBO(0), IBO(0), textureIndex(0), MVPIndex(0), program(*assetManager.shaderProgram), texture(*assetManager.tilesetTexture), matrix(1.0f), position(position), width(0), height(0), currentRegion(0), windingPercent(50)
 {
 	matrix = glm::translate(position);
 }
 
 Tilemap::~Tilemap()
 {
+	for (size_t i = 0; i < height; i++)
+	{
+		delete[] data[i];
+	}
+
+	delete[] data;
+
 	for (b2Body* body : wallBodies)
 		world.DestroyBody(body);
 
@@ -25,8 +32,11 @@ Tilemap::~Tilemap()
 }
 
 
-Tilemap::Data::Data(unsigned int width, unsigned int height) : width(width), height(height), currentRegion(0), windingPercent(50)
+void Tilemap::init(unsigned int width, unsigned int height)
 {
+	this->width = width;
+	this->height = height;
+
 	data = new unsigned short*[height];
 
 	for (size_t y = 0; y < height; y++)
@@ -41,17 +51,7 @@ Tilemap::Data::Data(unsigned int width, unsigned int height) : width(width), hei
 	}
 }
 
-Tilemap::Data::~Data()
-{
-	for (size_t i = 0; i < height; i++)
-	{
-		delete[] data[i];
-	}
-
-	delete[] data;
-}
-
-bool Tilemap::Data::roomConflictsWithOthers(size_t roomX, size_t roomY, size_t roomW, size_t roomH)
+bool Tilemap::roomConflictsWithOthers(size_t roomX, size_t roomY, size_t roomW, size_t roomH)
 {
 	// +1 and -1 are for the borders of the room.
 	for (size_t y = roomY - 1; y < roomY + roomH + 1; y++)
@@ -74,30 +74,29 @@ void Tilemap::generate(size_t width, size_t height)
 	// We want our maps to be odd sized.
 	assert(width % 2 == 1 || height % 2 == 1);
 
-	Data data(width, height);
+	init(width, height);
 
-	startingPositions = data.addRooms();
+	addRooms();
 
 	for (size_t y = 1; y < height; y += 2)
 	{
 		for (size_t x = 1; x < width; x += 2)
 		{
-			if (data.data[y][x] != WALL) continue;
-			data.growMaze(glm::uvec2(x, y));
+			if (data[y][x] != WALL) continue;
+			growMaze(glm::uvec2(x, y));
 		}
 	}
 
-	data.connectRegions();
-	data.removeDeadEnds();
-	data.openClosedAreas();
-	createMeshes(data);
+	connectRegions();
+	removeDeadEnds();
+	openClosedAreas();
+	createMeshes();
 }
 
-std::vector<glm::vec3> Tilemap::Data::addRooms()
+void Tilemap::addRooms()
 {
 	std::random_device randomDevice;
 	std::default_random_engine randomGenerator(randomDevice());
-	std::vector<glm::vec3> startingPositions;
 
 	size_t howManyTries = (width * height);
 
@@ -125,11 +124,9 @@ std::vector<glm::vec3> Tilemap::Data::addRooms()
 		// Every room has a random starting point
 		startingPositions.push_back(glm::vec3(float(randomInt(roomX + 1, roomX + roomW - 1)(randomGenerator)) * 2.0f, float(randomInt(roomY + 1, roomY + roomH - 1)(randomGenerator)) * 2.0f, 0.0f));
 	}
-
-	return startingPositions;
 }
 
-void Tilemap::Data::carveRoom(size_t roomX, size_t roomY, size_t roomW, size_t roomH)
+void Tilemap::carveRoom(size_t roomX, size_t roomY, size_t roomW, size_t roomH)
 {
 	startRegion();
 
@@ -142,7 +139,7 @@ void Tilemap::Data::carveRoom(size_t roomX, size_t roomY, size_t roomW, size_t r
 	}
 }
 
-void Tilemap::Data::growMaze(glm::uvec2 pos)
+void Tilemap::growMaze(glm::uvec2 pos)
 {
 	std::vector<glm::uvec2> cells;
 	glm::uvec2 lastDir;
@@ -189,14 +186,14 @@ void Tilemap::Data::growMaze(glm::uvec2 pos)
 	}
 }
 
-bool Tilemap::Data::canCarve(glm::uvec2 pos, glm::uvec2 dir)
+bool Tilemap::canCarve(glm::uvec2 pos, glm::uvec2 dir)
 {
 	if (pos.x + dir.x * 3 >= width || pos.y + dir.y * 3 >= height) return false;
 
 	return data[pos.y + dir.y * 2][pos.x + dir.x * 2] == WALL;
 }
 
-void Tilemap::Data::connectRegions()
+void Tilemap::connectRegions()
 {
 	struct Connector
 	{
@@ -276,7 +273,7 @@ void Tilemap::Data::connectRegions()
 	}
 }
 
-void Tilemap::Data::removeDeadEnds()
+void Tilemap::removeDeadEnds()
 {
 	bool done = false;
 
@@ -306,7 +303,7 @@ void Tilemap::Data::removeDeadEnds()
 	}
 }
 
-void Tilemap::Data::openClosedAreas()
+void Tilemap::openClosedAreas()
 {
 	startRegion();
 	for (size_t y = 1; y < height - 1; y++)
@@ -338,19 +335,18 @@ void Tilemap::Data::openClosedAreas()
 	}
 }
 
-void Tilemap::createMeshes(Data& data)
+void Tilemap::createMeshes()
 {
 	GLuint counter = 0;
-	unsigned short currentRegion = 0;
 	std::random_device randomDevice;
 	std::default_random_engine randomGenerator(randomDevice());
 	float floorTileOffset = 0.0f + 0.125f * randomInt(0, 7) (randomGenerator);
 
-	for (size_t y = 0; y < data.height; y++)
+	for (size_t y = 0; y < height; y++)
 	{
-		for (size_t x = 0; x < data.width; x++)
+		for (size_t x = 0; x < width; x++)
 		{
-			if (data.data[y][x] == WALL)
+			if (data[y][x] == WALL)
 			{
 				for (const Vertex& vertex : assetManager.wallMesh->getVertices())
 				{
@@ -392,7 +388,7 @@ void Tilemap::createMeshes(Data& data)
 
 				wallBodies.push_back(body);
 			}
-			else if (data.data[y][x] != data.currentRegion)
+			else if (data[y][x] != currentRegion)
 			{
 				for (const Vertex& vertex : assetManager.floorMesh->getVertices())
 				{

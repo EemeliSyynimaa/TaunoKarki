@@ -6,6 +6,7 @@
 #include "component.h"
 #include "transform.h"
 #include "weapon.h"
+#include "rigidbody.h"
 
 class AIController : public Component
 {
@@ -24,6 +25,7 @@ private:
 	void pursue();
 	void escape();
 	void shoot();
+	void moveTo(glm::vec3 position);
 
 	enum states
 	{
@@ -36,8 +38,10 @@ private:
 	states state;
 	Transform* transform;
 	Weapon* weapon;
+	b2Body* body;
 
 	Uint32 lastShot;
+	float moveSpeed;
 };
 
 #endif
