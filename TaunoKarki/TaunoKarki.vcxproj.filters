@@ -912,9 +912,6 @@
     <ClInclude Include="inc\locator.h">
       <Filter>Header Files\engine</Filter>
     </ClInclude>
-    <ClInclude Include="inc\audio.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="inc\SDL\SDL_mixer.h">
       <Filter>Header Files\SDL</Filter>
     </ClInclude>
@@ -932,6 +929,9 @@
     </ClInclude>
     <ClInclude Include="inc\menubutton.h">
       <Filter>Header Files\components</Filter>
+    </ClInclude>
+    <ClInclude Include="inc\audio.h">
+      <Filter>Header Files\engine</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1174,6 +1174,9 @@
     </ClCompile>
     <ClCompile Include="src\menubutton.cpp">
       <Filter>Source Files\components</Filter>
+    </ClCompile>
+    <ClCompile Include="src\locator.cpp">
+      <Filter>Source Files\engine</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -3,8 +3,10 @@
 
 #include <SDL\SDL.h>
 #include <GL\glew.h>
+#include "SDL\SDL_mixer.h"
 #include "scenemanager.h"
 #include "assetmanager.h"
+#include "audio.h"
 
 class Game
 {
@@ -31,6 +33,7 @@ private:
 
 	SceneManager sceneManager;
 	AssetManager assetManager;
+	GameAudio gameAudio;
 
 	void update(float deltaTime);
 	void draw();

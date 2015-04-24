@@ -5,6 +5,7 @@
 #include "playercontroller.h"
 #include "aicontroller.h"
 #include "collectible.h"
+#include "locator.h"
 
 GameObject::GameObject(GameObjectManager& gameObjectManager) : gameObjectManager(gameObjectManager), alive(true)
 {
@@ -54,9 +55,17 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
 		{
 			switch (gameObject->getType())
 			{
-			case ENEMY_BULLET: getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage()); break;
-			case ENEMY: getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage()); break;
-			case ITEM: getComponent<PlayerController>()->handleItem(gameObject->getComponent<Collectible>()->getType()); break;
+			case ENEMY_BULLET:
+			case ENEMY:
+			{
+				getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage());
+
+				if (isAlive())
+					Locator::getAudio()->playSound(Locator::getAssetManager()->playerHitSound);
+				else
+					Locator::getAudio()->playSound(Locator::getAssetManager()->playerDeadSound);
+			} break;
+			case ITEM: getComponent<PlayerController>()->handleItem(gameObject->getComponent<Collectible>()->getType()); Locator::getAudio()->playSound(Locator::getAssetManager()->powerupSound); break;
 			default: break;
 			}
 		}
@@ -74,6 +83,8 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
 
 				if (!isAlive() && !getComponent<AIController>()->droppedItem)
 				{
+					Locator::getAudio()->playSound(Locator::getAssetManager()->enemyDeadSound);
+
 					gameObjectManager.addNewObject([this]()
 					{
 						this->gameObjectManager.createRandomItem(this->getComponent<Transform>()->getPosition());

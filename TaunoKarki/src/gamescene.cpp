@@ -4,6 +4,7 @@
 #include "gameobject.h"
 
 #include "playercontroller.h"
+#include "locator.h"
 
 #include <random>
 #include <iostream>
@@ -14,6 +15,9 @@ GameScene::GameScene(Game& game, int level, Weapon* weapon) : Scene(game), world
 {
 	std::random_device randomDevice;
 	std::default_random_engine randomGenerator(randomDevice());
+
+	if (level == 1)
+		Locator::getAudio()->playSound(Locator::getAssetManager()->ambienceSound, -1);
 
 	std::cout << "GAMESCENE ALIVE - entering level " << level << std::endl;
 

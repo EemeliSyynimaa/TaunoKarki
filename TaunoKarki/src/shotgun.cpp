@@ -1,4 +1,5 @@
 #include "shotgun.h"
+#include "locator.h"
 
 Shotgun::Shotgun(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager), lastShot(0), fired(false), numberOfShells(12)
 {
@@ -20,6 +21,8 @@ void Shotgun::update()
 {
 	if (triggerPulled && !fired && currentAmmo > 0.0f && !reloading && (SDL_GetTicks() - lastShot) > fireRate)
 	{
+		Locator::getAudio()->playSound(Locator::getAssetManager()->shotgunBangSound);
+
 		std::random_device randomDevice;
 		std::default_random_engine randomGenerator(randomDevice());
 

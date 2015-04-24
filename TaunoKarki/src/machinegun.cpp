@@ -1,4 +1,5 @@
 #include "machinegun.h"
+#include "locator.h"
 
 MachineGun::MachineGun(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager), lastShot(0)
 {
@@ -20,6 +21,7 @@ void MachineGun::update()
 {
 	if (triggerPulled && currentAmmo > 0.0f && !reloading && (SDL_GetTicks() - lastShot) > fireRate)
 	{
+		Locator::getAudio()->playSound(Locator::getAssetManager()->machinegunBangSound);
 		std::random_device randomDevice;
 		std::default_random_engine randomGenerator(randomDevice());
 

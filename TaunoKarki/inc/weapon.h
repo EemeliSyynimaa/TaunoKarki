@@ -5,7 +5,6 @@
 #include "gameobject.h"
 #include "transform.h"
 #include "SDL\SDL_timer.h"
-#include "assetmanager.h"
 #include <random>
 #define randomFloat std::uniform_real_distribution<float>
 

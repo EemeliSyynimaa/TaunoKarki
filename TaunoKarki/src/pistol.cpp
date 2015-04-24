@@ -1,4 +1,5 @@
 #include "pistol.h"
+#include "locator.h"
 
 Pistol::Pistol(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager), fired(false)
 {
@@ -19,6 +20,8 @@ void Pistol::update()
 {
 	if (triggerPulled && currentAmmo > 0.0f && !reloading && !fired)
 	{
+		Locator::getAudio()->playSound(Locator::getAssetManager()->pistolBangSound);
+
 		std::random_device randomDevice;
 		std::default_random_engine randomGenerator(randomDevice());
 		glm::vec2 dirVec;

@@ -2,20 +2,20 @@
 #define LOCATOR_H
 
 #include "audio.h"
+#include "assetmanager.h"
 
 class Locator
 {
 public:
-	static void init() { audio = &null; }
-	static Audio* getAudio() { return audio; }
-	static void provideAudio(Audio* service) 
-	{ 
-		if (service) audio = service;
-		else audio = &null; 
-	}
+	static void init();
+	static Audio* getAudio();
+	static AssetManager* getAssetManager();
+	static void provideAudio(Audio* service);
+	static void provideAssetManager(AssetManager* service);
 private:
 	static Audio* audio;
 	static NullAudio null;
+	static AssetManager* assetManager;
 };
 
 #endif

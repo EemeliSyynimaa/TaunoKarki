@@ -3,13 +3,16 @@
 #include <algorithm>
 #include "game.h"
 #include "menuscene.h"
+#include "locator.h"
 
 
 Game::Game() : screenWidth(1280), screenHeight(720), running(true), step(1.0f / 60.0f)
 {
-	int result = SDL_Init(SDL_INIT_VIDEO);
+	int SDLResult = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+	assert(SDLResult == 0);
 
-	assert(result == 0);
+	int mixResult = Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 1024);
+	assert(mixResult == 0);
 
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -54,13 +57,23 @@ Game::Game() : screenWidth(1280), screenHeight(720), running(true), step(1.0f / 
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
-	assetManager.loadAssets();
+	Mix_Init(MIX_INIT_MOD | MIX_INIT_MP3);
 
+	Mix_Volume(-1, MIX_MAX_VOLUME / 2);
+
+	Locator::init();
+	Locator::provideAudio(&gameAudio);
+	Locator::provideAssetManager(&assetManager);
+
+	assetManager.loadAssets();
 	sceneManager.change(new MenuScene(*this));
 }
 
 Game::~Game()
 {
+	Mix_CloseAudio();
+	Mix_Quit();
+
 	glDeleteVertexArrays(1, &VAO);
 
 	SDL_GL_DeleteContext(context);
