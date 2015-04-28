@@ -70,6 +70,7 @@ void AIController::attack()
 		}
 		else if (weapon) shoot();
 	}
+	else initWander();
 }
 
 void AIController::shoot()

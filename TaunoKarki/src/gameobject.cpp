@@ -62,8 +62,6 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
 
 				if (isAlive())
 					Locator::getAudio()->playSound(Locator::getAssetManager()->playerHitSound);
-				else
-					Locator::getAudio()->playSound(Locator::getAssetManager()->playerDeadSound);
 			} break;
 			case ITEM: getComponent<PlayerController>()->handleItem(gameObject->getComponent<Collectible>()->getType()); Locator::getAudio()->playSound(Locator::getAssetManager()->powerupSound); break;
 			default: break;

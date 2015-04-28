@@ -16,8 +16,7 @@ GameScene::GameScene(Game& game, int level, Weapon* weapon) : Scene(game), world
 	std::random_device randomDevice;
 	std::default_random_engine randomGenerator(randomDevice());
 
-	if (level == 1)
-		Locator::getAudio()->playSound(Locator::getAssetManager()->ambienceSound, -1);
+	Locator::getAudio()->playSound(Locator::getAssetManager()->ambienceSound, 0, -1);
 
 	std::cout << "GAMESCENE ALIVE - entering level " << level << std::endl;
 
@@ -71,6 +70,7 @@ void GameScene::update(float deltaTime)
 	if (gameObjectManager.getNumberOfObjectsOfType(GAMEOBJECT_TYPES::PLAYER) == 0)
 	{
 		std::cout << "PLAYER LOST - died on level " << level << std::endl;
+		Locator::getAudio()->playSound(Locator::getAssetManager()->playerDeadSound);
 		game.getSceneManager().change(new MenuScene(game));
 	}
 	else if (gameObjectManager.getNumberOfObjectsOfType(GAMEOBJECT_TYPES::ENEMY) == 0)

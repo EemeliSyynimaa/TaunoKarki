@@ -17,5 +17,8 @@ void AmmoBar::update()
 	position.z = offsetPosition.z;
 	transform->setPosition(position);
 
-	transform->setScale(glm::vec3(owner->gameObjectManager.getFirstObjectOfType(GAMEOBJECT_TYPES::PLAYER)->getComponent<PlayerController>()->getWeapon()->getCurrentAmmo() / owner->gameObjectManager.getFirstObjectOfType(GAMEOBJECT_TYPES::PLAYER)->getComponent<PlayerController>()->getWeapon()->getClipSize(), 1.0f, 1.0f));
+	GameObject* player = owner->gameObjectManager.getFirstObjectOfType(GAMEOBJECT_TYPES::PLAYER);
+
+	if (player)
+		transform->setScale(glm::vec3(player->getComponent<PlayerController>()->getWeapon()->getCurrentAmmo() / player->getComponent<PlayerController>()->getWeapon()->getClipSize(), 1.0f, 1.0f));
 }

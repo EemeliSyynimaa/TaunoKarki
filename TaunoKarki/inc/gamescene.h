@@ -26,6 +26,9 @@ private:
 	Camera camera;
 	GameObjectManager gameObjectManager;
 	int level;
+	bool gameEnding;
 };
+
+
 
 #endif
