@@ -11,7 +11,7 @@
 
 #define randomFloat std::uniform_real_distribution<float>
 
-GameScene::GameScene(Game& game, int level, Weapon* weapon) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(game.getAssetManager(), camera, &world), collisionHandler(), level(level)
+GameScene::GameScene(Game& game, int level, Weapon* weapon) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(game.getAssetManager(), camera, &world), collisionHandler(), level(level), gameEnding(false), playerDyingChannel(0)
 {
 	std::random_device randomDevice;
 	std::default_random_engine randomGenerator(randomDevice());
@@ -67,11 +67,19 @@ void GameScene::update(float deltaTime)
 
 	gameObjectManager.interpolate(accumulator / step);
 
-	if (gameObjectManager.getNumberOfObjectsOfType(GAMEOBJECT_TYPES::PLAYER) == 0)
+	if (!gameEnding && gameObjectManager.getNumberOfObjectsOfType(GAMEOBJECT_TYPES::PLAYER) == 0)
 	{
 		std::cout << "PLAYER LOST - died on level " << level << std::endl;
-		Locator::getAudio()->playSound(Locator::getAssetManager()->playerDeadSound);
-		game.getSceneManager().change(new MenuScene(game));
+		playerDyingChannel = Locator::getAudio()->playSound(Locator::getAssetManager()->playerDeadSound);
+		gameEnding = true;
+	}
+	else if (gameEnding)
+	{
+		if (!Mix_Playing(playerDyingChannel))
+		{
+			Mix_HaltChannel(-1);
+			game.getSceneManager().change(new MenuScene(game));
+		}
 	}
 	else if (gameObjectManager.getNumberOfObjectsOfType(GAMEOBJECT_TYPES::ENEMY) == 0)
 	{
@@ -93,6 +101,9 @@ void GameScene::handleEvent(SDL_Event& event)
 	if (event.type == SDL_KEYDOWN)
 	{
 		if (event.key.keysym.sym == SDLK_ESCAPE)
+		{
+			Mix_HaltChannel(-1);
 			game.getSceneManager().change(new MenuScene(game));
+		}
 	}
 }

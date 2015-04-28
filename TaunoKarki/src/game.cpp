@@ -58,8 +58,8 @@ Game::Game() : screenWidth(1280), screenHeight(720), running(true), step(1.0f / 
 	glBindVertexArray(VAO);
 
 	Mix_Init(MIX_INIT_MOD | MIX_INIT_MP3);
-
 	Mix_Volume(-1, MIX_MAX_VOLUME / 2);
+	Mix_AllocateChannels(128);
 
 	Locator::init();
 	Locator::provideAudio(&gameAudio);

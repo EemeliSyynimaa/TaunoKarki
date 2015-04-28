@@ -19,6 +19,7 @@ public:
 	void update(float deltaTime);
 	void draw();
 	void handleEvent(SDL_Event& event);
+	void endGame();
 private:
 	b2World world;
 	Tilemap* tilemap;
@@ -26,7 +27,9 @@ private:
 	Camera camera;
 	GameObjectManager gameObjectManager;
 	int level;
+
 	bool gameEnding;
+	int playerDyingChannel;
 };
 
 

@@ -8,9 +8,9 @@ GameAudio::~GameAudio()
 {
 }
 
-void GameAudio::playSound(Mix_Chunk* sound, int channel, int loops)
+int GameAudio::playSound(Mix_Chunk* sound, int channel, int loops)
 {
-	Mix_PlayChannel(channel, sound, loops);
+	return Mix_PlayChannel(channel, sound, loops);
 }
 
 void GameAudio::stopSound(Mix_Chunk* sound)

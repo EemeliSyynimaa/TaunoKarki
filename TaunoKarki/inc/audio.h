@@ -7,7 +7,7 @@ class Audio
 {
 public:
 	virtual ~Audio() {}
-	virtual void playSound(Mix_Chunk* sound, int channel = -1, int loops = 0) = 0;
+	virtual int playSound(Mix_Chunk* sound, int channel = -1, int loops = 0) = 0;
 	virtual void stopSound(Mix_Chunk* sound) = 0;
 	virtual void stopAllSounds() = 0;
 };
@@ -15,7 +15,7 @@ public:
 class NullAudio : public Audio
 {
 public:
-	void playSound(Mix_Chunk* sound, int channel = -1, int loops = 0) {}
+	int playSound(Mix_Chunk* sound, int channel = -1, int loops = 0) { return 0; }
 	void stopSound(Mix_Chunk* sound) {}
 	void stopAllSounds() {}
 };
@@ -26,7 +26,7 @@ public:
 	GameAudio();
 	~GameAudio();
 
-	void playSound(Mix_Chunk* sound, int channel = -1, int loops = 0);
+	int playSound(Mix_Chunk* sound, int channel = -1, int loops = 0);
 	void stopSound(Mix_Chunk* sound);
 	void stopAllSounds();
 private:
