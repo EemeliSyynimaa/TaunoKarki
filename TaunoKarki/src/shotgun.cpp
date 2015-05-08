@@ -1,15 +1,15 @@
 #include "shotgun.h"
 #include "locator.h"
 
-Shotgun::Shotgun(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager), lastShot(0), fired(false), numberOfShells(12)
+Shotgun::Shotgun(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager), lastShot(0), fired(false), numberOfShells(GLOBALS::SHOTGUN_NUMBER_OF_SHELLS)
 {
-	damage = 8.5f;
-	speed = 0.3f;
-	clipSize = 7.0f;
+	damage = GLOBALS::SHOTGUN_DAMAGE;
+	speed = GLOBALS::SHOTGUN_BULLET_SPEED;
+	clipSize = GLOBALS::SHOTGUN_CLIP_SIZE;
 	currentAmmo = clipSize;
-	reloadTime = 4000.0f;
-	fireRate = 1000.0f;
-	bulletSpread = 0.125f;
+	reloadTime = GLOBALS::SHOTGUN_RELOAD_TIME;
+	fireRate = GLOBALS::SHOTGUN_FIRE_RATE;
+	bulletSpread = GLOBALS::SHOTGUN_BULLET_SPREAD;
 	type = COLLECTIBLES::SHOTGUN;
 }
 

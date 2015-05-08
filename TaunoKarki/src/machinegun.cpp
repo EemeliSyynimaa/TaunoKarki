@@ -3,13 +3,13 @@
 
 MachineGun::MachineGun(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager), lastShot(0)
 {
-	damage = 12.5f;
-	speed = 0.3f;
-	clipSize = 30.0f;
+	damage = GLOBALS::MACHINEGUN_DAMAGE;
+	speed = GLOBALS::MACHINEGUN_BULLET_SPEED;
+	clipSize = GLOBALS::MACHINEGUN_CLIP_SIZE;
 	currentAmmo = clipSize;
-	reloadTime = 2500.0f;
-	fireRate = 175.0f;
-	bulletSpread = 0.05f;
+	reloadTime = GLOBALS::MACHINEGUN_RELOAD_TIME;
+	fireRate = GLOBALS::MACHINEGUN_FIRE_RATE;
+	bulletSpread = GLOBALS::MACHINEGUN_BULLET_SPREAD;
 	type = COLLECTIBLES::MACHINEGUN;
 }
 

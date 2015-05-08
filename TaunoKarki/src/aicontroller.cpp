@@ -6,7 +6,7 @@
 
 #define randomInt std::uniform_int_distribution<int>
 
-AIController::AIController(GameObject* owner, Tilemap* tilemap) : Component(owner), tilemap(tilemap), lastShot(SDL_GetTicks()), droppedItem(false), moveSpeed(5.0f), target(0.0f)
+AIController::AIController(GameObject* owner, Tilemap* tilemap) : Component(owner), tilemap(tilemap), lastShot(SDL_GetTicks()), droppedItem(false), moveSpeed(GLOBALS::ENEMY_SPEED), target(0.0f)
 {
 	transform = owner->getComponent<Transform>();
 	RigidBody* rigidbody = owner->getComponent<RigidBody>();
@@ -56,8 +56,7 @@ void AIController::wander()
 
 void AIController::attack()
 {
-	float minDistance = 10.0f;
-
+	float minDistance = GLOBALS::ENEMY_ACTIVATION_DISTANCE;
 	GameObject* player = getOwner()->gameObjectManager.getFirstObjectOfType(GAMEOBJECT_TYPES::PLAYER);
 
 	if (player)

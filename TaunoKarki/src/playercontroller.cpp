@@ -9,7 +9,7 @@
 #include "machinegun.h"
 #include "shotgun.h"
 
-PlayerController::PlayerController(GameObject* owner) : Component(owner), moveSpeed(7.5f)
+PlayerController::PlayerController(GameObject* owner) : Component(owner), moveSpeed(GLOBALS::PLAYER_SPEED)
 {
 	RigidBody* rigidbody = owner->getComponent<RigidBody>();
 	assert(rigidbody);

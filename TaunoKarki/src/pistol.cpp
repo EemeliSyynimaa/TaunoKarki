@@ -3,12 +3,12 @@
 
 Pistol::Pistol(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager), fired(false)
 {
-	damage = 25.0f;
-	speed = 0.3f;
-	clipSize = 12.0f;
+	damage = GLOBALS::PISTOL_DAMAGE;
+	speed = GLOBALS::PISTOL_BULLET_SPEED;
+	clipSize = GLOBALS::PISTOL_CLIP_SIZE;
 	currentAmmo = clipSize;
-	reloadTime = 1500.0f;
-	bulletSpread = 0.01f;
+	reloadTime = GLOBALS::PISTOL_RELOAD_TIME;
+	bulletSpread = GLOBALS::PISTOL_BULLET_SPREAD;
 	type = COLLECTIBLES::PISTOL;
 }
 
