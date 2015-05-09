@@ -37,7 +37,7 @@ namespace GLOBALS
 	const float ENEMY_HIT_DAMAGE = 50.0f;
 	const float ENEMY_HIT_DAMAGE_PER_LEVEL = 5.0f;
 
-	const float MACHINEGUN_DAMAGE = 15.0;
+	const float MACHINEGUN_DAMAGE = 20.0;
 	const float MACHINEGUN_RELOAD_TIME = 2500.0f;
 	const float MACHINEGUN_CLIP_SIZE = 25.0f;
 	const float MACHINEGUN_BULLET_SPEED = 0.3f;

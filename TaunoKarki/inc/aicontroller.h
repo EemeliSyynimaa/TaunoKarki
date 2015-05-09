@@ -11,7 +11,7 @@
 class AIController : public Component
 {
 public:
-	AIController(GameObject* owner, Tilemap* tilemap);
+	AIController(GameObject* owner, Tilemap* tilemap, b2World* world);
 	~AIController();
 
 	void update();
@@ -20,6 +20,14 @@ public:
 	Weapon* getWeapon() { return weapon; }
 	void getNewTarget();
 private:
+
+	class RayCastCallback : public b2RayCastCallback
+	{
+	public:
+		RayCastCallback() : gameObject(nullptr) {}
+		GameObject* gameObject;
+		float32 ReportFixture(b2Fixture* fixture, const b2Vec2& point, const b2Vec2& normal, float32 fraction);
+	};
 
 	void wander();
 	void attack();
@@ -34,6 +42,8 @@ private:
 	void shoot();
 	void moveTo(glm::vec3 position);
 
+	bool isPlayerInSight(GameObject* player);
+
 	enum states
 	{
 		WANDER,
@@ -47,6 +57,7 @@ private:
 	Weapon* weapon;
 	b2Body* body;
 	Tilemap* tilemap;
+	b2World* world;
 
 	glm::vec3 target;
 
