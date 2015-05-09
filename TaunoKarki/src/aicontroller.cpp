@@ -168,7 +168,7 @@ bool AIController::isPlayerInSight(GameObject* player)
 
 	world->RayCast(&callBack, AIPos, plrPos);
 
-	if (callBack.gameObject && callBack.gameObject->getType() == GAMEOBJECT_TYPES::PLAYER)
+	if (callBack.playerIsVisible)
 	{
 		//glm::vec2 AIDir = owner->getComponent<Transform>()->getDirVec();
 		//glm::vec2 plrDir(plrPos.x - AIPos.x, plrPos.y - AIPos.y);
@@ -184,32 +184,33 @@ bool AIController::isPlayerInSight(GameObject* player)
 
 		//float angle2 = glm::degrees(angle);
 
-		//if (angle2 < 90)
+		//if (angle2 < 90 || angle2 > 270)
 		//{
 		//	return true;
 		//}
 
 		return true;
 	}
-		
+
 
 	return false;
 }
 
 float32 AIController::RayCastCallback::ReportFixture(b2Fixture* fixture, const b2Vec2& point, const b2Vec2& normal, float32 fraction)
 {
-	gameObject = static_cast<GameObject*>(fixture->GetBody()->GetUserData());
+	// Only walls dont have pointers to a gameobject.
+	// And this raycast should only fail when it hits a wall.
+	// So we check if the body has a gameobject and act according to it.
+
+	GameObject* gameObject = static_cast<GameObject*>(fixture->GetBody()->GetUserData());
 
 	if (gameObject)
 	{
-		switch (gameObject->getType())
-		{
-		case GAMEOBJECT_TYPES::ITEM:
-		case GAMEOBJECT_TYPES::ENEMY_BULLET:
-		case GAMEOBJECT_TYPES::PLAYER_BULLET: return -1; break;
-		default: break;
-		}
+		return -1;
 	}
-
-	return fraction;
+	else
+	{
+		playerIsVisible = false;
+		return 0;
+	}
 }
