@@ -3,6 +3,8 @@
 #include "rigidbody.h"
 #include "gameobjectmanager.h"
 #include "tilemap.h"
+#include "glm/gtc/constants.hpp"
+#include <iostream>
 
 #define randomInt std::uniform_int_distribution<int>
 
@@ -38,11 +40,8 @@ void AIController::update()
 
 void AIController::wander()
 {
-	float minDistance = 10.0f;
-
 	GameObject* player = getOwner()->gameObjectManager.getFirstObjectOfType(GAMEOBJECT_TYPES::PLAYER);
 
-	//if (player && transform->distanceTo(player->getComponent<Transform>()->getPosition()) < minDistance)
 	if (player && isPlayerInSight(player))
 		initAttack();
 	else
@@ -52,20 +51,19 @@ void AIController::wander()
 
 		moveTo(target);
 	}
-		
 }
 
 void AIController::attack()
 {
-	float minDistance = GLOBALS::ENEMY_ACTIVATION_DISTANCE;
 	GameObject* player = getOwner()->gameObjectManager.getFirstObjectOfType(GAMEOBJECT_TYPES::PLAYER);
 
 	if (player)
 	{ 
 		moveTo(player->getComponent<Transform>()->getPosition());
 
-		//if (transform->distanceTo(player->getComponent<Transform>()->getPosition()) > minDistance) initWander();
-		if (!isPlayerInSight(player)) initWander();
+		if (!isPlayerInSight(player)) 
+			initWander();
+
 		else if (weapon) shoot();
 	}
 	else initWander();
@@ -133,7 +131,7 @@ void AIController::initWander()
 	if (weapon)
 	{
 		weapon->releaseTheTrigger();
-		weapon->reload();
+		//weapon->reload();
 	}
 	
 	getNewTarget();
@@ -156,42 +154,38 @@ void AIController::getNewTarget()
 
 bool AIController::isPlayerInSight(GameObject* player)
 {
-	b2Vec2 AIPos;
-	AIPos.x = owner->getComponent<Transform>()->getPosition().x;
-	AIPos.y = owner->getComponent<Transform>()->getPosition().y;
+	Transform* plrTransform = player->getComponent<Transform>();
 
-	b2Vec2 plrPos;
-	plrPos.x = player->getComponent<Transform>()->getPosition().x;
-	plrPos.y = player->getComponent<Transform>()->getPosition().y;
-
-	RayCastCallback callBack;
-
-	world->RayCast(&callBack, AIPos, plrPos);
-
-	if (callBack.playerIsVisible)
+	if (transform->distanceTo(plrTransform->getPosition()) < GLOBALS::ENEMY_ACTIVATION_DISTANCE)
 	{
-		//glm::vec2 AIDir = owner->getComponent<Transform>()->getDirVec();
-		//glm::vec2 plrDir(plrPos.x - AIPos.x, plrPos.y - AIPos.y);
-		//float plrLength = glm::sqrt(powf(plrDir.x, 2) + powf(plrDir.y, 2));
+		b2Vec2 AIPos;
+		AIPos.x = transform->getPosition().x;
+		AIPos.y = transform->getPosition().y;
 
-		//plrDir.x = plrDir.x / plrLength;
-		//plrDir.y = plrDir.y / plrLength;
+		b2Vec2 plrPos;
+		plrPos.x = plrTransform->getPosition().x;
+		plrPos.y = plrTransform->getPosition().y;
 
-		//float dotProduct = glm::dot(AIDir, plrDir);
+		RayCastCallback callBack;
 
+		world->RayCast(&callBack, AIPos, plrPos);
 
-		//float angle = glm::acos(dotProduct);
+		if (callBack.playerIsVisible)
+		{
+			glm::vec2 AIDir = transform->getDirVec();
+			glm::vec2 plrDir(plrPos.x - AIPos.x, plrPos.y - AIPos.y);
+			float plrLength = glm::sqrt(powf(plrDir.x, 2) + powf(plrDir.y, 2));
 
-		//float angle2 = glm::degrees(angle);
+			plrDir.x = plrDir.x / plrLength;
+			plrDir.y = plrDir.y / plrLength;
 
-		//if (angle2 < 90 || angle2 > 270)
-		//{
-		//	return true;
-		//}
+			float dotProduct = glm::dot(AIDir, plrDir);
 
-		return true;
+			if (dotProduct > 1.0f) dotProduct = 1.0f;
+
+			if (glm::degrees(glm::acos(dotProduct)) < GLOBALS::ENEMY_ANGLE_OF_VISION) return true;
+		}
 	}
-
 
 	return false;
 }

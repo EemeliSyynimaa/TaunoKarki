@@ -19,6 +19,11 @@ public:
 	bool droppedItem;
 	Weapon* getWeapon() { return weapon; }
 	void getNewTarget();
+
+	void initWander();
+	void initAttack();
+	void initPursue();
+	void initEscape();
 private:
 
 	class RayCastCallback : public b2RayCastCallback
@@ -33,11 +38,6 @@ private:
 	void attack();
 	void pursue();
 	void escape();
-
-	void initWander();
-	void initAttack();
-	void initPursue();
-	void initEscape();
 
 	void shoot();
 	void moveTo(glm::vec3 position);
