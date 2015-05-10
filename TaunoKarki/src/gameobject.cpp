@@ -91,7 +91,7 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
 					getComponent<AIController>()->droppedItem = true;
 				}
 
-				getComponent<AIController>()->initAttack();
+				getComponent<AIController>()->gotShot(gameObject->getComponent<Transform>()->getPosition());
 			} 
 			break;
 			case WALL: getComponent<AIController>()->getNewTarget(); break;

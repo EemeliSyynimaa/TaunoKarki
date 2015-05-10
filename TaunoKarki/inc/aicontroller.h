@@ -24,6 +24,8 @@ public:
 	void initAttack();
 	void initPursue();
 	void initEscape();
+
+	void gotShot(glm::vec3 from);
 private:
 
 	class RayCastCallback : public b2RayCastCallback
@@ -60,6 +62,7 @@ private:
 	b2World* world;
 
 	glm::vec3 target;
+	glm::vec3 playerLastPosition;
 
 	Uint32 lastShot;
 	float moveSpeed;

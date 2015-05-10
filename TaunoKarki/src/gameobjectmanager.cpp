@@ -98,13 +98,13 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
 	gameObject->setType(owner);
 
 	gameObject->addComponent(new Transform(gameObject, position.x + direction.x, position.y + direction.y, 0));
-	if (owner == GAMEOBJECT_TYPES::PLAYER_BULLET)  gameObject->addComponent(new CircleCollider(gameObject, 0.05f, COL_PLAYER_BULLET, ( COL_WALL | COL_ENEMY )));
-	else  gameObject->addComponent(new CircleCollider(gameObject, 0.05f, COL_ENEMY_BULLET, (COL_WALL | COL_PLAYER)));
+	if (owner == GAMEOBJECT_TYPES::PLAYER_BULLET)  gameObject->addComponent(new CircleCollider(gameObject, GLOBALS::PROJECTILE_SIZE, COL_PLAYER_BULLET, (COL_WALL | COL_ENEMY)));
+	else  gameObject->addComponent(new CircleCollider(gameObject, GLOBALS::PROJECTILE_SIZE, COL_ENEMY_BULLET, (COL_WALL | COL_PLAYER)));
 	gameObject->addComponent(new RigidBody(gameObject, *world));
 	gameObject->addComponent(new Damage(gameObject, damage));
 	gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
-	gameObject->getComponent<Transform>()->setScale(glm::vec3(0.05f));
+	gameObject->getComponent<Transform>()->setScale(glm::vec3(GLOBALS::PROJECTILE_SIZE));
 	gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.sphereMesh);
 	gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.sphereTexture);
 	gameObject->getDrawableComponent<MeshRenderer>()->setViewMatrix(camera.getViewMatrix());

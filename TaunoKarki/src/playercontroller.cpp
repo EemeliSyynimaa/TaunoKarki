@@ -106,7 +106,7 @@ void PlayerController::handleItem(COLLECTIBLES item)
 		else giveWeapon(new Shotgun(owner->gameObjectManager));
 		break;
 	}
-	case COLLECTIBLES::HEALTHPACK: owner->getComponent<Health>()->change(25.0f); break;
+	case COLLECTIBLES::HEALTHPACK: owner->getComponent<Health>()->change(GLOBALS::PLAYER_HEALTH_PER_PACK); break;
 	default: break;
 	}
 }

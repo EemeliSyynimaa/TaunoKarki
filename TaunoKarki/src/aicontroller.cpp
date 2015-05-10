@@ -8,7 +8,7 @@
 
 #define randomInt std::uniform_int_distribution<int>
 
-AIController::AIController(GameObject* owner, Tilemap* tilemap, b2World* world) : Component(owner), tilemap(tilemap), world(world), lastShot(SDL_GetTicks()), droppedItem(false), moveSpeed(GLOBALS::ENEMY_SPEED), target(0.0f)
+AIController::AIController(GameObject* owner, Tilemap* tilemap, b2World* world) : Component(owner), tilemap(tilemap), world(world), lastShot(SDL_GetTicks()), droppedItem(false), moveSpeed(GLOBALS::ENEMY_SPEED), target(0.0f), playerLastPosition(0.0f)
 {
 	transform = owner->getComponent<Transform>();
 	RigidBody* rigidbody = owner->getComponent<RigidBody>();
@@ -57,16 +57,14 @@ void AIController::attack()
 {
 	GameObject* player = getOwner()->gameObjectManager.getFirstObjectOfType(GAMEOBJECT_TYPES::PLAYER);
 
-	if (player)
+	if (player && isPlayerInSight(player))
 	{ 
-		moveTo(player->getComponent<Transform>()->getPosition());
-
-		if (!isPlayerInSight(player)) 
-			initWander();
-
-		else if (weapon) shoot();
+		playerLastPosition = player->getComponent<Transform>()->getPosition();
+		moveTo(playerLastPosition);
+	
+		if (weapon) shoot();
 	}
-	else initWander();
+	else initPursue();
 }
 
 void AIController::shoot()
@@ -111,6 +109,20 @@ void AIController::moveTo(glm::vec3 position)
 
 void AIController::pursue()
 {
+	GameObject* player = getOwner()->gameObjectManager.getFirstObjectOfType(GAMEOBJECT_TYPES::PLAYER);
+
+	if (player && isPlayerInSight(player))
+		initAttack();
+	else
+	{ 
+		moveTo(playerLastPosition);
+
+		if (transform->distanceTo(playerLastPosition) < 0.1f)
+		{
+			playerLastPosition = glm::vec3(0.0f);
+			initWander();
+		}
+	}
 }
 
 void AIController::escape()
@@ -128,11 +140,7 @@ void AIController::initWander()
 
 	body->SetLinearVelocity(b2Vec2_zero);
 
-	if (weapon)
-	{
-		weapon->releaseTheTrigger();
-		//weapon->reload();
-	}
+	if (weapon) weapon->releaseTheTrigger();
 	
 	getNewTarget();
 }
@@ -145,6 +153,10 @@ void AIController::initEscape()
 void AIController::initPursue()
 {
 	state = PURSUE;
+
+	body->SetLinearVelocity(b2Vec2_zero);
+
+	if (weapon) weapon->releaseTheTrigger();
 }
 
 void AIController::getNewTarget()
@@ -173,11 +185,7 @@ bool AIController::isPlayerInSight(GameObject* player)
 		if (callBack.playerIsVisible)
 		{
 			glm::vec2 AIDir = transform->getDirVec();
-			glm::vec2 plrDir(plrPos.x - AIPos.x, plrPos.y - AIPos.y);
-			float plrLength = glm::sqrt(powf(plrDir.x, 2) + powf(plrDir.y, 2));
-
-			plrDir.x = plrDir.x / plrLength;
-			plrDir.y = plrDir.y / plrLength;
+			glm::vec2 plrDir = glm::normalize(glm::vec2(plrPos.x - AIPos.x, plrPos.y - AIPos.y));
 
 			float dotProduct = glm::dot(AIDir, plrDir);
 
@@ -190,21 +198,26 @@ bool AIController::isPlayerInSight(GameObject* player)
 	return false;
 }
 
+void AIController::gotShot(glm::vec3 from)
+{
+	transform->lookAt(from);
+
+	initAttack();
+}
+
 float32 AIController::RayCastCallback::ReportFixture(b2Fixture* fixture, const b2Vec2& point, const b2Vec2& normal, float32 fraction)
 {
-	// Only walls dont have pointers to a gameobject.
+	// Only walls dont have a pointer to a gameobject.
 	// And this raycast should only fail when it hits a wall.
 	// So we check if the body has a gameobject and act according to it.
 
 	GameObject* gameObject = static_cast<GameObject*>(fixture->GetBody()->GetUserData());
 
-	if (gameObject)
-	{
-		return -1;
-	}
-	else
+	if (!gameObject)
 	{
 		playerIsVisible = false;
 		return 0;
 	}
+	
+	return -1;
 }
