@@ -26,6 +26,8 @@ public:
 	void initEscape();
 
 	void gotShot(glm::vec3 from);
+
+	int AIAudioChannel;
 private:
 
 	class RayCastCallback : public b2RayCastCallback

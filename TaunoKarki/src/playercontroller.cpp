@@ -9,7 +9,7 @@
 #include "machinegun.h"
 #include "shotgun.h"
 
-PlayerController::PlayerController(GameObject* owner) : Component(owner), moveSpeed(GLOBALS::PLAYER_SPEED)
+PlayerController::PlayerController(GameObject* owner) : Component(owner), moveSpeed(GLOBALS::PLAYER_SPEED), playerAudioChannel(-1)
 {
 	RigidBody* rigidbody = owner->getComponent<RigidBody>();
 	assert(rigidbody);
@@ -66,7 +66,6 @@ void PlayerController::update()
 	else if (!(mouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
 		weapon->releaseTheTrigger();
 
-	// Maybe weapon should be a component?
 	weapon->update();
 
 	halfX = (owner->gameObjectManager.getCamera().getWidth() / 2.0f - x) * -1;
@@ -75,6 +74,11 @@ void PlayerController::update()
 
 	owner->getComponent<Transform>()->lookAt(owner->getComponent<Transform>()->getPosition() + mouseCoords);
 	owner->gameObjectManager.getCamera().follow(glm::vec2(owner->getComponent<Transform>()->getPosition().x, owner->getComponent<Transform>()->getPosition().y));
+
+	if (!Mix_Playing(playerAudioChannel))
+	{
+		playerAudioChannel = -1;
+	}
 }
 
 void PlayerController::giveWeapon(Weapon* weapon)

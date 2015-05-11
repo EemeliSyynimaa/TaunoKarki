@@ -17,6 +17,8 @@ public:
 	void giveWeapon(Weapon* weapon);
 	Weapon* getWeapon() { return weapon; }
 	void handleItem(COLLECTIBLES item);
+	
+	int playerAudioChannel;
 private:
 	const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
 	b2Body* body;

@@ -61,7 +61,7 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
 				getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage());
 
 				if (isAlive())
-					Locator::getAudio()->playSound(Locator::getAssetManager()->playerHitSound);
+					getComponent<PlayerController>()->playerAudioChannel = Locator::getAudio()->playSound(Locator::getAssetManager()->playerHitSound, getComponent<PlayerController>()->playerAudioChannel);
 			} break;
 			case ITEM: getComponent<PlayerController>()->handleItem(gameObject->getComponent<Collectible>()->getType()); Locator::getAudio()->playSound(Locator::getAssetManager()->powerupSound); break;
 			default: break;
@@ -81,8 +81,7 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
 
 				if (!isAlive() && !getComponent<AIController>()->droppedItem)
 				{
-					Locator::getAudio()->playSound(Locator::getAssetManager()->enemyDeadSound);
-
+					getComponent<AIController>()->AIAudioChannel = Locator::getAudio()->playSound(Locator::getAssetManager()->enemyDeadSound, getComponent<AIController>()->AIAudioChannel);
 					gameObjectManager.addNewObject([this]()
 					{
 						this->gameObjectManager.createRandomItem(this->getComponent<Transform>()->getPosition());

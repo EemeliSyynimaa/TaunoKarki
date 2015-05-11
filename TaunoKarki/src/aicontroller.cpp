@@ -8,7 +8,7 @@
 
 #define randomInt std::uniform_int_distribution<int>
 
-AIController::AIController(GameObject* owner, Tilemap* tilemap, b2World* world) : Component(owner), tilemap(tilemap), world(world), lastShot(SDL_GetTicks()), droppedItem(false), moveSpeed(GLOBALS::ENEMY_SPEED), target(0.0f), playerLastPosition(0.0f)
+AIController::AIController(GameObject* owner, Tilemap* tilemap, b2World* world) : Component(owner), tilemap(tilemap), world(world), lastShot(SDL_GetTicks()), droppedItem(false), moveSpeed(GLOBALS::ENEMY_SPEED), target(0.0f), playerLastPosition(0.0f), AIAudioChannel(-1)
 {
 	transform = owner->getComponent<Transform>();
 	RigidBody* rigidbody = owner->getComponent<RigidBody>();
@@ -36,6 +36,11 @@ void AIController::update()
 
 	if (weapon)
 		weapon->update();
+
+	if (!Mix_Playing(AIAudioChannel))
+	{
+		AIAudioChannel = -1;
+	}
 }
 
 void AIController::wander()
