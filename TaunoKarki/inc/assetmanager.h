@@ -31,7 +31,7 @@ namespace GLOBALS
 	const float PLAYER_SPEED = 10.0f;
 	const float PLAYER_HEALTH_PER_PACK = 50.0f;
 	
-	const float ENEMY_HEALTH = 100.0f;
+	const float ENEMY_HEALTH = 50.0f;
 	const float ENEMY_SPEED = 7.0f;
 	const float ENEMY_ACTIVATION_DISTANCE = 20.0f;
 	const float ENEMY_HEALTH_PER_LEVEL = 10.0f;
@@ -46,7 +46,7 @@ namespace GLOBALS
 	const float MACHINEGUN_FIRE_RATE = 125.0f;
 	const float MACHINEGUN_BULLET_SPREAD = 0.05f;
 
-	const float PISTOL_DAMAGE = 40.0f;
+	const float PISTOL_DAMAGE = 30.0f;
 	const float PISTOL_BULLET_SPEED = 1.5f;
 	const float PISTOL_CLIP_SIZE = 8.0f;
 	const float PISTOL_RELOAD_TIME = 1500.0f;
