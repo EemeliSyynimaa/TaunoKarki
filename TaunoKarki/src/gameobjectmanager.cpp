@@ -160,7 +160,7 @@ GameObject* GameObjectManager::createEnemy(glm::vec3 position, int level, Tilema
 	gameObject->setType(GAMEOBJECT_TYPES::ENEMY);
 
 	gameObject->addComponent(new Transform(gameObject, position));
-	gameObject->addComponent(new CircleCollider(gameObject, 0.5f + 0.0125f * level, COL_ENEMY, (COL_WALL | COL_PLAYER | COL_PLAYER_BULLET | COL_ENEMY)));
+	gameObject->addComponent(new CircleCollider(gameObject, 0.5f + 0.0125f * level, COL_ENEMY, (COL_WALL | COL_PLAYER | COL_PLAYER_BULLET)));
 	gameObject->addComponent(new RigidBody(gameObject, *world));
 	gameObject->addComponent(new Health(gameObject, GLOBALS::ENEMY_HEALTH + GLOBALS::ENEMY_HEALTH_PER_LEVEL * level));
 	gameObject->addComponent(new AIController(gameObject, tilemap, world));

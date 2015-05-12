@@ -30,6 +30,51 @@ public:
 	int AIAudioChannel;
 private:
 
+	struct Node
+	{
+		Node(unsigned int x, unsigned int y, Node* parent) : x(x), y(y), parent(parent), H(0), G(0), F(0)
+		{
+		}
+
+		int x;
+		int y;
+		int H;
+		int G;
+		int F;
+
+		Node* parent;
+
+		bool operator==(const Node& other) const
+		{
+			return x == other.x && y == other.y;
+		}
+
+		bool operator<(const Node& other) const
+		{
+			return F < other.F;
+		}
+
+		Node(const Node& other)
+		{
+			x = other.x;
+			y = other.y;
+			H = other.H;
+			G = other.G;
+			F = other.F;
+			parent = other.parent;
+		}
+
+		void operator=(const Node& other)
+		{
+			x = other.x;
+			y = other.y;
+			H = other.H;
+			G = other.G;
+			F = other.F;
+			parent = other.parent;
+		}
+	};
+
 	class RayCastCallback : public b2RayCastCallback
 	{
 	public:
@@ -42,6 +87,11 @@ private:
 	void attack();
 	void pursue();
 	void escape();
+
+	bool calculatePath();
+	void getNeighbours(Node* node, std::vector<Node*>& neighbours);
+	void checkPosition(Node* parent, unsigned int x, unsigned int y, std::vector<Node*>& neighbours);
+	void constructPath(Node* node);
 
 	void shoot();
 	void moveTo(glm::vec3 position);
@@ -62,6 +112,8 @@ private:
 	b2Body* body;
 	Tilemap* tilemap;
 	b2World* world;
+
+	std::vector<glm::vec3> path;
 
 	glm::vec3 target;
 	glm::vec3 playerLastPosition;

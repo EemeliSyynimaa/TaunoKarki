@@ -93,7 +93,6 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
 				getComponent<AIController>()->gotShot(gameObject->getComponent<Transform>()->getPosition());
 			} 
 			break;
-			case WALL: getComponent<AIController>()->getNewTarget(); break;
 			default: break;
 			}
 		}

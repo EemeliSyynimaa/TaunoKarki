@@ -5,6 +5,8 @@
 #include "tilemap.h"
 #include "glm/gtc/constants.hpp"
 #include <iostream>
+#include <queue>
+#include <algorithm>
 
 #define randomInt std::uniform_int_distribution<int>
 
@@ -51,10 +53,15 @@ void AIController::wander()
 		initAttack();
 	else
 	{
-		if (transform->distanceTo(target) < 0.1f)
-			getNewTarget();
+		if (transform->distanceTo(path.front()) < 0.1f)
+		{
+			path.erase(path.begin());
 
-		moveTo(target);
+			if (path.empty())
+				getNewTarget();
+		}
+
+		moveTo(path.front());
 	}
 }
 
@@ -166,7 +173,113 @@ void AIController::initPursue()
 
 void AIController::getNewTarget()
 {
+	path.clear();
+
 	target = tilemap->getRandomFreePosition();
+
+	bool found = false;
+	do
+	{
+		found = calculatePath();
+	} while (!found);
+}
+
+bool AIController::calculatePath()
+{
+	Node start(int(round(transform->getPosition().x / 2)), int(round(transform->getPosition().y / 2)), nullptr);
+	Node end(int(round(target.x / 2)), int((round(target.y / 2))), nullptr);
+
+	start.G = 0;
+	start.H = abs(end.x - start.x) + abs(end.y - start.y);
+	start.F = start.H;
+
+	std::vector<Node*> openSet;
+	std::vector<Node*> closedSet;
+
+	openSet.push_back(&start);
+	
+	while (!openSet.empty())
+	{
+		Node* current = openSet.front();
+		openSet.erase(openSet.begin());
+
+		if (*current == end)
+		{
+			constructPath(current);
+
+			return true;
+		}
+
+		closedSet.push_back(current);
+
+		std::vector<Node*> neighbours;
+
+		getNeighbours(current, neighbours);
+
+		for (Node* neighbour : neighbours)
+		{
+			if (std::find_if(closedSet.begin(), closedSet.end(), [neighbour](Node* node)
+			{
+				return neighbour->x == node->x && neighbour->y == node->y;
+			}) != closedSet.end()) continue;
+
+			int tentativeGScore = current->G + abs(current->x - neighbour->x) + abs(current->y - neighbour->y);
+
+			std::vector<Node*>::iterator it = std::find_if(openSet.begin(), openSet.end(), [neighbour](Node* node)
+			{
+				return neighbour->x == node->x && neighbour->y == node->y;
+			});
+
+			if (it != openSet.end())
+			{
+				if (tentativeGScore < (*it)->G)
+				{
+					(*it)->G = tentativeGScore;
+					(*it)->parent = current;
+					(*it)->F = (*it)->G + (*it)->H;
+				}
+			}
+			else
+			{
+				neighbour->G = tentativeGScore;
+				neighbour->H = abs(neighbour->x - end.x) + abs(neighbour->y - end.y);
+				neighbour->F = neighbour->G + neighbour->H;
+
+				openSet.push_back(neighbour);
+			}
+
+			std::sort(openSet.begin(), openSet.end());
+		}
+	}
+
+	return false;
+}
+
+void AIController::getNeighbours(Node* node, std::vector<Node*>& neighbours)
+{
+	checkPosition(node, node->x + 1, node->y + 1, neighbours);
+	checkPosition(node, node->x + 1, node->y - 1, neighbours);
+	checkPosition(node, node->x + 1, node->y, neighbours);
+	checkPosition(node, node->x - 1, node->y + 1, neighbours);
+	checkPosition(node, node->x - 1, node->y - 1, neighbours);
+	checkPosition(node, node->x - 1, node->y, neighbours);
+	checkPosition(node, node->x, node->y + 1, neighbours);
+	checkPosition(node, node->x, node->y - 1, neighbours);
+}
+
+void AIController::checkPosition(Node* parent, unsigned int x, unsigned int y, std::vector<Node*>& neighbours)
+{
+	if (tilemap->isPositionFree(x, y))
+		neighbours.push_back(new Node(x, y, parent));
+}
+
+void AIController::constructPath(Node* node)
+{
+	if (node == nullptr)
+		return;
+
+	constructPath(node->parent);
+	path.push_back(glm::vec3(node->x * 2.0f, node->y * 2.0f, 0.0f));
 }
 
 bool AIController::isPlayerInSight(GameObject* player)
