@@ -54,25 +54,6 @@ private:
 			return F < other.F;
 		}
 
-		Node(const Node& other)
-		{
-			x = other.x;
-			y = other.y;
-			H = other.H;
-			G = other.G;
-			F = other.F;
-			parent = other.parent;
-		}
-
-		void operator=(const Node& other)
-		{
-			x = other.x;
-			y = other.y;
-			H = other.H;
-			G = other.G;
-			F = other.F;
-			parent = other.parent;
-		}
 	};
 
 	class RayCastCallback : public b2RayCastCallback

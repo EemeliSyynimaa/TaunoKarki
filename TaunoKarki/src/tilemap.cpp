@@ -473,10 +473,7 @@ glm::vec3 Tilemap::getStartingPosition()
 
 bool Tilemap::isPositionFree(unsigned int x, unsigned int y)
 {
-	if (x > 0 && x < width && y > 0 && y < height && data[y][x] != WALL && data[y][x] != currentRegion)
-		return true;
-
-	return false;
+	return x > 0 && x < width && y > 0 && y < height && data[y][x] != WALL && data[y][x] != currentRegion;
 }
 
 glm::vec3 Tilemap::getRandomFreePosition()

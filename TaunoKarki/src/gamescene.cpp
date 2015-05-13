@@ -45,8 +45,8 @@ GameScene::GameScene(Game& game, int level, Weapon* weapon) : Scene(game), world
 		gameObjectManager.createEnemy(tilemap->getStartingPosition(), level, tilemap);
 	}
 
-	gameObjectManager.createPlayerAmmoBar(glm::vec3(10.0f, -6.0f, 5.0f), glm::vec3(9.0f, 0.5f, 0.5f));
-	gameObjectManager.createPlayerHealthBar(glm::vec3(-10.0f, -6.0f, 5.0f), glm::vec3(9.0f, 0.5f, 0.5f));
+	gameObjectManager.createPlayerAmmoBar(glm::vec3(10.0f, -7.5f, 5.0f), glm::vec3(9.0f, 0.5f, 0.5f));
+	gameObjectManager.createPlayerHealthBar(glm::vec3(-10.0f, -7.5f, 5.0f), glm::vec3(9.0f, 0.5f, 0.5f));
 }
 
 GameScene::~GameScene()

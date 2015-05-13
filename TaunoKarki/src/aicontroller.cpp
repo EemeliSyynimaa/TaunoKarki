@@ -53,7 +53,7 @@ void AIController::wander()
 		initAttack();
 	else
 	{
-		if (transform->distanceTo(path.front()) < 0.1f)
+		if (!path.empty() && transform->distanceTo(path.front()) < 0.1f)
 		{
 			path.erase(path.begin());
 
@@ -108,13 +108,11 @@ void AIController::shoot()
 void AIController::moveTo(glm::vec3 position)
 {
 	b2Vec2 impulse(0.0f, 0.0f);
-	b2Vec2 velocity = body->GetLinearVelocity();
-	int x = 0, y = 0;
 
 	transform->lookAt(position);
 
-	impulse.x = body->GetMass() * transform->getDirVec().x * moveSpeed - velocity.x;
-	impulse.y = body->GetMass() * transform->getDirVec().y * moveSpeed - velocity.y;
+	impulse.x = body->GetMass() * transform->getDirVec().x * moveSpeed - body->GetLinearVelocity().x;
+	impulse.y = body->GetMass() * transform->getDirVec().y * moveSpeed - body->GetLinearVelocity().y;
 
 	body->ApplyLinearImpulse(impulse, body->GetWorldCenter(), true);
 }
@@ -175,11 +173,11 @@ void AIController::getNewTarget()
 {
 	path.clear();
 
-	target = tilemap->getRandomFreePosition();
-
 	bool found = false;
+
 	do
 	{
+		target = tilemap->getRandomFreePosition();
 		found = calculatePath();
 	} while (!found);
 }
@@ -207,7 +205,10 @@ bool AIController::calculatePath()
 		{
 			constructPath(current);
 
-			return true;
+			// We erase the first node.
+			path.erase(path.begin());
+
+			return !path.empty();
 		}
 
 		closedSet.push_back(current);

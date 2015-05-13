@@ -144,9 +144,9 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position, Weapon* weapon)
 	gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
 
 	if (weapon)
-		gameObject->getComponent<PlayerController>()->giveWeapon(weapon);
+		gameObject->getComponent<PlayerController>()->giveWeapon(weapon, true);
 	else
-		gameObject->getComponent<PlayerController>()->giveWeapon(new Pistol(*this));
+		gameObject->getComponent<PlayerController>()->giveWeapon(new Pistol(*this), true);
 
 	return gameObject;
 }

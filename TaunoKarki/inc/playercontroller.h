@@ -14,7 +14,7 @@ public:
 	~PlayerController();
 
 	void update();
-	void giveWeapon(Weapon* weapon);
+	void giveWeapon(Weapon* weapon, bool instantReload = false);
 	Weapon* getWeapon() { return weapon; }
 	void handleItem(COLLECTIBLES item);
 	

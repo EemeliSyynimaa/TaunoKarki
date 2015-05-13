@@ -81,13 +81,13 @@ void PlayerController::update()
 	}
 }
 
-void PlayerController::giveWeapon(Weapon* weapon)
+void PlayerController::giveWeapon(Weapon* weapon, bool instantReload)
 {
 	if (this->weapon) delete this->weapon;
 
 	this->weapon = weapon; 
 	this->weapon->setOwner(this->owner);
-	this->weapon->reload();
+	this->weapon->reload(instantReload);
 }
 
 void PlayerController::handleItem(COLLECTIBLES item)
