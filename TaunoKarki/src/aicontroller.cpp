@@ -258,20 +258,26 @@ bool AIController::calculatePath()
 
 void AIController::getNeighbours(Node* node, std::vector<Node*>& neighbours)
 {
-	checkPosition(node, node->x + 1, node->y + 1, neighbours);
-	checkPosition(node, node->x + 1, node->y - 1, neighbours);
-	checkPosition(node, node->x + 1, node->y, neighbours);
-	checkPosition(node, node->x - 1, node->y + 1, neighbours);
-	checkPosition(node, node->x - 1, node->y - 1, neighbours);
-	checkPosition(node, node->x - 1, node->y, neighbours);
-	checkPosition(node, node->x, node->y + 1, neighbours);
-	checkPosition(node, node->x, node->y - 1, neighbours);
+	bool left = checkPosition(node, node->x + 1, node->y, neighbours);
+	bool right = checkPosition(node, node->x - 1, node->y, neighbours);
+	bool up = checkPosition(node, node->x, node->y + 1, neighbours);
+	bool down = checkPosition(node, node->x, node->y - 1, neighbours);
+
+	if (right && down) checkPosition(node, node->x - 1, node->y - 1, neighbours);
+	if (right && up) checkPosition(node, node->x - 1, node->y + 1, neighbours);
+	if (left && down) checkPosition(node, node->x + 1, node->y - 1, neighbours);
+	if (left && up) checkPosition(node, node->x + 1, node->y + 1, neighbours);
 }
 
-void AIController::checkPosition(Node* parent, unsigned int x, unsigned int y, std::vector<Node*>& neighbours)
+bool AIController::checkPosition(Node* parent, unsigned int x, unsigned int y, std::vector<Node*>& neighbours)
 {
 	if (tilemap->isPositionFree(x, y))
+	{ 
 		neighbours.push_back(new Node(x, y, parent));
+		return true;
+	}
+
+	return false;
 }
 
 void AIController::constructPath(Node* node)

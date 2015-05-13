@@ -71,7 +71,7 @@ private:
 
 	bool calculatePath();
 	void getNeighbours(Node* node, std::vector<Node*>& neighbours);
-	void checkPosition(Node* parent, unsigned int x, unsigned int y, std::vector<Node*>& neighbours);
+	bool checkPosition(Node* parent, unsigned int x, unsigned int y, std::vector<Node*>& neighbours);
 	void constructPath(Node* node);
 
 	void shoot();
