@@ -374,7 +374,7 @@ void GameObjectManager::interpolate(float alpha)
 		Transform* transform = gameObject->getComponent<Transform>();
 		RigidBody* rigidBody = gameObject->getComponent<RigidBody>();
 
-		// We are only interested in moving objects
+		// We are only interested in objects with transform and rigidbody.
 		if (transform && rigidBody)
 		{
 			glm::vec3 position = transform->getPosition();

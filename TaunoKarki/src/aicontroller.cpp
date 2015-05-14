@@ -325,9 +325,8 @@ bool AIController::isPlayerInSight(GameObject* player)
 
 void AIController::gotShot(glm::vec3 from)
 {
-	transform->lookAt(from);
-
-	initAttack();
+	if (state != ATTACK)
+		transform->lookAt(from);
 }
 
 float32 AIController::RayCastCallback::ReportFixture(b2Fixture* fixture, const b2Vec2& point, const b2Vec2& normal, float32 fraction)

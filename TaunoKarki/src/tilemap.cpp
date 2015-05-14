@@ -116,12 +116,12 @@ void Tilemap::addRooms()
 		roomX += 1 - roomX % 2;
 		roomY += 1 - roomY % 2;
 
-		// We check if the room conflicts with an existing room.
+		// We check if the room conflicts with an existing room..
 		if (roomConflictsWithOthers(roomX, roomY, roomW, roomH)) continue;
 
 		carveRoom(roomX, roomY, roomW, roomH);
 
-		// Every room has a random starting point
+		// Every room has a random starting point.
 		startingPositions.push_back(glm::vec3(float(randomInt(roomX + 1, roomX + roomW - 1)(randomGenerator)) * 2.0f, float(randomInt(roomY + 1, roomY + roomH - 1)(randomGenerator)) * 2.0f, 0.0f));
 	}
 }
@@ -260,7 +260,7 @@ void Tilemap::connectRegions()
 			}
 		}
 
-		// Lets open a random connector just for funz!
+		// Opens a random connector.
 		std::random_device randomDevice;
 		std::default_random_engine randomGenerator(randomDevice());
 
@@ -321,7 +321,6 @@ void Tilemap::openClosedAreas()
 		}
 	}
 
-	// Borders!
 	for (size_t x = 0; x < width; x++)
 	{
 		if ((checkTile(x, 1, currentRegion))) carve(x, 0);

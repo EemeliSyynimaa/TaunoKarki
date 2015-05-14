@@ -8,7 +8,6 @@ RigidBody::RigidBody(GameObject* owner, b2World& world) : Component(owner), worl
 	transform = owner->getComponent<Transform>();
 	assert(transform);
 
-	// DIRTY HAX :D
 	collider = owner->getComponent<CircleCollider>();
 	if (collider == nullptr) collider = owner->getComponent<BoxCollider>();
 	assert(collider);
@@ -29,5 +28,4 @@ RigidBody::~RigidBody()
 void RigidBody::update()
 {
 	transform->setPosition(glm::vec3(body->GetPosition().x, body->GetPosition().y, 0.0f));
-	//transform->setRotation(body->GetAngle(), glm::vec3(0.0f, 0.0f, 1.0f));
 }

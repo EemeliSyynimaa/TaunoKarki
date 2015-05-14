@@ -8,7 +8,6 @@ StaticBody::StaticBody(GameObject* owner, b2World& world) : Component(owner), wo
 	transform = owner->getComponent<Transform>();
 	assert(transform);
 
-	// DIRTY HAX :D
 	collider = owner->getComponent<CircleCollider>();
 	if (collider == nullptr) collider = owner->getComponent<BoxCollider>();
 	assert(collider);
