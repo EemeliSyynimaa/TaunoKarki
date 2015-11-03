@@ -42,7 +42,9 @@ GameScene::GameScene(Game& game, int level, Weapon* weapon) : Scene(game), world
 	
 	while (tilemap->getNumberOfStartingPositions() > 0)
 	{
-		gameObjectManager.createEnemy(tilemap->getStartingPosition(), level, tilemap);
+		glm::vec3 pos = tilemap->getStartingPosition();
+		gameObjectManager.createEnemy(pos, level, tilemap);
+		gameObjectManager.createEnemy(pos, level, tilemap);
 	}
 
 	gameObjectManager.createPlayerAmmoBar(glm::vec3(10.0f, -7.5f, 5.0f), glm::vec3(9.0f, 0.5f, 0.5f));

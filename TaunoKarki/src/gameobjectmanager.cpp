@@ -146,7 +146,7 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position, Weapon* weapon)
 	if (weapon)
 		gameObject->getComponent<PlayerController>()->giveWeapon(weapon, true);
 	else
-		gameObject->getComponent<PlayerController>()->giveWeapon(new Pistol(*this), true);
+		gameObject->getComponent<PlayerController>()->giveWeapon(new MachineGun(*this), true);
 
 	return gameObject;
 }

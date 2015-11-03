@@ -73,7 +73,7 @@ void PlayerController::update()
 	mouseCoords = glm::vec3(halfX, -halfY, 0.0f);
 
 	owner->getComponent<Transform>()->lookAt(owner->getComponent<Transform>()->getPosition() + mouseCoords);
-	owner->gameObjectManager.getCamera().follow(glm::vec2(owner->getComponent<Transform>()->getPosition().x, owner->getComponent<Transform>()->getPosition().y));
+	owner->gameObjectManager.getCamera().follow(glm::vec2(owner->getComponent<Transform>()->getPosition().x, owner->getComponent<Transform>()->getPosition().y), owner->getComponent<Transform>()->getDirVec());
 
 	if (!Mix_Playing(playerAudioChannel))
 	{

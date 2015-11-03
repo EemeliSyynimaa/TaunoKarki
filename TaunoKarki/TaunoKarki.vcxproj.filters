@@ -1180,7 +1180,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="bin\SDL2.dll" />
     <None Include="inc\glm\gtx\associated_min_max.inl">
       <Filter>Header Files\GLM</Filter>
     </None>
@@ -1508,7 +1507,14 @@
     <None Include="inc\glm\gtx\wrap.inl">
       <Filter>Header Files\GLM</Filter>
     </None>
-    <None Include="assets\shaders\fragment.glsl" />
-    <None Include="assets\shaders\vertex.glsl" />
+    <None Include="assets\shaders\fragment.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="bin\SDL2.dll">
+      <Filter>Resource Files</Filter>
+    </None>
+    <None Include="assets\shaders\vertex.glsl">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
 </Project>

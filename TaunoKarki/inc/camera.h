@@ -21,7 +21,7 @@ public:
 	glm::mat4& getPerspectiveMatrix() { return perspectiveMatrix; }
 	glm::mat4& getOrthographicMatrix() { return orthographicMatrix; }
 
-	void follow(glm::vec2 position);
+	void follow(glm::vec2 position, glm::vec2 dirvec);
 
 	float getWidth() { return width; }
 	float getHeight() { return height; }

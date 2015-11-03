@@ -12,7 +12,7 @@ MenuScene::MenuScene(Game& game) : Scene(game), gameObjectManager(game.getAssetM
 	camera.createNewOrthographicMatrix((float)game.getScreenWidth(), (float)game.getScreenHeight());
 	camera.setPosition(glm::vec3(0.0f, 0.0f, 30.0f));
 	camera.setOffset(0.0f, 0.0f, 0.0f);
-	camera.follow(glm::vec2(0.0f, 0.0f));
+	camera.follow(glm::vec2(0.0f, 0.0f), glm::vec2(0.0f, 0.0f));
 
 	char title1[] = {
 		"#####...#####...#...#...#...#...#####"

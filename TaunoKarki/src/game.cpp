@@ -24,10 +24,10 @@ Game::Game() : screenWidth(1280), screenHeight(720), running(true), step(1.0f / 
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
-	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
+	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 4);
 
 	window = SDL_CreateWindow("Tauno Kaerki", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-		screenWidth, screenHeight, SDL_WINDOW_OPENGL );
+		screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 
 	assert(window != nullptr);
 
