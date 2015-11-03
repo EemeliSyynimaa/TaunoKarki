@@ -61,6 +61,8 @@ Game::Game() : screenWidth(1280), screenHeight(720), running(true), step(1.0f / 
 	Mix_Volume(-1, MIX_MAX_VOLUME / 2);
 	Mix_AllocateChannels(128);
 
+	SDL_SetRelativeMouseMode(SDL_TRUE);
+
 	Locator::init();
 	Locator::provideAudio(&gameAudio);
 	Locator::provideAssetManager(&assetManager);

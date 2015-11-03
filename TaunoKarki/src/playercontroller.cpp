@@ -9,6 +9,9 @@
 #include "machinegun.h"
 #include "shotgun.h"
 
+#include "glm\glm.hpp"
+#include "glm\geometric.hpp"
+
 PlayerController::PlayerController(GameObject* owner) : Component(owner), moveSpeed(GLOBALS::PLAYER_SPEED), playerAudioChannel(-1)
 {
 	RigidBody* rigidbody = owner->getComponent<RigidBody>();
@@ -33,27 +36,36 @@ void PlayerController::update()
 	glm::vec3 mouseCoords(0.0f, 0.0f, 0.0f);
 	int x = 0, y = 0;
 	float halfX = 0.0f, halfY = 0.0f;
-	Uint8 mouseState = SDL_GetMouseState(&x, &y);
+	float moveSpeedForReal = 0;
+	float strafeSpeed = 0;
+	Uint8 mouseState = SDL_GetRelativeMouseState(&x, &y);
 
 	if (keyboardState[SDL_SCANCODE_A])
-		desiredVelocity.x = -moveSpeed;
+		strafeSpeed = moveSpeed;
 	else if (keyboardState[SDL_SCANCODE_D])
-		desiredVelocity.x = moveSpeed;
+		strafeSpeed = -moveSpeed;
 	else
-		desiredVelocity.x = 0.0f;
+		strafeSpeed = 0.0f;
 
 	if (keyboardState[SDL_SCANCODE_W])
-		desiredVelocity.y = moveSpeed;
+		moveSpeedForReal = moveSpeed;
 	else if (keyboardState[SDL_SCANCODE_S])
-		desiredVelocity.y = -moveSpeed;
+		moveSpeedForReal = -moveSpeed;
 	else
-		desiredVelocity.y = 0.0f;
+		moveSpeedForReal = 0.0f;
 
 	if (keyboardState[SDL_SCANCODE_R] && !weapon->isReloading())
-		weapon->reload();
+		weapon->reload(); 
 
-	velocityChange.x = desiredVelocity.x - velocity.x;
-	velocityChange.y = desiredVelocity.y - velocity.y;
+	glm::vec2 superTemp = owner->getComponent<Transform>()->getDirVec();
+	glm::vec3 superDuperTemp(superTemp.x, superTemp.y, 0.0f);
+	
+	glm::vec3 temp = glm::cross(glm::vec3(0, 0, 1), superDuperTemp);
+
+	velocityChange.x = owner->getComponent<Transform>()->getDirVec().x * moveSpeedForReal - velocity.x;
+	velocityChange.y = owner->getComponent<Transform>()->getDirVec().y * moveSpeedForReal - velocity.y;
+	velocityChange.x += temp.x * strafeSpeed;
+	velocityChange.y += temp.y * strafeSpeed;
 
 	impulse.x = body->GetMass() * velocityChange.x;
 	impulse.y = body->GetMass() * velocityChange.y;
@@ -68,11 +80,7 @@ void PlayerController::update()
 
 	weapon->update();
 
-	halfX = (owner->gameObjectManager.getCamera().getWidth() / 2.0f - x) * -1;
-	halfY = (owner->gameObjectManager.getCamera().getHeight() / 2.0f - y) * -1;
-	mouseCoords = glm::vec3(halfX, -halfY, 0.0f);
-
-	owner->getComponent<Transform>()->lookAt(owner->getComponent<Transform>()->getPosition() + mouseCoords);
+	owner->getComponent<Transform>()->rotate(-x / 3, glm::vec3(0, 0, 1));
 	owner->gameObjectManager.getCamera().follow(glm::vec2(owner->getComponent<Transform>()->getPosition().x, owner->getComponent<Transform>()->getPosition().y), owner->getComponent<Transform>()->getDirVec());
 
 	if (!Mix_Playing(playerAudioChannel))

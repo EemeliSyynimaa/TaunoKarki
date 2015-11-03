@@ -1,7 +1,7 @@
 #include "transform.h"
 #include "glm/gtx/transform.hpp"
 
-Transform::Transform(GameObject* owner, float x, float y, float z) : Component(owner), position(x, y, z), scale(1.0f), rotation(1.0f), transform(1.0f), dirVec(0.0f)
+Transform::Transform(GameObject* owner, float x, float y, float z) : Component(owner), position(x, y, z), scale(1.0f), rotation(1.0f), transform(1.0f), dirVec(0.0f), angle(0.0f)
 {
 	transform = glm::translate(position);
 }
@@ -23,7 +23,7 @@ void Transform::lookAt(const glm::vec3& target)
 {
 	glm::vec3 deltaPos = target - position;
 	glm::vec3 axis(0.0f, 0.0f, 1.0f);
-	float angle = glm::atan(deltaPos.y, deltaPos.x);
+	angle = glm::atan(deltaPos.y, deltaPos.x);
 	float length = sqrt(powf(deltaPos.x, 2) + powf(deltaPos.y, 2));
 
 	dirVec = glm::vec2(deltaPos.x / length, deltaPos.y / length);
@@ -40,6 +40,8 @@ void Transform::setPosition(glm::vec3& vec)
 void Transform::setRotation(float r, glm::vec3& axis)
 {
 	rotation = glm::rotate(r, axis);
+
+	dirVec = glm::normalize(glm::vec2(cos(r), sin(r)));
 }
 
 void Transform::setScale(glm::vec3& vec)
@@ -55,7 +57,10 @@ void Transform::translate(glm::vec3& vec)
 
 void Transform::rotate(float r, glm::vec3& axis)
 {
-	rotation = glm::rotate(rotation, r, axis);
+	angle += glm::radians(r);
+	rotation = glm::rotate(angle, axis);
+	//dirVec = glm::normalize(glm::vec2(cos(rotation), sin(rotation)));
+	dirVec = glm::normalize(glm::vec2(cos(angle), sin(angle)));
 }
 
 float Transform::distanceTo(glm::vec3 pos)

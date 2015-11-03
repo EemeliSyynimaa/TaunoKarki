@@ -29,6 +29,7 @@ private:
 	glm::mat4 scale;
 	glm::mat4 rotation;
 	glm::vec2 dirVec;
+	float angle;
 };
 
 #endif

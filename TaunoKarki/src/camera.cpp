@@ -27,12 +27,12 @@ void Camera::follow(glm::vec2 pos, glm::vec2 dirvec)
 	position.y = pos.y;
 
 	viewMatrix = glm::lookAt(
-		glm::vec3(position.x - dirvec.x, position.y - dirvec.y, 1.5f),
-		glm::vec3(position.x, position.y, 1.5f),
+		glm::vec3(position.x - dirvec.x, position.y - dirvec.y, 1.25f),
+		glm::vec3(position.x, position.y, 1.f),
 		glm::vec3(0, 0, 1));
 
 	viewMatrixWithoutOffset = glm::lookAt(
-		glm::vec3(position.x, position.y, position.z),
+		glm::vec3(position.x - dirvec.x, position.y - dirvec.y, 2.5f),
 		glm::vec3(position.x, position.y, 0),
 		glm::vec3(0, 1, 0));
 }
