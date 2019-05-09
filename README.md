@@ -12,3 +12,11 @@ Features:
  - Beautiful pixel art
  - Sounds borrowed from Unity's example project
 
+To do:
+ - Linux support
+ - Unity build
+ - Build and run from terminal
+ - Rewrite in C
+ - No additional libraries
+  - Software rendering
+  - Collision detection
