@@ -8,7 +8,7 @@
 class MenuScene : public Scene
 {
 public:
-	MenuScene(Game& game);
+	MenuScene(game_state_t* state);
 	~MenuScene();
 
 	void handleEvent(SDL_Event& event);

@@ -27,9 +27,9 @@ enum COLLECTIBLES
 
 namespace GLOBALS
 {
-	const float PLAYER_HEALTH = 200.0f;
+	const float PLAYER_HEALTH = 500.0f;
 	const float PLAYER_SPEED = 10.0f;
-	const float PLAYER_HEALTH_PER_PACK = 50.0f;
+	const float PLAYER_HEALTH_PER_PACK = 100.0f;
 	
 	const float ENEMY_HEALTH = 50.0f;
 	const float ENEMY_SPEED = 7.0f;

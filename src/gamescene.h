@@ -13,7 +13,7 @@
 class GameScene : public Scene
 {
 public:
-	GameScene(Game& game, int level, Weapon* weapon);
+	GameScene(game_state_t* state, int level, Weapon* weapon);
 	~GameScene();
 
 	void update(float deltaTime);

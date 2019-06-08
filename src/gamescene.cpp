@@ -11,7 +11,14 @@
 
 #define randomFloat std::uniform_real_distribution<float>
 
-GameScene::GameScene(Game& game, int level, Weapon* weapon) : Scene(game), world(b2Vec2(0.0f, 0.0f)), gameObjectManager(game.getAssetManager(), camera, &world), collisionHandler(), level(level), gameEnding(false), playerDyingChannel(0)
+GameScene::GameScene(game_state_t* state, int level, Weapon* weapon) : 
+	Scene(state),
+	world(b2Vec2(0.0f, 0.0f)),
+	gameObjectManager(state->assets, camera, &world),
+	collisionHandler(),
+	level(level),
+	gameEnding(false),
+	playerDyingChannel(0)
 {
 	std::random_device randomDevice;
 	std::default_random_engine randomGenerator(randomDevice());
@@ -22,8 +29,8 @@ GameScene::GameScene(Game& game, int level, Weapon* weapon) : Scene(game), world
 
 	world.SetContactListener(&collisionHandler);
 
-	camera.createNewPerspectiveMatrix(60.0f, (float)game.getScreenWidth(), (float)game.getScreenHeight(), 0.1f, 100.0f);
-	camera.createNewOrthographicMatrix((float)game.getScreenWidth(), (float)game.getScreenHeight());
+	camera.createNewPerspectiveMatrix(60.0f, (float)state->screen_width, (float)state->screen_height, 0.1f, 100.0f);
+	camera.createNewOrthographicMatrix((float)state->screen_width, (float)state->screen_height);
 	camera.setPosition(glm::vec3(0.0f, 0.0f, 20.0f));
 	camera.setOffset(0.0f, -7.5f, 0.0f);
 
@@ -31,7 +38,7 @@ GameScene::GameScene(Game& game, int level, Weapon* weapon) : Scene(game), world
 
 	while (true)
 	{
-		tilemap = new Tilemap(glm::vec3(0.0f), game.getAssetManager(), camera, world);
+		tilemap = new Tilemap(glm::vec3(0.0f), state->assets, camera, world);
 		tilemap->generate(7 + level * 4, 7 + level * 4);
 
 		if (tilemap->getNumberOfStartingPositions() > 1) break;
@@ -58,14 +65,14 @@ void GameScene::update(float deltaTime)
 {
 	accumulator += deltaTime;
 
-	while (accumulator >= step)
+	while (accumulator >= state->step)
 	{
-		world.Step(step, 8, 3);
-		accumulator -= step;
+		world.Step(state->step, 8, 3);
+		accumulator -= state->step;
 		gameObjectManager.update();
 	}
 
-	gameObjectManager.interpolate(accumulator / step);
+	gameObjectManager.interpolate(accumulator / state->step);
 
 	if (!gameEnding && gameObjectManager.getNumberOfObjectsOfType(GAMEOBJECT_TYPES::PLAYER) == 0)
 	{
@@ -78,7 +85,7 @@ void GameScene::update(float deltaTime)
 		if (!Mix_Playing(playerDyingChannel))
 		{
 			Mix_HaltChannel(-1);
-			game.getSceneManager().change(new MenuScene(game));
+			state->scenes.change(new MenuScene(state));
 		}
 	}
 	else if (gameObjectManager.getNumberOfObjectsOfType(GAMEOBJECT_TYPES::ENEMY) == 0)
@@ -86,7 +93,7 @@ void GameScene::update(float deltaTime)
 		Weapon* weapon = gameObjectManager.getFirstObjectOfType(GAMEOBJECT_TYPES::PLAYER)->getComponent<PlayerController>()->getWeapon()->getCopy();
 		
 		std::cout << "PLAYER WON - cleared level " << level << std::endl;
-		game.getSceneManager().change(new GameScene(game, level + 1, weapon));
+		state->scenes.change(new GameScene(state, level + 1, weapon));
 	}
 }
 
@@ -103,7 +110,7 @@ void GameScene::handleEvent(SDL_Event& event)
 		if (event.key.keysym.sym == SDLK_ESCAPE)
 		{
 			Mix_HaltChannel(-1);
-			game.getSceneManager().change(new MenuScene(game));
+			state->scenes.change(new MenuScene(state));
 		}
 	}
 }

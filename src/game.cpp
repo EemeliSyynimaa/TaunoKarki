@@ -5,13 +5,17 @@
 #include "menuscene.h"
 #include "locator.h"
 
-
-Game::Game() : screenWidth(1280), screenHeight(720), running(true), step(1.0f / 60.0f)
+void game_init(game_state_t* state)
 {
-	int SDLResult = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+	state->screen_width = 1280;
+	state->screen_height = 720;
+	state->running = 1;
+	state->step = 1.0f / 60.0f;
+
+	int32_t SDLResult = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 	assert(SDLResult == 0);
 
-	int mixResult = Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 1024);
+	int32_t mixResult = Mix_OpenAudio(MIX_DEFAULT_FREQUENCY, MIX_DEFAULT_FORMAT, 2, 1024);
 	assert(mixResult == 0);
 
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
@@ -26,73 +30,74 @@ Game::Game() : screenWidth(1280), screenHeight(720), running(true), step(1.0f / 
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, 1);
 	SDL_GL_SetAttribute(SDL_GL_MULTISAMPLESAMPLES, 16);
 
-	window = SDL_CreateWindow("Tauno Kaerki", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-		screenWidth, screenHeight, SDL_WINDOW_OPENGL );
+	state->window = SDL_CreateWindow("Tauno Kaerki", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+		state->screen_width, state->screen_height, SDL_WINDOW_OPENGL );
 
-	assert(window != nullptr);
+	assert(state->window != nullptr);
 
-	context = SDL_GL_CreateContext(window);
+	state->context = SDL_GL_CreateContext(state->window);
 
-	assert(context != nullptr);
+	assert(state->context != nullptr);
 
 	glewExperimental = GL_TRUE;
 	const GLenum glewResult = glewInit();
 	assert(glewResult == GLEW_OK);
 	glGetError();
 
-	int versionMajor = 0;
-	int versionMinor = 0;
-	glGetIntegerv(GL_MAJOR_VERSION, &versionMajor);
-	glGetIntegerv(GL_MINOR_VERSION, &versionMinor);
-	std::cout << "OpenGL context version: " << versionMajor << "." << versionMinor << std::endl;
+	int32_t version_major = 0;
+	int32_t version_minor = 0;
+	glGetIntegerv(GL_MAJOR_VERSION, &version_major);
+	glGetIntegerv(GL_MINOR_VERSION, &version_minor);
+	printf("OpenGL context version: %d.%d\n", version_major, version_minor);
 
-	int parameter;
-	glGetIntegerv(GL_SAMPLES, &parameter);
-	std::cout << "Multisampling samples: " << parameter << '\n';
+	int32_t samples = 0;
+	glGetIntegerv(GL_SAMPLES, &samples);
+	printf("Multisampling samples: %d\n", samples);
 	
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
 	glEnable(GL_CULL_FACE);
 
-	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO);
+	glGenVertexArrays(1, &state->VAO);
+	glBindVertexArray(state->VAO);
 
 	Mix_Init(MIX_INIT_MOD | MIX_INIT_MP3);
 	Mix_Volume(-1, MIX_MAX_VOLUME / 2);
 	Mix_AllocateChannels(128);
 
 	Locator::init();
-	Locator::provideAudio(&gameAudio);
-	Locator::provideAssetManager(&assetManager);
+	Locator::provideAudio(&state->audio);
+	Locator::provideAssetManager(&state->assets);
 
-	assetManager.loadAssets();
-	sceneManager.change(new MenuScene(*this));
+	state->assets.loadAssets();
+	state->scenes.change(new MenuScene(state));
 }
 
-Game::~Game()
+void game_deinit(game_state_t* state)
 {
+	// Todo: necessary?
 	Mix_CloseAudio();
 	Mix_Quit();
 
-	glDeleteVertexArrays(1, &VAO);
+	glDeleteVertexArrays(1, &state->VAO);
 
-	SDL_GL_DeleteContext(context);
-	SDL_DestroyWindow(window);
+	SDL_GL_DeleteContext(state->context);
+	SDL_DestroyWindow(state->window);
 	SDL_Quit();
 }
 
-void Game::run()
+void game_run(game_state_t* state)
 {
-	float deltaTime = 0.0f;
-	float newTime = 0.0f;
-	float currentTime = SDL_GetTicks() / 1000.0f;
+	float time_delta = 0.0f;
+	float time_new = 0.0f;
+	float time_current = SDL_GetTicks() / 1000.0f;
 	SDL_Event event;
 
-	while (running)
+	while (state->running)
 	{
-		newTime = SDL_GetTicks() / 1000.0f;
-		deltaTime = std::min(newTime - currentTime, 0.25f);
-		currentTime = newTime;
+		time_new = SDL_GetTicks() / 1000.0f;
+		time_delta = std::min(time_new - time_current, 0.25f);
+		time_current = time_new;
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -100,23 +105,14 @@ void Game::run()
 		{
 			if (event.type == SDL_QUIT)
 			{
-				running = false;
+				state->running = 0;
 			}
-			sceneManager.handleEvent(event);
+
+			state->scenes.handleEvent(event);
 		}
 
-		update(deltaTime);
-		draw();
+		state->scenes.update(time_delta);
+		state->scenes.draw();
+		SDL_GL_SwapWindow(state->window);
 	}
-}
-
-void Game::update(float deltaTime)
-{
-	sceneManager.update(deltaTime);
-}
-
-void Game::draw()
-{
-	sceneManager.draw();
-	SDL_GL_SwapWindow(window);
 }

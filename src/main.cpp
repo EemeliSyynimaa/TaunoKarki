@@ -82,7 +82,11 @@
 
 int main(int argc, char** argv)
 {
-    Game().run();
+    game_state_t state;
+
+    game_init(&state);
+    game_run(&state);
+    game_deinit(&state);
 
     return 0;
 }

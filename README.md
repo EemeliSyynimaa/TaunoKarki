@@ -11,11 +11,11 @@ Features:
  - Weapons level up
  - Beautiful pixel art
  - Sounds borrowed from Unity's example project
+ - Unity build
+ - Build and run from terminal
 
 To do:
  - Linux support
- - Unity build
- - Build and run from terminal
  - Rewrite in C
  - No additional libraries
   - Software rendering

@@ -4,12 +4,12 @@
 #include "menubutton.h"
 #include <iostream>
 
-MenuScene::MenuScene(Game& game) : Scene(game), gameObjectManager(game.getAssetManager(), camera)
+MenuScene::MenuScene(game_state_t* state) : Scene(state), gameObjectManager(state->assets, camera)
 {
 	std::cout << "MENUSCENE ALIVE" << std::endl;
 
-	camera.createNewPerspectiveMatrix(90.0f, (float)game.getScreenWidth(), (float)game.getScreenHeight(), 0.1f, 100.0f);
-	camera.createNewOrthographicMatrix((float)game.getScreenWidth(), (float)game.getScreenHeight());
+	camera.createNewPerspectiveMatrix(90.0f, (float)state->screen_width, (float)state->screen_height, 0.1f, 100.0f);
+	camera.createNewOrthographicMatrix((float)state->screen_width, (float)state->screen_height);
 	camera.setPosition(glm::vec3(0.0f, 0.0f, 30.0f));
 	camera.setOffset(0.0f, 0.0f, 0.0f);
 	camera.follow(glm::vec2(0.0f, 0.0f));
@@ -90,18 +90,18 @@ void MenuScene::update(float deltaTime)
 {
 	accumulator += deltaTime;
 
-	while (accumulator >= step)
+	while (accumulator >= state->step)
 	{
-		accumulator -= step;
+		accumulator -= state->step;
 		gameObjectManager.update();
 	}
 
-	gameObjectManager.interpolate(accumulator / step);
+	gameObjectManager.interpolate(accumulator / state->step);
 
 	if (MenuButton::startGame)
-		game.getSceneManager().change(new GameScene(game, 1, nullptr));
+		state->scenes.change(new GameScene(state, 1, nullptr));
 	else if (MenuButton::exitGame)
-		game.stop();
+		state->running = 0;
 }
 
 void MenuScene::draw()
@@ -114,6 +114,6 @@ void MenuScene::handleEvent(SDL_Event& event)
 	if (event.type == SDL_KEYDOWN)
 	{
 		if (event.key.keysym.sym == SDLK_ESCAPE)
-			game.stop();
+			state->running = 0;
 	}
 }
