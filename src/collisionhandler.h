@@ -8,14 +8,14 @@ class GameObject;
 class CollisionHandler : public b2ContactListener
 {
 public:
-	CollisionHandler();
-	~CollisionHandler();
+    CollisionHandler();
+    ~CollisionHandler();
 
-	void BeginContact(b2Contact* contact);
-	void EndContact(b2Contact* contact);
+    void BeginContact(b2Contact* contact);
+    void EndContact(b2Contact* contact);
 
 private:
-	void handleCollision(GameObject* gameObjectA, GameObject* gameObjectB);
+    void handleCollision(GameObject* gameObjectA, GameObject* gameObjectB);
 };
 
 #endif

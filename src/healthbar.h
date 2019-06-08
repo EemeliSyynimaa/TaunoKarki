@@ -6,10 +6,10 @@
 class HealthBar : public GuiBar
 {
 public:
-	HealthBar(GameObject* owner);
-	~HealthBar();
+    HealthBar(GameObject* owner);
+    ~HealthBar();
 
-	void update();
+    void update();
 };
 
 #endif

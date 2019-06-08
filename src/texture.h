@@ -8,17 +8,17 @@
 class Texture
 {
 public:
-	Texture(GLenum target, const std::string& path);
-	~Texture();
+    Texture(GLenum target, const std::string& path);
+    ~Texture();
 
-	void bind(GLenum target);
+    void bind(GLenum target);
 
-	GLuint getID() { return ID; }
+    GLuint getID() { return ID; }
 private:
-	GLuint ID;
-	GLuint width;
-	GLuint height;
-	GLenum target;
+    GLuint ID;
+    GLuint width;
+    GLuint height;
+    GLenum target;
 };
 
 #endif

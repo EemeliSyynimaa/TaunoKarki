@@ -6,27 +6,27 @@ AssetManager* Locator::assetManager;
 
 void Locator::init()
 {
-	audio = &null;
-	assetManager = nullptr;
+    audio = &null;
+    assetManager = nullptr;
 }
 
 AssetManager* Locator::getAssetManager()
 {
-	return assetManager;
+    return assetManager;
 }
 
 Audio* Locator::getAudio()
 {
-	return audio;
+    return audio;
 }
 
 void Locator::provideAudio(Audio* service)
 {
-	if (service) audio = service;
-	else audio = &null;
+    if (service) audio = service;
+    else audio = &null;
 }
 void Locator::provideAssetManager(AssetManager* service)
 {
-	assert(service);
-	assetManager = service;
+    assert(service);
+    assetManager = service;
 }

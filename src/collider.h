@@ -7,14 +7,14 @@
 class Collider : public Component
 {
 public:
-	Collider(GameObject* owner, uint16 categoryBits, uint16 maskBits) : Component(owner) { fixtureDef.filter.maskBits = maskBits; fixtureDef.filter.categoryBits = categoryBits; }
-	~Collider() {};
+    Collider(GameObject* owner, uint16 categoryBits, uint16 maskBits) : Component(owner) { fixtureDef.filter.maskBits = maskBits; fixtureDef.filter.categoryBits = categoryBits; }
+    ~Collider() {};
 
-	void update() {};
-	b2FixtureDef& getFixtureDef() { return fixtureDef; }
+    void update() {};
+    b2FixtureDef& getFixtureDef() { return fixtureDef; }
 
 protected:
-	b2FixtureDef fixtureDef;
+    b2FixtureDef fixtureDef;
 };
 
 #endif

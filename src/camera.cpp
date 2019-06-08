@@ -11,28 +11,28 @@ Camera::~Camera()
 
 void Camera::createNewPerspectiveMatrix(float fov, float width, float height, float near, float far)
 {
-	perspectiveMatrix = glm::perspective(glm::radians(fov), width/height, near, far);
-	this->width = width;
-	this->height = height;
+    perspectiveMatrix = glm::perspective(glm::radians(fov), width/height, near, far);
+    this->width = width;
+    this->height = height;
 }
 
 void Camera::createNewOrthographicMatrix(float width, float height)
 {
-	orthographicMatrix = glm::ortho(0.0f, width, height, 0.0f, 0.0f, 100.0f);
+    orthographicMatrix = glm::ortho(0.0f, width, height, 0.0f, 0.0f, 100.0f);
 }
 
 void Camera::follow(glm::vec2 pos)
 {
-	position.x = pos.x;
-	position.y = pos.y;
+    position.x = pos.x;
+    position.y = pos.y;
 
-	viewMatrix = glm::lookAt(
-		glm::vec3(position.x + offset.x, position.y + offset.y, position.z + offset.z),
-		glm::vec3(position.x, position.y, 0),
-		glm::vec3(0, 1, 0));
+    viewMatrix = glm::lookAt(
+        glm::vec3(position.x + offset.x, position.y + offset.y, position.z + offset.z),
+        glm::vec3(position.x, position.y, 0),
+        glm::vec3(0, 1, 0));
 
-	viewMatrixWithoutOffset = glm::lookAt(
-		glm::vec3(position.x, position.y, position.z),
-		glm::vec3(position.x, position.y, 0),
-		glm::vec3(0, 1, 0));
+    viewMatrixWithoutOffset = glm::lookAt(
+        glm::vec3(position.x, position.y, position.z),
+        glm::vec3(position.x, position.y, 0),
+        glm::vec3(0, 1, 0));
 }

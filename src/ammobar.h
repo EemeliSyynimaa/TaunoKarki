@@ -6,10 +6,10 @@
 class AmmoBar : public GuiBar
 {
 public:
-	AmmoBar(GameObject* owner);
-	~AmmoBar();
+    AmmoBar(GameObject* owner);
+    ~AmmoBar();
 
-	void update();
+    void update();
 };
 
 #endif

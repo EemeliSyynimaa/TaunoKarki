@@ -6,15 +6,15 @@
 class Shotgun : public Weapon
 {
 public:
-	Shotgun(GameObjectManager& gameObjectManager);
-	~Shotgun();
+    Shotgun(GameObjectManager& gameObjectManager);
+    ~Shotgun();
 
-	void update();
-	Weapon* getCopy() { return new Shotgun(*this); }
+    void update();
+    Weapon* getCopy() { return new Shotgun(*this); }
 private:
-	Uint32 lastShot;
-	bool fired;
-	size_t numberOfShells;
+    Uint32 lastShot;
+    bool fired;
+    size_t numberOfShells;
 };
 
 #endif

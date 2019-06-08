@@ -6,13 +6,13 @@
 class Pistol : public Weapon
 {
 public:
-	Pistol(GameObjectManager& gameObjectManager);
-	~Pistol();
+    Pistol(GameObjectManager& gameObjectManager);
+    ~Pistol();
 
-	void update();
-	Weapon* getCopy() { return new Pistol(*this); }
+    void update();
+    Weapon* getCopy() { return new Pistol(*this); }
 private:
-	bool fired;
+    bool fired;
 };
 
 #endif

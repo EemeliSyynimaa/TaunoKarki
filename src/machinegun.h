@@ -6,13 +6,13 @@
 class MachineGun : public Weapon
 {
 public:
-	MachineGun(GameObjectManager& gameObjectManager);
-	~MachineGun();
+    MachineGun(GameObjectManager& gameObjectManager);
+    ~MachineGun();
 
-	void update();
-	Weapon* getCopy() { return new MachineGun(*this); }
+    void update();
+    Weapon* getCopy() { return new MachineGun(*this); }
 private:
-	Uint32 lastShot;
+    Uint32 lastShot;
 };
 
 #endif

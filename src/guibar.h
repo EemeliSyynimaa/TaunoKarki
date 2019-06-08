@@ -9,17 +9,17 @@
 class GuiBar : public Component
 {
 public:
-	GuiBar(GameObject* owner) : Component(owner), transform(owner->getComponent<Transform>())
-	{
-		assert(transform);
-	}
-	~GuiBar() {}
+    GuiBar(GameObject* owner) : Component(owner), transform(owner->getComponent<Transform>())
+    {
+        assert(transform);
+    }
+    ~GuiBar() {}
 
-	void setOffsetPosition(glm::vec3 pos) { offsetPosition = pos; }
-	virtual void update() = 0;
+    void setOffsetPosition(glm::vec3 pos) { offsetPosition = pos; }
+    virtual void update() = 0;
 protected:
-	Transform* transform;
-	glm::vec3 offsetPosition;
+    Transform* transform;
+    glm::vec3 offsetPosition;
 };
 
 #endif

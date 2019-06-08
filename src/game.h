@@ -11,16 +11,16 @@
 
 typedef struct game_state_t
 {
-	SDL_Window* window;
-	SDL_GLContext context;
-	GLuint VAO;
-	int32_t screen_width;
-	int32_t screen_height;
-	int32_t running;
-	float step;
-	SceneManager scenes;
-	AssetManager assets;
-	GameAudio audio;
+    SDL_Window* window;
+    SDL_GLContext context;
+    GLuint VAO;
+    int32_t screen_width;
+    int32_t screen_height;
+    int32_t running;
+    float step;
+    SceneManager scenes;
+    AssetManager assets;
+    GameAudio audio;
 
 } game_state_t;
 

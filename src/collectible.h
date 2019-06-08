@@ -8,15 +8,15 @@
 class Collectible : public Component
 {
 public:
-	Collectible(GameObject* owner);
-	~Collectible();
+    Collectible(GameObject* owner);
+    ~Collectible();
 
-	void update();
-	void setType(COLLECTIBLES type) { this->type = type; }
-	COLLECTIBLES getType() { return type; }
+    void update();
+    void setType(COLLECTIBLES type) { this->type = type; }
+    COLLECTIBLES getType() { return type; }
 private:
-	Transform* transform;
-	COLLECTIBLES type;
+    Transform* transform;
+    COLLECTIBLES type;
 };
 
 #endif

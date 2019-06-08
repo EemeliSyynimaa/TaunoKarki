@@ -7,14 +7,14 @@ class GameObject;
 class Component
 {
 public:
-	Component(GameObject* owner);
-	virtual ~Component();
+    Component(GameObject* owner);
+    virtual ~Component();
 
-	virtual void update() = 0;
+    virtual void update() = 0;
 
-	GameObject* getOwner() { return owner; }
+    GameObject* getOwner() { return owner; }
 protected:
-	GameObject* owner;
+    GameObject* owner;
 };
 
 #endif

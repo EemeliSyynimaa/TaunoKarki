@@ -13,94 +13,94 @@ GameObject::GameObject(GameObjectManager& gameObjectManager) : gameObjectManager
 
 GameObject::~GameObject()
 {
-	for (auto component : components)
-		delete component;
+    for (auto component : components)
+        delete component;
 
-	for (auto component : drawableComponents)
-		delete component;
+    for (auto component : drawableComponents)
+        delete component;
 
-	components.clear();
-	drawableComponents.clear();
+    components.clear();
+    drawableComponents.clear();
 }
 
 void GameObject::addComponent(Component* component)
 {
-	components.push_back(component);
+    components.push_back(component);
 }
 
 void GameObject::addDrawableComponent(Component* component)
 {
-	drawableComponents.push_back(component);
+    drawableComponents.push_back(component);
 }
 
 void GameObject::update()
 {
-	for (auto component : components)
-		component->update();
+    for (auto component : components)
+        component->update();
 }
 
 void GameObject::draw()
 {
-	for (auto component : drawableComponents)
-		component->update();
+    for (auto component : drawableComponents)
+        component->update();
 }
 
 void GameObject::handleCollisionWith(GameObject* gameObject)
 {
-	switch (type)
-	{
-	case PLAYER:
-	{
-		if (gameObject)
-		{
-			switch (gameObject->getType())
-			{
-			case ENEMY_BULLET:
-			case ENEMY:
-			{
-				getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage());
+    switch (type)
+    {
+    case PLAYER:
+    {
+        if (gameObject)
+        {
+            switch (gameObject->getType())
+            {
+            case ENEMY_BULLET:
+            case ENEMY:
+            {
+                getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage());
 
-				if (isAlive())
-					getComponent<PlayerController>()->playerAudioChannel = Locator::getAudio()->playSound(Locator::getAssetManager()->playerHitSound, getComponent<PlayerController>()->playerAudioChannel);
-			} break;
-			case ITEM: getComponent<PlayerController>()->handleItem(gameObject->getComponent<Collectible>()->getType()); Locator::getAudio()->playSound(Locator::getAssetManager()->powerupSound); break;
-			default: break;
-			}
-		}
-		break;
-	}
-	case ENEMY:
-	{
-		if (gameObject)
-		{
-			switch (gameObject->getType())
-			{
-			case PLAYER_BULLET:
-			{
-				getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage());
+                if (isAlive())
+                    getComponent<PlayerController>()->playerAudioChannel = Locator::getAudio()->playSound(Locator::getAssetManager()->playerHitSound, getComponent<PlayerController>()->playerAudioChannel);
+            } break;
+            case ITEM: getComponent<PlayerController>()->handleItem(gameObject->getComponent<Collectible>()->getType()); Locator::getAudio()->playSound(Locator::getAssetManager()->powerupSound); break;
+            default: break;
+            }
+        }
+        break;
+    }
+    case ENEMY:
+    {
+        if (gameObject)
+        {
+            switch (gameObject->getType())
+            {
+            case PLAYER_BULLET:
+            {
+                getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage());
 
-				if (!isAlive() && !getComponent<AIController>()->droppedItem)
-				{
-					getComponent<AIController>()->AIAudioChannel = Locator::getAudio()->playSound(Locator::getAssetManager()->enemyDeadSound, getComponent<AIController>()->AIAudioChannel);
-					gameObjectManager.addNewObject([this]()
-					{
-						this->gameObjectManager.createRandomItem(this->getComponent<Transform>()->getPosition());
-					});
+                if (!isAlive() && !getComponent<AIController>()->droppedItem)
+                {
+                    getComponent<AIController>()->AIAudioChannel = Locator::getAudio()->playSound(Locator::getAssetManager()->enemyDeadSound, getComponent<AIController>()->AIAudioChannel);
+                    gameObjectManager.addNewObject([this]()
+                    {
+                        this->gameObjectManager.createRandomItem(this->getComponent<Transform>()->getPosition());
+                    });
 
-					getComponent<AIController>()->droppedItem = true;
-				}
+                    getComponent<AIController>()->droppedItem = true;
+                }
 
-				getComponent<AIController>()->gotShot(gameObject->getComponent<Transform>()->getPosition());
-			} 
-			break;
-			default: break;
-			}
-		}
-		break;
-	}
-	case PLAYER_BULLET: kill(); break;
-	case ENEMY_BULLET: kill(); break;
-	case ITEM: kill(); break;
-	default: break;
-	}
+                getComponent<AIController>()->gotShot(gameObject->getComponent<Transform>()->getPosition());
+            } 
+            break;
+            default: break;
+            }
+        }
+        break;
+    }
+    case PLAYER_BULLET: kill(); break;
+    case ENEMY_BULLET: kill(); break;
+    case ITEM: kill(); break;
+    default: break;
+    }
 }

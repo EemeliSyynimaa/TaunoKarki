@@ -7,19 +7,19 @@
 class MenuButton : public Component
 {
 public:
-	MenuButton(GameObject* owner, int id);
-	~MenuButton();
+    MenuButton(GameObject* owner, int id);
+    ~MenuButton();
 
-	void update();
-	bool selected() { return id == state; }
-	static bool exitGame;
-	static bool startGame;
+    void update();
+    bool selected() { return id == state; }
+    static bool exitGame;
+    static bool startGame;
 private:
-	int id;
-	static int state;
-	static int maxStates;
-	static bool arrowPressed;
-	const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
+    int id;
+    static int state;
+    static int maxStates;
+    static bool arrowPressed;
+    const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
 };
 
 #endif

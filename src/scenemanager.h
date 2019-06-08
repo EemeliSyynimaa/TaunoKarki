@@ -8,19 +8,19 @@
 class SceneManager
 {
 public:
-	SceneManager();
-	~SceneManager();
+    SceneManager();
+    ~SceneManager();
 
-	void update(float deltaTime);
-	void draw();
+    void update(float deltaTime);
+    void draw();
 
-	void push(Scene* scene);
-	void pop();
-	void change(Scene* scene);
-	void handleEvent(SDL_Event& event);
+    void push(Scene* scene);
+    void pop();
+    void change(Scene* scene);
+    void handleEvent(SDL_Event& event);
 private:
 
-	std::vector<Scene*> scenes;
+    std::vector<Scene*> scenes;
 };
 
 #endif

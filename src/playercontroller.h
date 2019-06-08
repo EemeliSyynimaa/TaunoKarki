@@ -10,21 +10,21 @@
 class PlayerController : public Component
 {
 public:
-	PlayerController(GameObject* owner);
-	~PlayerController();
+    PlayerController(GameObject* owner);
+    ~PlayerController();
 
-	void update();
-	void giveWeapon(Weapon* weapon, bool instantReload = false);
-	Weapon* getWeapon() { return weapon; }
-	void handleItem(COLLECTIBLES item);
-	
-	int playerAudioChannel;
+    void update();
+    void giveWeapon(Weapon* weapon, bool instantReload = false);
+    Weapon* getWeapon() { return weapon; }
+    void handleItem(COLLECTIBLES item);
+    
+    int playerAudioChannel;
 private:
-	const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
-	b2Body* body;
-	Transform* transform;
-	Weapon* weapon;
-	float moveSpeed;
+    const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
+    b2Body* body;
+    Transform* transform;
+    Weapon* weapon;
+    float moveSpeed;
 };
 
 #endif

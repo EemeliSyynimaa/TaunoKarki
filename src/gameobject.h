@@ -8,64 +8,64 @@
 
 const enum GAMEOBJECT_TYPES
 {
-	PLAYER = 0,
-	ENEMY,
-	PLAYER_BULLET,
-	ENEMY_BULLET,
-	WALL,
-	GUI,
-	ITEM
+    PLAYER = 0,
+    ENEMY,
+    PLAYER_BULLET,
+    ENEMY_BULLET,
+    WALL,
+    GUI,
+    ITEM
 };
 
 class GameObject
 {
 public:
-	GameObject(GameObjectManager& gameObjectManager);
-	~GameObject();
+    GameObject(GameObjectManager& gameObjectManager);
+    ~GameObject();
 
-	void addComponent(Component* component);
-	void addDrawableComponent(Component* component);
+    void addComponent(Component* component);
+    void addDrawableComponent(Component* component);
 
-	template<class T> 
-	T* const getComponent() const {
-		T* foundComponent = nullptr;
+    template<class T> 
+    T* const getComponent() const {
+        T* foundComponent = nullptr;
 
-		std::find_if(components.begin(), components.end(), [=, &foundComponent](Component* component) {
-			foundComponent = dynamic_cast<T*>(component);
+        std::find_if(components.begin(), components.end(), [=, &foundComponent](Component* component) {
+            foundComponent = dynamic_cast<T*>(component);
 
-			return foundComponent != nullptr;
-		});
+            return foundComponent != nullptr;
+        });
 
-		return foundComponent;
-	}
+        return foundComponent;
+    }
 
-	template<class TB>
-	TB* const getDrawableComponent() const {
-		TB* foundComponent = nullptr;
+    template<class TB>
+    TB* const getDrawableComponent() const {
+        TB* foundComponent = nullptr;
 
-		std::find_if(drawableComponents.begin(), drawableComponents.end(), [=, &foundComponent](Component* component) {
-			foundComponent = dynamic_cast<TB*>(component);
+        std::find_if(drawableComponents.begin(), drawableComponents.end(), [=, &foundComponent](Component* component) {
+            foundComponent = dynamic_cast<TB*>(component);
 
-			return foundComponent != nullptr;
-		});
+            return foundComponent != nullptr;
+        });
 
-		return foundComponent;
-	}
+        return foundComponent;
+    }
 
-	void update();
-	void draw();
+    void update();
+    void draw();
 
-	GameObjectManager& gameObjectManager;
-	bool isAlive() { return alive; }
-	void kill() { alive = false; }
-	unsigned int getType() { return type; }
-	void setType(unsigned int type) { this->type = type; }
-	void handleCollisionWith(GameObject* gameObject);
+    GameObjectManager& gameObjectManager;
+    bool isAlive() { return alive; }
+    void kill() { alive = false; }
+    unsigned int getType() { return type; }
+    void setType(unsigned int type) { this->type = type; }
+    void handleCollisionWith(GameObject* gameObject);
 private:
-	std::vector<Component*> components;
-	std::vector<Component*> drawableComponents;
-	bool alive;
-	unsigned int type;
+    std::vector<Component*> components;
+    std::vector<Component*> drawableComponents;
+    bool alive;
+    unsigned int type;
 };
 
 #endif

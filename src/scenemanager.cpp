@@ -8,47 +8,47 @@ SceneManager::SceneManager()
 
 SceneManager::~SceneManager()
 {
-	for (auto& scene : scenes)
-	{
-		delete scene;
-	}
+    for (auto& scene : scenes)
+    {
+        delete scene;
+    }
 
-	scenes.clear();
+    scenes.clear();
 }
 
 void SceneManager::update(float deltaTime)
 {
-	scenes.back()->update(deltaTime);
+    scenes.back()->update(deltaTime);
 }
 
 void SceneManager::draw()
 {
-	scenes.back()->draw();
+    scenes.back()->draw();
 }
 
 void SceneManager::handleEvent(SDL_Event& event)
 {
-	scenes.back()->handleEvent(event);
+    scenes.back()->handleEvent(event);
 }
 
 void SceneManager::push(Scene* scene)
 {
-	scenes.push_back(scene);
+    scenes.push_back(scene);
 }
 
 void SceneManager::pop()
 {
-	delete scenes.back();
-	scenes.pop_back();
+    delete scenes.back();
+    scenes.pop_back();
 }
 
 void SceneManager::change(Scene* scene)
 {
-	if (!scenes.empty())
-	{
-		delete scenes.back();
-		scenes.pop_back();
-	}
-		
-	scenes.push_back(scene);
+    if (!scenes.empty())
+    {
+        delete scenes.back();
+        scenes.pop_back();
+    }
+        
+    scenes.push_back(scene);
 }

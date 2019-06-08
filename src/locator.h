@@ -7,15 +7,15 @@
 class Locator
 {
 public:
-	static void init();
-	static Audio* getAudio();
-	static AssetManager* getAssetManager();
-	static void provideAudio(Audio* service);
-	static void provideAssetManager(AssetManager* service);
+    static void init();
+    static Audio* getAudio();
+    static AssetManager* getAssetManager();
+    static void provideAudio(Audio* service);
+    static void provideAssetManager(AssetManager* service);
 private:
-	static Audio* audio;
-	static NullAudio null;
-	static AssetManager* assetManager;
+    static Audio* audio;
+    static NullAudio null;
+    static AssetManager* assetManager;
 };
 
 #endif

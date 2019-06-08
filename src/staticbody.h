@@ -9,15 +9,15 @@
 class StaticBody : public Component
 {
 public:
-	StaticBody(GameObject* owner, b2World& world);
-	~StaticBody();
+    StaticBody(GameObject* owner, b2World& world);
+    ~StaticBody();
 
-	void update();
+    void update();
 private:
-	b2Body* body;
-	b2World& world;
-	Transform* transform;
-	Collider* collider;
+    b2Body* body;
+    b2World& world;
+    Transform* transform;
+    Collider* collider;
 };
 
 #endif

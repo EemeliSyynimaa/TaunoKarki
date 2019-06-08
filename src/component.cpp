@@ -3,7 +3,7 @@
 
 Component::Component(GameObject* owner) : owner(owner)
 {
-	assert(owner);
+    assert(owner);
 }
 
 Component::~Component()

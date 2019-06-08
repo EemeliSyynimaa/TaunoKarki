@@ -16,7 +16,7 @@ void Health::update()
 
 void Health::change(float amount)
 {
-	current += amount;
-	if (current > max) current = max;
-	else if (current <= 0) owner->kill();
+    current += amount;
+    if (current > max) current = max;
+    else if (current <= 0) owner->kill();
 }
