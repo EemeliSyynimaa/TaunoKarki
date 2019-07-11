@@ -12,7 +12,7 @@ public:
     void update();
     Weapon* getCopy() { return new MachineGun(*this); }
 private:
-    Uint32 lastShot;
+    uint32_t lastShot;
 };
 
 #endif

@@ -10,8 +10,9 @@ HealthBar::~HealthBar()
 {
 }
 
-void HealthBar::update()
+void HealthBar::update(tk_state_player_input_t* input)
 {
+    (void)input;
     glm::vec3 position;
     position.x = owner->gameObjectManager.getCamera().getPosition().x + offsetPosition.x;
     position.y = owner->gameObjectManager.getCamera().getPosition().y + offsetPosition.y;

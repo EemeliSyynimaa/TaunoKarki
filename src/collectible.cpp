@@ -11,7 +11,8 @@ Collectible::~Collectible()
 {
 }
 
-void Collectible::update()
+void Collectible::update(tk_state_player_input_t* input)
 {
+    (void)input;
     transform->rotate(0.07f, glm::vec3(0.0f, 0.0f, -1.0f));
 }

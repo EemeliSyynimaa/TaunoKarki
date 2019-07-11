@@ -4,7 +4,7 @@
 #include "menubutton.h"
 #include <iostream>
 
-MenuScene::MenuScene(game_state_t* state) : Scene(state), gameObjectManager(state->assets, camera)
+MenuScene::MenuScene(tk_game_state_t* state) : Scene(state), gameObjectManager(state->assets, camera)
 {
     std::cout << "MENUSCENE ALIVE" << std::endl;
 
@@ -86,34 +86,32 @@ void MenuScene::writeText(char* text, int width, int height, glm::vec2 pos, bool
     }
 }
 
-void MenuScene::update(float deltaTime)
+void MenuScene::update(float deltaTime, tk_state_player_input_t* input)
 {
-    accumulator += deltaTime;
-
-    while (accumulator >= state->step)
+    if (input->menu_escape)
     {
-        accumulator -= state->step;
-        gameObjectManager.update();
-    }
-
-    gameObjectManager.interpolate(accumulator / state->step);
-
-    if (MenuButton::startGame)
-        state->scenes.change(new GameScene(state, 1, nullptr));
-    else if (MenuButton::exitGame)
         state->running = 0;
+    }
+    else
+    {
+        accumulator += deltaTime;
+
+        while (accumulator >= state->step)
+        {
+            accumulator -= state->step;
+            gameObjectManager.update(input);
+        }
+
+        gameObjectManager.interpolate(accumulator / state->step);
+
+        if (MenuButton::startGame)
+            state->scenes.change(new GameScene(state, 1, nullptr));
+        else if (MenuButton::exitGame)
+            state->running = 0;       
+    }
 }
 
 void MenuScene::draw()
 {
     gameObjectManager.draw();
-}
-
-void MenuScene::handleEvent(SDL_Event& event)
-{
-    if (event.type == SDL_KEYDOWN)
-    {
-        if (event.key.keysym.sym == SDLK_ESCAPE)
-            state->running = 0;
-    }
 }

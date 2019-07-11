@@ -49,11 +49,11 @@ void GameObjectManager::addNewObject(std::function< void(void)> gameObject)
     newObjects.push_back(gameObject);
 }
 
-void GameObjectManager::update()
+void GameObjectManager::update(tk_state_player_input_t* input)
 {
     for (auto gameObject : gameObjects)
     {
-        gameObject->update();
+        gameObject->update(input);
         if (!gameObject->isAlive()) deadObjects.push_back(gameObject);
     }
 

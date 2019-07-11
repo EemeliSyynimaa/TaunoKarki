@@ -2,7 +2,6 @@
 #define PLAYERCONTROLLER_H
 
 #include "component.h"
-#include "SDL\SDL.h"
 #include "Box2D\Box2D.h"
 #include "transform.h"
 #include "weapon.h"
@@ -13,14 +12,13 @@ public:
     PlayerController(GameObject* owner);
     ~PlayerController();
 
-    void update();
+    void update(tk_state_player_input_t* input);
     void giveWeapon(Weapon* weapon, bool instantReload = false);
     Weapon* getWeapon() { return weapon; }
     void handleItem(COLLECTIBLES item);
     
     int playerAudioChannel;
 private:
-    const Uint8* keyboardState = SDL_GetKeyboardState(NULL);
     b2Body* body;
     Transform* transform;
     Weapon* weapon;

@@ -1,7 +1,6 @@
 #ifndef GAMESCENE_H
 #define GAMESCENE_H
 
-#include "SDL/SDL_events.h"
 #include "scene.h"
 #include "tilemap.h"
 #include "camera.h"
@@ -13,12 +12,11 @@
 class GameScene : public Scene
 {
 public:
-    GameScene(game_state_t* state, int level, Weapon* weapon);
+    GameScene(tk_game_state_t* state, int level, Weapon* weapon);
     ~GameScene();
 
-    void update(float deltaTime);
+    void update(float deltaTime, tk_state_player_input_t* input);
     void draw();
-    void handleEvent(SDL_Event& event);
     void endGame();
 private:
     b2World world;

@@ -25,7 +25,7 @@ PlayerController::~PlayerController()
     delete weapon;
 }
 
-void PlayerController::update()
+void PlayerController::update(tk_state_player_input_t* input)
 {
     b2Vec2 desiredVelocity(0.0f, 0.0f);
     b2Vec2 velocityChange(0.0f, 0.0f);
@@ -34,23 +34,18 @@ void PlayerController::update()
     glm::vec3 mouseCoords(0.0f, 0.0f, 0.0f);
     int x = 0, y = 0;
     float halfX = 0.0f, halfY = 0.0f;
-    Uint8 mouseState = SDL_GetMouseState(&x, &y);
 
-    if (keyboardState[SDL_SCANCODE_A])
+    if (input->player_move_left)
         desiredVelocity.x = -moveSpeed;
-    else if (keyboardState[SDL_SCANCODE_D])
+    else if (input->player_move_right)
         desiredVelocity.x = moveSpeed;
-    else
-        desiredVelocity.x = 0.0f;
 
-    if (keyboardState[SDL_SCANCODE_W])
+    if (input->player_move_up)
         desiredVelocity.y = moveSpeed;
-    else if (keyboardState[SDL_SCANCODE_S])
+    else if (input->player_move_down)
         desiredVelocity.y = -moveSpeed;
-    else
-        desiredVelocity.y = 0.0f;
 
-    if (keyboardState[SDL_SCANCODE_R] && !weapon->isReloading())
+    if (input->player_reload && !weapon->isReloading())
         weapon->reload();
 
     velocityChange.x = desiredVelocity.x - velocity.x;
@@ -62,21 +57,24 @@ void PlayerController::update()
     body->ApplyLinearImpulse(impulse, body->GetWorldCenter(), true);
 
     // Lets check if we start or stop firing
-    if (!weapon->isTriggerPulled() && mouseState & SDL_BUTTON(SDL_BUTTON_LEFT))
+    if (!weapon->isTriggerPulled() && input->player_shoot)
         weapon->pullTheTrigger();
-    else if (!(mouseState & SDL_BUTTON(SDL_BUTTON_LEFT)))
+    else if (!input->player_shoot)
         weapon->releaseTheTrigger();
 
     weapon->update();
 
-    halfX = (owner->gameObjectManager.getCamera().getWidth() / 2.0f - x) * -1;
-    halfY = (owner->gameObjectManager.getCamera().getHeight() / 2.0f - y) * -1;
+    Camera& camera = owner->gameObjectManager.getCamera(); 
+
+    halfX = (camera.getWidth() / 2.0f - input->mouse_x) * -1;
+    halfY = (camera.getHeight() / 2.0f - input->mouse_y) * -1;
     mouseCoords = glm::vec3(halfX, -halfY, 0.0f);
 
-    owner->getComponent<Transform>()->lookAt(owner->getComponent<Transform>()->getPosition() + mouseCoords);
-    owner->gameObjectManager.getCamera().follow(glm::vec2(owner->getComponent<Transform>()->getPosition().x, owner->getComponent<Transform>()->getPosition().y));
+    Transform* transform = owner->getComponent<Transform>();
+    transform->lookAt(transform->getPosition() + mouseCoords);
+    camera.follow(glm::vec2(transform->getPosition().x, transform->getPosition().y));
 
-    if (!Mix_Playing(playerAudioChannel))
+    if (!tk_sound_is_playing(playerAudioChannel))
     {
         playerAudioChannel = -1;
     }

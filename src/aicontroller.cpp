@@ -10,7 +10,17 @@
 
 #define randomInt std::uniform_int_distribution<int>
 
-AIController::AIController(GameObject* owner, Tilemap* tilemap, b2World* world) : Component(owner), tilemap(tilemap), world(world), lastShot(SDL_GetTicks()), droppedItem(false), moveSpeed(GLOBALS::ENEMY_SPEED), target(0.0f), playerLastPosition(0.0f), AIAudioChannel(-1), weapon(nullptr)
+AIController::AIController(GameObject* owner, Tilemap* tilemap, b2World* world) : 
+    Component(owner),
+    tilemap(tilemap),
+    world(world),
+    lastShot(0),
+    droppedItem(false),
+    moveSpeed(GLOBALS::ENEMY_SPEED),
+    target(0.0f),
+    playerLastPosition(0.0f),
+    AIAudioChannel(-1),
+    weapon(nullptr)
 {
     transform = owner->getComponent<Transform>();
     RigidBody* rigidbody = owner->getComponent<RigidBody>();
@@ -25,8 +35,10 @@ AIController::~AIController()
     delete weapon;
 }
 
-void AIController::update()
+void AIController::update(tk_state_player_input_t* input)
 {
+    (void)input;
+    
     switch (state)
     {
     case WANDER: wander(); break;
@@ -39,7 +51,7 @@ void AIController::update()
     if (weapon)
         weapon->update();
 
-    if (!Mix_Playing(AIAudioChannel))
+    if (!tk_sound_is_playing(AIAudioChannel))
     {
         AIAudioChannel = -1;
     }
@@ -85,7 +97,8 @@ void AIController::shoot()
     {
     case COLLECTIBLES::PISTOL:
     {
-        Uint32 time = SDL_GetTicks();
+        uint32_t time = tk_current_time_get();
+
         if (!weapon->isTriggerPulled() && (time - lastShot) > 450)
         {
             weapon->pullTheTrigger();

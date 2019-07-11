@@ -25,14 +25,14 @@ AssetManager::~AssetManager()
     delete ammoBarMesh;
     delete healthBarMesh;
 
-    Mix_FreeChunk(pistolBangSound);
-    Mix_FreeChunk(machinegunBangSound);
-    Mix_FreeChunk(shotgunBangSound);
-    Mix_FreeChunk(playerHitSound);
-    Mix_FreeChunk(enemyDeadSound);
-    Mix_FreeChunk(playerDeadSound);
-    Mix_FreeChunk(powerupSound);
-    Mix_FreeChunk(ambienceSound);
+    // Mix_FreeChunk(pistolBangSound);
+    // Mix_FreeChunk(machinegunBangSound);
+    // Mix_FreeChunk(shotgunBangSound);
+    // Mix_FreeChunk(playerHitSound);
+    // Mix_FreeChunk(enemyDeadSound);
+    // Mix_FreeChunk(playerDeadSound);
+    // Mix_FreeChunk(powerupSound);
+    // Mix_FreeChunk(ambienceSound);
 
     for (auto sprite : meshDump)
         delete sprite;
@@ -61,12 +61,12 @@ void AssetManager::loadAssets()
     ammoBarMesh = new Mesh("assets/meshes/ammobar.mesh");
     healthBarMesh = new Mesh("assets/meshes/healthbar.mesh");
 
-    pistolBangSound = Mix_LoadWAV("assets/sounds/pistol_bang.wav");
-    machinegunBangSound = Mix_LoadWAV("assets/sounds/machinegun_bang.wav");
-    shotgunBangSound = Mix_LoadWAV("assets/sounds/shotgun_bang.wav");
-    playerHitSound = Mix_LoadWAV("assets/sounds/player_hit.wav");
-    enemyDeadSound = Mix_LoadWAV("assets/sounds/enemy_dead.wav");
-    playerDeadSound = Mix_LoadWAV("assets/sounds/player_dead.wav");
-    powerupSound = Mix_LoadWAV("assets/sounds/powerup.wav");
-    ambienceSound = Mix_LoadWAV("assets/sounds/ambience.wav");
+    pistolBangSound = (tk_sound_sample*)Mix_LoadWAV("assets/sounds/pistol_bang.wav");
+    machinegunBangSound = (tk_sound_sample*)Mix_LoadWAV("assets/sounds/machinegun_bang.wav");
+    shotgunBangSound = (tk_sound_sample*)Mix_LoadWAV("assets/sounds/shotgun_bang.wav");
+    playerHitSound = (tk_sound_sample*)Mix_LoadWAV("assets/sounds/player_hit.wav");
+    enemyDeadSound = (tk_sound_sample*)Mix_LoadWAV("assets/sounds/enemy_dead.wav");
+    playerDeadSound = (tk_sound_sample*)Mix_LoadWAV("assets/sounds/player_dead.wav");
+    powerupSound = (tk_sound_sample*)Mix_LoadWAV("assets/sounds/powerup.wav");
+    ambienceSound = (tk_sound_sample*)Mix_LoadWAV("assets/sounds/ambience.wav");
 }

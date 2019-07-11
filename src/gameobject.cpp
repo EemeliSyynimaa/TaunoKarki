@@ -33,16 +33,16 @@ void GameObject::addDrawableComponent(Component* component)
     drawableComponents.push_back(component);
 }
 
-void GameObject::update()
+void GameObject::update(tk_state_player_input_t* input)
 {
     for (auto component : components)
-        component->update();
+        component->update(input);
 }
 
 void GameObject::draw()
 {
     for (auto component : drawableComponents)
-        component->update();
+        component->update(0);
 }
 
 void GameObject::handleCollisionWith(GameObject* gameObject)
@@ -53,6 +53,8 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
     {
         if (gameObject)
         {
+            PlayerController* controller = getComponent<PlayerController>();
+            
             switch (gameObject->getType())
             {
             case ENEMY_BULLET:
@@ -61,9 +63,19 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
                 getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage());
 
                 if (isAlive())
-                    getComponent<PlayerController>()->playerAudioChannel = Locator::getAudio()->playSound(Locator::getAssetManager()->playerHitSound, getComponent<PlayerController>()->playerAudioChannel);
+                {
+                    tk_sound_sample* sound = Locator::getAssetManager()->playerHitSound;
+                    int32_t channel = controller->playerAudioChannel;
+
+                    controller->playerAudioChannel = tk_sound_play(sound, channel);
+                }
             } break;
-            case ITEM: getComponent<PlayerController>()->handleItem(gameObject->getComponent<Collectible>()->getType()); Locator::getAudio()->playSound(Locator::getAssetManager()->powerupSound); break;
+            case ITEM: 
+            {
+                controller->handleItem(gameObject->getComponent<Collectible>()->getType());
+
+                tk_sound_play(Locator::getAssetManager()->powerupSound);
+            } break;
             default: break;
             }
         }
@@ -77,11 +89,16 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
             {
             case PLAYER_BULLET:
             {
+                AIController* controller = getComponent<AIController>();
+
                 getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage());
 
-                if (!isAlive() && !getComponent<AIController>()->droppedItem)
+                if (!isAlive() && !controller->droppedItem)
                 {
-                    getComponent<AIController>()->AIAudioChannel = Locator::getAudio()->playSound(Locator::getAssetManager()->enemyDeadSound, getComponent<AIController>()->AIAudioChannel);
+                    controller->AIAudioChannel = tk_sound_play(
+                        Locator::getAssetManager()->enemyDeadSound,
+                        controller->AIAudioChannel);
+                    
                     gameObjectManager.addNewObject([this]()
                     {
                         this->gameObjectManager.createRandomItem(this->getComponent<Transform>()->getPosition());

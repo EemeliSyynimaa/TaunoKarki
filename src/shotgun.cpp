@@ -1,7 +1,11 @@
 #include "shotgun.h"
 #include "locator.h"
 
-Shotgun::Shotgun(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager), lastShot(0), fired(false), numberOfShells(GLOBALS::SHOTGUN_NUMBER_OF_SHELLS)
+Shotgun::Shotgun(GameObjectManager& gameObjectManager) :
+    Weapon(gameObjectManager),
+    lastShot(0),
+    fired(false),
+    numberOfShells(GLOBALS::SHOTGUN_NUMBER_OF_SHELLS)
 {
     damage = GLOBALS::SHOTGUN_DAMAGE;
     speed = GLOBALS::SHOTGUN_BULLET_SPEED;
@@ -19,9 +23,10 @@ Shotgun::~Shotgun()
 
 void Shotgun::update()
 {
-    if (triggerPulled && !fired && currentAmmo > 0.0f && !reloading && (SDL_GetTicks() - lastShot) > fireRate)
+    if (triggerPulled && !fired && currentAmmo > 0.0f && !reloading &&
+        (tk_current_time_get() - lastShot) > fireRate)
     {
-        Locator::getAudio()->playSound(Locator::getAssetManager()->shotgunBangSound);
+        tk_sound_play(Locator::getAssetManager()->shotgunBangSound);
 
         std::random_device randomDevice;
         std::default_random_engine randomGenerator(randomDevice());
@@ -33,7 +38,9 @@ void Shotgun::update()
 
         for (size_t i = 0; i < numberOfShells; i++)
         {
-            float angle = glm::atan(owner->getComponent<Transform>()->getDirVec().y, owner->getComponent<Transform>()->getDirVec().x);
+            float angle = glm::atan(
+                owner->getComponent<Transform>()->getDirVec().y,
+                owner->getComponent<Transform>()->getDirVec().x);
             float finalSpeed = speed;
             angle += randomFloat(-bulletSpread, bulletSpread)(randomGenerator);
             finalSpeed *= randomFloat(0.9f, 1.1f)(randomGenerator);
@@ -42,16 +49,18 @@ void Shotgun::update()
             dirVec.x = glm::cos(angle);
             dirVec.y = glm::sin(angle);
 
-            owner->gameObjectManager.createBullet(owner->getComponent<Transform>()->getPosition(), dirVec, ownero, damage, finalSpeed);
+            owner->gameObjectManager.createBullet(
+                owner->getComponent<Transform>()->getPosition(),
+                dirVec, ownero, damage, finalSpeed);
         }
 
-        lastShot = SDL_GetTicks();
+        lastShot = tk_current_time_get();
         if (--currentAmmo <= 0.0f) reload();
     }
     else if (!triggerPulled && fired) fired = false;
     else if (reloading)
     {
-        Uint32 deltaTime = SDL_GetTicks() - startedReloading;
+        Uint32 deltaTime = tk_current_time_get() - startedReloading;
         if (deltaTime > reloadTime)
         {
             reloading = false;

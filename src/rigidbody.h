@@ -13,7 +13,7 @@ public:
     RigidBody(GameObject* owner, b2World& world);
     ~RigidBody();
 
-    void update();
+    void update(tk_state_player_input_t* input);
     b2Body* getBody() const { return body; }
 private:
     b2World& world;

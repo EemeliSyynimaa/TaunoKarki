@@ -2,7 +2,6 @@
 #define AICONTROLLER_H
 
 #include <vector>
-#include "SDL\SDL_timer.h"
 #include "component.h"
 #include "transform.h"
 #include "weapon.h"
@@ -14,7 +13,7 @@ public:
     AIController(GameObject* owner, Tilemap* tilemap, b2World* world);
     ~AIController();
 
-    void update();
+    void update(tk_state_player_input_t* input);
     void giveWeapon(Weapon* weapon) { this->weapon = weapon; this->weapon->setOwner(this->owner); this->weapon->reload(true); }
     bool droppedItem;
     Weapon* getWeapon() { return weapon; }
@@ -99,7 +98,7 @@ private:
     glm::vec3 target;
     glm::vec3 playerLastPosition;
 
-    Uint32 lastShot;
+    uint32_t lastShot;
     float moveSpeed;
 };
 

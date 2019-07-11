@@ -86,15 +86,15 @@ struct AssetManager
     Mesh* healthpackMesh;
     Mesh* ammoBarMesh;
     Mesh* healthBarMesh;
-    
-    Mix_Chunk* pistolBangSound;
-    Mix_Chunk* machinegunBangSound;
-    Mix_Chunk* shotgunBangSound;
-    Mix_Chunk* playerHitSound;
-    Mix_Chunk* enemyDeadSound;
-    Mix_Chunk* playerDeadSound;
-    Mix_Chunk* powerupSound;
-    Mix_Chunk* ambienceSound;
+
+    tk_sound_sample* pistolBangSound;
+    tk_sound_sample* machinegunBangSound;
+    tk_sound_sample* shotgunBangSound;
+    tk_sound_sample* playerHitSound;
+    tk_sound_sample* enemyDeadSound;
+    tk_sound_sample* playerDeadSound;
+    tk_sound_sample* powerupSound;
+    tk_sound_sample* ambienceSound;
 
     Mesh* addMesh(Mesh mesh);
 

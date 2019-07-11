@@ -1,13 +1,18 @@
+
+#include "tk_platform.h"
+
 #include "mesh.cpp"
 #include "shaderprogram.cpp"
 #include "texture.cpp"
 #include "aicontroller.cpp"
+#include "guibar.cpp"
 #include "ammobar.cpp"
+#include "healthbar.cpp"
+#include "collider.cpp"
 #include "boxcollider.cpp"
 #include "circlecollider.cpp"
 #include "collectible.cpp"
 #include "health.cpp"
-#include "healthbar.cpp"
 #include "menubutton.cpp"
 #include "meshrenderer.cpp"
 #include "playercontroller.cpp"
@@ -15,7 +20,6 @@
 #include "staticbody.cpp"
 #include "transform.cpp"
 #include "assetmanager.cpp"
-#include "audio.cpp"
 #include "camera.cpp"
 #include "collisionhandler.cpp"
 #include "component.cpp"
@@ -29,6 +33,7 @@
 #include "tilemap.cpp"
 #include "gamescene.cpp"
 #include "menuscene.cpp"
+#include "weapon.cpp"
 #include "machinegun.cpp"
 #include "pistol.cpp"
 #include "shotgun.cpp"
@@ -82,7 +87,7 @@
 
 int main(int argc, char** argv)
 {
-    game_state_t state;
+    tk_game_state_t state;
 
     game_init(&state);
     game_run(&state);

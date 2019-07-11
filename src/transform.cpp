@@ -15,8 +15,9 @@ Transform::~Transform()
 {
 }
 
-void Transform::update()
+void Transform::update(tk_state_player_input_t* input)
 {
+    (void)input;
 }
 
 void Transform::lookAt(const glm::vec3& target)

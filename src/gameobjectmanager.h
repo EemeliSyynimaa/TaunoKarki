@@ -18,7 +18,7 @@ public:
     GameObjectManager(AssetManager& assetManager, Camera& camera, b2World* world = nullptr);
     ~GameObjectManager();
 
-    void update();
+    void update(tk_state_player_input_t* input);
     void draw();
     void createObjects();
     void deleteObjects();

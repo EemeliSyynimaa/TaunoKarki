@@ -11,7 +11,7 @@
 
 #define randomFloat std::uniform_real_distribution<float>
 
-GameScene::GameScene(game_state_t* state, int level, Weapon* weapon) : 
+GameScene::GameScene(tk_game_state_t* state, int level, Weapon* weapon) : 
     Scene(state),
     world(b2Vec2(0.0f, 0.0f)),
     gameObjectManager(state->assets, camera, &world),
@@ -23,7 +23,7 @@ GameScene::GameScene(game_state_t* state, int level, Weapon* weapon) :
     std::random_device randomDevice;
     std::default_random_engine randomGenerator(randomDevice());
 
-    Locator::getAudio()->playSound(Locator::getAssetManager()->ambienceSound, 0, -1);
+    tk_sound_play(Locator::getAssetManager()->ambienceSound, 0, -1);
 
     std::cout << "GAMESCENE ALIVE - entering level " << level << std::endl;
 
@@ -61,39 +61,49 @@ GameScene::~GameScene()
     std::cout << "GAMESCENE DIE - leaving level " << level << std::endl;
 }
 
-void GameScene::update(float deltaTime)
+void GameScene::update(float deltaTime, tk_state_player_input_t* input)
 {
-    accumulator += deltaTime;
-
-    while (accumulator >= state->step)
+    if (input->menu_escape)
     {
-        world.Step(state->step, 8, 3);
-        accumulator -= state->step;
-        gameObjectManager.update();
+        Mix_HaltChannel(-1);
+        state->scenes.change(new MenuScene(state));
     }
-
-    gameObjectManager.interpolate(accumulator / state->step);
-
-    if (!gameEnding && gameObjectManager.getNumberOfObjectsOfType(GAMEOBJECT_TYPES::PLAYER) == 0)
+    else
     {
-        std::cout << "PLAYER LOST - died on level " << level << std::endl;
-        playerDyingChannel = Locator::getAudio()->playSound(Locator::getAssetManager()->playerDeadSound);
-        gameEnding = true;
-    }
-    else if (gameEnding)
-    {
-        if (!Mix_Playing(playerDyingChannel))
+        accumulator += deltaTime;
+
+        while (accumulator >= state->step)
         {
-            Mix_HaltChannel(-1);
-            state->scenes.change(new MenuScene(state));
+            world.Step(state->step, 8, 3);
+            accumulator -= state->step;
+
+            gameObjectManager.update(input);
         }
-    }
-    else if (gameObjectManager.getNumberOfObjectsOfType(GAMEOBJECT_TYPES::ENEMY) == 0)
-    {
-        Weapon* weapon = gameObjectManager.getFirstObjectOfType(GAMEOBJECT_TYPES::PLAYER)->getComponent<PlayerController>()->getWeapon()->getCopy();
-        
-        std::cout << "PLAYER WON - cleared level " << level << std::endl;
-        state->scenes.change(new GameScene(state, level + 1, weapon));
+
+        gameObjectManager.interpolate(accumulator / state->step);
+
+        if (!gameEnding && gameObjectManager.getNumberOfObjectsOfType(GAMEOBJECT_TYPES::PLAYER) == 0)
+        {
+            std::cout << "PLAYER LOST - died on level " << level << std::endl;
+            playerDyingChannel = tk_sound_play(
+                Locator::getAssetManager()->playerDeadSound);
+            gameEnding = true;
+        }
+        else if (gameEnding)
+        {
+            if (!tk_sound_is_playing(playerDyingChannel))
+            {
+                Mix_HaltChannel(-1);
+                state->scenes.change(new MenuScene(state));
+            }
+        }
+        else if (gameObjectManager.getNumberOfObjectsOfType(GAMEOBJECT_TYPES::ENEMY) == 0)
+        {
+            Weapon* weapon = gameObjectManager.getFirstObjectOfType(GAMEOBJECT_TYPES::PLAYER)->getComponent<PlayerController>()->getWeapon()->getCopy();
+            
+            std::cout << "PLAYER WON - cleared level " << level << std::endl;
+            state->scenes.change(new GameScene(state, level + 1, weapon));
+        }
     }
 }   
 
@@ -101,16 +111,4 @@ void GameScene::draw()
 {
     tilemap->draw();
     gameObjectManager.draw();
-}
-
-void GameScene::handleEvent(SDL_Event& event)
-{
-    if (event.type == SDL_KEYDOWN)
-    {
-        if (event.key.keysym.sym == SDLK_ESCAPE)
-        {
-            Mix_HaltChannel(-1);
-            state->scenes.change(new MenuScene(state));
-        }
-    }
 }

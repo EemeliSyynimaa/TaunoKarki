@@ -2,8 +2,8 @@
 #define SCENEMANAGER_H
 
 #include <vector>
-#include "SDL/SDL_events.h"
-#include "scene.h"
+
+class Scene;
 
 class SceneManager
 {
@@ -11,13 +11,12 @@ public:
     SceneManager();
     ~SceneManager();
 
-    void update(float deltaTime);
+    void update(float deltaTime, tk_state_player_input_t* input);
     void draw();
 
     void push(Scene* scene);
     void pop();
     void change(Scene* scene);
-    void handleEvent(SDL_Event& event);
 private:
 
     std::vector<Scene*> scenes;

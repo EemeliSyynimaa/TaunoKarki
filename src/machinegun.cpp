@@ -1,7 +1,9 @@
 #include "machinegun.h"
 #include "locator.h"
 
-MachineGun::MachineGun(GameObjectManager& gameObjectManager) : Weapon(gameObjectManager), lastShot(0)
+MachineGun::MachineGun(GameObjectManager& gameObjectManager) :
+    Weapon(gameObjectManager),
+    lastShot(0)
 {
     damage = GLOBALS::MACHINEGUN_DAMAGE;
     speed = GLOBALS::MACHINEGUN_BULLET_SPEED;
@@ -19,13 +21,14 @@ MachineGun::~MachineGun()
 
 void MachineGun::update()
 {
-    if (triggerPulled && currentAmmo > 0.0f && !reloading && (SDL_GetTicks() - lastShot) > fireRate)
+    if (triggerPulled && currentAmmo > 0.0f && !reloading && 
+        (tk_current_time_get() - lastShot) > fireRate)
     {
-        Locator::getAudio()->playSound(Locator::getAssetManager()->machinegunBangSound);
+        tk_sound_play(Locator::getAssetManager()->machinegunBangSound);
         std::random_device randomDevice;
         std::default_random_engine randomGenerator(randomDevice());
 
-        lastShot = SDL_GetTicks();
+        lastShot = tk_current_time_get();
         size_t ownero = ENEMY_BULLET;;
         if (owner->getType() == PLAYER) ownero = PLAYER_BULLET;
 
@@ -44,7 +47,7 @@ void MachineGun::update()
     }
     else if (reloading)
     {
-        Uint32 deltaTime = SDL_GetTicks() - startedReloading;
+        Uint32 deltaTime = tk_current_time_get() - startedReloading;
         if (deltaTime > reloadTime)
         {
             reloading = false;

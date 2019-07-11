@@ -1,6 +1,6 @@
 #include <algorithm>
 #include "scenemanager.h"
-#include <iostream>
+#include "scene.h"
 
 SceneManager::SceneManager()
 {
@@ -16,19 +16,14 @@ SceneManager::~SceneManager()
     scenes.clear();
 }
 
-void SceneManager::update(float deltaTime)
+void SceneManager::update(float deltaTime, tk_state_player_input_t* input)
 {
-    scenes.back()->update(deltaTime);
+    scenes.back()->update(deltaTime, input);
 }
 
 void SceneManager::draw()
 {
     scenes.back()->draw();
-}
-
-void SceneManager::handleEvent(SDL_Event& event)
-{
-    scenes.back()->handleEvent(event);
 }
 
 void SceneManager::push(Scene* scene)

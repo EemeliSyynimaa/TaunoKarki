@@ -18,32 +18,37 @@ MenuButton::~MenuButton()
 {
 }
 
-void MenuButton::update()
+void MenuButton::update(tk_state_player_input_t* input)
 {
-    if ((keyboardState[SDL_SCANCODE_UP] || keyboardState[SDL_SCANCODE_W]) && !arrowPressed)
+    if (input->menu_up && !arrowPressed)
     {
         if (--MenuButton::state < 0)
             MenuButton::state = MenuButton::maxStates - 1;
 
         arrowPressed = true;
     }
-    else if ((keyboardState[SDL_SCANCODE_DOWN] || keyboardState[SDL_SCANCODE_S]) && !arrowPressed)
+    else if (input->menu_down && !arrowPressed)
     {
         if (++MenuButton::state >= MenuButton::maxStates)
             MenuButton::state = 0;
 
         arrowPressed = true;
     }
-    else if (!keyboardState[SDL_SCANCODE_UP] && !keyboardState[SDL_SCANCODE_DOWN] && !keyboardState[SDL_SCANCODE_S] && !keyboardState[SDL_SCANCODE_W]) arrowPressed = false;
+    else if (!input->menu_down && !input->menu_up)
+    {
+        arrowPressed = false;
+    }
 
     if (MenuButton::state == id)
     {
         owner->getDrawableComponent<MeshRenderer>()->setTexture(owner->gameObjectManager.getAssetManager().enemyTexture);
         owner->getComponent<Transform>()->setScale(glm::vec3(0.75f));
 
-        if (keyboardState[SDL_SCANCODE_SPACE] || keyboardState[SDL_SCANCODE_RETURN])
+        if (input->menu_confirm)
+        {
             if (id == 0) MenuButton::startGame = true;
             else MenuButton::exitGame = true;
+        }
     }
     else
     {

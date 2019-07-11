@@ -10,8 +10,9 @@ Health::~Health()
 {
 }
 
-void Health::update()
+void Health::update(tk_state_player_input_t* input)
 {
+    (void)input;
 }
 
 void Health::change(float amount)

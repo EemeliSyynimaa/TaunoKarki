@@ -4,14 +4,13 @@
 #include "gameobjectmanager.h"
 #include "gameobject.h"
 #include "transform.h"
-#include "SDL\SDL_timer.h"
 #include <random>
 #define randomFloat std::uniform_real_distribution<float>
 
 class Weapon
 {
 public:
-    Weapon(GameObjectManager& gameObjectManager) : gameObjectManager(gameObjectManager), owner(nullptr), triggerPulled(false), reloading(false), damage(0.0f), speed(0.0f), clipSize(0.0f), currentAmmo(0.0f), reloadTime(0.0f), fireRate(0.0f), bulletSpread(0.0f), startedReloading(0), type(COLLECTIBLES::NONE) {}
+    Weapon(GameObjectManager& gameObjectManager);
     virtual ~Weapon() {}
     void pullTheTrigger() { triggerPulled = true; }
     void releaseTheTrigger() { triggerPulled = false; }
@@ -21,7 +20,7 @@ public:
         else
         {
             reloading = true;
-            startedReloading = SDL_GetTicks();
+            startedReloading = tk_current_time_get();
         }
     }
     void setOwner(GameObject* owner) { this->owner = owner; }
@@ -60,7 +59,7 @@ protected:
     float fireRate;
     float bulletSpread;
     COLLECTIBLES type;
-    Uint32 startedReloading;
+    uint32_t startedReloading;
 };
 
 #endif
