@@ -9,7 +9,7 @@ public:
     Damage(GameObject* gameObject, float damage = 0) : Component(gameObject), damage(damage) {};
     ~Damage() {};
 
-    void update(tk_state_player_input_t* input) { (void)input; };
+    void update(game_input* input) { (void)input; };
     void setDamage(float damage) { this->damage = damage; }
     float getDamage() { return damage; }
 private:

@@ -17,7 +17,6 @@
 #include "healthbar.h"
 #include "ammobar.h"
 #include "collectible.h"
-#include "menubutton.h"
 
 #include "pistol.h"
 #include "machinegun.h"
@@ -49,7 +48,7 @@ void GameObjectManager::addNewObject(std::function< void(void)> gameObject)
     newObjects.push_back(gameObject);
 }
 
-void GameObjectManager::update(tk_state_player_input_t* input)
+void GameObjectManager::update(game_input* input)
 {
     for (auto gameObject : gameObjects)
     {
@@ -290,57 +289,6 @@ GameObject* GameObjectManager::createRandomItem(glm::vec3 position)
     gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.itemsTexture);
 
     gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
-
-    return gameObject;
-}
-
-GameObject* GameObjectManager::createMenuBlock(glm::vec3 position, int id)
-{
-    GameObject* gameObject = createObject();
-
-    gameObject->setType(GAMEOBJECT_TYPES::GUI);
-
-    gameObject->addComponent(new Transform(gameObject, position));
-    gameObject->addComponent(new MenuButton(gameObject, id));
-    gameObject->addDrawableComponent(new MeshRenderer(gameObject));
-
-    gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.cubeMesh);
-    gameObject->getDrawableComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
-    gameObject->getDrawableComponent<MeshRenderer>()->setViewMatrix(camera.getViewMatrix());
-    gameObject->getDrawableComponent<MeshRenderer>()->setProjectionMatrix(camera.getPerspectiveMatrix());
-    gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.enemyTexture);
-    gameObject->getComponent<Transform>()->setRotation(180.0f, glm::vec3(0.0f, 1.0f, 0.0f));
-
-    if (gameObject->getComponent<MenuButton>()->selected())
-    {
-        gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.enemyTexture);
-        gameObject->getComponent<Transform>()->setScale(glm::vec3(0.75f));
-    }
-    else
-    {
-        gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.playerTexture);
-        gameObject->getComponent<Transform>()->setScale(glm::vec3(0.5f));
-    }
-
-    return gameObject;
-}
-
-GameObject* GameObjectManager::createTitleBlock(glm::vec3 position)
-{
-    GameObject* gameObject = createObject();
-
-    gameObject->setType(GAMEOBJECT_TYPES::GUI);
-
-    gameObject->addComponent(new Transform(gameObject, position));
-    gameObject->addDrawableComponent(new MeshRenderer(gameObject));
-
-    gameObject->getDrawableComponent<MeshRenderer>()->setMesh(assetManager.wallMesh);
-    gameObject->getDrawableComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
-    gameObject->getDrawableComponent<MeshRenderer>()->setViewMatrix(camera.getViewMatrix());
-    gameObject->getDrawableComponent<MeshRenderer>()->setProjectionMatrix(camera.getPerspectiveMatrix());
-    gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.tilesetTexture);
-    gameObject->getComponent<Transform>()->setScale(glm::vec3(1.0f, 1.0f, 2.0f));
-
 
     return gameObject;
 }

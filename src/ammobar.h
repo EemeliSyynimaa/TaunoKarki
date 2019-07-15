@@ -9,7 +9,7 @@ public:
     AmmoBar(GameObject* owner);
     ~AmmoBar();
 
-    void update(tk_state_player_input_t*);
+    void update(game_input*);
 };
 
 #endif

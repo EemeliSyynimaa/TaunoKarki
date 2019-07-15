@@ -25,7 +25,7 @@ RigidBody::~RigidBody()
     world.DestroyBody(body);
 }
 
-void RigidBody::update(tk_state_player_input_t* input)
+void RigidBody::update(game_input* input)
 {
     (void)input;
     transform->setPosition(glm::vec3(body->GetPosition().x, body->GetPosition().y, 0.0f));

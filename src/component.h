@@ -10,7 +10,7 @@ public:
     Component(GameObject* owner);
     virtual ~Component();
 
-    virtual void update(tk_state_player_input_t*) = 0;
+    virtual void update(game_input*) = 0;
 
     GameObject* getOwner() { return owner; }
 protected:

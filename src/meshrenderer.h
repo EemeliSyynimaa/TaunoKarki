@@ -14,7 +14,7 @@ public:
     MeshRenderer(GameObject* owner);
     ~MeshRenderer();
 
-    void update(tk_state_player_input_t* input);
+    void update(game_input* input);
     void setMesh(Mesh* mesh);
     void setTexture(Texture* texture);
     void setProgram(ShaderProgram* program);

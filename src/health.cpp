@@ -10,7 +10,7 @@ Health::~Health()
 {
 }
 
-void Health::update(tk_state_player_input_t* input)
+void Health::update(game_input* input)
 {
     (void)input;
 }

@@ -25,7 +25,7 @@ StaticBody::~StaticBody()
     world.DestroyBody(body);
 }
 
-void StaticBody::update(tk_state_player_input_t* input)
+void StaticBody::update(game_input* input)
 {
     (void)input;
 }

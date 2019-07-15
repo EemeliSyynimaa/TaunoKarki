@@ -12,7 +12,7 @@ public:
     StaticBody(GameObject* owner, b2World& world);
     ~StaticBody();
 
-    void update(tk_state_player_input_t* input);
+    void update(game_input* input);
 private:
     b2Body* body;
     b2World& world;

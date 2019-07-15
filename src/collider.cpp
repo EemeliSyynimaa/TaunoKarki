@@ -8,7 +8,7 @@ Collider::Collider(GameObject* owner, uint16_t categoryBits,
     fixtureDef.filter.categoryBits = categoryBits;
 }
 
-void Collider::update(tk_state_player_input_t* input)
+void Collider::update(game_input* input)
 {
     (void)input;
 }

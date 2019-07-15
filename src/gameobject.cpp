@@ -33,7 +33,7 @@ void GameObject::addDrawableComponent(Component* component)
     drawableComponents.push_back(component);
 }
 
-void GameObject::update(tk_state_player_input_t* input)
+void GameObject::update(game_input* input)
 {
     for (auto component : components)
         component->update(input);

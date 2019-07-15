@@ -35,7 +35,7 @@ AIController::~AIController()
     delete weapon;
 }
 
-void AIController::update(tk_state_player_input_t* input)
+void AIController::update(game_input* input)
 {
     (void)input;
     

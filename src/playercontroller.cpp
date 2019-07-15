@@ -25,7 +25,7 @@ PlayerController::~PlayerController()
     delete weapon;
 }
 
-void PlayerController::update(tk_state_player_input_t* input)
+void PlayerController::update(game_input* input)
 {
     b2Vec2 desiredVelocity(0.0f, 0.0f);
     b2Vec2 velocityChange(0.0f, 0.0f);
@@ -35,17 +35,17 @@ void PlayerController::update(tk_state_player_input_t* input)
     int x = 0, y = 0;
     float halfX = 0.0f, halfY = 0.0f;
 
-    if (input->player_move_left)
+    if (input->move_left.key_down)
         desiredVelocity.x = -moveSpeed;
-    else if (input->player_move_right)
+    else if (input->move_right.key_down)
         desiredVelocity.x = moveSpeed;
 
-    if (input->player_move_up)
+    if (input->move_up.key_down)
         desiredVelocity.y = moveSpeed;
-    else if (input->player_move_down)
+    else if (input->move_down.key_down)
         desiredVelocity.y = -moveSpeed;
 
-    if (input->player_reload && !weapon->isReloading())
+    if (input->reload.key_down && !weapon->isReloading())
         weapon->reload();
 
     velocityChange.x = desiredVelocity.x - velocity.x;
@@ -57,9 +57,9 @@ void PlayerController::update(tk_state_player_input_t* input)
     body->ApplyLinearImpulse(impulse, body->GetWorldCenter(), true);
 
     // Lets check if we start or stop firing
-    if (!weapon->isTriggerPulled() && input->player_shoot)
+    if (!weapon->isTriggerPulled() && input->shoot.key_down)
         weapon->pullTheTrigger();
-    else if (!input->player_shoot)
+    else if (!input->shoot.key_down)
         weapon->releaseTheTrigger();
 
     weapon->update();

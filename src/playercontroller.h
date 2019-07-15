@@ -12,7 +12,7 @@ public:
     PlayerController(GameObject* owner);
     ~PlayerController();
 
-    void update(tk_state_player_input_t* input);
+    void update(game_input* input);
     void giveWeapon(Weapon* weapon, bool instantReload = false);
     Weapon* getWeapon() { return weapon; }
     void handleItem(COLLECTIBLES item);

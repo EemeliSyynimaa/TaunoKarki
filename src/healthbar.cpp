@@ -10,7 +10,7 @@ HealthBar::~HealthBar()
 {
 }
 
-void HealthBar::update(tk_state_player_input_t* input)
+void HealthBar::update(game_input* input)
 {
     (void)input;
     glm::vec3 position;

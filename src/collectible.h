@@ -11,7 +11,7 @@ public:
     Collectible(GameObject* owner);
     ~Collectible();
 
-    void update(tk_state_player_input_t*);
+    void update(game_input*);
     void setType(COLLECTIBLES type) { this->type = type; }
     COLLECTIBLES getType() { return type; }
 private:

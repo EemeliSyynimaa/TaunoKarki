@@ -10,7 +10,7 @@ public:
     Collider(GameObject* owner, uint16_t categoryBits,
         uint16_t maskBits);
 
-    void update(tk_state_player_input_t* input);
+    void update(game_input* input);
     b2FixtureDef& getFixtureDef();
 
 protected:

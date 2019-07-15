@@ -18,7 +18,7 @@ public:
     GameObjectManager(AssetManager& assetManager, Camera& camera, b2World* world = nullptr);
     ~GameObjectManager();
 
-    void update(tk_state_player_input_t* input);
+    void update(game_input* input);
     void draw();
     void createObjects();
     void deleteObjects();
@@ -29,9 +29,7 @@ public:
     GameObject* createPlayerHealthBar(glm::vec3 pos, glm::vec3 size);
     GameObject* createPlayerAmmoBar(glm::vec3 pos, glm::vec3 size);
     GameObject* createRandomItem(glm::vec3 position);
-    GameObject* createMenuBlock(glm::vec3 position, int id);
-    GameObject* createTitleBlock(glm::vec3 position);
-
+    
     Camera& getCamera() { return camera; }
     AssetManager& getAssetManager() { return assetManager; }
 

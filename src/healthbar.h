@@ -9,7 +9,7 @@ public:
     HealthBar(GameObject* owner);
     ~HealthBar();
 
-    void update(tk_state_player_input_t* input);
+    void update(game_input* input);
 };
 
 #endif

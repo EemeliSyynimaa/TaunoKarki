@@ -52,7 +52,7 @@ public:
         return foundComponent;
     }
 
-    void update(tk_state_player_input_t*);
+    void update(game_input*);
     void draw();
 
     GameObjectManager& gameObjectManager;

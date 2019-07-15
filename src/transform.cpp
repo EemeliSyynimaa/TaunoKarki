@@ -15,7 +15,7 @@ Transform::~Transform()
 {
 }
 
-void Transform::update(tk_state_player_input_t* input)
+void Transform::update(game_input* input)
 {
     (void)input;
 }
