@@ -18,13 +18,6 @@ typedef struct game_state
 
 game_state state;
 
-int32_t tk_current_time_get()
-{
-    int32_t result = SDL_GetTicks();
-
-    return result;
-}
-
 int32_t tk_sound_play(tk_sound_sample* sample, int32_t channel, 
     int32_t loops)
 {
@@ -39,7 +32,7 @@ int32_t tk_sound_is_playing(int32_t channel)
 
 void init_game(s32 screen_width, s32 screen_height)
 {
-    state.level = 10;
+    state.level = 3;
     state.world = new b2World(b2Vec2(0.0f, 0.0f));
     state.collision_handler = new CollisionHandler();
     state.camera = new Camera();

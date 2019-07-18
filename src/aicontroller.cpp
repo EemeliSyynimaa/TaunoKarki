@@ -37,19 +37,17 @@ AIController::~AIController()
 
 void AIController::update(game_input* input)
 {
-    (void)input;
-    
     switch (state)
     {
     case WANDER: wander(); break;
-    case ATTACK: attack(); break;
+    case ATTACK: attack(1 / 60.0f); break;
     case PURSUE: pursue(); break;
     case ESCAPE: escape(); break;
     default: break;
     }
 
     if (weapon)
-        weapon->update();
+        weapon->update(1 / 60.0f);
 
     if (!tk_sound_is_playing(AIAudioChannel))
     {
@@ -77,7 +75,7 @@ void AIController::wander()
     }
 }
 
-void AIController::attack()
+void AIController::attack(f32 delta_time)
 {
     GameObject* player = getOwner()->gameObjectManager.getFirstObjectOfType(GAMEOBJECT_TYPES::PLAYER);
 
@@ -86,26 +84,30 @@ void AIController::attack()
         playerLastPosition = player->getComponent<Transform>()->getPosition();
         moveTo(playerLastPosition);
     
-        if (weapon) shoot();
+        if (weapon) shoot(delta_time);
     }
     else initPursue();
 }
 
-void AIController::shoot()
+void AIController::shoot(f32 delta_time)
 {
     switch (weapon->getType())
     {
     case COLLECTIBLES::PISTOL:
     {
-        uint32_t time = tk_current_time_get();
-
-        if (!weapon->isTriggerPulled() && (time - lastShot) > 450)
+        if (lastShot > 0)
+        {
+            lastShot -= delta_time;
+        }
+        else if (!weapon->isTriggerPulled())
         {
             weapon->pullTheTrigger();
-            lastShot = time;
+            lastShot = 0.45f;
         }
-        else weapon->releaseTheTrigger();
-        break;
+        else 
+        {
+            weapon->releaseTheTrigger();
+        } break;
     }
     case COLLECTIBLES::SHOTGUN:
     {

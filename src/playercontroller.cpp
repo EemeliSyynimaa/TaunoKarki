@@ -62,7 +62,7 @@ void PlayerController::update(game_input* input)
     else if (!input->shoot.key_down)
         weapon->releaseTheTrigger();
 
-    weapon->update();
+    weapon->update(1 / 60.0f);
 
     Camera& camera = owner->gameObjectManager.getCamera(); 
 

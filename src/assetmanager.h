@@ -40,23 +40,23 @@ namespace GLOBALS
     const float ENEMY_ANGLE_OF_VISION = 60.0f;
 
     const float MACHINEGUN_DAMAGE = 25.0;
-    const float MACHINEGUN_RELOAD_TIME = 2500.0f;
+    const float MACHINEGUN_RELOAD_TIME = 2.50;
     const float MACHINEGUN_CLIP_SIZE = 25.0f;
     const float MACHINEGUN_BULLET_SPEED = 1.5f;
-    const float MACHINEGUN_FIRE_RATE = 125.0f;
+    const float MACHINEGUN_FIRE_RATE = 0.125f;
     const float MACHINEGUN_BULLET_SPREAD = 0.05f;
 
     const float PISTOL_DAMAGE = 30.0f;
     const float PISTOL_BULLET_SPEED = 1.5f;
     const float PISTOL_CLIP_SIZE = 8.0f;
-    const float PISTOL_RELOAD_TIME = 1500.0f;
+    const float PISTOL_RELOAD_TIME = 1.5f;
     const float PISTOL_BULLET_SPREAD = 0.01f;
 
     const float SHOTGUN_DAMAGE = 12.5f;
     const float SHOTGUN_BULLET_SPEED = 1.5f;
     const float SHOTGUN_CLIP_SIZE = 7.0f;
-    const float SHOTGUN_RELOAD_TIME = 4000.0f;
-    const float SHOTGUN_FIRE_RATE = 1000.0f;
+    const float SHOTGUN_RELOAD_TIME = 3.0f;
+    const float SHOTGUN_FIRE_RATE = 0.7f;
     const float SHOTGUN_BULLET_SPREAD = 0.125f;
     const int SHOTGUN_NUMBER_OF_SHELLS = 12;
 

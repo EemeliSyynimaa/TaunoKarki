@@ -3,16 +3,12 @@
 
 #include <stdint.h>
 
-int32_t tk_current_time_get();
-
 typedef void tk_sound_sample;
 
 int32_t tk_sound_play(tk_sound_sample* sample, int32_t channel = -1, 
     int32_t loops = 0);
 
 int32_t tk_sound_is_playing(int32_t channel);
-
-// #include <stdint.h>
 
 typedef int8_t      s8;
 typedef int16_t     s16;

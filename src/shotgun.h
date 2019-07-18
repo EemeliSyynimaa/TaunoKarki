@@ -9,10 +9,10 @@ public:
     Shotgun(GameObjectManager& gameObjectManager);
     ~Shotgun();
 
-    void update();
+    void update(f32 delta_time);
     Weapon* getCopy() { return new Shotgun(*this); }
 private:
-    Uint32 lastShot;
+    f32 lastShot;
     bool fired;
     size_t numberOfShells;
 };

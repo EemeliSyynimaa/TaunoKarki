@@ -14,7 +14,13 @@ public:
     ~AIController();
 
     void update(game_input* input);
-    void giveWeapon(Weapon* weapon) { this->weapon = weapon; this->weapon->setOwner(this->owner); this->weapon->reload(true); }
+    void giveWeapon(Weapon* weapon)
+    { 
+        this->weapon = weapon;
+        this->weapon->setOwner(this->owner);
+        this->weapon->reload(true); 
+    }
+
     bool droppedItem;
     Weapon* getWeapon() { return weapon; }
     void getNewTarget();
@@ -31,7 +37,13 @@ private:
 
     struct Node
     {
-        Node(unsigned int x, unsigned int y, Node* parent) : x(x), y(y), parent(parent), H(0), G(0), F(0)
+        Node(unsigned int x, unsigned int y, Node* parent) :
+            x(x),
+            y(y),
+            parent(parent),
+            H(0),
+            G(0),
+            F(0)
         {
         }
 
@@ -60,20 +72,22 @@ private:
     public:
         RayCastCallback() : playerIsVisible(true) {}
         bool playerIsVisible;
-        float32 ReportFixture(b2Fixture* fixture, const b2Vec2& point, const b2Vec2& normal, float32 fraction);
+        float32 ReportFixture(b2Fixture* fixture,
+            const b2Vec2& point, const b2Vec2& normal, float32 fraction);
     };
 
     void wander();
-    void attack();
+    void attack(f32 delta_time);
     void pursue();
     void escape();
 
     bool calculatePath();
     void getNeighbours(Node* node, std::vector<Node*>& neighbours);
-    bool checkPosition(Node* parent, unsigned int x, unsigned int y, std::vector<Node*>& neighbours);
+    bool checkPosition(Node* parent, unsigned int x, unsigned int y, 
+        std::vector<Node*>& neighbours);
     void constructPath(Node* node);
 
-    void shoot();
+    void shoot(f32 delta_time);
     void moveTo(glm::vec3 position);
 
     bool isPlayerInSight(GameObject* player);
@@ -98,7 +112,7 @@ private:
     glm::vec3 target;
     glm::vec3 playerLastPosition;
 
-    uint32_t lastShot;
+    s32 lastShot;
     float moveSpeed;
 };
 

@@ -9,10 +9,10 @@ public:
     MachineGun(GameObjectManager& gameObjectManager);
     ~MachineGun();
 
-    void update();
+    void update(f32 delta_time);
     Weapon* getCopy() { return new MachineGun(*this); }
 private:
-    uint32_t lastShot;
+    f32 lastShot;
 };
 
 #endif

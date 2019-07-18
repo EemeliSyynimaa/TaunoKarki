@@ -16,11 +16,13 @@ public:
     void releaseTheTrigger() { triggerPulled = false; }
     void reload(bool instantReload = false) 
     { 
-        if (instantReload) currentAmmo = clipSize;
+        if (instantReload)
+        {
+            currentAmmo = clipSize;
+        }
         else
         {
-            reloading = true;
-            startedReloading = tk_current_time_get();
+            reloading = reload_time;
         }
     }
     void setOwner(GameObject* owner) { this->owner = owner; }
@@ -37,7 +39,7 @@ public:
             clipSize *= 1.05f;
             fireRate *= 0.95f;
             speed *= 1.025f;
-            reloadTime *= 0.95f;
+            reload_time *= 0.95;
             bulletSpread *= 0.95f;
         }
 
@@ -45,21 +47,20 @@ public:
     }
     COLLECTIBLES getType() { return type; }
     virtual Weapon* getCopy() = 0;
-    virtual void update() = 0;
+    virtual void update(f32 delta_time) = 0;
 protected:
     GameObjectManager& gameObjectManager;
     GameObject* owner;
     bool triggerPulled;
-    bool reloading;
     float damage;
     float speed;
     float clipSize;
     float currentAmmo;
-    float reloadTime;
     float fireRate;
     float bulletSpread;
     COLLECTIBLES type;
-    uint32_t startedReloading;
+    f32 reload_time;
+    f32 reloading;
 };
 
 #endif

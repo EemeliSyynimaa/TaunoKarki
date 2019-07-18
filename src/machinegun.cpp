@@ -9,7 +9,7 @@ MachineGun::MachineGun(GameObjectManager& gameObjectManager) :
     speed = GLOBALS::MACHINEGUN_BULLET_SPEED;
     clipSize = GLOBALS::MACHINEGUN_CLIP_SIZE;
     currentAmmo = clipSize;
-    reloadTime = GLOBALS::MACHINEGUN_RELOAD_TIME;
+    reload_time = GLOBALS::MACHINEGUN_RELOAD_TIME;
     fireRate = GLOBALS::MACHINEGUN_FIRE_RATE;
     bulletSpread = GLOBALS::MACHINEGUN_BULLET_SPREAD;
     type = COLLECTIBLES::MACHINEGUN;
@@ -19,20 +19,39 @@ MachineGun::~MachineGun()
 {
 }
 
-void MachineGun::update()
+void MachineGun::update(f32 delta_time)
 {
-    if (triggerPulled && currentAmmo > 0.0f && !reloading && 
-        (tk_current_time_get() - lastShot) > fireRate)
+    if (reloading > 0)
+    {
+        reloading -= delta_time;
+
+        if (reloading <= 0)
+        {
+            currentAmmo = clipSize;
+        }
+        else
+        {
+            currentAmmo = clipSize * (reload_time - reloading) / reload_time;
+        }
+    }
+    else if (lastShot > 0)
+    {
+        lastShot -= delta_time;
+    }
+    else if (triggerPulled && currentAmmo > 0.0f)
     {
         tk_sound_play(Locator::getAssetManager()->machinegunBangSound);
         std::random_device randomDevice;
         std::default_random_engine randomGenerator(randomDevice());
 
-        lastShot = tk_current_time_get();
-        size_t ownero = ENEMY_BULLET;;
+        lastShot = fireRate;
+
+        size_t ownero = ENEMY_BULLET;
         if (owner->getType() == PLAYER) ownero = PLAYER_BULLET;
 
-        float angle = glm::atan(owner->getComponent<Transform>()->getDirVec().y, owner->getComponent<Transform>()->getDirVec().x);
+        float angle = glm::atan(
+            owner->getComponent<Transform>()->getDirVec().y,
+            owner->getComponent<Transform>()->getDirVec().x);
         float finalSpeed = speed;
         glm::vec2 dirVec;
         
@@ -41,18 +60,10 @@ void MachineGun::update()
         dirVec.x = glm::cos(angle);
         dirVec.y = glm::sin(angle);
 
-        owner->gameObjectManager.createBullet(owner->getComponent<Transform>()->getPosition(), dirVec, ownero, damage, finalSpeed);
+        owner->gameObjectManager.createBullet(
+            owner->getComponent<Transform>()->getPosition(),
+            dirVec, ownero, damage, finalSpeed);
         
         if (--currentAmmo <= 0.0f) reload();
-    }
-    else if (reloading)
-    {
-        Uint32 deltaTime = tk_current_time_get() - startedReloading;
-        if (deltaTime > reloadTime)
-        {
-            reloading = false;
-            currentAmmo = clipSize;
-        }
-        else currentAmmo = clipSize * (deltaTime/reloadTime);
     }
 }

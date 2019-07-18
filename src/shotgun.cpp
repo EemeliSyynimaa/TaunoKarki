@@ -11,7 +11,7 @@ Shotgun::Shotgun(GameObjectManager& gameObjectManager) :
     speed = GLOBALS::SHOTGUN_BULLET_SPEED;
     clipSize = GLOBALS::SHOTGUN_CLIP_SIZE;
     currentAmmo = clipSize;
-    reloadTime = GLOBALS::SHOTGUN_RELOAD_TIME;
+    reload_time = GLOBALS::SHOTGUN_RELOAD_TIME;
     fireRate = GLOBALS::SHOTGUN_FIRE_RATE;
     bulletSpread = GLOBALS::SHOTGUN_BULLET_SPREAD;
     type = COLLECTIBLES::SHOTGUN;
@@ -21,15 +21,33 @@ Shotgun::~Shotgun()
 {
 }
 
-void Shotgun::update()
+void Shotgun::update(f32 delta_time)
 {
-    if (triggerPulled && !fired && currentAmmo > 0.0f && !reloading &&
-        (tk_current_time_get() - lastShot) > fireRate)
+    if (reloading > 0)
+    {
+        reloading -= delta_time;
+
+        if (reloading <= 0)
+        {
+            currentAmmo = clipSize;
+        }
+        else
+        {
+            currentAmmo = clipSize * (reload_time - reloading) / reload_time ;
+        }
+    }
+    else if (lastShot > 0)
+    {
+        lastShot -= delta_time;
+    }
+    else if (triggerPulled && !fired && currentAmmo > 0.0f)
     {
         tk_sound_play(Locator::getAssetManager()->shotgunBangSound);
 
         std::random_device randomDevice;
         std::default_random_engine randomGenerator(randomDevice());
+
+        lastShot = fireRate;
 
         size_t ownero = ENEMY_BULLET;;
         if (owner->getType() == PLAYER) ownero = PLAYER_BULLET;
@@ -42,7 +60,8 @@ void Shotgun::update()
                 owner->getComponent<Transform>()->getDirVec().y,
                 owner->getComponent<Transform>()->getDirVec().x);
             float finalSpeed = speed;
-            angle += randomFloat(-bulletSpread, bulletSpread)(randomGenerator);
+            angle += randomFloat(-bulletSpread, 
+                bulletSpread)(randomGenerator);
             finalSpeed *= randomFloat(0.9f, 1.1f)(randomGenerator);
 
             glm::vec2 dirVec;
@@ -54,18 +73,10 @@ void Shotgun::update()
                 dirVec, ownero, damage, finalSpeed);
         }
 
-        lastShot = tk_current_time_get();
         if (--currentAmmo <= 0.0f) reload();
     }
-    else if (!triggerPulled && fired) fired = false;
-    else if (reloading)
+    else if (!triggerPulled && fired)
     {
-        Uint32 deltaTime = tk_current_time_get() - startedReloading;
-        if (deltaTime > reloadTime)
-        {
-            reloading = false;
-            currentAmmo = clipSize;
-        }
-        else currentAmmo = clipSize * (deltaTime / reloadTime);
+        fired = false;
     }
 }
