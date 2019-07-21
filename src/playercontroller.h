@@ -16,8 +16,7 @@ public:
     void giveWeapon(Weapon* weapon, bool instantReload = false);
     Weapon* getWeapon() { return weapon; }
     void handleItem(COLLECTIBLES item);
-    
-    int playerAudioChannel;
+
 private:
     b2Body* body;
     Transform* transform;

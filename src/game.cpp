@@ -18,18 +18,6 @@ typedef struct game_state
 
 game_state state;
 
-int32_t tk_sound_play(tk_sound_sample* sample, int32_t channel, 
-    int32_t loops)
-{
-    Mix_Chunk* chunk = (Mix_Chunk*)sample;
-    return Mix_PlayChannel(channel, chunk, loops);
-}
-
-int32_t tk_sound_is_playing(int32_t channel)
-{
-    return Mix_Playing(channel);
-}
-
 void init_game(s32 screen_width, s32 screen_height)
 {
     state.level = 3;
@@ -41,8 +29,6 @@ void init_game(s32 screen_width, s32 screen_height)
 
     std::random_device randomDevice;
     std::default_random_engine randomGenerator(randomDevice());
-
-    tk_sound_play(Locator::getAssetManager()->ambienceSound, 0, -1);
 
     printf("GAMESCENE ALIVE - entering level %d\n ", state.level);
 
@@ -91,7 +77,6 @@ void update_game(game_input* input)
 {
     if (input->back.key_down)
     {
-        Mix_HaltChannel(-1);
         // Todo: send end signal
     }
     else
@@ -116,18 +101,11 @@ void update_game(game_input* input)
         {
             // printf("PLAYER LOST - died on level %d\n ", state.level);
 
-            state.player_dying_channel = tk_sound_play(
-                Locator::getAssetManager()->playerDeadSound);
-            
             state.game_ending = 1;
         }
         else if (state.game_ending)
         {
-            if (!tk_sound_is_playing(state.player_dying_channel))
-            {
-                Mix_HaltChannel(-1);
-                // Todo: send end signal
-            }
+            // Todo: send end signal
         }
         else if (state.game_object_manager->getNumberOfObjectsOfType(
             GAMEOBJECT_TYPES::ENEMY) == 0)

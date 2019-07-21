@@ -2,7 +2,6 @@
 #define ASSETMANAGER_H
 
 #include <vector>
-#include "SDL/SDL_mixer.h"
 #include "texture.h"
 #include "mesh.h"
 #include "shaderprogram.h"
@@ -86,15 +85,6 @@ struct AssetManager
     Mesh* healthpackMesh;
     Mesh* ammoBarMesh;
     Mesh* healthBarMesh;
-
-    tk_sound_sample* pistolBangSound;
-    tk_sound_sample* machinegunBangSound;
-    tk_sound_sample* shotgunBangSound;
-    tk_sound_sample* playerHitSound;
-    tk_sound_sample* enemyDeadSound;
-    tk_sound_sample* playerDeadSound;
-    tk_sound_sample* powerupSound;
-    tk_sound_sample* ambienceSound;
 
     Mesh* addMesh(Mesh mesh);
 

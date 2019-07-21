@@ -61,20 +61,10 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
             case ENEMY:
             {
                 getComponent<Health>()->change(-gameObject->getComponent<Damage>()->getDamage());
-
-                if (isAlive())
-                {
-                    tk_sound_sample* sound = Locator::getAssetManager()->playerHitSound;
-                    int32_t channel = controller->playerAudioChannel;
-
-                    controller->playerAudioChannel = tk_sound_play(sound, channel);
-                }
             } break;
             case ITEM: 
             {
                 controller->handleItem(gameObject->getComponent<Collectible>()->getType());
-
-                tk_sound_play(Locator::getAssetManager()->powerupSound);
             } break;
             default: break;
             }
@@ -95,10 +85,6 @@ void GameObject::handleCollisionWith(GameObject* gameObject)
 
                 if (!isAlive() && !controller->droppedItem)
                 {
-                    controller->AIAudioChannel = tk_sound_play(
-                        Locator::getAssetManager()->enemyDeadSound,
-                        controller->AIAudioChannel);
-                    
                     gameObjectManager.addNewObject([this]()
                     {
                         this->gameObjectManager.createRandomItem(this->getComponent<Transform>()->getPosition());

@@ -19,7 +19,6 @@ AIController::AIController(GameObject* owner, Tilemap* tilemap, b2World* world) 
     moveSpeed(GLOBALS::ENEMY_SPEED),
     target(0.0f),
     playerLastPosition(0.0f),
-    AIAudioChannel(-1),
     weapon(nullptr)
 {
     transform = owner->getComponent<Transform>();
@@ -48,11 +47,6 @@ void AIController::update(game_input* input)
 
     if (weapon)
         weapon->update(1 / 60.0f);
-
-    if (!tk_sound_is_playing(AIAudioChannel))
-    {
-        AIAudioChannel = -1;
-    }
 }
 
 void AIController::wander()

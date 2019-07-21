@@ -1,14 +1,7 @@
-#ifndef TK_PLATFORM_H
-#define TK_PLATFORM_H
+#ifndef PLATFORM_H
+#define PLATFORM_H
 
 #include <stdint.h>
-
-typedef void tk_sound_sample;
-
-int32_t tk_sound_play(tk_sound_sample* sample, int32_t channel = -1, 
-    int32_t loops = 0);
-
-int32_t tk_sound_is_playing(int32_t channel);
 
 typedef int8_t      s8;
 typedef int16_t     s16;

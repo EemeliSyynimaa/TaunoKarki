@@ -32,7 +32,6 @@ public:
 
     void gotShot(glm::vec3 from);
 
-    int AIAudioChannel;
 private:
 
     struct Node

@@ -42,8 +42,6 @@ void Shotgun::update(f32 delta_time)
     }
     else if (triggerPulled && !fired && currentAmmo > 0.0f)
     {
-        tk_sound_play(Locator::getAssetManager()->shotgunBangSound);
-
         std::random_device randomDevice;
         std::default_random_engine randomGenerator(randomDevice());
 

@@ -98,8 +98,6 @@ int main(int argc, char** argv)
     s32 screen_height = 720;
 
     s32 sdl_result = SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-    s32 mix_result = Mix_OpenAudio(MIX_DEFAULT_FREQUENCY,
-        MIX_DEFAULT_FORMAT, 2, 1024);
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -144,10 +142,6 @@ int main(int argc, char** argv)
     u32 vao;
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
-
-    Mix_Init(MIX_INIT_MOD | MIX_INIT_MP3);
-    Mix_Volume(-1, MIX_MAX_VOLUME / 2);
-    Mix_AllocateChannels(128);
 
     AssetManager assets;
 

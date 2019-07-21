@@ -29,7 +29,7 @@ public:
     float getClipSize() { return clipSize; }
     float getCurrentAmmo() { return currentAmmo; }
     bool isTriggerPulled() { return triggerPulled; }
-    bool isReloading() { return reloading; }
+    bool isReloading() { return reloading > 0; }
     bool canShoot() { return !reloading && currentAmmo > 0; }
     void levelUp(int level = 1, bool instantReload = false)
     {

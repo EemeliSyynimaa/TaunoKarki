@@ -40,7 +40,6 @@ void MachineGun::update(f32 delta_time)
     }
     else if (triggerPulled && currentAmmo > 0.0f)
     {
-        tk_sound_play(Locator::getAssetManager()->machinegunBangSound);
         std::random_device randomDevice;
         std::default_random_engine randomGenerator(randomDevice());
 

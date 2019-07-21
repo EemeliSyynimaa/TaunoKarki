@@ -9,8 +9,11 @@
 #include "machinegun.h"
 #include "shotgun.h"
 
-PlayerController::PlayerController(GameObject* owner) : Component(owner),
-moveSpeed(GLOBALS::PLAYER_SPEED), playerAudioChannel(-1), body(nullptr), weapon(nullptr)
+PlayerController::PlayerController(GameObject* owner) : 
+    Component(owner),
+    moveSpeed(GLOBALS::PLAYER_SPEED),
+    body(nullptr),
+    weapon(nullptr)
 {
     RigidBody* rigidbody = owner->getComponent<RigidBody>();
     assert(rigidbody);
@@ -73,11 +76,6 @@ void PlayerController::update(game_input* input)
     Transform* transform = owner->getComponent<Transform>();
     transform->lookAt(transform->getPosition() + mouseCoords);
     camera.follow(glm::vec2(transform->getPosition().x, transform->getPosition().y));
-
-    if (!tk_sound_is_playing(playerAudioChannel))
-    {
-        playerAudioChannel = -1;
-    }
 }
 
 void PlayerController::giveWeapon(Weapon* weapon, bool instantReload)

@@ -22,9 +22,6 @@ void Pistol::update(f32 delta_time)
 {
     if (reloading > 0)
     {
-        std::cout << "PISTOL RELOADING " << reloading << ", dt " << 
-            delta_time << std::endl;
-
         reloading -= delta_time;
 
         if (reloading <= 0)
@@ -38,8 +35,6 @@ void Pistol::update(f32 delta_time)
     }
     else if (triggerPulled && currentAmmo > 0.0f && !fired)
     {
-        tk_sound_play(Locator::getAssetManager()->pistolBangSound);
-
         std::random_device randomDevice;
         std::default_random_engine randomGenerator(randomDevice());
         glm::vec2 dirVec;
