@@ -8,7 +8,7 @@
 class Tilemap
 {
 public:
-    Tilemap(glm::vec3 position, AssetManager& assetManager, Camera& camera, b2World& world);
+    Tilemap(glm::vec3 position, AssetManager& assetManager, Camera& camera);
     ~Tilemap();
 
     void draw();
@@ -29,12 +29,10 @@ private:
 
     Camera& camera;
     AssetManager& assetManager;
-    b2World& world;
     ShaderProgram& program;
     Texture& texture;
     glm::vec3 position;
 
-    std::vector<b2Body*> wallBodies;
     std::vector<GLuint> indices;
     std::vector<Vertex> vertices;
     std::vector<glm::vec3> startingPositions;

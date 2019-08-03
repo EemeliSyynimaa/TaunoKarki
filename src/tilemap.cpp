@@ -8,7 +8,21 @@
 #define WALL 0
 #define randomInt std::uniform_int_distribution<int>
 
-Tilemap::Tilemap(glm::vec3 position, AssetManager& assetManager, Camera& camera, b2World& world) : assetManager(assetManager), world(world), camera(camera), VBO(0), IBO(0), textureIndex(0), MVPIndex(0), program(*assetManager.shaderProgram), texture(*assetManager.tilesetTexture), matrix(1.0f), position(position), width(0), height(0), currentRegion(0), windingPercent(50)
+Tilemap::Tilemap(glm::vec3 position, AssetManager& assetManager, Camera& camera) :
+    assetManager(assetManager),
+    camera(camera),
+    VBO(0),
+    IBO(0),
+    textureIndex(0),
+    MVPIndex(0),
+    program(*assetManager.shaderProgram),
+    texture(*assetManager.tilesetTexture),
+    matrix(1.0f),
+    position(position),
+    width(0),
+    height(0),
+    currentRegion(0),
+    windingPercent(50)
 {
     matrix = glm::translate(position);
 }
@@ -21,11 +35,6 @@ Tilemap::~Tilemap()
     }
 
     delete[] data;
-
-    for (b2Body* body : wallBodies)
-        world.DestroyBody(body);
-
-    wallBodies.clear();
 
     glDeleteBuffers(1, &VBO);
     glDeleteBuffers(1, &IBO);
@@ -367,25 +376,25 @@ void Tilemap::createMeshes()
 
                 counter += assetManager.wallMesh->getVertices().size();
 
-                b2BodyDef bodyDef;
-                bodyDef.position = b2Vec2(x * 2 + position.x, y * 2 + position.y);
-                bodyDef.type = b2_staticBody;
+                // b2BodyDef bodyDef;
+                // bodyDef.position = b2Vec2(x * 2 + position.x, y * 2 + position.y);
+                // bodyDef.type = b2_staticBody;
                 
-                b2Body* body = world.CreateBody(&bodyDef);
+                // b2Body* body = world.CreateBody(&bodyDef);
                 
-                b2PolygonShape shape;
-                shape.SetAsBox(1.0f, 1.0f);
+                // b2PolygonShape shape;
+                // shape.SetAsBox(1.0f, 1.0f);
 
-                b2FixtureDef fixtureDef;
-                fixtureDef.density = 1.0f;
-                fixtureDef.friction = 0.0f;
-                fixtureDef.shape = &shape;
-                fixtureDef.filter.categoryBits = COL_WALL;
-                fixtureDef.filter.maskBits = (COL_PLAYER | COL_ENEMY | COL_PLAYER_BULLET | COL_ENEMY_BULLET);
+                // b2FixtureDef fixtureDef;
+                // fixtureDef.density = 1.0f;
+                // fixtureDef.friction = 0.0f;
+                // fixtureDef.shape = &shape;
+                // fixtureDef.filter.categoryBits = COL_WALL;
+                // fixtureDef.filter.maskBits = (COL_PLAYER | COL_ENEMY | COL_PLAYER_BULLET | COL_ENEMY_BULLET);
 
-                body->CreateFixture(&fixtureDef);
+                // body->CreateFixture(&fixtureDef);
 
-                wallBodies.push_back(body);
+                // wallBodies.push_back(body);
             }
             else if (data[y][x] != currentRegion)
             {

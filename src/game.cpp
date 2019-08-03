@@ -5,9 +5,7 @@
 
 typedef struct game_state
 {
-    b2World* world;
     Tilemap* tilemap;
-    CollisionHandler* collision_handler;
     Camera* camera;
     GameObjectManager* game_object_manager;
     b32 game_ending;
@@ -21,18 +19,14 @@ game_state state;
 void init_game(s32 screen_width, s32 screen_height)
 {
     state.level = 3;
-    state.world = new b2World(b2Vec2(0.0f, 0.0f));
-    state.collision_handler = new CollisionHandler();
     state.camera = new Camera();
     state.game_object_manager = new GameObjectManager(
-        *Locator::getAssetManager(), *state.camera, state.world);
+        *Locator::getAssetManager(), *state.camera);
 
     std::random_device randomDevice;
     std::default_random_engine randomGenerator(randomDevice());
 
     printf("GAMESCENE ALIVE - entering level %d\n ", state.level);
-
-    state.world->SetContactListener(state.collision_handler);
 
     state.camera->createNewPerspectiveMatrix(60.0f, (float)screen_width, 
         (float)screen_height, 0.1f, 100.0f);
@@ -44,7 +38,7 @@ void init_game(s32 screen_width, s32 screen_height)
     for (;;)
     {
         state.tilemap = new Tilemap(glm::vec3(0.0f), 
-            *Locator::getAssetManager(), *state.camera, *state.world);
+            *Locator::getAssetManager(), *state.camera);
         state.tilemap->generate(7 + state.level * 4, 7 + state.level * 4);
 
         if (state.tilemap->getNumberOfStartingPositions() > 1)
@@ -87,8 +81,6 @@ void update_game(game_input* input)
         while (state.accumulator >= step)
         {
             state.accumulator -= step;
-
-            state.world->Step(step, 8, 3);
 
             state.game_object_manager->update(input);
         }

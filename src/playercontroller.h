@@ -17,7 +17,6 @@ public:
     void handleItem(COLLECTIBLES item);
 
 private:
-    b2Body* body;
     Transform* transform;
     Weapon* weapon;
     float moveSpeed;

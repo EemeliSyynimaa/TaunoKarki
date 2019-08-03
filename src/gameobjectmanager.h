@@ -14,7 +14,7 @@ class Tilemap;
 class GameObjectManager
 {
 public:
-    GameObjectManager(AssetManager& assetManager, Camera& camera, b2World* world = nullptr);
+    GameObjectManager(AssetManager& assetManager, Camera& camera);
     ~GameObjectManager();
 
     void update(game_input* input);
@@ -40,7 +40,6 @@ private:
     GameObject* createObject();
 
     AssetManager& assetManager;
-    b2World* world;
     Camera& camera;
     std::list<GameObject*> gameObjects;
     std::list<GameObject*> deadObjects;

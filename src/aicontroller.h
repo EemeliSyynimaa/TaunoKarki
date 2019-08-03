@@ -10,7 +10,7 @@
 class AIController : public Component
 {
 public:
-    AIController(GameObject* owner, Tilemap* tilemap, b2World* world);
+    AIController(GameObject* owner, Tilemap* tilemap);
     ~AIController();
 
     void update(game_input* input);
@@ -66,14 +66,14 @@ private:
 
     };
 
-    class RayCastCallback : public b2RayCastCallback
-    {
-    public:
-        RayCastCallback() : playerIsVisible(true) {}
-        bool playerIsVisible;
-        float32 ReportFixture(b2Fixture* fixture,
-            const b2Vec2& point, const b2Vec2& normal, float32 fraction);
-    };
+    // class RayCastCallback : public b2RayCastCallback
+    // {
+    // public:
+    //     RayCastCallback() : playerIsVisible(true) {}
+    //     bool playerIsVisible;
+    //     f32 ReportFixture(b2Fixture* fixture,
+    //         const b2Vec2& point, const b2Vec2& normal, float32 fraction);
+    // };
 
     void wander();
     void attack(f32 delta_time);
@@ -102,9 +102,7 @@ private:
     states state;
     Transform* transform;
     Weapon* weapon;
-    b2Body* body;
     Tilemap* tilemap;
-    b2World* world;
 
     std::vector<glm::vec3> path;
 

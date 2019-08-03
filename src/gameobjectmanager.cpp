@@ -28,7 +28,8 @@
 
 #define randomInt std::uniform_int_distribution<int>
 
-GameObjectManager::GameObjectManager(AssetManager& assetManager, Camera& camera, b2World* world) : assetManager(assetManager), world(world), camera(camera)
+GameObjectManager::GameObjectManager(AssetManager& assetManager, Camera& camera) : 
+    assetManager(assetManager), camera(camera)
 {
 }
 
@@ -90,8 +91,6 @@ void GameObjectManager::draw()
 
 GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direction, unsigned int owner, float damage, float speed)
 {
-    assert(world);
-
     GameObject* gameObject = createObject();
 
     gameObject->setType(owner);
@@ -99,7 +98,7 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
     gameObject->addComponent(new Transform(gameObject, position.x + direction.x, position.y + direction.y, 0));
     if (owner == GAMEOBJECT_TYPES::PLAYER_BULLET)  gameObject->addComponent(new CircleCollider(gameObject, GLOBALS::PROJECTILE_SIZE, COL_PLAYER_BULLET, (COL_WALL | COL_ENEMY)));
     else  gameObject->addComponent(new CircleCollider(gameObject, GLOBALS::PROJECTILE_SIZE, COL_ENEMY_BULLET, (COL_WALL | COL_PLAYER)));
-    gameObject->addComponent(new RigidBody(gameObject, *world));
+    gameObject->addComponent(new RigidBody(gameObject));
     gameObject->addComponent(new Damage(gameObject, damage));
     gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
@@ -110,26 +109,24 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
     gameObject->getDrawableComponent<MeshRenderer>()->setProjectionMatrix(camera.getPerspectiveMatrix());
     gameObject->getDrawableComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
 
-    b2Body* body = gameObject->getComponent<RigidBody>()->getBody();
-    body->SetBullet(true);
-    b2Vec2 forceDir(direction.x, direction.y);
-    forceDir *= speed;
-    body->ApplyLinearImpulse(forceDir, body->GetWorldCenter(), true);
+    // b2Body* body = gameObject->getComponent<RigidBody>()->getBody();
+    // body->SetBullet(true);
+    // b2Vec2 forceDir(direction.x, direction.y);
+    // forceDir *= speed;
+    // body->ApplyLinearImpulse(forceDir, body->GetWorldCenter(), true);
 
     return gameObject;
 }
 
 GameObject* GameObjectManager::createPlayer(glm::vec3 position, Weapon* weapon)
 {
-    assert(world);
-
     GameObject* gameObject = createObject();
 
     gameObject->setType(GAMEOBJECT_TYPES::PLAYER);
 
     gameObject->addComponent(new Transform(gameObject, position.x, position.y, position.z));
     gameObject->addComponent(new CircleCollider(gameObject, 0.5f, COL_PLAYER, (COL_WALL | COL_ENEMY | COL_ENEMY_BULLET)));
-    gameObject->addComponent(new RigidBody(gameObject, *world));
+    gameObject->addComponent(new RigidBody(gameObject));
     gameObject->addComponent(new PlayerController(gameObject));
     gameObject->addComponent(new Health(gameObject, GLOBALS::PLAYER_HEALTH));
     gameObject->addDrawableComponent(new MeshRenderer(gameObject));
@@ -140,7 +137,7 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position, Weapon* weapon)
     gameObject->getDrawableComponent<MeshRenderer>()->setViewMatrix(camera.getViewMatrix());
     gameObject->getDrawableComponent<MeshRenderer>()->setProjectionMatrix(camera.getPerspectiveMatrix());
     gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.playerTexture);
-    gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
+    // gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
 
     if (weapon)
         gameObject->getComponent<PlayerController>()->giveWeapon(weapon, true);
@@ -152,7 +149,7 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position, Weapon* weapon)
 
 GameObject* GameObjectManager::createEnemy(glm::vec3 position, int level, Tilemap* tilemap)
 {
-    assert(world && tilemap);
+    assert(tilemap);
 
     GameObject* gameObject = createObject();
 
@@ -160,9 +157,9 @@ GameObject* GameObjectManager::createEnemy(glm::vec3 position, int level, Tilema
 
     gameObject->addComponent(new Transform(gameObject, position));
     gameObject->addComponent(new CircleCollider(gameObject, 0.5f + 0.0125f * level, COL_ENEMY, (COL_WALL | COL_PLAYER | COL_PLAYER_BULLET)));
-    gameObject->addComponent(new RigidBody(gameObject, *world));
+    gameObject->addComponent(new RigidBody(gameObject));
     gameObject->addComponent(new Health(gameObject, GLOBALS::ENEMY_HEALTH + GLOBALS::ENEMY_HEALTH_PER_LEVEL * level));
-    gameObject->addComponent(new AIController(gameObject, tilemap, world));
+    gameObject->addComponent(new AIController(gameObject, tilemap));
     gameObject->addComponent(new Damage(gameObject, GLOBALS::ENEMY_HIT_DAMAGE + GLOBALS::ENEMY_HIT_DAMAGE_PER_LEVEL * level));
     gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
@@ -172,7 +169,7 @@ GameObject* GameObjectManager::createEnemy(glm::vec3 position, int level, Tilema
     gameObject->getDrawableComponent<MeshRenderer>()->setViewMatrix(camera.getViewMatrix());
     gameObject->getDrawableComponent<MeshRenderer>()->setProjectionMatrix(camera.getPerspectiveMatrix());
     gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.enemyTexture);
-    gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
+    // gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
 
     std::random_device randomDevice;
     std::default_random_engine randomGenerator(randomDevice());
@@ -258,15 +255,13 @@ GameObject* GameObjectManager::createPlayerAmmoBar(glm::vec3 position, glm::vec3
 
 GameObject* GameObjectManager::createRandomItem(glm::vec3 position)
 {
-    assert(world);
-
     GameObject* gameObject = createObject();
 
     gameObject->setType(GAMEOBJECT_TYPES::ITEM);
 
     gameObject->addComponent(new Transform(gameObject, position));
     gameObject->addComponent(new CircleCollider(gameObject, 0.25f, COL_WALL, (COL_PLAYER)));
-    gameObject->addComponent(new RigidBody(gameObject, *world));
+    gameObject->addComponent(new RigidBody(gameObject));
     gameObject->addComponent(new Collectible(gameObject));
     gameObject->addDrawableComponent(new MeshRenderer(gameObject));
 
@@ -288,7 +283,7 @@ GameObject* GameObjectManager::createRandomItem(glm::vec3 position)
     gameObject->getDrawableComponent<MeshRenderer>()->setProjectionMatrix(camera.getPerspectiveMatrix());
     gameObject->getDrawableComponent<MeshRenderer>()->setTexture(assetManager.itemsTexture);
 
-    gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
+    // gameObject->getComponent<RigidBody>()->getBody()->SetFixedRotation(true);
 
     return gameObject;
 }
@@ -326,10 +321,10 @@ void GameObjectManager::interpolate(float alpha)
         if (transform && rigidBody)
         {
             glm::vec3 position = transform->getPosition();
-            b2Vec2 bodyPosition = rigidBody->getBody()->GetPosition();
+            // b2Vec2 bodyPosition = rigidBody->getBody()->GetPosition();
 
-            position.x = bodyPosition.x * alpha + position.x * (1.0f - alpha);
-            position.y = bodyPosition.y * alpha + position.y * (1.0f - alpha);
+            // position.x = bodyPosition.x * alpha + position.x * (1.0f - alpha);
+            // position.y = bodyPosition.y * alpha + position.y * (1.0f - alpha);
 
             transform->setPosition(position);
         }

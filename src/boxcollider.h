@@ -6,10 +6,10 @@
 class BoxCollider : public Collider
 {
 public:
-    BoxCollider(GameObject* owner, float width, float height, uint16 categoryBits, uint16 maskBits);
+    BoxCollider(GameObject* owner, float width, float height, u16 categoryBits, u16 maskBits);
     ~BoxCollider();
 private:
-    b2PolygonShape shape;
+    // b2PolygonShape shape;
 };
 
 #endif

@@ -20,7 +20,6 @@
 #include "transform.cpp"
 #include "assetmanager.cpp"
 #include "camera.cpp"
-#include "collisionhandler.cpp"
 #include "component.cpp"
 #include "game.cpp"
 #include "gameobject.cpp"

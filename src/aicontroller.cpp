@@ -10,10 +10,9 @@
 
 #define randomInt std::uniform_int_distribution<int>
 
-AIController::AIController(GameObject* owner, Tilemap* tilemap, b2World* world) : 
+AIController::AIController(GameObject* owner, Tilemap* tilemap) : 
     Component(owner),
     tilemap(tilemap),
-    world(world),
     lastShot(0),
     droppedItem(false),
     moveSpeed(GLOBALS::ENEMY_SPEED),
@@ -24,7 +23,7 @@ AIController::AIController(GameObject* owner, Tilemap* tilemap, b2World* world) 
     transform = owner->getComponent<Transform>();
     RigidBody* rigidbody = owner->getComponent<RigidBody>();
     assert(transform && rigidbody);
-    body = rigidbody->getBody();
+    // body = rigidbody->getBody();
 
     initWander();
 }
@@ -116,14 +115,14 @@ void AIController::shoot(f32 delta_time)
 
 void AIController::moveTo(glm::vec3 position)
 {
-    b2Vec2 impulse(0.0f, 0.0f);
+    // b2Vec2 impulse(0.0f, 0.0f);
 
-    transform->lookAt(position);
+    // transform->lookAt(position);
 
-    impulse.x = body->GetMass() * transform->getDirVec().x * moveSpeed - body->GetLinearVelocity().x;
-    impulse.y = body->GetMass() * transform->getDirVec().y * moveSpeed - body->GetLinearVelocity().y;
+    // impulse.x = body->GetMass() * transform->getDirVec().x * moveSpeed - body->GetLinearVelocity().x;
+    // impulse.y = body->GetMass() * transform->getDirVec().y * moveSpeed - body->GetLinearVelocity().y;
 
-    body->ApplyLinearImpulse(impulse, body->GetWorldCenter(), true);
+    // body->ApplyLinearImpulse(impulse, body->GetWorldCenter(), true);
 }
 
 void AIController::pursue()
@@ -157,8 +156,6 @@ void AIController::initWander()
 {
     state = WANDER;
 
-    body->SetLinearVelocity(b2Vec2_zero);
-
     if (weapon) weapon->releaseTheTrigger();
     
     getNewTarget();
@@ -172,8 +169,6 @@ void AIController::initEscape()
 void AIController::initPursue()
 {
     state = PURSUE;
-
-    body->SetLinearVelocity(b2Vec2_zero);
 
     if (weapon) weapon->releaseTheTrigger();
 }
@@ -304,29 +299,29 @@ bool AIController::isPlayerInSight(GameObject* player)
 
     if (transform->distanceTo(plrTransform->getPosition()) < GLOBALS::ENEMY_ACTIVATION_DISTANCE)
     {
-        b2Vec2 AIPos;
-        AIPos.x = transform->getPosition().x;
-        AIPos.y = transform->getPosition().y;
+        // b2Vec2 AIPos;
+        // AIPos.x = transform->getPosition().x;
+        // AIPos.y = transform->getPosition().y;
 
-        b2Vec2 plrPos;
-        plrPos.x = plrTransform->getPosition().x;
-        plrPos.y = plrTransform->getPosition().y;
+        // b2Vec2 plrPos;
+        // plrPos.x = plrTransform->getPosition().x;
+        // plrPos.y = plrTransform->getPosition().y;
 
-        RayCastCallback callBack;
+        // RayCastCallback callBack;
 
-        world->RayCast(&callBack, AIPos, plrPos);
+        // world->RayCast(&callBack, AIPos, plrPos);
 
-        if (callBack.playerIsVisible)
-        {
-            glm::vec2 AIDir = transform->getDirVec();
-            glm::vec2 plrDir = glm::normalize(glm::vec2(plrPos.x - AIPos.x, plrPos.y - AIPos.y));
+        // if (callBack.playerIsVisible)
+        // {
+        //     glm::vec2 AIDir = transform->getDirVec();
+        //     glm::vec2 plrDir = glm::normalize(glm::vec2(plrPos.x - AIPos.x, plrPos.y - AIPos.y));
 
-            float dotProduct = glm::dot(AIDir, plrDir);
+        //     float dotProduct = glm::dot(AIDir, plrDir);
 
-            if (dotProduct > 1.0f) dotProduct = 1.0f;
+        //     if (dotProduct > 1.0f) dotProduct = 1.0f;
 
-            if (glm::degrees(glm::acos(dotProduct)) < GLOBALS::ENEMY_ANGLE_OF_VISION) return true;
-        }
+        //     if (glm::degrees(glm::acos(dotProduct)) < GLOBALS::ENEMY_ANGLE_OF_VISION) return true;
+        // }
     }
 
     return false;
@@ -338,19 +333,19 @@ void AIController::gotShot(glm::vec3 from)
         transform->lookAt(from);
 }
 
-float32 AIController::RayCastCallback::ReportFixture(b2Fixture* fixture, const b2Vec2& point, const b2Vec2& normal, float32 fraction)
-{
-    // Only walls dont have a pointer to a gameobject.
-    // And this raycast should only fail when it hits a wall.
-    // So we check if the body has a gameobject and act according to it.
+// float32 AIController::RayCastCallback::ReportFixture(b2Fixture* fixture, const b2Vec2& point, const b2Vec2& normal, float32 fraction)
+// {
+//     // Only walls dont have a pointer to a gameobject.
+//     // And this raycast should only fail when it hits a wall.
+//     // So we check if the body has a gameobject and act according to it.
 
-    GameObject* gameObject = static_cast<GameObject*>(fixture->GetBody()->GetUserData());
+//     GameObject* gameObject = static_cast<GameObject*>(fixture->GetBody()->GetUserData());
 
-    if (!gameObject)
-    {
-        playerIsVisible = false;
-        return 0;
-    }
+//     if (!gameObject)
+//     {
+//         playerIsVisible = false;
+//         return 0;
+//     }
     
-    return -1;
-}
+//     return -1;
+// }

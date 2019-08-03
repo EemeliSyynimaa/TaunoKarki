@@ -6,10 +6,10 @@
 class CircleCollider : public Collider
 {
 public:
-    CircleCollider(GameObject* owner, float radius, uint16 categoryBits, uint16 maskBits);
+    CircleCollider(GameObject* owner, float radius, u16 categoryBits, u16 maskBits);
     ~CircleCollider();
 private:
-    b2CircleShape shape;
+    // b2CircleShape shape;
 };
 
 #endif
