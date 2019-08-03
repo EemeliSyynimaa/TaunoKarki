@@ -4,7 +4,6 @@
 #include <vector>
 #include "assetmanager.h"
 #include "camera.h"
-#include "Box2D\Box2D.h"
 
 class Tilemap
 {

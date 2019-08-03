@@ -2,7 +2,6 @@
 #define COLLIDER_H
 
 #include "component.h"
-#include "Box2D\Box2D.h"
 
 class Collider : public Component
 {

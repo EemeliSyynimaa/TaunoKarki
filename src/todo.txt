@@ -1,0 +1,31 @@
+ - Replace glew
+  - Fetch GL functions from the system by hand
+ - Replace GLM
+  - Make own implementation of all used 
+ - Replace Box2D
+  - Implement own collision engine
+ - Replace lodepng
+  - Use bitmaps instead?
+  - Or own custom format?
+ - Replace SDL
+  - Platform layers for win32 and linux
+ - Move game code into own library
+  - Load game code dynamically (hot reload)
+ - Use custom memory allocation
+  - Platform code allocates large chunk of memory and passes it to the game library
+
+When all third party code is replaced, it's time to move on:
+
+- Write all remaining code in C
+ - Re-design entity system
+- Software renderer
+ - 3D walls
+ - Sprites
+ - Particle system
+ - Lights
+- Gameplay improvements
+ - Game feel and balance
+ - More weapons, enemies
+ - Improved AI
+ - Support for custom editor?
+- Multiplayer?

@@ -1,7 +1,7 @@
 @echo off
 
 set "VSCMD_START_DIR=%cd%"
-call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
+call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
 
 set release_flags= -MT -nologo -fp:fast -fp:except- -Gm- -GR -EHsa- -Oi -WX -W1 -I ../src -DGLEW_STATIC -DSDL_MAIN_HANDLED -DGLM_FORCE_PURE
 set debug_flags= -Od -MTd -nologo -fp:fast -fp:except- -Gm- -GR -EHsa- -Zo -Oi -WX -W1 -Z7 -I ../src -DGLEW_STATIC -DSDL_MAIN_HANDLED -DGLM_FORCE_PURE

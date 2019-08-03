@@ -5,7 +5,6 @@
 #include <functional>
 #include "glm\glm.hpp"
 #include "assetmanager.h"
-#include "Box2D\Box2D.h"
 #include "camera.h"
 
 class Weapon;

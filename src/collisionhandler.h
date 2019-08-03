@@ -1,8 +1,6 @@
 #ifndef COLLISIONHANDLER_H
 #define COLLISIONHANDLER_H
 
-#include "Box2D\Box2D.h"
-
 class GameObject;
 
 class CollisionHandler : public b2ContactListener

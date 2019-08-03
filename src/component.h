@@ -1,7 +1,6 @@
 #ifndef COMPONENT_H
 #define COMPONENT_H
 
-#include "Box2D\Common\b2Math.h"
 class GameObject;
 
 class Component

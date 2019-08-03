@@ -2,7 +2,6 @@
 #define PLAYERCONTROLLER_H
 
 #include "component.h"
-#include "Box2D\Box2D.h"
 #include "transform.h"
 #include "weapon.h"
 

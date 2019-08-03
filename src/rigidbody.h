@@ -1,7 +1,6 @@
 #ifndef RIGIDBODY_H
 #define RIGIDBODY_H
 
-#include "Box2D\Box2D.h"
 #include "component.h"
 #include "glm\glm.hpp"
 #include "transform.h"
