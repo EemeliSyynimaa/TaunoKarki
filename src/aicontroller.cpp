@@ -23,7 +23,6 @@ AIController::AIController(GameObject* owner, Tilemap* tilemap) :
     transform = owner->getComponent<Transform>();
     RigidBody* rigidbody = owner->getComponent<RigidBody>();
     assert(transform && rigidbody);
-    // body = rigidbody->getBody();
 
     initWander();
 }
@@ -115,14 +114,11 @@ void AIController::shoot(f32 delta_time)
 
 void AIController::moveTo(glm::vec3 position)
 {
-    // b2Vec2 impulse(0.0f, 0.0f);
+    transform->lookAt(position);
 
-    // transform->lookAt(position);
+    glm::vec3 direction = { transform->getDirVec().x, transform->getDirVec().y, 0.0f };
 
-    // impulse.x = body->GetMass() * transform->getDirVec().x * moveSpeed - body->GetLinearVelocity().x;
-    // impulse.y = body->GetMass() * transform->getDirVec().y * moveSpeed - body->GetLinearVelocity().y;
-
-    // body->ApplyLinearImpulse(impulse, body->GetWorldCenter(), true);
+    transform->setPosition(transform->getPosition() + direction * moveSpeed);
 }
 
 void AIController::pursue()
@@ -299,6 +295,7 @@ bool AIController::isPlayerInSight(GameObject* player)
 
     if (transform->distanceTo(plrTransform->getPosition()) < GLOBALS::ENEMY_ACTIVATION_DISTANCE)
     {
+        // Todo: implement raycast
         // b2Vec2 AIPos;
         // AIPos.x = transform->getPosition().x;
         // AIPos.y = transform->getPosition().y;

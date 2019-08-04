@@ -66,15 +66,6 @@ private:
 
     };
 
-    // class RayCastCallback : public b2RayCastCallback
-    // {
-    // public:
-    //     RayCastCallback() : playerIsVisible(true) {}
-    //     bool playerIsVisible;
-    //     f32 ReportFixture(b2Fixture* fixture,
-    //         const b2Vec2& point, const b2Vec2& normal, float32 fraction);
-    // };
-
     void wander();
     void attack(f32 delta_time);
     void pursue();

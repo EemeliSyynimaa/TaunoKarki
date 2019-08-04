@@ -31,7 +31,7 @@ namespace GLOBALS
     const f32 PLAYER_HEALTH_PER_PACK = 100.0f;
     
     const f32 ENEMY_HEALTH = 50.0f;
-    const f32 ENEMY_SPEED = 0.175f;
+    const f32 ENEMY_SPEED = 0.125f;
     const f32 ENEMY_ACTIVATION_DISTANCE = 20.0f;
     const f32 ENEMY_HEALTH_PER_LEVEL = 10.0f;
     const f32 ENEMY_HIT_DAMAGE = 50.0f;
