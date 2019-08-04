@@ -50,9 +50,18 @@ void PlayerController::update(game_input* input)
 
     // Lets check if we start or stop firing
     if (!weapon->isTriggerPulled() && input->shoot.key_down)
+    {
         weapon->pullTheTrigger();
+    }
     else if (!input->shoot.key_down)
+    {
         weapon->releaseTheTrigger();
+    }
+
+    if (input->reload.key_down && !weapon->isReloading())
+    {
+        weapon->reload();
+    }
 
     weapon->update(1 / 60.0f);
 
@@ -78,25 +87,30 @@ void PlayerController::giveWeapon(Weapon* weapon, bool instantReload)
 
 void PlayerController::handleItem(COLLECTIBLES item)
 {
-    switch (item)
+    if (weapon->getType() == item)
     {
-    case COLLECTIBLES::PISTOL:
+        weapon->levelUp();
+    }
+    else
     {
-        if (weapon->getType() == item) weapon->levelUp();
-        else giveWeapon(new Pistol(owner->gameObjectManager));
-        break;
-    }
-    case COLLECTIBLES::MACHINEGUN: {
-        if (weapon->getType() == item) weapon->levelUp();
-        else giveWeapon(new MachineGun(owner->gameObjectManager));
-        break;
-    }
-    case COLLECTIBLES::SHOTGUN: {
-        if (weapon->getType() == item) weapon->levelUp();
-        else giveWeapon(new Shotgun(owner->gameObjectManager));
-        break;
-    }
-    case COLLECTIBLES::HEALTHPACK: owner->getComponent<Health>()->change(GLOBALS::PLAYER_HEALTH_PER_PACK); break;
-    default: break;
+        switch (item)
+        {
+            case COLLECTIBLES::PISTOL:
+            {
+                giveWeapon(new Pistol(owner->gameObjectManager));
+            } break;
+            case COLLECTIBLES::MACHINEGUN: 
+            {
+                giveWeapon(new MachineGun(owner->gameObjectManager));
+            } break;
+            case COLLECTIBLES::SHOTGUN:
+            {
+                giveWeapon(new Shotgun(owner->gameObjectManager));
+            } break;
+            case COLLECTIBLES::HEALTHPACK: 
+            {
+                owner->getComponent<Health>()->change(GLOBALS::PLAYER_HEALTH_PER_PACK); 
+            } break;
+        }
     }
 }

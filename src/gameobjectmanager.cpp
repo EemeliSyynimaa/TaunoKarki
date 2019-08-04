@@ -94,10 +94,19 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
     GameObject* gameObject = createObject();
 
     gameObject->setType(owner);
-
     gameObject->addComponent(new Transform(gameObject, position.x + direction.x, position.y + direction.y, 0));
-    if (owner == GAMEOBJECT_TYPES::PLAYER_BULLET)  gameObject->addComponent(new CircleCollider(gameObject, GLOBALS::PROJECTILE_SIZE, COL_PLAYER_BULLET, (COL_WALL | COL_ENEMY)));
-    else  gameObject->addComponent(new CircleCollider(gameObject, GLOBALS::PROJECTILE_SIZE, COL_ENEMY_BULLET, (COL_WALL | COL_PLAYER)));
+
+    if (owner == GAMEOBJECT_TYPES::PLAYER_BULLET) 
+    {
+        gameObject->addComponent(new CircleCollider(gameObject, GLOBALS::PROJECTILE_SIZE,
+            COL_PLAYER_BULLET, (COL_WALL | COL_ENEMY)));
+    }
+    else
+    {
+        gameObject->addComponent(new CircleCollider(gameObject, GLOBALS::PROJECTILE_SIZE,
+            COL_ENEMY_BULLET, (COL_WALL | COL_PLAYER)));
+    }
+
     gameObject->addComponent(new RigidBody(gameObject));
     gameObject->addComponent(new Damage(gameObject, damage));
     gameObject->addDrawableComponent(new MeshRenderer(gameObject));
@@ -109,11 +118,10 @@ GameObject* GameObjectManager::createBullet(glm::vec3 position, glm::vec2 direct
     gameObject->getDrawableComponent<MeshRenderer>()->setProjectionMatrix(camera.getPerspectiveMatrix());
     gameObject->getDrawableComponent<MeshRenderer>()->setProgram(assetManager.shaderProgram);
 
-    // b2Body* body = gameObject->getComponent<RigidBody>()->getBody();
-    // body->SetBullet(true);
-    // b2Vec2 forceDir(direction.x, direction.y);
-    // forceDir *= speed;
-    // body->ApplyLinearImpulse(forceDir, body->GetWorldCenter(), true);
+    RigidBody* body = gameObject->getComponent<RigidBody>();
+
+    body->has_velocity = 1;
+    body->velocity = { direction.x * speed, direction.y * speed, 0.0f };
 
     return gameObject;
 }
@@ -142,7 +150,7 @@ GameObject* GameObjectManager::createPlayer(glm::vec3 position, Weapon* weapon)
     if (weapon)
         gameObject->getComponent<PlayerController>()->giveWeapon(weapon, true);
     else
-        gameObject->getComponent<PlayerController>()->giveWeapon(new MachineGun(*this), true);
+        gameObject->getComponent<PlayerController>()->giveWeapon(new Pistol(*this), true);
 
     return gameObject;
 }

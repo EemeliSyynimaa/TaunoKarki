@@ -27,7 +27,7 @@ enum COLLECTIBLES
 namespace GLOBALS
 {
     const f32 PLAYER_HEALTH = 500.0f;
-    const f32 PLAYER_SPEED = 0.2f;           // pixels per frame
+    const f32 PLAYER_SPEED = 0.2f;
     const f32 PLAYER_HEALTH_PER_PACK = 100.0f;
     
     const f32 ENEMY_HEALTH = 50.0f;
@@ -41,18 +41,18 @@ namespace GLOBALS
     const f32 MACHINEGUN_DAMAGE = 25.0;
     const f32 MACHINEGUN_RELOAD_TIME = 2.50;
     const f32 MACHINEGUN_CLIP_SIZE = 25.0f;
-    const f32 MACHINEGUN_BULLET_SPEED = 1.5f;
+    const f32 MACHINEGUN_BULLET_SPEED = 1.0f;
     const f32 MACHINEGUN_FIRE_RATE = 0.125f;
     const f32 MACHINEGUN_BULLET_SPREAD = 0.05f;
 
     const f32 PISTOL_DAMAGE = 30.0f;
-    const f32 PISTOL_BULLET_SPEED = 1.5f;
+    const f32 PISTOL_BULLET_SPEED = 1.0f;
     const f32 PISTOL_CLIP_SIZE = 8.0f;
     const f32 PISTOL_RELOAD_TIME = 1.5f;
     const f32 PISTOL_BULLET_SPREAD = 0.01f;
 
     const f32 SHOTGUN_DAMAGE = 12.5f;
-    const f32 SHOTGUN_BULLET_SPEED = 1.5f;
+    const f32 SHOTGUN_BULLET_SPEED = 1.0f;
     const f32 SHOTGUN_CLIP_SIZE = 7.0f;
     const f32 SHOTGUN_RELOAD_TIME = 3.0f;
     const f32 SHOTGUN_FIRE_RATE = 0.7f;

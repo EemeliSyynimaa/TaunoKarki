@@ -12,10 +12,9 @@ public:
     RigidBody(GameObject* owner);
 
     void update(game_input* input);
-    // b2Body* getBody() const { return body; }
+    b32 has_velocity;
+    glm::vec3 velocity;
 private:
-    // b2World& world;
-    // b2Body* body;
     Transform* transform;
     Collider* collider;
 };
