@@ -26,40 +26,40 @@ enum COLLECTIBLES
 
 namespace GLOBALS
 {
-    const float PLAYER_HEALTH = 500.0f;
-    const float PLAYER_SPEED = 10.0f;
-    const float PLAYER_HEALTH_PER_PACK = 100.0f;
+    const f32 PLAYER_HEALTH = 500.0f;
+    const f32 PLAYER_SPEED = 0.2f;           // pixels per frame
+    const f32 PLAYER_HEALTH_PER_PACK = 100.0f;
     
-    const float ENEMY_HEALTH = 50.0f;
-    const float ENEMY_SPEED = 7.0f;
-    const float ENEMY_ACTIVATION_DISTANCE = 20.0f;
-    const float ENEMY_HEALTH_PER_LEVEL = 10.0f;
-    const float ENEMY_HIT_DAMAGE = 50.0f;
-    const float ENEMY_HIT_DAMAGE_PER_LEVEL = 5.0f;
-    const float ENEMY_ANGLE_OF_VISION = 60.0f;
+    const f32 ENEMY_HEALTH = 50.0f;
+    const f32 ENEMY_SPEED = 0.175f;
+    const f32 ENEMY_ACTIVATION_DISTANCE = 20.0f;
+    const f32 ENEMY_HEALTH_PER_LEVEL = 10.0f;
+    const f32 ENEMY_HIT_DAMAGE = 50.0f;
+    const f32 ENEMY_HIT_DAMAGE_PER_LEVEL = 5.0f;
+    const f32 ENEMY_ANGLE_OF_VISION = 60.0f;
 
-    const float MACHINEGUN_DAMAGE = 25.0;
-    const float MACHINEGUN_RELOAD_TIME = 2.50;
-    const float MACHINEGUN_CLIP_SIZE = 25.0f;
-    const float MACHINEGUN_BULLET_SPEED = 1.5f;
-    const float MACHINEGUN_FIRE_RATE = 0.125f;
-    const float MACHINEGUN_BULLET_SPREAD = 0.05f;
+    const f32 MACHINEGUN_DAMAGE = 25.0;
+    const f32 MACHINEGUN_RELOAD_TIME = 2.50;
+    const f32 MACHINEGUN_CLIP_SIZE = 25.0f;
+    const f32 MACHINEGUN_BULLET_SPEED = 1.5f;
+    const f32 MACHINEGUN_FIRE_RATE = 0.125f;
+    const f32 MACHINEGUN_BULLET_SPREAD = 0.05f;
 
-    const float PISTOL_DAMAGE = 30.0f;
-    const float PISTOL_BULLET_SPEED = 1.5f;
-    const float PISTOL_CLIP_SIZE = 8.0f;
-    const float PISTOL_RELOAD_TIME = 1.5f;
-    const float PISTOL_BULLET_SPREAD = 0.01f;
+    const f32 PISTOL_DAMAGE = 30.0f;
+    const f32 PISTOL_BULLET_SPEED = 1.5f;
+    const f32 PISTOL_CLIP_SIZE = 8.0f;
+    const f32 PISTOL_RELOAD_TIME = 1.5f;
+    const f32 PISTOL_BULLET_SPREAD = 0.01f;
 
-    const float SHOTGUN_DAMAGE = 12.5f;
-    const float SHOTGUN_BULLET_SPEED = 1.5f;
-    const float SHOTGUN_CLIP_SIZE = 7.0f;
-    const float SHOTGUN_RELOAD_TIME = 3.0f;
-    const float SHOTGUN_FIRE_RATE = 0.7f;
-    const float SHOTGUN_BULLET_SPREAD = 0.125f;
-    const int SHOTGUN_NUMBER_OF_SHELLS = 12;
+    const f32 SHOTGUN_DAMAGE = 12.5f;
+    const f32 SHOTGUN_BULLET_SPEED = 1.5f;
+    const f32 SHOTGUN_CLIP_SIZE = 7.0f;
+    const f32 SHOTGUN_RELOAD_TIME = 3.0f;
+    const f32 SHOTGUN_FIRE_RATE = 0.7f;
+    const f32 SHOTGUN_BULLET_SPREAD = 0.125f;
+    const s32 SHOTGUN_NUMBER_OF_SHELLS = 12;
 
-    const float PROJECTILE_SIZE = 0.1f;
+    const f32 PROJECTILE_SIZE = 0.1f;
 };
 
 struct AssetManager

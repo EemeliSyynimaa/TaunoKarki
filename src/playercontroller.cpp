@@ -25,48 +25,42 @@ PlayerController::~PlayerController()
 
 void PlayerController::update(game_input* input)
 {
-    // b2Vec2 desiredVelocity(0.0f, 0.0f);
-    // b2Vec2 velocityChange(0.0f, 0.0f);
-    // b2Vec2 impulse(0.0f, 0.0f);
-    // b2Vec2 velocity = body->GetLinearVelocity();
-    glm::vec3 mouseCoords(0.0f, 0.0f, 0.0f);
-    // int x = 0, y = 0;
-    float halfX = 0.0f, halfY = 0.0f;
+    f32 move_speed = GLOBALS::PLAYER_SPEED;
+    glm::vec3 velocity = {};
 
-    // if (input->move_left.key_down)
-    //     desiredVelocity.x = -moveSpeed;
-    // else if (input->move_right.key_down)
-    //     desiredVelocity.x = moveSpeed;
+    if (input->move_left.key_down)
+    {
+        velocity.x = -move_speed;
+    }
+    else if (input->move_right.key_down)
+    {
+        velocity.x = move_speed;
+    }
 
-    // if (input->move_up.key_down)
-    //     desiredVelocity.y = moveSpeed;
-    // else if (input->move_down.key_down)
-    //     desiredVelocity.y = -moveSpeed;
+    if (input->move_up.key_down)
+    {
+        velocity.y = move_speed;
+    }
+    else if (input->move_down.key_down)
+    {
+        velocity.y = -move_speed;
+    }
 
-    // if (input->reload.key_down && !weapon->isReloading())
-    //     weapon->reload();
+    transform->setPosition(transform->getPosition() + velocity);
 
-    // velocityChange.x = desiredVelocity.x - velocity.x;
-    // velocityChange.y = desiredVelocity.y - velocity.y;
+    // Lets check if we start or stop firing
+    if (!weapon->isTriggerPulled() && input->shoot.key_down)
+        weapon->pullTheTrigger();
+    else if (!input->shoot.key_down)
+        weapon->releaseTheTrigger();
 
-    // impulse.x = body->GetMass() * velocityChange.x;
-    // impulse.y = body->GetMass() * velocityChange.y;
-
-    // body->ApplyLinearImpulse(impulse, body->GetWorldCenter(), true);
-
-    // // Lets check if we start or stop firing
-    // if (!weapon->isTriggerPulled() && input->shoot.key_down)
-    //     weapon->pullTheTrigger();
-    // else if (!input->shoot.key_down)
-    //     weapon->releaseTheTrigger();
-
-    // weapon->update(1 / 60.0f);
+    weapon->update(1 / 60.0f);
 
     Camera& camera = owner->gameObjectManager.getCamera(); 
 
-    halfX = (camera.getWidth() / 2.0f - input->mouse_x) * -1;
-    halfY = (camera.getHeight() / 2.0f - input->mouse_y) * -1;
-    mouseCoords = glm::vec3(halfX, -halfY, 0.0f);
+    f32 halfX = (camera.getWidth() / 2.0f - input->mouse_x) * -1;
+    f32 halfY = (camera.getHeight() / 2.0f - input->mouse_y) * -1;
+    glm::vec3 mouseCoords = glm::vec3(halfX, -halfY, 0.0f);
 
     Transform* transform = owner->getComponent<Transform>();
     transform->lookAt(transform->getPosition() + mouseCoords);
