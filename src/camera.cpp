@@ -11,7 +11,7 @@ Camera::~Camera()
 
 void Camera::createNewPerspectiveMatrix(float fov, float width, float height, float near, float far)
 {
-    perspectiveMatrix = glm::perspective(glm::radians(fov), width/height, near, far);
+    // perspectiveMatrix = glm::perspective(glm::radians(fov), width/height, near, far);
     this->width = width;
     this->height = height;
 }

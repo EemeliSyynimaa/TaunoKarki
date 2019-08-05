@@ -1,46 +1,48 @@
 #include <windows.h>
-#include <stdint.h>
 
-#include "GL/glew.h"
-#include "SDL/SDL.h"
-#include "SDL/SDL_events.h"
+#include "platform.h"
 
-#include "game.cpp"
 #include "mesh.cpp"
 #include "shaderprogram.cpp"
 #include "texture.cpp"
 #include "aicontroller.cpp"
+#include "guibar.cpp"
 #include "ammobar.cpp"
+#include "healthbar.cpp"
+#include "collider.cpp"
 #include "boxcollider.cpp"
 #include "circlecollider.cpp"
 #include "collectible.cpp"
 #include "health.cpp"
-#include "healthbar.cpp"
-#include "menubutton.cpp"
 #include "meshrenderer.cpp"
 #include "playercontroller.cpp"
 #include "rigidbody.cpp"
 #include "staticbody.cpp"
 #include "transform.cpp"
 #include "assetmanager.cpp"
-#include "audio.cpp"
-#include "scenemanager.cpp"
 #include "camera.cpp"
-#include "collisionhandler.cpp"
 #include "component.cpp"
+#include "game.cpp"
 #include "gameobject.cpp"
 #include "gameobjectmanager.cpp"
 #include "locator.cpp"
 #include "lodepng.cpp"
-#include "scene.cpp"
 #include "tilemap.cpp"
-#include "gamescene.cpp"
-#include "menuscene.cpp"
+#include "weapon.cpp"
 #include "machinegun.cpp"
 #include "pistol.cpp"
 #include "shotgun.cpp"
 
-tk_game_state_t state;
+b32 running;
+
+void process_input(key_state* state, b32 is_down)
+{
+    if (state->key_down != is_down)
+    {
+        state->key_down = is_down;
+        state->transitions++;
+    }
+}
 
 LRESULT CALLBACK MainWindowProc(
     HWND hwnd,
@@ -58,12 +60,12 @@ LRESULT CALLBACK MainWindowProc(
 
         case WM_CLOSE:
         {
-            state.running = 0;
+            running = 0;
         } break;
 
         case WM_DESTROY:
         {
-            state.running = 0;
+            running = 0;
         } break;
 
         case WM_PAINT:
@@ -114,7 +116,7 @@ LRESULT CALLBACK MainWindowProc(
         {
             if (wParam == VK_ESCAPE)
             {
-                state.running = 0;
+                running = 0;
             }
         } break;
 
@@ -186,9 +188,9 @@ int CALLBACK WinMain(
 
     ShowWindow(hwnd, nCmdShow);
 
-    state.running = 1;
+    running = 1;
 
-    while (state.running)
+    while (running)
     {
         MSG msg;
 
@@ -196,7 +198,7 @@ int CALLBACK WinMain(
         {
             if (msg.message == WM_QUIT)
             {
-                state.running = 0;
+                running = 0;
             }
 
             TranslateMessage(&msg);

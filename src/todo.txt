@@ -1,9 +1,13 @@
  - Replace glew
   - Fetch GL functions from the system by hand
  - Replace GLM
-  - Make own implementation of all used 
+  - Make own implementation of all used math functions
+  - Use SSE
  - Replace Box2D
   - Implement own collision engine
+  - Divide objects into groups: enemies, player, bullets, walls etc.
+  - Use circular bounding box for moving objects
+  - Implement a simple raycast for AI
  - Replace lodepng
   - Use bitmaps instead?
   - Or own custom format?
@@ -18,6 +22,7 @@ When all third party code is replaced, it's time to move on:
 
 - Write all remaining code in C
  - Re-design entity system
+  - No overengineering
 - Software renderer
  - 3D walls
  - Sprites
@@ -25,7 +30,10 @@ When all third party code is replaced, it's time to move on:
  - Lights
 - Gameplay improvements
  - Game feel and balance
+  - Screen shake?
  - More weapons, enemies
  - Improved AI
  - Support for custom editor?
 - Multiplayer?
+- Sound system
+ - Write an own mixer?
