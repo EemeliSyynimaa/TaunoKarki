@@ -1,7 +1,6 @@
 #include "playercontroller.h"
 #include "gameobject.h"
 #include "rigidbody.h"
-#include "SDL\SDL.h"
 
 #include "health.h"
 
