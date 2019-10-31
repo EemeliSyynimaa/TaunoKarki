@@ -2,6 +2,7 @@
 #define PLATFORM_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef int8_t      s8;
 typedef int16_t     s16;
@@ -16,7 +17,7 @@ typedef uint64_t    u64;
 typedef float       f32;
 typedef double      f64;
 
-typedef int32_t     b32;
+typedef bool        b32;
 
 typedef struct key_state
 {
