@@ -227,7 +227,6 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
     while (running)
     {
-        // Todo: add mouse input
         game_input new_input = {};
         LARGE_INTEGER new_time = get_current_time();
         new_input.delta_time = get_elapsed_time(old_time, new_time);
@@ -304,10 +303,36 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
             }
         }
 
-        // u32 state_mouse = SDL_GetMouseState(&new_input.mouse_x,
-        //     &new_input.mouse_y);
-        
-        // new_input.shoot.key_down = state_mouse & SDL_BUTTON(SDL_BUTTON_LEFT);
+        POINT mouse;
+                
+        GetCursorPos(&mouse);
+        ScreenToClient(hwnd, &mouse);
+
+        mouse.x -= 10;
+        mouse.y -= 10;
+
+        if (mouse.x < 0)
+        {
+            mouse.x = 0;
+        }
+        else if (mouse.x > screen_width)
+        {
+            mouse.x = screen_width;
+        }
+
+        if (mouse.y < 0)
+        {
+            mouse.y = 0;
+        }
+        else if (mouse.y > screen_height)
+        {
+            mouse.y = screen_height;
+        }
+
+        new_input.mouse_x = mouse.x;
+        new_input.mouse_y = mouse.y;
+
+        new_input.shoot.key_down = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
 
         update_game(&new_input);
 
