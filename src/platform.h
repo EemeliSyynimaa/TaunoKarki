@@ -28,7 +28,6 @@ typedef struct key_state
 typedef struct game_input
 {
     f32 delta_time;
-    f32 current_time;
 
     union 
     {
