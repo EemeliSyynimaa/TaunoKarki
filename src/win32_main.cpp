@@ -38,6 +38,7 @@
 #include "shotgun.cpp"
 
 b32 running;
+LARGE_INTEGER queryPerformanceFrequency;
 
 void process_input(key_state* state, b32 is_down)
 {
@@ -46,6 +47,24 @@ void process_input(key_state* state, b32 is_down)
         state->key_down = is_down;
         state->transitions++;
     }
+}
+
+LARGE_INTEGER get_current_time()
+{
+    LARGE_INTEGER result;
+
+    QueryPerformanceCounter(&result);
+    
+    return result;
+}
+
+f32 get_elapsed_time(LARGE_INTEGER start, LARGE_INTEGER end)
+{
+    f32 result;
+
+    result = (f32)(end.QuadPart - start.QuadPart) / (f32)queryPerformanceFrequency.QuadPart;
+
+    return result;
 }
 
 LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -205,6 +224,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     
     ShowWindow(hwnd, nCmdShow);
 
+    QueryPerformanceFrequency(&queryPerformanceFrequency);
+
     s32 version_major = 0;
     s32 version_minor = 0;
     glGetIntegerv(GL_MAJOR_VERSION, &version_major);
@@ -232,11 +253,18 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
     game_input old_input = {};
 
-    f32 old_time = 0.0f;
+    LARGE_INTEGER old_time = get_current_time();
     running = true;
 
     while (running)
     {
+        // Todo: add keyboard input
+        // Todo: add mouse input
+        game_input new_input = {};
+        LARGE_INTEGER new_time = get_current_time();
+        new_input.delta_time = get_elapsed_time(old_time, new_time);
+        old_time = new_time;
+
         MSG msg;
 
         while (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE))
@@ -250,18 +278,6 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
             DispatchMessageA(&msg);
         }
 
-        // Todo: add hight resolution timer
-        // Todo: add keyboard input
-        // Todo: add mouse input
-        game_input new_input = {};
-        new_input.delta_time = 1 / 120.0f;
-        old_time += new_input.delta_time;
-        new_input.current_time = old_time;
-
-        // f32 new_time = old_time + 1.0f;
-        // // f32 new_time = SDL_GetTicks() / 1000.0f;
-        // new_input.delta_time = new_time - old_time;
-        // new_input.current_time = old_time = new_time;
 
         // s32 keys = sizeof(new_input.keys)/sizeof(new_input.keys[0]);
 
