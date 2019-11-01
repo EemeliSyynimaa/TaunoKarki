@@ -93,14 +93,6 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
             EndPaint(hwnd, &ps);
         } break;
 
-        case WM_KEYDOWN:
-        {
-            if (wParam == VK_ESCAPE)
-            {
-                running = 0;
-            }
-        } break;
-
         default:
         {
             return DefWindowProcA(hwnd, uMsg, wParam, lParam);
@@ -235,86 +227,82 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
     while (running)
     {
-        // Todo: add keyboard input
         // Todo: add mouse input
         game_input new_input = {};
         LARGE_INTEGER new_time = get_current_time();
         new_input.delta_time = get_elapsed_time(old_time, new_time);
         old_time = new_time;
 
+        s32 keys = sizeof(new_input.keys)/sizeof(new_input.keys[0]);
+
+        for (s32 i = 0; i < keys; i++)
+        {
+            new_input.keys[i].key_down = old_input.keys[i].key_down;
+        }
+
         MSG msg;
 
         while (PeekMessageA(&msg, 0, 0, 0, PM_REMOVE))
         {
-            if (msg.message == WM_QUIT)
+            switch (msg.message)
             {
-                running = 0;
+                case WM_QUIT:
+                {
+                    running = 0;
+                } break;
+            
+                case WM_KEYDOWN:
+                case WM_KEYUP:
+                case WM_SYSKEYDOWN:
+                case WM_SYSKEYUP:
+                {
+                    u32 key = (u32)msg.wParam;
+
+                    b32 is_down = (msg.lParam & (1 << 31)) == 0;
+                    b32 was_down = (msg.lParam & (1 << 30)) != 0;
+
+                    if (was_down != is_down)
+                    {
+                        if (msg.wParam == VK_ESCAPE)
+                        {
+                            process_input(&new_input.back, is_down);
+                            fprintf(stderr, "ESCAPE - %s\n", is_down ? "down" :"up");
+                        }
+                        else if (msg.wParam == 0x57) // W
+                        {
+                            process_input(&new_input.move_up, is_down);
+                            fprintf(stderr, "W - %s\n", is_down ? "down" : "up");
+                        }
+                        else if (msg.wParam == 0x41) // A
+                        {
+                            fprintf(stderr, "A - %s\n", is_down ? "down" : "up");
+                            process_input(&new_input.move_left, is_down);
+                        }
+                        else if (msg.wParam == 0x53) // S
+                        {
+                            fprintf(stderr, "S - %s\n", is_down ? "down" : "up");
+                            process_input(&new_input.move_down, is_down);
+                        }
+                        else if (msg.wParam == 0x44) // D
+                        {
+                            fprintf(stderr, "D - %s\n", is_down ? "down" : "up");
+                            process_input(&new_input.move_right, is_down);
+                        }
+                        else if (msg.wParam == 0x52)
+                        {
+                            fprintf(stderr, "R - %s\n", is_down ? "down" : "up");
+                            process_input(&new_input.reload, is_down);
+                        }
+                    }
+                } break;
+
+                default:
+                {
+                    TranslateMessage(&msg);
+                    DispatchMessageA(&msg);
+                }   
             }
-
-            TranslateMessage(&msg);
-            DispatchMessageA(&msg);
         }
-
-
-        // s32 keys = sizeof(new_input.keys)/sizeof(new_input.keys[0]);
-
-        // for (s32 i = 0; i < keys; i++)
-        // {
-        //     new_input.keys[i].key_down = old_input.keys[i].key_down;
-        // }
-
-        // SDL_Event event;
-
-        // while (SDL_PollEvent(&event) == 1)
-        // {
-        //     switch (event.type)
-        //     {
-        //         case SDL_QUIT:
-        //         {
-        //             running = 0;
-        //         } break;
-        //         case SDL_KEYDOWN:
-        //         case SDL_KEYUP:
-        //         {
-        //             if (!event.key.repeat)
-        //             {
-        //                 b32 is_down = (event.key.state == SDL_PRESSED);
-
-        //                 switch(event.key.keysym.sym)
-        //                 {
-        //                     case SDLK_UP:
-        //                     case SDLK_w:
-        //                     {
-        //                        process_input(&new_input.move_up, is_down);
-        //                     } break;
-        //                     case SDLK_RIGHT:
-        //                     case SDLK_d:
-        //                     {
-        //                         process_input(&new_input.move_right, is_down);
-        //                     } break;
-        //                     case SDLK_DOWN:
-        //                     case SDLK_s:
-        //                     {
-        //                         process_input(&new_input.move_down, is_down);
-        //                     } break;
-        //                     case SDLK_LEFT:
-        //                     case SDLK_a:
-        //                     {
-        //                         process_input(&new_input.move_left, is_down);
-        //                     } break;
-        //                     case SDLK_r:
-        //                     {
-        //                         process_input(&new_input.reload, is_down);
-        //                     } break;
-        //                     case SDLK_ESCAPE:
-        //                     {
-        //                         process_input(&new_input.back, is_down);
-        //                     } break;
-        //                 }
-        //             }
-        //         } break;
-        //     }
-        // }
 
         // u32 state_mouse = SDL_GetMouseState(&new_input.mouse_x,
         //     &new_input.mouse_y);
