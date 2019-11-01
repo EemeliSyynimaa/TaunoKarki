@@ -5,6 +5,7 @@
 
 typedef struct game_state
 {
+    AssetManager assets;
     Tilemap* tilemap;
     Camera* camera;
     GameObjectManager* game_object_manager;
@@ -12,12 +13,34 @@ typedef struct game_state
     s32 level;
     s32 player_dying_channel;
     f32 accumulator;
+    u32 vao;
 } game_state;
 
 game_state state;
 
 void init_game(s32 screen_width, s32 screen_height)
 {
+
+    s32 version_major = 0;
+    s32 version_minor = 0;
+    glGetIntegerv(GL_MAJOR_VERSION, &version_major);
+    glGetIntegerv(GL_MINOR_VERSION, &version_minor);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_CULL_FACE);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+    fprintf(stderr, "OpenGL %i.%i\n", version_major, version_minor);
+
+    glGenVertexArrays(1, &state.vao);
+    glBindVertexArray(state.vao);
+
+    Locator::init();
+    Locator::provideAssetManager(&state.assets);
+
+    state.assets.loadAssets();
+
     state.level = 3;
     state.camera = new Camera();
     state.game_object_manager = new GameObjectManager(
@@ -69,6 +92,8 @@ void init_game(s32 screen_width, s32 screen_height)
 
 void update_game(game_input* input)
 {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
     if (input->back.key_down)
     {
         // Todo: send end signal

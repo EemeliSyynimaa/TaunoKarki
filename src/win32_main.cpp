@@ -155,8 +155,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     assert(!glGetError());
 
     s32 pf = 0;
-    s32 screen_width = 1280;
-    s32 screen_height = 720;
+    s32 screen_width = 1920;
+    s32 screen_height = 1080;
     
     HWND hwnd = 0;
     HDC hdc = 0;
@@ -225,29 +225,6 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     ShowWindow(hwnd, nCmdShow);
 
     QueryPerformanceFrequency(&queryPerformanceFrequency);
-
-    s32 version_major = 0;
-    s32 version_minor = 0;
-    glGetIntegerv(GL_MAJOR_VERSION, &version_major);
-    glGetIntegerv(GL_MINOR_VERSION, &version_minor);
-
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    glEnable(GL_CULL_FACE);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
-    fprintf(stderr, "OpenGL %i.%i\n", version_major, version_minor);
-
-    u32 vao;
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    AssetManager assets;
-
-    Locator::init();
-    Locator::provideAssetManager(&assets);
-
-    assets.loadAssets();
 
     init_game(screen_width, screen_height);
 
@@ -343,8 +320,6 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
         //     &new_input.mouse_y);
         
         // new_input.shoot.key_down = state_mouse & SDL_BUTTON(SDL_BUTTON_LEFT);
-
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         update_game(&new_input);
 
