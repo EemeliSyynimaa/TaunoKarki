@@ -18,6 +18,13 @@
  - Use custom memory allocation
   - Platform code allocates large chunk of memory and passes it to the game library
 
+Improve build tools
+ - Use clang formatting
+ - Make project buildable and runnable from sublime
+ - Proper difftool (meld is not working good enough)
+ - Git from sublime?
+ - Move up/down to the next empty line
+
 When all third party code is replaced, it's time to move on:
 
 - Write all remaining code in C
@@ -37,3 +44,5 @@ When all third party code is replaced, it's time to move on:
 - Multiplayer?
 - Sound system
  - Write an own mixer?
+- Move rendering code into own library
+ - In future, can switch between software or hardware rendering
