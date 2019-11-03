@@ -1,10 +1,10 @@
 #include <windows.h>
 #include <stdio.h>
 
-#include "GL/glew.h"
-#include "GL/wglew.h"
+#include "gl/gl.h"
 
 #include "platform.h"
+#include "opengl.h"
 
 #include "mesh.cpp"
 #include "shaderprogram.cpp"
@@ -140,10 +140,6 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
     wglMakeCurrent(dummy_dc, dummy_context);
 
-    glewExperimental = GL_TRUE;
-    const GLenum glewResult = glewInit();
-    assert(glewResult == GLEW_OK);
-    
     assert(!glGetError());
 
     s32 pf = 0;
@@ -267,22 +263,22 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
                             process_input(&new_input.back, is_down);
                             fprintf(stderr, "ESCAPE - %s\n", is_down ? "down" :"up");
                         }
-                        else if (msg.wParam == 0x57) // W
+                        else if (msg.wParam == 0x57)
                         {
                             process_input(&new_input.move_up, is_down);
                             fprintf(stderr, "W - %s\n", is_down ? "down" : "up");
                         }
-                        else if (msg.wParam == 0x41) // A
+                        else if (msg.wParam == 0x41)
                         {
                             fprintf(stderr, "A - %s\n", is_down ? "down" : "up");
                             process_input(&new_input.move_left, is_down);
                         }
-                        else if (msg.wParam == 0x53) // S
+                        else if (msg.wParam == 0x53)
                         {
                             fprintf(stderr, "S - %s\n", is_down ? "down" : "up");
                             process_input(&new_input.move_down, is_down);
                         }
-                        else if (msg.wParam == 0x44) // D
+                        else if (msg.wParam == 0x44)
                         {
                             fprintf(stderr, "D - %s\n", is_down ? "down" : "up");
                             process_input(&new_input.move_right, is_down);

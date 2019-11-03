@@ -6,7 +6,6 @@
 #include <map>
 #include <sstream>
 
-#include "GL\glew.h"
 #include "glm\glm.hpp"
 
 struct Vertex
