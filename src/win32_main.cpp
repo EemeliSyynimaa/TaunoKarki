@@ -4,7 +4,7 @@
 #include "gl/gl.h"
 
 #include "platform.h"
-#include "opengl.h"
+#include "opengl.c"
 
 #include "mesh.cpp"
 #include "shaderprogram.cpp"
@@ -140,7 +140,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
     wglMakeCurrent(dummy_dc, dummy_context);
 
-    assert(!glGetError());
+    LoadOpenGLFunction(wglCreateContextAttribsARB);
+    LoadOpenGLFunction(wglChoosePixelFormatARB);
 
     s32 pf = 0;
     s32 screen_width = 1920;
@@ -200,6 +201,31 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     };
 
     hrc = wglCreateContextAttribsARB(hdc, 0, attribs);
+
+    LoadOpenGLFunction(glGetUniformLocation);
+    LoadOpenGLFunction(glCreateProgram);
+    LoadOpenGLFunction(glCreateShader);
+    LoadOpenGLFunction(glShaderSource);
+    LoadOpenGLFunction(glCompileShader);
+    LoadOpenGLFunction(glGetShaderiv);
+    LoadOpenGLFunction(glAttachShader);
+    LoadOpenGLFunction(glLinkProgram);
+    LoadOpenGLFunction(glGetProgramiv);
+    LoadOpenGLFunction(glDeleteShader);
+    LoadOpenGLFunction(glDeleteProgram);
+    LoadOpenGLFunction(glUseProgram);
+    LoadOpenGLFunction(glDeleteBuffers);
+    LoadOpenGLFunction(glBindBuffer);
+    LoadOpenGLFunction(glEnableVertexAttribArray);
+    LoadOpenGLFunction(glDisableVertexAttribArray);
+    LoadOpenGLFunction(glVertexAttribPointer);
+    LoadOpenGLFunction(glUniform1i);
+    LoadOpenGLFunction(glUniformMatrix4fv);
+    LoadOpenGLFunction(glGenBuffers);
+    LoadOpenGLFunction(glBufferData);
+    LoadOpenGLFunction(glGenVertexArrays);
+    LoadOpenGLFunction(glBindVertexArray);
+    LoadOpenGLFunction(glActiveTexture);
 
     wglMakeCurrent(dummy_dc, 0);
     wglDeleteContext(dummy_context);
