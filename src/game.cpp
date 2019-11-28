@@ -6,6 +6,7 @@
 typedef struct game_state
 {
     AssetManager assets;
+    cube_renderer_t cube_renderer;
     Tilemap* tilemap;
     Camera* camera;
     GameObjectManager* game_object_manager;
@@ -13,7 +14,7 @@ typedef struct game_state
     s32 level;
     s32 player_dying_channel;
     f32 accumulator;
-    u32 vao;
+    // u32 vao;
 } game_state;
 
 game_state state;
@@ -32,9 +33,6 @@ void init_game(s32 screen_width, s32 screen_height)
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
     fprintf(stderr, "OpenGL %i.%i\n", version_major, version_minor);
-
-    glGenVertexArrays(1, &state.vao);
-    glBindVertexArray(state.vao);
 
     Locator::init();
     Locator::provideAssetManager(&state.assets);
@@ -74,8 +72,21 @@ void init_game(s32 screen_width, s32 screen_height)
         }
     }
 
-    state.game_object_manager->createPlayer(
-        state.tilemap->getStartingPosition(), nullptr);
+    glm::vec3 position = state.tilemap->getStartingPosition();
+
+    create_player(position, state.assets.playerTexture->getID());
+
+    cube_renderer_t* cube = &state.cube_renderer;
+
+    cube->program = state.assets.shaderProgram->getID();
+    cube->num_vertices = state.assets.cubeMesh->getVertices().size();
+    cube->num_indices = state.assets.cubeMesh->getIndices().size();
+    cube->vertices = state.assets.cubeMesh->getVertices().data();
+    cube->indices = state.assets.cubeMesh->getIndices().data();
+
+    system_cube_renderer_init(cube);
+
+    state.camera->follow(glm::vec2(position.x, position.y));
     
     while (state.tilemap->getNumberOfStartingPositions() > 0)
     {
@@ -96,7 +107,7 @@ void update_game(game_input* input)
     
     if (input->back.key_down)
     {
-        // Todo: send end signal
+        // Todo: send end signal?
     }
     else
     {
@@ -108,6 +119,33 @@ void update_game(game_input* input)
             state.accumulator -= step;
 
             state.game_object_manager->update(input);
+
+
+            glm::vec2 velocity(0.0f);
+            f32 move_speed = GLOBALS::PLAYER_SPEED;
+
+            if (input->move_left.key_down)
+            {
+                velocity.x -= move_speed;
+            }
+            
+            if (input->move_right.key_down)
+            {
+                velocity.x += move_speed;
+            }
+
+            if (input->move_up.key_down)
+            {
+                velocity.y += move_speed;
+            }
+            
+            if (input->move_down.key_down)
+            {
+                velocity.y -= move_speed;
+            }
+
+            transforms[0].position.x += velocity.x;
+            transforms[0].position.y += velocity.y;
         }
 
         state.game_object_manager->interpolate(state.accumulator / step);
@@ -138,6 +176,8 @@ void update_game(game_input* input)
         }
     }
 
+    state.camera->follow(glm::vec2(transforms[0].position.x, transforms[0].position.y));
     state.tilemap->draw();
     state.game_object_manager->draw();
+    system_cube_renderer_update(&state.cube_renderer, &state.camera->getViewMatrix(), &state.camera->getPerspectiveMatrix());
 }

@@ -77,39 +77,33 @@ Mesh::~Mesh()
 {
 }
 
-bool Mesh::getSimilarVertexIndex(Vertex& vertex, std::map<Vertex, GLuint>& vertexToOutIndex, GLuint& result)
-{
-    std::map<Vertex, GLuint>::iterator it = vertexToOutIndex.find(vertex);
-
-    if (it == vertexToOutIndex.end())
-        return false;
-    else
-    {
-        result = it->second;
-        return true;
-    }
-}
-
 void Mesh::indexVBO(std::vector<glm::vec3>& inVertices, std::vector<glm::vec2>& inUvs, std::vector<glm::vec3>& inNormals)
 {
-    std::map<Vertex, GLuint> vertexToOutIndex;
-
     for (unsigned int i = 0; i < inVertices.size(); i++)
     {
         Vertex vertex = { inVertices[i], inUvs[i], inNormals[i] };
 
         GLuint index;
-        bool found = getSimilarVertexIndex(vertex, vertexToOutIndex, index);
 
-        if (found)
-            indices.push_back(index);
-        else
+        b32 found = false;
+
+        for (u32 j = 0; j < vertices.size(); j++)
+        {
+            Vertex other = vertices[j];
+
+            if (vertex.position == other.position && vertex.uv == other.uv && vertex.normal == other.normal)
+            {
+                indices.push_back(j);
+                
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
         {
             vertices.push_back(vertex);
-
-            GLuint newIndex = (GLuint)vertices.size() - 1;
-            indices.push_back(newIndex);
-            vertexToOutIndex[vertex] = newIndex;
+            indices.push_back((u32)vertices.size() - 1);
         }
     }
 }
