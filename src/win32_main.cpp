@@ -2,9 +2,13 @@
 #include <stdio.h>
 
 #include "gl/gl.h"
+#include "glm/glm.hpp"
 
 #include "platform.h"
+
 #include "opengl.c"
+#include "component.c"
+#include "system.c"
 
 #include "mesh.cpp"
 #include "shaderprogram.cpp"
@@ -269,7 +273,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
             {
                 case WM_QUIT:
                 {
-                    running = 0;
+                    running = false;
                 } break;
             
                 case WM_KEYDOWN:
@@ -286,7 +290,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
                     {
                         if (msg.wParam == VK_ESCAPE)
                         {
-                            process_input(&new_input.back, is_down);
+                            running = false;
+                            // process_input(&new_input.back, is_down);
                             fprintf(stderr, "ESCAPE - %s\n", is_down ? "down" :"up");
                         }
                         else if (msg.wParam == 0x57)

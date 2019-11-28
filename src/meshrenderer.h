@@ -29,6 +29,7 @@ private:
     glm::mat4* projectionMatrix;
     glm::mat4* viewMatrix;
 
+    GLuint VAO;
     GLuint VBO;
     GLuint IBO;
     GLint textureIndex;

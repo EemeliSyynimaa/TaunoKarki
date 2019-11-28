@@ -37,6 +37,7 @@ private:
     std::vector<Vertex> vertices;
     std::vector<glm::vec3> startingPositions;
 
+    GLuint VAO;
     GLuint VBO;
     GLuint IBO;
     GLint textureIndex;
