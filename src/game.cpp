@@ -3,21 +3,131 @@
 #include <algorithm>
 #include "locator.h"
 
+typedef struct game_player
+{
+    f32 x;
+    f32 y;
+    f32 angle;
+} game_player;
+
 typedef struct game_state
 {
     AssetManager assets;
-    cube_renderer_t cube_renderer;
+    game_player player;
     Tilemap* tilemap;
     Camera* camera;
     GameObjectManager* game_object_manager;
-    b32 game_ending;
-    s32 level;
-    s32 player_dying_channel;
     f32 accumulator;
-    // u32 vao;
+    u32 vao;
+    u32 vbo;
+    u32 ibo;
+    u32 program;
+    u32 num_vertices;
+    u32 num_indices;
+    s32 uniform_mvp;
+    s32 uniform_texture;
+    void* vertices;
+    void* indices;
 } game_state;
 
 game_state state;
+
+void player_renderer_init()
+{
+    glGenVertexArrays(1, &state.vao);
+    glBindVertexArray(state.vao);
+
+    glGenBuffers(1, &state.vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, state.vbo);
+    glBufferData(GL_ARRAY_BUFFER, state.num_vertices * sizeof(Vertex), state.vertices, GL_DYNAMIC_DRAW);
+
+    glGenBuffers(1, &state.ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state.ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, state.num_indices * sizeof(u32), state.indices, GL_DYNAMIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv));
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+
+    glUseProgram(state.program);
+
+    state.uniform_mvp = glGetUniformLocation(state.program, "MVP");
+    state.uniform_texture = glGetUniformLocation(state.program, "texture");
+
+    glUseProgram(0);
+}
+
+void player_renderer_draw()
+{
+    glBindVertexArray(state.vao);
+
+    glUseProgram(state.program);
+
+    glm::mat4 transform = glm::translate(glm::vec3(state.player.x, state.player.y, 0.0f));
+    glm::mat4 rotation = glm::rotate(state.player.angle, glm::vec3(0.0f, 0.0f, 1.0f));
+    glm::mat4 scale = glm::scale(glm::vec3(0.5f, 0.5f, 0.75f));
+
+    glm::mat4 model = transform * rotation * scale;
+
+    glm::mat4 mvp = state.camera->getPerspectiveMatrix() * state.camera->getViewMatrix() * model;
+
+    glUniform1i(state.uniform_texture, 0);
+    glUniformMatrix4fv(state.uniform_mvp, 1, GL_FALSE, glm::value_ptr(mvp));
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, state.assets.playerTexture->getID());
+
+    glDrawElements(GL_TRIANGLES, state.num_indices, GL_UNSIGNED_INT, NULL);
+
+    glUseProgram(0);
+}
+
+void player_move(game_input* input)
+{
+    f32 velocity_x = 0.0f;
+    f32 velocity_y = 0.0f;
+    f32 move_speed = GLOBALS::PLAYER_SPEED;
+
+    if (input->move_left.key_down)
+    {
+        velocity_x -= move_speed;
+    }
+    
+    if (input->move_right.key_down)
+    {
+        velocity_x += move_speed;
+    }
+
+    if (input->move_up.key_down)
+    {
+        velocity_y += move_speed;
+    }
+    
+    if (input->move_down.key_down)
+    {
+        velocity_y -= move_speed;
+    }
+
+    state.player.x += velocity_x;
+    state.player.y += velocity_y;
+
+    // Todo: this seems not to be accurate enough
+    f32 mouse_x = (state.camera->getWidth() / 2.0f - input->mouse_x) * -1;
+    f32 mouse_y = (state.camera->getHeight() / 2.0f - input->mouse_y);
+
+    state.player.angle = glm::atan(mouse_y, mouse_x); 
+ 
+    // printf("player x=%4.3f y=%4.3f\n", state.player.x, state.player.y);
+    // printf("mouse x=%4.3f y=%4.3f\n", mouse_x, mouse_y);
+    // printf("input x=%3d y=%3d\n", input->mouse_x, input->mouse_y);
+    // printf("angle=%.3f\n", state.player.angle);
+
+    // printf("---\n");
+}
 
 void init_game(s32 screen_width, s32 screen_height)
 {
@@ -39,15 +149,12 @@ void init_game(s32 screen_width, s32 screen_height)
 
     state.assets.loadAssets();
 
-    state.level = 3;
     state.camera = new Camera();
     state.game_object_manager = new GameObjectManager(
         *Locator::getAssetManager(), *state.camera);
 
     std::random_device randomDevice;
     std::default_random_engine randomGenerator(randomDevice());
-
-    printf("GAMESCENE ALIVE - entering level %d\n ", state.level);
 
     state.camera->createNewPerspectiveMatrix(60.0f, (float)screen_width, 
         (float)screen_height, 0.1f, 100.0f);
@@ -56,11 +163,13 @@ void init_game(s32 screen_width, s32 screen_height)
     state.camera->setPosition(glm::vec3(0.0f, 0.0f, 20.0f));
     state.camera->setOffset(0.0f, -7.5f, 0.0f);
 
+    s32 level = 3;
+
     for (;;)
     {
         state.tilemap = new Tilemap(glm::vec3(0.0f), 
             *Locator::getAssetManager(), *state.camera);
-        state.tilemap->generate(7 + state.level * 4, 7 + state.level * 4);
+        state.tilemap->generate(7 + level * 4, 7 + level * 4);
 
         if (state.tilemap->getNumberOfStartingPositions() > 1)
         {
@@ -74,24 +183,24 @@ void init_game(s32 screen_width, s32 screen_height)
 
     glm::vec3 position = state.tilemap->getStartingPosition();
 
-    create_player(position, state.assets.playerTexture->getID());
+    state.player.x = position.x;
+    state.player.y = position.y;
+    state.player.angle = 0;
 
-    cube_renderer_t* cube = &state.cube_renderer;
+    state.program = state.assets.shaderProgram->getID();
+    state.num_vertices = state.assets.cubeMesh->getVertices().size();
+    state.num_indices = state.assets.cubeMesh->getIndices().size();
+    state.vertices = state.assets.cubeMesh->getVertices().data();
+    state.indices = state.assets.cubeMesh->getIndices().data();
 
-    cube->program = state.assets.shaderProgram->getID();
-    cube->num_vertices = state.assets.cubeMesh->getVertices().size();
-    cube->num_indices = state.assets.cubeMesh->getIndices().size();
-    cube->vertices = state.assets.cubeMesh->getVertices().data();
-    cube->indices = state.assets.cubeMesh->getIndices().data();
-
-    system_cube_renderer_init(cube);
+    player_renderer_init();
 
     state.camera->follow(glm::vec2(position.x, position.y));
     
     while (state.tilemap->getNumberOfStartingPositions() > 0)
     {
         state.game_object_manager->createEnemy(
-            state.tilemap->getStartingPosition(), state.level, 
+            state.tilemap->getStartingPosition(), level, 
             state.tilemap);
     }
 
@@ -105,79 +214,20 @@ void update_game(game_input* input)
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    if (input->back.key_down)
+    f32 step = 1.0f / 60.0f;
+    state.accumulator += input->delta_time;
+
+    while (state.accumulator >= step)
     {
-        // Todo: send end signal?
-    }
-    else
-    {
-        f32 step = 1.0f / 60.0f;
-        state.accumulator += input->delta_time;
+        state.accumulator -= step;
+        state.game_object_manager->update(input);
 
-        while (state.accumulator >= step)
-        {
-            state.accumulator -= step;
-
-            state.game_object_manager->update(input);
-
-
-            glm::vec2 velocity(0.0f);
-            f32 move_speed = GLOBALS::PLAYER_SPEED;
-
-            if (input->move_left.key_down)
-            {
-                velocity.x -= move_speed;
-            }
-            
-            if (input->move_right.key_down)
-            {
-                velocity.x += move_speed;
-            }
-
-            if (input->move_up.key_down)
-            {
-                velocity.y += move_speed;
-            }
-            
-            if (input->move_down.key_down)
-            {
-                velocity.y -= move_speed;
-            }
-
-            transforms[0].position.x += velocity.x;
-            transforms[0].position.y += velocity.y;
-        }
-
-        state.game_object_manager->interpolate(state.accumulator / step);
-
-        if (!state.game_ending && 
-            state.game_object_manager->getNumberOfObjectsOfType(
-                GAMEOBJECT_TYPES::PLAYER) == 0)
-        {
-            // printf("PLAYER LOST - died on level %d\n ", state.level);
-
-            state.game_ending = 1;
-        }
-        else if (state.game_ending)
-        {
-            // Todo: send end signal
-        }
-        else if (state.game_object_manager->getNumberOfObjectsOfType(
-            GAMEOBJECT_TYPES::ENEMY) == 0)
-        {
-            // printf("PLAYER WON - cleared level ", state.level);
-            // Weapon* weapon = 
-            //     state.game_object_manager.getFirstObjectOfType(
-            //     GAMEOBJECT_TYPES::PLAYER)->getComponent<PlayerController>()
-            // ->getWeapon()->getCopy();
-            
-            // Todo: move to next level
-            // state.scenes.change(new GameScene(state, level + 1, weapon));
-        }
+        player_move(input);
     }
 
-    state.camera->follow(glm::vec2(transforms[0].position.x, transforms[0].position.y));
+    state.game_object_manager->interpolate(state.accumulator / step);
+    state.camera->follow({state.player.x, state.player.y});
     state.tilemap->draw();
     state.game_object_manager->draw();
-    system_cube_renderer_update(&state.cube_renderer, &state.camera->getViewMatrix(), &state.camera->getPerspectiveMatrix());
+    player_renderer_draw();
 }
