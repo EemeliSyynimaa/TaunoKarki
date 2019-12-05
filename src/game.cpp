@@ -115,18 +115,10 @@ void player_move(game_input* input)
     state.player.x += velocity_x;
     state.player.y += velocity_y;
 
-    // Todo: this seems not to be accurate enough
     f32 mouse_x = (state.camera->getWidth() / 2.0f - input->mouse_x) * -1;
     f32 mouse_y = (state.camera->getHeight() / 2.0f - input->mouse_y);
 
     state.player.angle = glm::atan(mouse_y, mouse_x); 
- 
-    // printf("player x=%4.3f y=%4.3f\n", state.player.x, state.player.y);
-    // printf("mouse x=%4.3f y=%4.3f\n", mouse_x, mouse_y);
-    // printf("input x=%3d y=%3d\n", input->mouse_x, input->mouse_y);
-    // printf("angle=%.3f\n", state.player.angle);
-
-    // printf("---\n");
 }
 
 void init_game(s32 screen_width, s32 screen_height)
