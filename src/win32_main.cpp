@@ -108,7 +108,6 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-    // Todo: clean code
     WNDCLASSA dummy_class = {};
     dummy_class.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
     dummy_class.lpfnWndProc = DefWindowProcA;
@@ -331,12 +330,13 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
         }
 
         POINT mouse;
-                
-        GetCursorPos(&mouse);
-        ScreenToClient(hwnd, &mouse);
+        RECT window_rect;
 
-        mouse.x -= 10;
-        mouse.y -= 10;
+        GetWindowRect(hwnd, &window_rect);
+        GetCursorPos(&mouse);
+
+        mouse.x -= window_rect.left;
+        mouse.y -= window_rect.top;
 
         if (mouse.x < 0)
         {
