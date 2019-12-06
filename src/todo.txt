@@ -35,14 +35,20 @@ When all third party code is replaced, it's time to move on:
  - Sprites
  - Particle system
  - Lights
+ - Animations
+  - Skeleton?
 - Gameplay improvements
  - Game feel and balance
   - Screen shake?
  - More weapons, enemies
  - Improved AI
- - Support for custom editor?
+ - Improved map generation
+ - In-game map editor?
 - Multiplayer?
+ - Local?
+ - Network?
 - Sound system
  - Write an own mixer?
 - Move rendering code into own library
  - In future, can switch between software or hardware rendering
+ - Vulkan? 

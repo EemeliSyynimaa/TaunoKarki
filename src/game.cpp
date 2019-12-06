@@ -10,40 +10,60 @@ typedef struct game_player
     f32 angle;
 } game_player;
 
+typedef struct game_bullet
+{
+    f32 x;
+    f32 y;
+    f32 velocity_x;
+    f32 velocity_y;
+    f32 angle;
+} game_bullet;
+
+typedef struct mesh
+{
+    void* vertices;
+    void* indices;
+    u32 vao;
+    u32 vbo;
+    u32 ibo;    
+    u32 num_vertices;
+    u32 num_indices;
+} mesh;
+
+#define MAX_BULLETS 8
+
 typedef struct game_state
 {
-    AssetManager assets;
     game_player player;
+    game_bullet bullets[MAX_BULLETS];
+    mesh cube;
+    mesh sphere;
+    AssetManager assets;
     Tilemap* tilemap;
     Camera* camera;
     GameObjectManager* game_object_manager;
+    b32 fired;
     f32 accumulator;
-    u32 vao;
-    u32 vbo;
-    u32 ibo;
-    u32 program;
-    u32 num_vertices;
-    u32 num_indices;
+    u32 free_bullet;
     s32 uniform_mvp;
     s32 uniform_texture;
-    void* vertices;
-    void* indices;
+
 } game_state;
 
 game_state state;
 
-void player_renderer_init()
+void generate_vertex_array(mesh* mesh)
 {
-    glGenVertexArrays(1, &state.vao);
-    glBindVertexArray(state.vao);
+    glGenVertexArrays(1, &mesh->vao);
+    glBindVertexArray(mesh->vao);
 
-    glGenBuffers(1, &state.vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, state.vbo);
-    glBufferData(GL_ARRAY_BUFFER, state.num_vertices * sizeof(Vertex), state.vertices, GL_DYNAMIC_DRAW);
+    glGenBuffers(1, &mesh->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+    glBufferData(GL_ARRAY_BUFFER, mesh->num_vertices * sizeof(Vertex), mesh->vertices, GL_DYNAMIC_DRAW);
 
-    glGenBuffers(1, &state.ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, state.ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, state.num_indices * sizeof(u32), state.indices, GL_DYNAMIC_DRAW);
+    glGenBuffers(1, &mesh->ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->num_indices * sizeof(u32), mesh->indices, GL_DYNAMIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
@@ -52,41 +72,60 @@ void player_renderer_init()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv));
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
-
-    glUseProgram(state.program);
-
-    state.uniform_mvp = glGetUniformLocation(state.program, "MVP");
-    state.uniform_texture = glGetUniformLocation(state.program, "texture");
-
-    glUseProgram(0);
 }
 
-void player_renderer_draw()
+void mesh_render(mesh* mesh, glm::mat4* mvp, u32 texture)
 {
-    glBindVertexArray(state.vao);
+    glBindVertexArray(mesh->vao);
 
-    glUseProgram(state.program);
+    u32 program = state.assets.shaderProgram->getID();
 
-    glm::mat4 transform = glm::translate(glm::vec3(state.player.x, state.player.y, 0.0f));
-    glm::mat4 rotation = glm::rotate(state.player.angle, glm::vec3(0.0f, 0.0f, 1.0f));
-    glm::mat4 scale = glm::scale(glm::vec3(0.5f, 0.5f, 0.75f));
+    glUseProgram(program);
 
-    glm::mat4 model = transform * rotation * scale;
+    u32 uniform_mvp = glGetUniformLocation(program, "MVP");
+    u32 uniform_texture = glGetUniformLocation(program, "texture");
 
-    glm::mat4 mvp = state.camera->getPerspectiveMatrix() * state.camera->getViewMatrix() * model;
-
-    glUniform1i(state.uniform_texture, 0);
-    glUniformMatrix4fv(state.uniform_mvp, 1, GL_FALSE, glm::value_ptr(mvp));
+    glUniform1i(uniform_texture, 0);
+    glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, glm::value_ptr(*mvp));
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, state.assets.playerTexture->getID());
+    glBindTexture(GL_TEXTURE_2D, texture);
 
-    glDrawElements(GL_TRIANGLES, state.num_indices, GL_UNSIGNED_INT, NULL);
+    glDrawElements(GL_TRIANGLES, mesh->num_indices, GL_UNSIGNED_INT, NULL);
 
     glUseProgram(0);
 }
 
-void player_move(game_input* input)
+void bullets_update(game_input* input)
+{
+    for (u32 i = 0; i < MAX_BULLETS; i++)
+    {
+        game_bullet* bullet = &state.bullets[i];
+
+        bullet->x += bullet->velocity_x;
+        bullet->y += bullet->velocity_y;
+    }
+}
+
+void bullets_render()
+{
+    for (u32 i = 0; i < MAX_BULLETS; i++)
+    {
+        game_bullet* bullet = &state.bullets[i];
+
+        glm::mat4 transform = glm::translate(glm::vec3(bullet->x, bullet->y, 0.0f));
+        glm::mat4 rotation = glm::rotate(bullet->angle, glm::vec3(0.0f, 0.0f, 1.0f));
+        glm::mat4 scale = glm::scale(glm::vec3(GLOBALS::PROJECTILE_SIZE));
+
+        glm::mat4 model = transform * rotation * scale;
+
+        glm::mat4 mvp = state.camera->getPerspectiveMatrix() * state.camera->getViewMatrix() * model;
+
+        mesh_render(&state.sphere, &mvp, state.assets.sphereTexture->getID());
+    }
+}
+
+void player_update(game_input* input)
 {
     f32 velocity_x = 0.0f;
     f32 velocity_y = 0.0f;
@@ -118,7 +157,48 @@ void player_move(game_input* input)
     f32 mouse_x = (state.camera->getWidth() / 2.0f - input->mouse_x) * -1;
     f32 mouse_y = (state.camera->getHeight() / 2.0f - input->mouse_y);
 
-    state.player.angle = glm::atan(mouse_y, mouse_x); 
+    state.player.angle = glm::atan(mouse_y, mouse_x);
+
+    if (input->shoot.key_down)
+    {
+        if (!state.fired)
+        {
+            if (++state.free_bullet == MAX_BULLETS)
+            {
+                state.free_bullet = 0;
+            }
+
+            game_bullet* bullet = &state.bullets[state.free_bullet];
+
+            f32 dir_x = glm::cos(state.player.angle);
+            f32 dir_y = glm::sin(state.player.angle);
+            f32 speed = GLOBALS::PISTOL_BULLET_SPEED;
+
+            bullet->x = state.player.x;
+            bullet->y = state.player.y;
+            bullet->velocity_x = dir_x * speed;
+            bullet->velocity_y = dir_y * speed;
+
+            state.fired = true;
+        }
+    }
+    else
+    {
+        state.fired = false;
+    }
+}
+
+void player_render()
+{
+    glm::mat4 transform = glm::translate(glm::vec3(state.player.x, state.player.y, 0.0f));
+    glm::mat4 rotation = glm::rotate(state.player.angle, glm::vec3(0.0f, 0.0f, 1.0f));
+    glm::mat4 scale = glm::scale(glm::vec3(0.5f, 0.5f, 0.75f));
+
+    glm::mat4 model = transform * rotation * scale;
+
+    glm::mat4 mvp = state.camera->getPerspectiveMatrix() * state.camera->getViewMatrix() * model;
+
+    mesh_render(&state.cube, &mvp, state.assets.playerTexture->getID());
 }
 
 void init_game(s32 screen_width, s32 screen_height)
@@ -144,9 +224,6 @@ void init_game(s32 screen_width, s32 screen_height)
     state.camera = new Camera();
     state.game_object_manager = new GameObjectManager(
         *Locator::getAssetManager(), *state.camera);
-
-    std::random_device randomDevice;
-    std::default_random_engine randomGenerator(randomDevice());
 
     state.camera->createNewPerspectiveMatrix(60.0f, (float)screen_width, 
         (float)screen_height, 0.1f, 100.0f);
@@ -177,15 +254,20 @@ void init_game(s32 screen_width, s32 screen_height)
 
     state.player.x = position.x;
     state.player.y = position.y;
-    state.player.angle = 0;
 
-    state.program = state.assets.shaderProgram->getID();
-    state.num_vertices = state.assets.cubeMesh->getVertices().size();
-    state.num_indices = state.assets.cubeMesh->getIndices().size();
-    state.vertices = state.assets.cubeMesh->getVertices().data();
-    state.indices = state.assets.cubeMesh->getIndices().data();
+    state.cube.num_vertices = state.assets.cubeMesh->getVertices().size();
+    state.cube.num_indices = state.assets.cubeMesh->getIndices().size();
+    state.cube.vertices = state.assets.cubeMesh->getVertices().data();
+    state.cube.indices = state.assets.cubeMesh->getIndices().data();
 
-    player_renderer_init();
+    generate_vertex_array(&state.cube);
+
+    state.sphere.num_vertices = state.assets.sphereMesh->getVertices().size();
+    state.sphere.num_indices = state.assets.sphereMesh->getIndices().size();
+    state.sphere.vertices = state.assets.sphereMesh->getVertices().data();
+    state.sphere.indices = state.assets.sphereMesh->getIndices().data();
+
+    generate_vertex_array(&state.sphere);
 
     state.camera->follow(glm::vec2(position.x, position.y));
     
@@ -214,12 +296,15 @@ void update_game(game_input* input)
         state.accumulator -= step;
         state.game_object_manager->update(input);
 
-        player_move(input);
+        player_update(input);
+        bullets_update(input);
     }
 
     state.game_object_manager->interpolate(state.accumulator / step);
     state.camera->follow({state.player.x, state.player.y});
     state.tilemap->draw();
     state.game_object_manager->draw();
-    player_renderer_draw();
+
+    player_render();
+    bullets_render();
 }
