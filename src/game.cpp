@@ -1,8 +1,3 @@
-#include <cassert>
-#include <iostream>
-#include <algorithm>
-#include "locator.h"
-
 typedef struct game_player
 {
     f32 x;
@@ -50,7 +45,6 @@ typedef struct game_state
     AssetManager assets;
     Tilemap* tilemap;
     Camera* camera;
-    GameObjectManager* game_object_manager;
     b32 fired;
     f32 accumulator;
     u32 free_bullet;
@@ -249,14 +243,9 @@ void init_game(s32 screen_width, s32 screen_height)
 
     fprintf(stderr, "OpenGL %i.%i\n", version_major, version_minor);
 
-    Locator::init();
-    Locator::provideAssetManager(&state.assets);
-
     state.assets.loadAssets();
 
     state.camera = new Camera();
-    state.game_object_manager = new GameObjectManager(
-        *Locator::getAssetManager(), *state.camera);
 
     state.camera->createNewPerspectiveMatrix(60.0f, (float)screen_width, 
         (float)screen_height, 0.1f, 100.0f);
@@ -270,7 +259,7 @@ void init_game(s32 screen_width, s32 screen_height)
     for (;;)
     {
         state.tilemap = new Tilemap(glm::vec3(0.0f), 
-            *Locator::getAssetManager(), *state.camera);
+            state.assets, *state.camera);
         state.tilemap->generate(7 + level * 4, 7 + level * 4);
 
         if (state.tilemap->getNumberOfStartingPositions() > 1)
@@ -304,23 +293,15 @@ void init_game(s32 screen_width, s32 screen_height)
 
     state.camera->follow(glm::vec2(position.x, position.y));
     
-    while (state.tilemap->getNumberOfStartingPositions() > 0)
+    while (state.num_enemies < MAX_ENEMIES && state.tilemap->getNumberOfStartingPositions() > 0)
     {
-        if (state.num_enemies < MAX_ENEMIES)
-        {
-            game_enemy* enemy = &state.enemies[state.num_enemies++];
+        game_enemy* enemy = &state.enemies[state.num_enemies++];
             
-            glm::vec3 position = state.tilemap->getStartingPosition();
+        glm::vec3 position = state.tilemap->getStartingPosition();
 
-            enemy->x = position.x;
-            enemy->y = position.y;
-        }
+        enemy->x = position.x;
+        enemy->y = position.y;
     }
-
-    state.game_object_manager->createPlayerAmmoBar(
-        glm::vec3(10.0f, -7.5f, 5.0f), glm::vec3(9.0f, 0.5f, 0.5f));
-    state.game_object_manager->createPlayerHealthBar(
-        glm::vec3(-10.0f, -7.5f, 5.0f), glm::vec3(9.0f, 0.5f, 0.5f));
 }
 
 void update_game(game_input* input)
@@ -333,17 +314,14 @@ void update_game(game_input* input)
     while (state.accumulator >= step)
     {
         state.accumulator -= step;
-        state.game_object_manager->update(input);
 
         player_update(input);
         enemies_update(input);
         bullets_update(input);
     }
 
-    state.game_object_manager->interpolate(state.accumulator / step);
     state.camera->follow({state.player.x, state.player.y});
     state.tilemap->draw();
-    state.game_object_manager->draw();
 
     player_render();
     enemies_render();
