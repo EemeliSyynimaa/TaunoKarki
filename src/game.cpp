@@ -19,6 +19,13 @@ typedef struct game_bullet
     f32 angle;
 } game_bullet;
 
+typedef struct game_enemy
+{
+    f32 x;
+    f32 y;
+    f32 angle;
+} game_enemy;
+
 typedef struct mesh
 {
     void* vertices;
@@ -31,11 +38,13 @@ typedef struct mesh
 } mesh;
 
 #define MAX_BULLETS 8
+#define MAX_ENEMIES 4
 
 typedef struct game_state
 {
     game_player player;
     game_bullet bullets[MAX_BULLETS];
+    game_enemy enemies[MAX_ENEMIES];
     mesh cube;
     mesh sphere;
     AssetManager assets;
@@ -45,6 +54,7 @@ typedef struct game_state
     b32 fired;
     f32 accumulator;
     u32 free_bullet;
+    u32 num_enemies;
     s32 uniform_mvp;
     s32 uniform_texture;
 
@@ -94,6 +104,29 @@ void mesh_render(mesh* mesh, glm::mat4* mvp, u32 texture)
     glDrawElements(GL_TRIANGLES, mesh->num_indices, GL_UNSIGNED_INT, NULL);
 
     glUseProgram(0);
+}
+
+void enemies_update(game_input* input)
+{
+
+}
+
+void enemies_render()
+{
+    for (u32 i = 0; i < MAX_ENEMIES; i++)
+    {
+        game_enemy* enemy = &state.enemies[i];
+
+        glm::mat4 transform = glm::translate(glm::vec3(enemy->x, enemy->y, 0.0f));
+        glm::mat4 rotation = glm::rotate(enemy->angle, glm::vec3(0.0f, 0.0f, 1.0f));
+        glm::mat4 scale = glm::scale(glm::vec3(glm::vec3(0.5f, 0.5f, 0.75f)));
+
+        glm::mat4 model = transform * rotation * scale;
+
+        glm::mat4 mvp = state.camera->getPerspectiveMatrix() * state.camera->getViewMatrix() * model;
+
+        mesh_render(&state.cube, &mvp, state.assets.enemyTexture->getID());
+    }
 }
 
 void bullets_update(game_input* input)
@@ -230,7 +263,7 @@ void init_game(s32 screen_width, s32 screen_height)
     state.camera->createNewOrthographicMatrix((float)screen_width,
         (float)screen_height);
     state.camera->setPosition(glm::vec3(0.0f, 0.0f, 20.0f));
-    state.camera->setOffset(0.0f, -7.5f, 0.0f);
+    state.camera->setOffset(0.0f, 0.0f, 0.0f);
 
     s32 level = 3;
 
@@ -273,9 +306,15 @@ void init_game(s32 screen_width, s32 screen_height)
     
     while (state.tilemap->getNumberOfStartingPositions() > 0)
     {
-        state.game_object_manager->createEnemy(
-            state.tilemap->getStartingPosition(), level, 
-            state.tilemap);
+        if (state.num_enemies < MAX_ENEMIES)
+        {
+            game_enemy* enemy = &state.enemies[state.num_enemies++];
+            
+            glm::vec3 position = state.tilemap->getStartingPosition();
+
+            enemy->x = position.x;
+            enemy->y = position.y;
+        }
     }
 
     state.game_object_manager->createPlayerAmmoBar(
@@ -297,6 +336,7 @@ void update_game(game_input* input)
         state.game_object_manager->update(input);
 
         player_update(input);
+        enemies_update(input);
         bullets_update(input);
     }
 
@@ -306,5 +346,6 @@ void update_game(game_input* input)
     state.game_object_manager->draw();
 
     player_render();
+    enemies_render();
     bullets_render();
 }
