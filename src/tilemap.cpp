@@ -8,9 +8,8 @@
 #define WALL 0
 #define randomInt std::uniform_int_distribution<int>
 
-Tilemap::Tilemap(glm::vec3 position, AssetManager& assetManager, Camera& camera) :
+Tilemap::Tilemap(glm::vec3 position, AssetManager& assetManager) :
     assetManager(assetManager),
-    camera(camera),
     VBO(0),
     IBO(0),
     textureIndex(0),
@@ -448,14 +447,14 @@ void Tilemap::createMeshes()
     program.unbind();
 }
 
-void Tilemap::draw()
+void Tilemap::draw(glm::mat4& view, glm::mat4& perspective)
 {
     glBindVertexArray(VAO);
 
     program.bind();
 
     glUniform1i(textureIndex, 0);
-    glUniformMatrix4fv(MVPIndex, 1, GL_FALSE, glm::value_ptr(camera.getPerspectiveMatrix() * camera.getViewMatrix() * matrix));
+    glUniformMatrix4fv(MVPIndex, 1, GL_FALSE, glm::value_ptr(perspective * view * matrix));
 
     texture.bind(GL_TEXTURE0);
 

@@ -44,14 +44,14 @@ typedef struct game_state
     mesh sphere;
     AssetManager assets;
     Tilemap* tilemap;
-    Camera* camera;
     b32 fired;
     f32 accumulator;
     u32 free_bullet;
     u32 num_enemies;
-    s32 uniform_mvp;
-    s32 uniform_texture;
-
+    s32 screen_width;
+    s32 screen_height;
+    glm::mat4 perspective;
+    glm::mat4 view;
 } game_state;
 
 game_state state;
@@ -117,7 +117,7 @@ void enemies_render()
 
         glm::mat4 model = transform * rotation * scale;
 
-        glm::mat4 mvp = state.camera->getPerspectiveMatrix() * state.camera->getViewMatrix() * model;
+        glm::mat4 mvp = state.perspective * state.view * model;
 
         mesh_render(&state.cube, &mvp, state.assets.enemyTexture->getID());
     }
@@ -146,7 +146,7 @@ void bullets_render()
 
         glm::mat4 model = transform * rotation * scale;
 
-        glm::mat4 mvp = state.camera->getPerspectiveMatrix() * state.camera->getViewMatrix() * model;
+        glm::mat4 mvp = state.perspective * state.view * model;
 
         mesh_render(&state.sphere, &mvp, state.assets.sphereTexture->getID());
     }
@@ -181,8 +181,8 @@ void player_update(game_input* input)
     state.player.x += velocity_x;
     state.player.y += velocity_y;
 
-    f32 mouse_x = (state.camera->getWidth() / 2.0f - input->mouse_x) * -1;
-    f32 mouse_y = (state.camera->getHeight() / 2.0f - input->mouse_y);
+    f32 mouse_x = (state.screen_width / 2.0f - input->mouse_x) * -1;
+    f32 mouse_y = (state.screen_height / 2.0f - input->mouse_y);
 
     state.player.angle = glm::atan(mouse_y, mouse_x);
 
@@ -223,14 +223,13 @@ void player_render()
 
     glm::mat4 model = transform * rotation * scale;
 
-    glm::mat4 mvp = state.camera->getPerspectiveMatrix() * state.camera->getViewMatrix() * model;
+    glm::mat4 mvp = state.perspective * state.view * model;
 
     mesh_render(&state.cube, &mvp, state.assets.playerTexture->getID());
 }
 
 void init_game(s32 screen_width, s32 screen_height)
 {
-
     s32 version_major = 0;
     s32 version_minor = 0;
     glGetIntegerv(GL_MAJOR_VERSION, &version_major);
@@ -245,21 +244,15 @@ void init_game(s32 screen_width, s32 screen_height)
 
     state.assets.loadAssets();
 
-    state.camera = new Camera();
-
-    state.camera->createNewPerspectiveMatrix(60.0f, (float)screen_width, 
-        (float)screen_height, 0.1f, 100.0f);
-    state.camera->createNewOrthographicMatrix((float)screen_width,
-        (float)screen_height);
-    state.camera->setPosition(glm::vec3(0.0f, 0.0f, 20.0f));
-    state.camera->setOffset(0.0f, 0.0f, 0.0f);
+    state.screen_width = screen_width;
+    state.screen_height = screen_height;
+    state.perspective = glm::perspective(glm::radians(60.0f), (f32)state.screen_width/(f32)state.screen_height, 0.1f, 100.0f);
 
     s32 level = 3;
 
     for (;;)
     {
-        state.tilemap = new Tilemap(glm::vec3(0.0f), 
-            state.assets, *state.camera);
+        state.tilemap = new Tilemap(glm::vec3(0.0f), state.assets);
         state.tilemap->generate(7 + level * 4, 7 + level * 4);
 
         if (state.tilemap->getNumberOfStartingPositions() > 1)
@@ -291,8 +284,6 @@ void init_game(s32 screen_width, s32 screen_height)
 
     generate_vertex_array(&state.sphere);
 
-    state.camera->follow(glm::vec2(position.x, position.y));
-    
     while (state.num_enemies < MAX_ENEMIES && state.tilemap->getNumberOfStartingPositions() > 0)
     {
         game_enemy* enemy = &state.enemies[state.num_enemies++];
@@ -320,8 +311,12 @@ void update_game(game_input* input)
         bullets_update(input);
     }
 
-    state.camera->follow({state.player.x, state.player.y});
-    state.tilemap->draw();
+    state.view = glm::lookAt(
+        glm::vec3(state.player.x, state.player.y, 20.0f),
+        glm::vec3(state.player.x, state.player.y, 0),
+        glm::vec3(0, 1, 0));
+
+    state.tilemap->draw(state.view, state.perspective);
 
     player_render();
     enemies_render();

@@ -3,15 +3,14 @@
 
 #include <vector>
 #include "assetmanager.h"
-#include "camera.h"
 
 class Tilemap
 {
 public:
-    Tilemap(glm::vec3 position, AssetManager& assetManager, Camera& camera);
+    Tilemap(glm::vec3 position, AssetManager& assetManager);
     ~Tilemap();
 
-    void draw();
+    void draw(glm::mat4& view, glm::mat4& perspective);
     void generate(unsigned int width, unsigned int height);
     glm::vec3 getStartingPosition();
     size_t getNumberOfStartingPositions() { return startingPositions.size(); }
@@ -27,7 +26,6 @@ private:
     unsigned short currentRegion;
     int windingPercent;
 
-    Camera& camera;
     AssetManager& assetManager;
     ShaderProgram& program;
     Texture& texture;
