@@ -56,6 +56,28 @@ typedef struct game_state
 
 game_state state;
 
+#define MAP_WIDTH   15
+#define MAP_HEIGHT  15
+
+u8 map_data[] =
+{
+    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,0,
+    1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 ,0,
+    1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1 ,1,
+    1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0 ,1,
+    1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0 ,1,
+    1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0 ,1,
+    0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 ,1,
+    0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0 ,1,
+    0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1 ,1,
+    0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0 ,0,
+    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 ,0,
+    0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0 ,0,
+    0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0 ,0,
+    0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0 ,0,
+    0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 ,0
+};
+
 void generate_vertex_array(mesh* mesh)
 {
     glGenVertexArrays(1, &mesh->vao);
@@ -100,6 +122,30 @@ void mesh_render(mesh* mesh, glm::mat4* mvp, u32 texture)
     glUseProgram(0);
 }
 
+void map_render()
+{
+    for (u32 y = 0; y < MAP_HEIGHT; y++)
+    {
+        for (u32 x = 0; x < MAP_WIDTH; x++)
+        {
+            u8 tile = map_data[y * MAP_WIDTH + x];
+
+            if (tile)
+            {
+                glm::mat4 transform = glm::translate(glm::vec3(2*x, 2*y, 0.0f));
+                glm::mat4 rotation(1.0f);
+                glm::mat4 scale(1.0f);
+
+                glm::mat4 model = transform * rotation * scale;
+
+                glm::mat4 mvp = state.perspective * state.view * model; 
+
+                mesh_render(&state.cube, &mvp, state.assets.enemyTexture->getID());
+            }
+        }
+    }
+}
+
 void enemies_update(game_input* input)
 {
 
@@ -113,7 +159,7 @@ void enemies_render()
 
         glm::mat4 transform = glm::translate(glm::vec3(enemy->x, enemy->y, 0.0f));
         glm::mat4 rotation = glm::rotate(enemy->angle, glm::vec3(0.0f, 0.0f, 1.0f));
-        glm::mat4 scale = glm::scale(glm::vec3(glm::vec3(0.5f, 0.5f, 0.75f)));
+        glm::mat4 scale = glm::scale(glm::vec3(0.5f, 0.5f, 0.75f));
 
         glm::mat4 model = transform * rotation * scale;
 
@@ -248,25 +294,7 @@ void init_game(s32 screen_width, s32 screen_height)
     state.screen_height = screen_height;
     state.perspective = glm::perspective(glm::radians(60.0f), (f32)state.screen_width/(f32)state.screen_height, 0.1f, 100.0f);
 
-    s32 level = 3;
-
-    for (;;)
-    {
-        state.tilemap = new Tilemap(glm::vec3(0.0f), state.assets);
-        state.tilemap->generate(7 + level * 4, 7 + level * 4);
-
-        if (state.tilemap->getNumberOfStartingPositions() > 1)
-        {
-            break;
-        }
-        else 
-        {
-            delete state.tilemap;
-        }
-    }
-
-    glm::vec3 position = state.tilemap->getStartingPosition();
-
+    glm::vec3 position(7.0f, 6.0f, 0.0f);
     state.player.x = position.x;
     state.player.y = position.y;
 
@@ -284,11 +312,11 @@ void init_game(s32 screen_width, s32 screen_height)
 
     generate_vertex_array(&state.sphere);
 
-    while (state.num_enemies < MAX_ENEMIES && state.tilemap->getNumberOfStartingPositions() > 0)
+    while (state.num_enemies < MAX_ENEMIES)
     {
         game_enemy* enemy = &state.enemies[state.num_enemies++];
             
-        glm::vec3 position = state.tilemap->getStartingPosition();
+        glm::vec3 position(5.0f - state.num_enemies*5.0f, 0.0f, 0.0f);
 
         enemy->x = position.x;
         enemy->y = position.y;
@@ -316,8 +344,7 @@ void update_game(game_input* input)
         glm::vec3(state.player.x, state.player.y, 0),
         glm::vec3(0, 1, 0));
 
-    state.tilemap->draw(state.view, state.perspective);
-
+    map_render();
     player_render();
     enemies_render();
     bullets_render();
