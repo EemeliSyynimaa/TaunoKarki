@@ -41,6 +41,9 @@
 #include "pistol.cpp"
 #include "shotgun.cpp"
 
+#define MAX_FILE_SIZE 512*1024
+
+s8 data[MAX_FILE_SIZE];
 b32 running;
 LARGE_INTEGER queryPerformanceFrequency;
 
@@ -69,6 +72,45 @@ f32 get_elapsed_time(LARGE_INTEGER start, LARGE_INTEGER end)
     result = (f32)(end.QuadPart - start.QuadPart) / (f32)queryPerformanceFrequency.QuadPart;
 
     return result;
+}
+
+void load_file(s8* path, s8* data, u64 max_bytes)
+{
+    HANDLE file;
+
+    file = CreateFileA(
+        (LPCSTR)path,
+        GENERIC_READ,
+        0,
+        0,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        0);
+
+    if (INVALID_HANDLE_VALUE != file)
+    {
+        u64 num_bytes_read = 0;
+
+        if (ReadFile(
+                file,
+                data,
+                max_bytes,
+                (LPDWORD)&num_bytes_read,
+                0))
+        {
+            fprintf(stderr, "Read %llu/%llu bytes from %s\n", num_bytes_read, max_bytes, path);
+        }
+        else
+        {
+            fprintf(stderr, "Could not read from file: %s\n", path);
+        }
+
+        CloseHandle(file);
+    }
+    else
+    {
+        fprintf(stderr, "File not found: %s\n", path);
+    }
 }
 
 LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -242,6 +284,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     ShowWindow(hwnd, nCmdShow);
 
     QueryPerformanceFrequency(&queryPerformanceFrequency);
+
+    load_file((s8*)"assets/textures/tileset.tga", data, MAX_FILE_SIZE);
 
     init_game(screen_width, screen_height);
 
