@@ -9,8 +9,7 @@
   - Use circular bounding box for moving objects
   - Implement a simple raycast for AI
  - Replace lodepng
-  - Use bitmaps instead?
-  - Or own custom format?
+  - Use TGA file format
  - Replace SDL
   - Platform layers for win32 and linux
  - Move game code into own library

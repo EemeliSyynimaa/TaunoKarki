@@ -41,9 +41,6 @@
 #include "pistol.cpp"
 #include "shotgun.cpp"
 
-#define MAX_FILE_SIZE 512*1024
-
-s8 data[MAX_FILE_SIZE];
 b32 running;
 LARGE_INTEGER queryPerformanceFrequency;
 
@@ -60,7 +57,7 @@ LARGE_INTEGER get_current_time()
 {
     LARGE_INTEGER result;
 
-    QueryPerformanceCounter(&result);
+        QueryPerformanceCounter(&result);
     
     return result;
 }
@@ -74,7 +71,7 @@ f32 get_elapsed_time(LARGE_INTEGER start, LARGE_INTEGER end)
     return result;
 }
 
-void load_file(s8* path, s8* data, u64 max_bytes)
+void load_file(s8* path, s8* data, u64 max_bytes, u64* read_bytes)
 {
     HANDLE file;
 
@@ -104,6 +101,8 @@ void load_file(s8* path, s8* data, u64 max_bytes)
         {
             fprintf(stderr, "Could not read from file: %s\n", path);
         }
+
+        *read_bytes = num_bytes_read;
 
         CloseHandle(file);
     }
@@ -284,8 +283,6 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     ShowWindow(hwnd, nCmdShow);
 
     QueryPerformanceFrequency(&queryPerformanceFrequency);
-
-    load_file((s8*)"assets/textures/tileset.tga", data, MAX_FILE_SIZE);
 
     init_game(screen_width, screen_height);
 

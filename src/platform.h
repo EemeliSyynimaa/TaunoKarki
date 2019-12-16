@@ -53,5 +53,6 @@ typedef struct game_input
 
 void init_game(s32 screen_width, s32 screen_height);
 void update_game(game_input* input);
+void load_file(s8* path, s8* data, u64 max_bytes, u64* bytes_read);
 
 #endif

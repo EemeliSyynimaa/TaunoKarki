@@ -42,10 +42,12 @@ typedef struct game_state
     game_enemy enemies[MAX_ENEMIES];
     mesh cube;
     mesh sphere;
+    mesh wall;
     AssetManager assets;
     Tilemap* tilemap;
     b32 fired;
     f32 accumulator;
+    u32 texture_tileset;
     u32 free_bullet;
     u32 num_enemies;
     s32 screen_width;
@@ -56,8 +58,12 @@ typedef struct game_state
 
 game_state state;
 
+#define MAX_FILE_SIZE 1024*1024
 #define MAP_WIDTH   15
 #define MAP_HEIGHT  15
+
+s8 file_data[MAX_FILE_SIZE];
+s8 pixel_data[MAX_FILE_SIZE];
 
 u8 map_data[] =
 {
@@ -140,7 +146,7 @@ void map_render()
 
                 glm::mat4 mvp = state.perspective * state.view * model; 
 
-                mesh_render(&state.cube, &mvp, state.assets.enemyTexture->getID());
+                mesh_render(&state.cube, &mvp, (x % 2) ? state.texture_tileset : state.assets.tilesetTexture->getID());
             }
         }
     }
@@ -274,6 +280,88 @@ void player_render()
     mesh_render(&state.cube, &mvp, state.assets.playerTexture->getID());
 }
 
+typedef struct color_map_spec
+{
+    // First entry index (2 bytes): index of first color map entry that is included in the file
+    // Color map length (2 bytes): number of entries of the color map that are included in the file
+    // Color map entry size (1 byte): number of bits per pixel
+    s16 index;
+    s16 length;
+    s8 size;
+} color_map_spec;
+
+typedef struct image_spec
+{
+    // X-origin (2 bytes): absolute coordinate of lower-left corner for displays where origin is at the lower left
+    // Y-origin (2 bytes): as for X-origin
+    // Image width (2 bytes): width in pixels
+    // Image height (2 bytes): height in pixels
+    // Pixel depth (1 byte): bits per pixel
+    // Image descriptor (1 byte): bits 3-0 give the alpha channel depth, bits 5-4 give direction
+    s16 x;
+    s16 y;
+    s16 width;
+    s16 height;
+    s8 depth;
+    s8 desc;
+} image_spec;
+
+void tga_decode(s8* input, u64 in_size, s8* output, u64* out_size, u32* width, u32* height)
+{
+    s8 id_length = *input++;
+    s8 color_type = *input++;
+    s8 image_type = *input++;
+    
+    color_map_spec* c_spec = (color_map_spec*)input;
+    input += 5;
+
+    image_spec* i_spec = (image_spec*)input;
+    input += 10;
+
+    // Todo: read (or skip) image id and color map stuff
+
+    u64 bytes_per_color = i_spec->depth / 8;
+    u64 byte_count = i_spec->height * i_spec->width;
+
+    for (u64 i = 0; i < byte_count; i++)
+    {
+        output[2] = input[0];
+        output[1] = input[1];
+        output[0] = input[2];
+        output[3] = input[3];
+
+        output += bytes_per_color;
+        input += bytes_per_color;
+    }
+
+    *out_size = i_spec->height * i_spec->width * bytes_per_color;
+    *width = i_spec->width;
+    *height = i_spec->height;
+}
+
+u32 texture_create(s8* path)
+{
+    u64 read_bytes = 0;
+    u64 num_pixels = 0;
+    u32 target = GL_TEXTURE_2D;
+    u32 id = 0;
+    u32 width = 0;
+    u32 height = 0;
+
+    load_file(path, file_data, MAX_FILE_SIZE, &read_bytes);
+    tga_decode(file_data, read_bytes, pixel_data, &num_pixels, &width, &height);
+
+    glGenTextures(1, &id);
+    glBindTexture(target, id);
+
+    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    glTexImage2D(target, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixel_data);
+
+    return id;
+}
+
 void init_game(s32 screen_width, s32 screen_height)
 {
     s32 version_major = 0;
@@ -289,6 +377,8 @@ void init_game(s32 screen_width, s32 screen_height)
     fprintf(stderr, "OpenGL %i.%i\n", version_major, version_minor);
 
     state.assets.loadAssets();
+
+    state.texture_tileset = texture_create((s8*)"assets/textures/tileset.tga");
 
     state.screen_width = screen_width;
     state.screen_height = screen_height;
@@ -311,6 +401,13 @@ void init_game(s32 screen_width, s32 screen_height)
     state.sphere.indices = state.assets.sphereMesh->getIndices().data();
 
     generate_vertex_array(&state.sphere);
+
+    state.wall.num_vertices = state.assets.wallMesh->getVertices().size();
+    state.wall.num_indices = state.assets.wallMesh->getIndices().size();
+    state.wall.vertices = state.assets.wallMesh->getVertices().data();
+    state.wall.indices = state.assets.wallMesh->getIndices().data();
+
+    generate_vertex_array(&state.wall);
 
     while (state.num_enemies < MAX_ENEMIES)
     {
