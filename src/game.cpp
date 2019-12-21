@@ -48,6 +48,9 @@ typedef struct game_state
     b32 fired;
     f32 accumulator;
     u32 texture_tileset;
+    u32 texture_sphere;
+    u32 texture_player;
+    u32 texture_enemy;
     u32 free_bullet;
     u32 num_enemies;
     s32 screen_width;
@@ -146,7 +149,7 @@ void map_render()
 
                 glm::mat4 mvp = state.perspective * state.view * model; 
 
-                mesh_render(&state.cube, &mvp, (x % 2) ? state.texture_tileset : state.assets.tilesetTexture->getID());
+                mesh_render(&state.cube, &mvp, state.texture_tileset);
             }
         }
     }
@@ -171,7 +174,7 @@ void enemies_render()
 
         glm::mat4 mvp = state.perspective * state.view * model;
 
-        mesh_render(&state.cube, &mvp, state.assets.enemyTexture->getID());
+        mesh_render(&state.cube, &mvp, state.texture_enemy);
     }
 }
 
@@ -200,7 +203,7 @@ void bullets_render()
 
         glm::mat4 mvp = state.perspective * state.view * model;
 
-        mesh_render(&state.sphere, &mvp, state.assets.sphereTexture->getID());
+        mesh_render(&state.sphere, &mvp, state.texture_sphere);
     }
 }
 
@@ -277,7 +280,7 @@ void player_render()
 
     glm::mat4 mvp = state.perspective * state.view * model;
 
-    mesh_render(&state.cube, &mvp, state.assets.playerTexture->getID());
+    mesh_render(&state.cube, &mvp, state.texture_player);
 }
 
 typedef struct color_map_spec
@@ -379,6 +382,9 @@ void init_game(s32 screen_width, s32 screen_height)
     state.assets.loadAssets();
 
     state.texture_tileset = texture_create((s8*)"assets/textures/tileset.tga");
+    state.texture_sphere = texture_create((s8*)"assets/textures/sphere.tga");
+    state.texture_player = texture_create((s8*)"assets/textures/cube.tga");
+    state.texture_enemy = texture_create((s8*)"assets/textures/enemy.tga");
 
     state.screen_width = screen_width;
     state.screen_height = screen_height;
