@@ -6,8 +6,6 @@ AssetManager::AssetManager()
 
 AssetManager::~AssetManager()
 {
-    delete shaderProgram;
-    
     delete wallMesh;
     delete cubeMesh;
     delete sphereMesh;
@@ -27,8 +25,6 @@ AssetManager::~AssetManager()
 
 void AssetManager::loadAssets()
 {
-    shaderProgram = new ShaderProgram("assets/shaders/vertex.glsl", "assets/shaders/fragment.glsl");
-
     wallMesh = new Mesh("assets/meshes/wall.mesh");
     cubeMesh = new Mesh("assets/meshes/cube.mesh");
     sphereMesh = new Mesh("assets/meshes/sphere.mesh");

@@ -3,7 +3,6 @@
 
 #include <vector>
 #include "mesh.h"
-#include "shaderprogram.h"
 
 enum COLLISION_TYPES {
     COL_WALL = 0x0001,
@@ -65,8 +64,6 @@ struct AssetManager
 {
     AssetManager();
     ~AssetManager();
-
-    ShaderProgram* shaderProgram;
 
     Mesh* wallMesh;
     Mesh* cubeMesh;

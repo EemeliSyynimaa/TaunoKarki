@@ -46,6 +46,7 @@ typedef struct game_state
     AssetManager assets;
     b32 fired;
     f32 accumulator;
+    u32 shader;
     u32 texture_tileset;
     u32 texture_sphere;
     u32 texture_player;
@@ -60,7 +61,7 @@ typedef struct game_state
 
 game_state state;
 
-#define MAX_FILE_SIZE 1024*1024
+#define MAX_FILE_SIZE 10*1024*1024
 #define MAP_WIDTH   15
 #define MAP_HEIGHT  15
 
@@ -112,12 +113,10 @@ void mesh_render(mesh* mesh, glm::mat4* mvp, u32 texture)
 {
     glBindVertexArray(mesh->vao);
 
-    u32 program = state.assets.shaderProgram->getID();
+    glUseProgram(state.shader);
 
-    glUseProgram(program);
-
-    u32 uniform_mvp = glGetUniformLocation(program, "MVP");
-    u32 uniform_texture = glGetUniformLocation(program, "texture");
+    u32 uniform_mvp = glGetUniformLocation(state.shader, "MVP");
+    u32 uniform_texture = glGetUniformLocation(state.shader, "texture");
 
     glUniform1i(uniform_texture, 0);
     glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, glm::value_ptr(*mvp));
@@ -364,6 +363,68 @@ u32 texture_create(s8* path)
     return id;
 }
 
+void mesh_create(s8* path, mesh* mesh)
+{
+    u64 read_bytes = 0;
+
+    load_file(path, file_data, MAX_FILE_SIZE, &read_bytes);
+
+    // state.sphere.num_vertices = state.assets.sphereMesh->getVertices().size();
+    // state.sphere.num_indices = state.assets.sphereMesh->getIndices().size();
+    // state.sphere.vertices = state.assets.sphereMesh->getVertices().data();
+    // state.sphere.indices = state.assets.sphereMesh->getIndices().data();
+
+    generate_vertex_array(mesh);
+}
+
+u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
+{
+    u64 read_bytes = 0;
+
+    u32 result = 0;
+    u32 program = glCreateProgram();
+    u32 vertex_shader = glCreateShader(GL_VERTEX_SHADER);
+    u32 fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+
+    assert(program);
+    assert(vertex_shader);
+    assert(fragment_shader);
+
+    load_file(vertex_shader_path, file_data, MAX_FILE_SIZE, &read_bytes);
+
+    const GLchar* temp = (const GLchar*)file_data;
+
+    glShaderSource(vertex_shader, 1, &temp, 0);
+    glCompileShader(vertex_shader);
+    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, (GLint*)&result);
+    assert(result);
+
+    memset((void*)file_data, 0, MAX_FILE_SIZE);
+
+    load_file(fragment_shader_path, file_data, MAX_FILE_SIZE, &read_bytes);
+    
+    temp = (const GLchar*)file_data;
+
+    glShaderSource(fragment_shader, 1, &temp, 0);
+    glCompileShader(fragment_shader);
+    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, (GLint*)&result);
+    assert(result);
+
+    memset((void*)file_data, 0, MAX_FILE_SIZE);
+
+    glAttachShader(program, vertex_shader);
+    glAttachShader(program, fragment_shader);
+
+    glLinkProgram(program);
+    glGetProgramiv(program, GL_LINK_STATUS, (GLint*)&result);
+    assert(result);
+
+    glDeleteShader(vertex_shader);
+    glDeleteShader(fragment_shader);
+
+    return program;
+}
+
 void init_game(s32 screen_width, s32 screen_height)
 {
     s32 version_major = 0;
@@ -379,6 +440,8 @@ void init_game(s32 screen_width, s32 screen_height)
     fprintf(stderr, "OpenGL %i.%i\n", version_major, version_minor);
 
     state.assets.loadAssets();
+
+    state.shader = program_create((s8*)"assets/shaders/vertex.glsl", (s8*)"assets/shaders/fragment.glsl");
 
     state.texture_tileset = texture_create((s8*)"assets/textures/tileset.tga");
     state.texture_sphere = texture_create((s8*)"assets/textures/sphere.tga");

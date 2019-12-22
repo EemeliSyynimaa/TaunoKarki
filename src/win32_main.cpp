@@ -11,7 +11,6 @@
 #include "opengl.c"
 
 #include "mesh.cpp"
-#include "shaderprogram.cpp"
 #include "assetmanager.cpp"
 #include "game.cpp"
 
@@ -47,6 +46,8 @@ f32 get_elapsed_time(LARGE_INTEGER start, LARGE_INTEGER end)
 
 void load_file(s8* path, s8* data, u64 max_bytes, u64* read_bytes)
 {
+    *read_bytes = 0;
+    
     HANDLE file;
 
     file = CreateFileA(
