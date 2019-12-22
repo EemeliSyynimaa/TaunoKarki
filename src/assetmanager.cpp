@@ -6,12 +6,6 @@ AssetManager::AssetManager()
 
 AssetManager::~AssetManager()
 {
-    delete playerTexture;
-    delete sphereTexture;
-    delete tilesetTexture;
-    delete enemyTexture;
-    delete itemsTexture;
-
     delete shaderProgram;
     
     delete wallMesh;
@@ -33,12 +27,6 @@ AssetManager::~AssetManager()
 
 void AssetManager::loadAssets()
 {
-    playerTexture = new Texture(GL_TEXTURE_2D, "assets/textures/cube.png");
-    sphereTexture = new Texture(GL_TEXTURE_2D, "assets/textures/sphere.png");
-    tilesetTexture = new Texture(GL_TEXTURE_2D, "assets/textures/tileset.png");
-    enemyTexture = new Texture(GL_TEXTURE_2D, "assets/textures/enemy.png");
-    itemsTexture = new Texture(GL_TEXTURE_2D, "assets/textures/items.png");
-
     shaderProgram = new ShaderProgram("assets/shaders/vertex.glsl", "assets/shaders/fragment.glsl");
 
     wallMesh = new Mesh("assets/meshes/wall.mesh");

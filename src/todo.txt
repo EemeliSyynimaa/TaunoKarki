@@ -32,10 +32,12 @@
 
 Improve build tools
  - Use clang formatting
- - Make project buildable and runnable from sublime
  - Proper difftool (meld is not working good enough)
- - Git from sublime?
  - Move up/down to the next empty line
+ - Create a script to go the project folder
+ - Create proper build, run and debug scripts
+  - Drop the requirement to type ./build.bat, just build should be enough
+  - Or just use windows terminal...
 
 When all third party code is replaced, it's time to move on:
 

@@ -44,7 +44,6 @@ typedef struct game_state
     mesh sphere;
     mesh wall;
     AssetManager assets;
-    Tilemap* tilemap;
     b32 fired;
     f32 accumulator;
     u32 texture_tileset;
