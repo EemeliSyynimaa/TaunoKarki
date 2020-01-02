@@ -377,106 +377,57 @@ void mesh_create(s8* path, mesh* mesh)
     generate_vertex_array(mesh);
 }
 
-void float_add(f32* value, s32 add, f32* fraction, b32 remainder)
+b32 is_digit(s8 c)
 {
-    if (remainder)
-    {
-        *value += add/(*fraction); 
-        *fraction *= 10;
-    }
-    else
-    {
-        *value *= 10;
-        *value += add;
-    }
+    return c >= '0' && c <= '9';
 }
 
-f32 float_parse(s8* in, u64 max_bytes)
+f64 float_parse(s8* data)
 {
-    f32 value = 0;
-
+    fprintf(stderr, "Parse float from string %s:\n ", data);
+    
+    // Todo: ignore leading whitespaces
+    f64 value = 0;
     b32 negative = false;
-    b32 remainder = false;
 
-    f32 fraction = 10;
-
-    s8 val;
-
-    for (u64 i = 0; i < max_bytes; i++)
+    if (*data == '-')
     {
-        switch (*in)
-        {
-            case '-':
-            {
-                negative = true;
-                fprintf(stderr, "-");
-            } break;
-            case '.':
-            {
-                remainder = true;
-                fprintf(stderr, ".");
-            } break;
-            case '0':
-            {
-                fprintf(stderr, "0");
-                float_add(&value, 0, &fraction, remainder);
-            } break;
-            case '1':
-            {
-                fprintf(stderr, "1");
-                float_add(&value, 1, &fraction, remainder);
-            } break;
-            case '2':
-            {
-                fprintf(stderr, "2");
-                float_add(&value, 2, &fraction, remainder);
-            } break;
-            case '3':
-            {
-                fprintf(stderr, "3");
-                float_add(&value, 3, &fraction, remainder);
-            } break;
-            case '4':
-            {
-                fprintf(stderr, "4");
-                float_add(&value, 4, &fraction, remainder);
-            } break;
-            case '5':
-            {
-                fprintf(stderr, "5");
-                float_add(&value, 5, &fraction, remainder);
-            } break;
-            case '6':
-            {
-                fprintf(stderr, "6");
-                float_add(&value, 6, &fraction, remainder);
-            } break;
-            case '7':
-            {
-                fprintf(stderr, "7");
-                float_add(&value, 7, &fraction, remainder);
-            } break;
-            case '8':
-            {
-                fprintf(stderr, "8");
-                float_add(&value, 8, &fraction, remainder);
-            } break;
-            case '9':
-            {
-                fprintf(stderr, "9");
-                float_add(&value, 9, &fraction, remainder);
-            } break;
+        negative = true;
+        data++;
+    }
+
+    while (is_digit(*data))
+    {  
+        u8 val = *data++ - '0';
+
+        value *= 10.0;
+        value += val;
+    }
+
+    if (*data++ == '.')
+    {
+        u32 num_decimals = 0;
+        
+        while (is_digit(*data))
+        {  
+            u8 val = *data++ - '0';
+
+            value *= 10.0;
+            value += val;
+
+            num_decimals++;
         }
 
-        in++;
+        while (num_decimals-- > 0)
+        {
+            value *= 0.1;
+        }
     }
 
     if (negative)
     {
         value *= -1;
     }
-
-    fprintf(stderr, "\n");
 
     fprintf(stderr, "%f\n", value);
 
@@ -583,7 +534,14 @@ void init_game(s32 screen_width, s32 screen_height)
 
     generate_vertex_array(&state.wall);
 
-    f32 floated = float_parse((s8*)"-123.41234", 10);
+    float_parse((s8*)"-123.41234");
+    float_parse((s8*)"1243434.344423");
+    float_parse((s8*)"1.00000000");
+    float_parse((s8*)"-0.999999999");
+    float_parse((s8*)"-1.0");
+    float_parse((s8*)"0.0");
+    float_parse((s8*)"-1233");
+    float_parse((s8*)"24");
 
     while (state.num_enemies < MAX_ENEMIES)
     {
