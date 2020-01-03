@@ -23,8 +23,8 @@ typedef struct game_enemy
 
 typedef struct mesh
 {
-    void* vertices;
-    void* indices;
+    Vertex vertices[4096];
+    u32 indices[4096];
     u32 vao;
     u32 vbo;
     u32 ibo;    
@@ -147,7 +147,7 @@ void map_render()
 
                 glm::mat4 mvp = state.perspective * state.view * model; 
 
-                mesh_render(&state.cube, &mvp, state.texture_tileset);
+                mesh_render(&state.wall, &mvp, state.texture_tileset);
             }
         }
     }
@@ -451,7 +451,7 @@ f64 float_parse(s8* data, u64* size = NULL)
 
     if (*data++ == '.')
     {
-        u32 num_decimals = 0;
+        s32 num_decimals = 0;
         bytes++;
         
         while (is_digit(*data))
@@ -461,13 +461,57 @@ f64 float_parse(s8* data, u64* size = NULL)
             value *= 10.0;
             value += val;
 
-            num_decimals++;
+            num_decimals--;
             bytes++;
         }
 
-        while (num_decimals-- > 0)
+        if (*data++ == 'e')
+        {
+            s32 num_exponents = 0;
+            b32 negative_exponent = false;
+
+            bytes++;
+
+            if (*data == '-')
+            {
+                negative_exponent = true;
+                data++;
+                bytes++;
+            }
+            else if (*data == '+')
+            {
+                negative_exponent = false;
+                data++;
+                bytes++;
+            }
+
+            u32 exponent = 0;
+
+            while (is_digit(*data))
+            {
+                u8 val = *data++ - '0';
+
+                exponent *= 10.0;
+                exponent += val;
+
+                bytes++;
+            }
+
+            num_decimals += negative_exponent ? -exponent : exponent;
+        }
+
+        while (num_decimals < 0)
         {
             value *= 0.1;
+
+            num_decimals++;
+        }
+    
+        while (num_decimals > 0)
+        {
+            value *= 10;
+
+            num_decimals--;
         }
     }
 
@@ -509,6 +553,16 @@ u64 string_read(s8* data, s8* str, u64 max_size)
     return bytes_read;
 }
 
+glm::vec3 in_vertices[4096];
+glm::vec3 in_normals[4096];
+glm::vec2 in_uvs[4096];
+u32 in_faces[4096*3];
+
+u32 num_vertices;
+u32 num_normals;
+u32 num_uvs;
+u32 num_faces;
+
 void mesh_create(s8* path, mesh* mesh)
 {
     u64 read_bytes = 0;
@@ -518,53 +572,67 @@ void mesh_create(s8* path, mesh* mesh)
     s8* data = file_data;
     s8 str[255] = {0};
 
-    while (*data != '\0')
+    for (u64 i = 0; i < read_bytes && *data != '\0'; i++)
     {
         u64 str_size = string_read(data, str, 255);
 
         if (str_compare(str, (s8*)"v"))
         {
+            glm::vec3* vertex = &in_vertices[num_vertices++];
+
             fprintf(stderr, "v");
             
             data += str_size;
             str_size = string_read(data, str, 255);
-            fprintf(stderr, " %f", float_parse(str));
+            vertex->x = float_parse(str);
+            fprintf(stderr, " %f", vertex->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            fprintf(stderr, " %f", float_parse(str));
+            vertex->y = float_parse(str);
+            fprintf(stderr, " %f", vertex->y);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            fprintf(stderr, " %f\n", float_parse(str));
+            vertex->z = float_parse(str);
+            fprintf(stderr, " %f\n", vertex->z);
         }
         else if (str_compare(str, (s8*)"vt"))
         {
+            glm::vec2* uv = &in_uvs[num_uvs++];
+
             fprintf(stderr, "vt");            
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            fprintf(stderr, " %f", float_parse(str));
+            uv->x = float_parse(str);
+            fprintf(stderr, " %f", uv->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            fprintf(stderr, " %f\n", float_parse(str));
+            uv->y = float_parse(str);
+            fprintf(stderr, " %f\n", uv->y);
         }
         else if (str_compare(str, (s8*)"vn"))
         {
+            glm::vec3* normal = &in_normals[num_normals++];
+
             fprintf(stderr, "vn");
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            fprintf(stderr, " %f", float_parse(str));
+            normal->x = float_parse(str);
+            fprintf(stderr, " %f", normal->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            fprintf(stderr, " %f", float_parse(str));
+            normal->y = float_parse(str);
+            fprintf(stderr, " %f", normal->y);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            fprintf(stderr, " %f\n", float_parse(str));
+            normal->z = float_parse(str);
+            fprintf(stderr, " %f\n", normal->z);
         }
         else if (str_compare(str, (s8*)"f"))
         {
@@ -572,19 +640,26 @@ void mesh_create(s8* path, mesh* mesh)
 
             for (u32 i = 0; i < 3; i++)
             {
+                u32* face = &in_faces[num_faces];
+
                 data += str_size;
                 str_size = string_read(data, str, 255);
 
                 s8* s = str;
 
                 u64 bytes_read = 0;
-                fprintf(stderr, " %d", (s32)int_parse(s, &bytes_read));
+                face[0] = (s32)int_parse(s, &bytes_read); 
+                fprintf(stderr, " %d", face[0]);
                 s += bytes_read;
                 fprintf(stderr, "%c", *s++);
-                fprintf(stderr, "%d", (s32)int_parse(s, &bytes_read));
+                face[1] = (s32)int_parse(s, &bytes_read); 
+                fprintf(stderr, "%d", face[1]);
                 s += bytes_read;
                 fprintf(stderr, "%c", *s++);
-                fprintf(stderr, "%d", (s32)int_parse(s));
+                face[2] = (s32)int_parse(s, &bytes_read); 
+                fprintf(stderr, "%d", face[2]);
+
+                num_faces += 3;
             }
 
             fprintf(stderr, "\n");
@@ -595,12 +670,44 @@ void mesh_create(s8* path, mesh* mesh)
         }
     }
 
-    // state.sphere.num_vertices = state.assets.sphereMesh->getVertices().size();
-    // state.sphere.num_indices = state.assets.sphereMesh->getIndices().size();
-    // state.sphere.vertices = state.assets.sphereMesh->getVertices().data();
-    // state.sphere.indices = state.assets.sphereMesh->getIndices().data();
+    for (u32 i = 0; i < num_faces; i += 3)
+    {
+        u32* face = &in_faces[i];
 
-    // generate_vertex_array(mesh);
+        Vertex vertex;
+
+        vertex.position = in_vertices[face[0] - 1];
+        vertex.uv = in_uvs[face[1] - 1];
+        vertex.normal = in_normals[face[2] - 1];
+
+        // b32 found = false;
+
+        // for (u32 j = 0; j < mesh->num_vertices; j++)
+        // {
+        //     Vertex other = mesh->vertices[j];
+
+        //     if (vertex.position == other.position && vertex.uv == other.uv && vertex.normal == other.normal)
+        //     {
+        //         mesh->indices[mesh->num_indices++] = j;
+
+        //         found = true;
+        //         break;
+        //     }
+        // }
+
+        // if (!found)
+        {
+            mesh->vertices[mesh->num_vertices++] = vertex;
+            mesh->indices[mesh->num_indices++] = mesh->num_vertices - 1;
+        }
+    }
+
+    num_vertices = 0;
+    num_faces = 0;
+    num_normals = 0;
+    num_uvs = 0;
+
+    generate_vertex_array(mesh);
 }
 
 u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
@@ -682,28 +789,30 @@ void init_game(s32 screen_width, s32 screen_height)
     state.player.x = position.x;
     state.player.y = position.y;
 
-    state.cube.num_vertices = state.assets.cubeMesh->getVertices().size();
-    state.cube.num_indices = state.assets.cubeMesh->getIndices().size();
-    state.cube.vertices = state.assets.cubeMesh->getVertices().data();
-    state.cube.indices = state.assets.cubeMesh->getIndices().data();
+    // state.cube.num_vertices = state.assets.cubeMesh->getVertices().size();
+    // state.cube.num_indices = state.assets.cubeMesh->getIndices().size();
+    // state.cube.vertices = state.assets.cubeMesh->getVertices().data();
+    // state.cube.indices = state.assets.cubeMesh->getIndices().data();
 
-    generate_vertex_array(&state.cube);
+    // generate_vertex_array(&state.cube);
 
-    state.sphere.num_vertices = state.assets.sphereMesh->getVertices().size();
-    state.sphere.num_indices = state.assets.sphereMesh->getIndices().size();
-    state.sphere.vertices = state.assets.sphereMesh->getVertices().data();
-    state.sphere.indices = state.assets.sphereMesh->getIndices().data();
+    // state.sphere.num_vertices = state.assets.sphereMesh->getVertices().size();
+    // state.sphere.num_indices = state.assets.sphereMesh->getIndices().size();
+    // state.sphere.vertices = state.assets.sphereMesh->getVertices().data();
+    // state.sphere.indices = state.assets.sphereMesh->getIndices().data();
 
-    generate_vertex_array(&state.sphere);
+    // generate_vertex_array(&state.sphere);
 
-    state.wall.num_vertices = state.assets.wallMesh->getVertices().size();
-    state.wall.num_indices = state.assets.wallMesh->getIndices().size();
-    state.wall.vertices = state.assets.wallMesh->getVertices().data();
-    state.wall.indices = state.assets.wallMesh->getIndices().data();
+    // state.wall.num_vertices = state.assets.wallMesh->getVertices().size();
+    // state.wall.num_indices = state.assets.wallMesh->getIndices().size();
+    // state.wall.vertices = state.assets.wallMesh->getVertices().data();
+    // state.wall.indices = state.assets.wallMesh->getIndices().data();
 
-    generate_vertex_array(&state.wall);
+    // generate_vertex_array(&state.wall);
 
-    mesh_create((s8*)"assets/meshes/cube.mesh", 0);
+    mesh_create((s8*)"assets/meshes/cube.mesh", &state.cube);
+    mesh_create((s8*)"assets/meshes/sphere.mesh", &state.sphere);
+    mesh_create((s8*)"assets/meshes/wall.mesh", &state.wall);
 
     // s8 str[] = "testi";
     // s8 str2[] = "testi";
@@ -712,7 +821,7 @@ void init_game(s32 screen_width, s32 screen_height)
 
     // fprintf(stderr, "%s and %s are %s\n", str, str2, cool ? "the same" : "not the same");
 
-    int_parse((s8*)"102900235");
+    // int_parse((s8*)"102900235");
 
     // float_parse((s8*)"-123.41234");
     // float_parse((s8*)"1243434.344423");
@@ -722,6 +831,12 @@ void init_game(s32 screen_width, s32 screen_height)
     // float_parse((s8*)"0.0");
     // float_parse((s8*)"-1233");
     // float_parse((s8*)"24");
+
+    // float_parse((s8*)"3.012e+01");
+    // float_parse((s8*)"3.012e01");
+    // float_parse((s8*)"3.012e1");
+    // float_parse((s8*)"1.2e-3");
+    // float_parse((s8*)"1.2e-0003");
 
     // s8* str1 = (s8*)"-10.135443 52.3445";
     // s8 str[32] = {0};

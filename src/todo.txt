@@ -8,12 +8,12 @@
   - Divide objects into groups: enemies, player, bullets, walls etc.
   - Use circular bounding box for moving objects
   - Implement a simple raycast for AI
- - Replace lodepng
+ X Replace lodepng
   X Use TGA file format
   X Convert all textures to tga
   X Load converted tga textures
-  - Remove old png files
-  - Remove lodepng
+  X Remove old png files
+  X Remove lodepng
  X Replace SDL
  - Move game code into own library
   - Load game code dynamically (hot reload)
@@ -29,6 +29,8 @@
    - Defines
    - Structures and types
    - Functions
+ - OpenGL
+  - Fix indexing
 
 Improve build tools
  - Use clang formatting
