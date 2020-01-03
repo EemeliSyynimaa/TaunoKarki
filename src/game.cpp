@@ -363,18 +363,17 @@ u32 texture_create(s8* path)
     return id;
 }
 
-void mesh_create(s8* path, mesh* mesh)
+b32 str_compare(s8* str1, s8* str2)
 {
-    u64 read_bytes = 0;
+    while (*str1++ == *str2++)
+    {
+        if (*str1 == '\0')
+        {
+            return true;
+        }
+    }
 
-    load_file(path, file_data, MAX_FILE_SIZE, &read_bytes);
-
-    // state.sphere.num_vertices = state.assets.sphereMesh->getVertices().size();
-    // state.sphere.num_indices = state.assets.sphereMesh->getIndices().size();
-    // state.sphere.vertices = state.assets.sphereMesh->getVertices().data();
-    // state.sphere.indices = state.assets.sphereMesh->getIndices().data();
-
-    generate_vertex_array(mesh);
+    return false;
 }
 
 b32 is_digit(s8 c)
@@ -387,18 +386,20 @@ b32 is_space(s8 c)
     return (c >= 9 && c <= 13) || c == 32;
 }
 
-f64 float_parse(s8* data)
+s64 int_parse(s8* data, u64* size = NULL)
+
 {
-    fprintf(stderr, "Parse float from string %s:\n ", data);
-    
     // Todo: ignore leading whitespaces
-    f64 value = 0;
+    u64 value = 0;
+    u64 bytes = 0;
     b32 negative = false;
+    
 
     if (*data == '-')
     {
         negative = true;
         data++;
+        bytes++;
     }
 
     while (is_digit(*data))
@@ -407,11 +408,51 @@ f64 float_parse(s8* data)
 
         value *= 10.0;
         value += val;
+
+        bytes++;
+    }
+
+    if (negative)
+    {
+        value *= -1;
+    }
+
+    if (size)
+    {
+        *size = bytes;
+    }
+
+    return value;
+}
+
+f64 float_parse(s8* data, u64* size = NULL)
+{
+    // Todo: ignore leading whitespaces
+    // Todo: int parser has duplicate code
+    f64 value = 0;
+    b32 negative = false;
+    u64 bytes = 0;
+
+    if (*data == '-')
+    {
+        negative = true;
+        data++;
+        bytes++;
+    }
+
+    while (is_digit(*data))
+    {  
+        u8 val = *data++ - '0';
+
+        value *= 10.0;
+        value += val;
+        bytes++;
     }
 
     if (*data++ == '.')
     {
         u32 num_decimals = 0;
+        bytes++;
         
         while (is_digit(*data))
         {  
@@ -421,6 +462,7 @@ f64 float_parse(s8* data)
             value += val;
 
             num_decimals++;
+            bytes++;
         }
 
         while (num_decimals-- > 0)
@@ -434,12 +476,15 @@ f64 float_parse(s8* data)
         value *= -1;
     }
 
-    fprintf(stderr, "%f\n", value);
+    if (size)
+    {
+        *size = bytes;
+    }
 
     return value;
 }
 
-u64 string_read(s8* data, s8* str)
+u64 string_read(s8* data, s8* str, u64 max_size)
 {
     u64 bytes_read = 0;
 
@@ -449,14 +494,113 @@ u64 string_read(s8* data, s8* str)
         bytes_read++;
     }
 
-    while (!is_space(*data) && *data != '\0')
+    u64 str_size = 0;
+
+    while (!is_space(*data) && *data != '\0' && str_size < max_size - 1)
     {
         *str++ = *data++;
 
+        str_size++;
         bytes_read++;
     }
 
+    *str = '\0';
+
     return bytes_read;
+}
+
+void mesh_create(s8* path, mesh* mesh)
+{
+    u64 read_bytes = 0;
+
+    load_file(path, file_data, MAX_FILE_SIZE, &read_bytes);
+
+    s8* data = file_data;
+    s8 str[255] = {0};
+
+    while (*data != '\0')
+    {
+        u64 str_size = string_read(data, str, 255);
+
+        if (str_compare(str, (s8*)"v"))
+        {
+            fprintf(stderr, "v");
+            
+            data += str_size;
+            str_size = string_read(data, str, 255);
+            fprintf(stderr, " %f", float_parse(str));
+
+            data += str_size;
+            str_size = string_read(data, str, 255);
+            fprintf(stderr, " %f", float_parse(str));
+
+            data += str_size;
+            str_size = string_read(data, str, 255);
+            fprintf(stderr, " %f\n", float_parse(str));
+        }
+        else if (str_compare(str, (s8*)"vt"))
+        {
+            fprintf(stderr, "vt");            
+
+            data += str_size;
+            str_size = string_read(data, str, 255);
+            fprintf(stderr, " %f", float_parse(str));
+
+            data += str_size;
+            str_size = string_read(data, str, 255);
+            fprintf(stderr, " %f\n", float_parse(str));
+        }
+        else if (str_compare(str, (s8*)"vn"))
+        {
+            fprintf(stderr, "vn");
+
+            data += str_size;
+            str_size = string_read(data, str, 255);
+            fprintf(stderr, " %f", float_parse(str));
+
+            data += str_size;
+            str_size = string_read(data, str, 255);
+            fprintf(stderr, " %f", float_parse(str));
+
+            data += str_size;
+            str_size = string_read(data, str, 255);
+            fprintf(stderr, " %f\n", float_parse(str));
+        }
+        else if (str_compare(str, (s8*)"f"))
+        {
+            fprintf(stderr, "f");
+
+            for (u32 i = 0; i < 3; i++)
+            {
+                data += str_size;
+                str_size = string_read(data, str, 255);
+
+                s8* s = str;
+
+                u64 bytes_read = 0;
+                fprintf(stderr, " %d", (s32)int_parse(s, &bytes_read));
+                s += bytes_read;
+                fprintf(stderr, "%c", *s++);
+                fprintf(stderr, "%d", (s32)int_parse(s, &bytes_read));
+                s += bytes_read;
+                fprintf(stderr, "%c", *s++);
+                fprintf(stderr, "%d", (s32)int_parse(s));
+            }
+
+            fprintf(stderr, "\n");
+        }
+        else
+        {
+            data += str_size;
+        }
+    }
+
+    // state.sphere.num_vertices = state.assets.sphereMesh->getVertices().size();
+    // state.sphere.num_indices = state.assets.sphereMesh->getIndices().size();
+    // state.sphere.vertices = state.assets.sphereMesh->getVertices().data();
+    // state.sphere.indices = state.assets.sphereMesh->getIndices().data();
+
+    // generate_vertex_array(mesh);
 }
 
 u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
@@ -559,33 +703,44 @@ void init_game(s32 screen_width, s32 screen_height)
 
     generate_vertex_array(&state.wall);
 
-    float_parse((s8*)"-123.41234");
-    float_parse((s8*)"1243434.344423");
-    float_parse((s8*)"1.00000000");
-    float_parse((s8*)"-0.999999999");
-    float_parse((s8*)"-1.0");
-    float_parse((s8*)"0.0");
-    float_parse((s8*)"-1233");
-    float_parse((s8*)"24");
+    mesh_create((s8*)"assets/meshes/cube.mesh", 0);
 
-    s8* str1 = (s8*)"-10.135443 52.3445";
-    s8 str[32] = {0};
+    // s8 str[] = "testi";
+    // s8 str2[] = "testi";
 
-    u64 bytes_read = string_read(str1, str);
+    // b32 cool = str_compare(str, str2);
 
-    fprintf(stderr, "%s\n", str);
+    // fprintf(stderr, "%s and %s are %s\n", str, str2, cool ? "the same" : "not the same");
 
-    float_parse(str);
+    int_parse((s8*)"102900235");
 
-    memset(str, 0, 32);
+    // float_parse((s8*)"-123.41234");
+    // float_parse((s8*)"1243434.344423");
+    // float_parse((s8*)"1.00000000");
+    // float_parse((s8*)"-0.999999999");
+    // float_parse((s8*)"-1.0");
+    // float_parse((s8*)"0.0");
+    // float_parse((s8*)"-1233");
+    // float_parse((s8*)"24");
 
-    str1 += bytes_read;
+    // s8* str1 = (s8*)"-10.135443 52.3445";
+    // s8 str[32] = {0};
 
-    fprintf(stderr, "%llu\n", string_read(str1, str));
+    // u64 bytes_read = string_read(str1, str);
 
-    fprintf(stderr, "%s\n", str);
+    // fprintf(stderr, "%s\n", str);
 
-    float_parse(str);
+    // float_parse(str);
+
+    // memset(str, 0, 32);
+
+    // str1 += bytes_read;
+
+    // fprintf(stderr, "%llu\n", string_read(str1, str));
+
+    // fprintf(stderr, "%s\n", str);
+
+    // float_parse(str);
 
     while (state.num_enemies < MAX_ENEMIES)
     {
