@@ -382,6 +382,11 @@ b32 is_digit(s8 c)
     return c >= '0' && c <= '9';
 }
 
+b32 is_space(s8 c)
+{
+    return (c >= 9 && c <= 13) || c == 32;
+}
+
 f64 float_parse(s8* data)
 {
     fprintf(stderr, "Parse float from string %s:\n ", data);
@@ -432,7 +437,27 @@ f64 float_parse(s8* data)
     fprintf(stderr, "%f\n", value);
 
     return value;
-} 
+}
+
+u64 string_read(s8* data, s8* str)
+{
+    u64 bytes_read = 0;
+
+    while (is_space(*data) && *data != '\0')
+    {
+        data++;
+        bytes_read++;
+    }
+
+    while (!is_space(*data) && *data != '\0')
+    {
+        *str++ = *data++;
+
+        bytes_read++;
+    }
+
+    return bytes_read;
+}
 
 u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
 {
@@ -542,6 +567,25 @@ void init_game(s32 screen_width, s32 screen_height)
     float_parse((s8*)"0.0");
     float_parse((s8*)"-1233");
     float_parse((s8*)"24");
+
+    s8* str1 = (s8*)"-10.135443 52.3445";
+    s8 str[32] = {0};
+
+    u64 bytes_read = string_read(str1, str);
+
+    fprintf(stderr, "%s\n", str);
+
+    float_parse(str);
+
+    memset(str, 0, 32);
+
+    str1 += bytes_read;
+
+    fprintf(stderr, "%llu\n", string_read(str1, str));
+
+    fprintf(stderr, "%s\n", str);
+
+    float_parse(str);
 
     while (state.num_enemies < MAX_ENEMIES)
     {
