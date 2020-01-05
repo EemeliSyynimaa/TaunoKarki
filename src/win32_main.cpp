@@ -7,11 +7,7 @@
 #include "glm/gtx/transform.hpp"
 
 #include "platform.h"
-
 #include "opengl.c"
-
-#include "mesh.cpp"
-#include "assetmanager.cpp"
 #include "game.cpp"
 
 b32 running;

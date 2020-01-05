@@ -21,9 +21,16 @@ typedef struct game_enemy
     f32 angle;
 } game_enemy;
 
+typedef struct vertex
+{
+    glm::vec3 position;
+    glm::vec2 uv;
+    glm::vec3 normal;
+} vertex;
+
 typedef struct mesh
 {
-    Vertex vertices[4096];
+    vertex vertices[4096];
     u32 indices[4096];
     u32 vao;
     u32 vbo;
@@ -43,7 +50,6 @@ typedef struct game_state
     mesh cube;
     mesh sphere;
     mesh wall;
-    AssetManager assets;
     b32 fired;
     f32 accumulator;
     u32 shader;
@@ -61,9 +67,39 @@ typedef struct game_state
 
 game_state state;
 
-#define MAX_FILE_SIZE 10*1024*1024
-#define MAP_WIDTH   15
-#define MAP_HEIGHT  15
+#define MAX_FILE_SIZE   10*1024*1024
+#define MAP_WIDTH       15
+#define MAP_HEIGHT      15
+ 
+#define PLAYER_HEALTH               500.0f
+#define PLAYER_SPEED                0.2f
+#define PLAYER_HEALTH_PER_PACK      100.f
+#define ENEMY_HEALTH                50.0
+#define ENEMY_SPEED                 0.12
+#define ENEMY_ACTIVATION_DISTANCE   20.0
+#define ENEMY_HEALTH_PER_LEVEL      10.0
+#define ENEMY_HIT_DAMAGE            50.0
+#define ENEMY_HIT_DAMAGE_PER_LEVEL  5.0f
+#define ENEMY_ANGLE_OF_VISION       60.0
+#define MACHINEGUN_DAMAGE           25.0
+#define MACHINEGUN_RELOAD_TIME      2.50
+#define MACHINEGUN_CLIP_SIZE        25.0
+#define MACHINEGUN_BULLET_SPEED     1.0f
+#define MACHINEGUN_FIRE_RATE        0.12f
+#define MACHINEGUN_BULLET_SPREAD    0.05
+#define PISTOL_DAMAGE               30.0
+#define PISTOL_BULLET_SPEED         1.0f
+#define PISTOL_CLIP_SIZE            8.0f
+#define PISTOL_RELOAD_TIME          1.5f
+#define PISTOL_BULLET_SPREAD        0.01
+#define SHOTGUN_DAMAGE              12.5
+#define SHOTGUN_BULLET_SPEED        1.0f
+#define SHOTGUN_CLIP_SIZE           7.0f
+#define SHOTGUN_RELOAD_TIME         3.0f
+#define SHOTGUN_FIRE_RATE           0.7f
+#define SHOTGUN_BULLET_SPREAD       0.12f
+#define SHOTGUN_NUMBER_OF_SHELLS    12
+#define PROJECTILE_SIZE             0.1f
 
 s8 file_data[MAX_FILE_SIZE];
 s8 pixel_data[MAX_FILE_SIZE];
@@ -94,7 +130,7 @@ void generate_vertex_array(mesh* mesh)
 
     glGenBuffers(1, &mesh->vbo);
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-    glBufferData(GL_ARRAY_BUFFER, mesh->num_vertices * sizeof(Vertex), mesh->vertices, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, mesh->num_vertices * sizeof(vertex), mesh->vertices, GL_DYNAMIC_DRAW);
 
     glGenBuffers(1, &mesh->ibo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
@@ -104,9 +140,9 @@ void generate_vertex_array(mesh* mesh)
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, position));
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, uv));
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normal));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, position));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, uv));
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, normal));
 }
 
 void mesh_render(mesh* mesh, glm::mat4* mvp, u32 texture)
@@ -195,7 +231,7 @@ void bullets_render()
 
         glm::mat4 transform = glm::translate(glm::vec3(bullet->x, bullet->y, 0.0f));
         glm::mat4 rotation = glm::rotate(bullet->angle, glm::vec3(0.0f, 0.0f, 1.0f));
-        glm::mat4 scale = glm::scale(glm::vec3(GLOBALS::PROJECTILE_SIZE));
+        glm::mat4 scale = glm::scale(glm::vec3(PROJECTILE_SIZE));
 
         glm::mat4 model = transform * rotation * scale;
 
@@ -209,7 +245,7 @@ void player_update(game_input* input)
 {
     f32 velocity_x = 0.0f;
     f32 velocity_y = 0.0f;
-    f32 move_speed = GLOBALS::PLAYER_SPEED;
+    f32 move_speed = PLAYER_SPEED;
 
     if (input->move_left.key_down)
     {
@@ -252,7 +288,7 @@ void player_update(game_input* input)
 
             f32 dir_x = glm::cos(state.player.angle);
             f32 dir_y = glm::sin(state.player.angle);
-            f32 speed = GLOBALS::PISTOL_BULLET_SPEED;
+            f32 speed = PISTOL_BULLET_SPEED;
 
             bullet->x = state.player.x;
             bullet->y = state.player.y;
@@ -578,24 +614,24 @@ void mesh_create(s8* path, mesh* mesh)
 
         if (str_compare(str, (s8*)"v"))
         {
-            glm::vec3* vertex = &in_vertices[num_vertices++];
+            glm::vec3* v = &in_vertices[num_vertices++];
 
             fprintf(stderr, "v");
             
             data += str_size;
             str_size = string_read(data, str, 255);
-            vertex->x = float_parse(str);
-            fprintf(stderr, " %f", vertex->x);
+            v->x = float_parse(str);
+            fprintf(stderr, " %f", v->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            vertex->y = float_parse(str);
-            fprintf(stderr, " %f", vertex->y);
+            v->y = float_parse(str);
+            fprintf(stderr, " %f", v->y);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            vertex->z = float_parse(str);
-            fprintf(stderr, " %f\n", vertex->z);
+            v->z = float_parse(str);
+            fprintf(stderr, " %f\n", v->z);
         }
         else if (str_compare(str, (s8*)"vt"))
         {
@@ -615,24 +651,24 @@ void mesh_create(s8* path, mesh* mesh)
         }
         else if (str_compare(str, (s8*)"vn"))
         {
-            glm::vec3* normal = &in_normals[num_normals++];
+            glm::vec3* n = &in_normals[num_normals++];
 
             fprintf(stderr, "vn");
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            normal->x = float_parse(str);
-            fprintf(stderr, " %f", normal->x);
+            n->x = float_parse(str);
+            fprintf(stderr, " %f", n->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            normal->y = float_parse(str);
-            fprintf(stderr, " %f", normal->y);
+            n->y = float_parse(str);
+            fprintf(stderr, " %f", n->y);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            normal->z = float_parse(str);
-            fprintf(stderr, " %f\n", normal->z);
+            n->z = float_parse(str);
+            fprintf(stderr, " %f\n", n->z);
         }
         else if (str_compare(str, (s8*)"f"))
         {
@@ -674,30 +710,30 @@ void mesh_create(s8* path, mesh* mesh)
     {
         u32* face = &in_faces[i];
 
-        Vertex vertex;
+        vertex v;
 
-        vertex.position = in_vertices[face[0] - 1];
-        vertex.uv = in_uvs[face[1] - 1];
-        vertex.normal = in_normals[face[2] - 1];
+        v.position = in_vertices[face[0] - 1];
+        v.uv = in_uvs[face[1] - 1];
+        v.normal = in_normals[face[2] - 1];
 
-        // b32 found = false;
+        b32 found = false;
 
-        // for (u32 j = 0; j < mesh->num_vertices; j++)
-        // {
-        //     Vertex other = mesh->vertices[j];
-
-        //     if (vertex.position == other.position && vertex.uv == other.uv && vertex.normal == other.normal)
-        //     {
-        //         mesh->indices[mesh->num_indices++] = j;
-
-        //         found = true;
-        //         break;
-        //     }
-        // }
-
-        // if (!found)
+        for (u32 j = 0; j < mesh->num_vertices; j++)
         {
-            mesh->vertices[mesh->num_vertices++] = vertex;
+            vertex other = mesh->vertices[j];
+
+            if (v.position == other.position && v.uv == other.uv && v.normal == other.normal)
+            {
+                mesh->indices[mesh->num_indices++] = j;
+
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            mesh->vertices[mesh->num_vertices++] = v;
             mesh->indices[mesh->num_indices++] = mesh->num_vertices - 1;
         }
     }
@@ -771,8 +807,6 @@ void init_game(s32 screen_width, s32 screen_height)
     glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
     fprintf(stderr, "OpenGL %i.%i\n", version_major, version_minor);
-
-    state.assets.loadAssets();
 
     state.shader = program_create((s8*)"assets/shaders/vertex.glsl", (s8*)"assets/shaders/fragment.glsl");
 

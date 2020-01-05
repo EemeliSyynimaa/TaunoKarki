@@ -31,6 +31,7 @@
    - Functions
  - OpenGL
   - Fix indexing
+  - Render wireframed meshes
 
 Improve build tools
  - Use clang formatting
@@ -43,6 +44,8 @@ Improve build tools
 
 When all third party code is replaced, it's time to move on:
 
+- Debug logging
+ - Log macros
 - Write all remaining code in C
  - Re-design entity system
   - No overengineering

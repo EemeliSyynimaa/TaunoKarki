@@ -44,7 +44,7 @@ typedef struct game_input
             key_state shoot;
 
             key_state back;
-        };
+            };
     };
 
     s32 mouse_x;
