@@ -1,3 +1,53 @@
+
+#include <math.h>
+
+typedef struct v2f
+{
+    f32 x;
+    f32 y;
+} v2f;
+
+typedef struct v3f
+{
+    f32 x;
+    f32 y;
+    f32 z;
+} v3f;
+
+typedef struct m4f
+{
+} m4f;
+
+
+f32 tk_atan(f32 y, f32 x)
+{
+    return atan2(y, x);
+}
+
+
+f32 tk_sin(f32 angle)
+{
+    return sin(angle);
+}
+
+
+f32 tk_cos(f32 angle)
+{
+    return cos(angle);
+}
+
+// translate();
+
+// rotate();
+
+// scale();
+
+// perspective();
+
+// radians();
+
+// look_at();
+
 typedef struct game_player
 {
     f32 x;
@@ -273,7 +323,7 @@ void player_update(game_input* input)
     f32 mouse_x = (state.screen_width / 2.0f - input->mouse_x) * -1;
     f32 mouse_y = (state.screen_height / 2.0f - input->mouse_y);
 
-    state.player.angle = glm::atan(mouse_y, mouse_x);
+    state.player.angle = tk_atan(mouse_y, mouse_x);
 
     if (input->shoot.key_down)
     {
@@ -286,8 +336,8 @@ void player_update(game_input* input)
 
             game_bullet* bullet = &state.bullets[state.free_bullet];
 
-            f32 dir_x = glm::cos(state.player.angle);
-            f32 dir_y = glm::sin(state.player.angle);
+            f32 dir_x = tk_cos(state.player.angle);
+            f32 dir_y = tk_sin(state.player.angle);
             f32 speed = PISTOL_BULLET_SPEED;
 
             bullet->x = state.player.x;
