@@ -195,8 +195,8 @@ typedef struct game_state
     u32 num_enemies;
     s32 screen_width;
     s32 screen_height;
-    glm::mat4 perspective;
-    glm::mat4 view;
+    m4f perspective;
+    m4f view;
 } game_state;
 
 game_state state;
@@ -279,7 +279,7 @@ void generate_vertex_array(mesh* mesh)
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, normal));
 }
 
-void mesh_render(mesh* mesh, glm::mat4* mvp, u32 texture)
+void mesh_render(mesh* mesh, m4f* mvp, u32 texture)
 {
     glBindVertexArray(mesh->vao);
 
@@ -289,7 +289,7 @@ void mesh_render(mesh* mesh, glm::mat4* mvp, u32 texture)
     u32 uniform_texture = glGetUniformLocation(state.shader, "texture");
 
     glUniform1i(uniform_texture, 0);
-    glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, glm::value_ptr(*mvp));
+    glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, (GLfloat*)mvp);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -309,13 +309,15 @@ void map_render()
 
             if (tile)
             {
-                glm::mat4 transform = glm::translate(glm::vec3(2*x, 2*y, 0.0f));
-                glm::mat4 rotation(1.0f);
-                glm::mat4 scale(1.0f);
+                m4f transform = tk_translate(2*x, 2*y, 0.0f);
+                m4f rotation = tk_rotate(0.0f, 0.0f, 0.0f, 1.0f);
+                m4f scale = tk_scale(1.0f, 1.0f, 1.0f);
 
-                glm::mat4 model = transform * rotation * scale;
+                m4f model = tk_mul_m4f_m4f(scale, rotation);
+                model = tk_mul_m4f_m4f(model, transform);
 
-                glm::mat4 mvp = state.perspective * state.view * model; 
+                m4f mvp = tk_mul_m4f_m4f(model, state.view);
+                mvp = tk_mul_m4f_m4f(mvp, state.perspective);
 
                 mesh_render(&state.wall, &mvp, state.texture_tileset);
             }
@@ -334,13 +336,15 @@ void enemies_render()
     {
         game_enemy* enemy = &state.enemies[i];
 
-        glm::mat4 transform = glm::translate(glm::vec3(enemy->x, enemy->y, 0.0f));
-        glm::mat4 rotation = glm::rotate(enemy->angle, glm::vec3(0.0f, 0.0f, 1.0f));
-        glm::mat4 scale = glm::scale(glm::vec3(0.5f, 0.5f, 0.75f));
+        m4f transform = tk_translate(enemy->x, enemy->y, 0.0f);
+        m4f rotation = tk_rotate(enemy->angle, 0.0f, 0.0f, 1.0f);
+        m4f scale = tk_scale(0.5f, 0.5f, 0.75f);
 
-        glm::mat4 model = transform * rotation * scale;
+        m4f model = tk_mul_m4f_m4f(scale, rotation);
+        model = tk_mul_m4f_m4f(model, transform);
 
-        glm::mat4 mvp = state.perspective * state.view * model;
+        m4f mvp = tk_mul_m4f_m4f(model, state.view);
+        mvp = tk_mul_m4f_m4f(mvp, state.perspective);
 
         mesh_render(&state.cube, &mvp, state.texture_enemy);
     }
@@ -363,13 +367,15 @@ void bullets_render()
     {
         game_bullet* bullet = &state.bullets[i];
 
-        glm::mat4 transform = glm::translate(glm::vec3(bullet->x, bullet->y, 0.0f));
-        glm::mat4 rotation = glm::rotate(bullet->angle, glm::vec3(0.0f, 0.0f, 1.0f));
-        glm::mat4 scale = glm::scale(glm::vec3(PROJECTILE_SIZE));
+        m4f transform = tk_translate(bullet->x, bullet->y, 0.0f);
+        m4f rotation = tk_rotate(bullet->angle, 0.0f, 0.0f, 1.0f);
+        m4f scale = tk_scale(PROJECTILE_SIZE, PROJECTILE_SIZE, PROJECTILE_SIZE);
 
-        glm::mat4 model = transform * rotation * scale;
+        m4f model = tk_mul_m4f_m4f(scale, rotation);
+        model = tk_mul_m4f_m4f(model, transform);
 
-        glm::mat4 mvp = state.perspective * state.view * model;
+        m4f mvp = tk_mul_m4f_m4f(model, state.view);
+        mvp = tk_mul_m4f_m4f(mvp, state.perspective);
 
         mesh_render(&state.sphere, &mvp, state.texture_sphere);
     }
@@ -440,18 +446,15 @@ void player_update(game_input* input)
 
 void player_render()
 {
-    glm::mat4 transform = glm::translate(glm::vec3(state.player.x, state.player.y, 0.0f));
-    m4f transu = tk_translate(state.player.x, state.player.y, 0.0f);
-    glm::mat4 rotation = glm::rotate(state.player.angle, glm::vec3(0.0f, 0.0f, 1.0f));
-    m4f rotu = tk_rotate(state.player.angle, 0.0f, 0.0f, 1.0f);
-    glm::mat4 scale = glm::scale(glm::vec3(0.5f, 0.5f, 0.75f));
-    m4f scalu = tk_scale(0.5f, 0.5f, 0.75f);
+    m4f transform = tk_translate(state.player.x, state.player.y, 0.0f);
+    m4f rotation = tk_rotate(state.player.angle, 0.0f, 0.0f, 1.0f);
+    m4f scale = tk_scale(0.5f, 0.5f, 0.75f);
 
-    glm::mat4 model = transform * rotation * scale;
-    m4f modu = tk_mul_m4f_m4f(scalu, rotu);
-    modu = tk_mul_m4f_m4f(modu, transu);
+    m4f model = tk_mul_m4f_m4f(scale, rotation);
+    model = tk_mul_m4f_m4f(model, transform);
 
-    glm::mat4 mvp = state.perspective * state.view * model;
+    m4f mvp = tk_mul_m4f_m4f(model, state.view);
+    mvp = tk_mul_m4f_m4f(mvp, state.perspective);
 
     mesh_render(&state.cube, &mvp, state.texture_player);
 }
@@ -956,11 +959,10 @@ void init_game(s32 screen_width, s32 screen_height)
 
     state.screen_width = screen_width;
     state.screen_height = screen_height;
-    state.perspective = glm::perspective(glm::radians(60.0f), (f32)state.screen_width/(f32)state.screen_height, 0.1f, 100.0f);
+    state.perspective = tk_convert_mat4(glm::perspective(glm::radians(60.0f), (f32)state.screen_width/(f32)state.screen_height, 0.1f, 100.0f));
 
-    glm::vec3 position(7.0f, 6.0f, 0.0f);
-    state.player.x = position.x;
-    state.player.y = position.y;
+    state.player.x = 7.0f;
+    state.player.y = 6.0f;
 
     // state.cube.num_vertices = state.assets.cubeMesh->getVertices().size();
     // state.cube.num_indices = state.assets.cubeMesh->getIndices().size();
@@ -1034,10 +1036,8 @@ void init_game(s32 screen_width, s32 screen_height)
     {
         game_enemy* enemy = &state.enemies[state.num_enemies++];
             
-        glm::vec3 position(5.0f - state.num_enemies*5.0f, 0.0f, 0.0f);
-
-        enemy->x = position.x;
-        enemy->y = position.y;
+        enemy->x = 5.0f - state.num_enemies * 5.0f;
+        enemy->y = 0.0f;
     }
 }
 
@@ -1057,10 +1057,10 @@ void update_game(game_input* input)
         bullets_update(input);
     }
 
-    state.view = glm::lookAt(
+    state.view = tk_convert_mat4(glm::lookAt(
         glm::vec3(state.player.x, state.player.y, 20.0f),
         glm::vec3(state.player.x, state.player.y, 0),
-        glm::vec3(0, 1, 0));
+        glm::vec3(0, 1, 0)));
 
     map_render();
     player_render();
