@@ -14,33 +14,117 @@ typedef struct v3f
     f32 z;
 } v3f;
 
+typedef struct v4f
+{
+    f32 x;
+    f32 y;
+    f32 z;
+    f32 w;
+} v4f;
+
 typedef struct m4f
 {
+    f32 m[4][4];
 } m4f;
 
 
 f32 tk_atan(f32 y, f32 x)
 {
+    // Todo: implement own atan(2) function
     return atan2(y, x);
 }
 
 
 f32 tk_sin(f32 angle)
 {
+    // Todo: implement own sin function
     return sin(angle);
 }
 
 
 f32 tk_cos(f32 angle)
 {
+    // Todo: implement own cos function
     return cos(angle);
 }
 
-// translate();
+m4f tk_convert_mat4(glm::mat4 t)
+{
+    m4f m;
 
-// rotate();
+    for (u32 i = 0; i < 4; i++)
+    {
+        for (u32 j = 0; j < 4; j++)
+        {
+            m.m[i][j] = t[i][j];
+        }
+    }
 
-// scale();
+    return m;
+}
+
+m4f tk_translate(f32 x, f32 y, f32 z)
+{
+    m4f m = 
+    {{
+        { 1, 0, 0, 0 },
+        { 0, 1, 0, 0 },
+        { 0, 0, 1, 0 },
+        { x, y, z, 1 }
+    }};
+
+    return m;
+}
+
+m4f tk_rotate(f32 angle, f32 x, f32 y, f32 z)
+{
+    m4f m;
+
+    // Todo: implement own rotate function
+    m = tk_convert_mat4(glm::rotate(angle, glm::vec3(x, y, z)));
+
+    return m;
+}
+
+m4f tk_scale(f32 x, f32 y, f32 z)
+{
+    m4f m = 
+    {{
+        { x, 0, 0, 0 },
+        { 0, y, 0, 0 },
+        { 0, 0, z, 0 },
+        { 0, 0, 0, 1 }
+    }};
+
+    return m;
+}
+
+m4f tk_mul_m4f_m4f(m4f a, m4f b)
+{
+    m4f m;
+
+    m.m[0][0] = a.m[0][0] * b.m[0][0] + a.m[0][1] * b.m[1][0] + a.m[0][2] * b.m[2][0] + a.m[0][3] * b.m[3][0];
+    m.m[0][1] = a.m[0][0] * b.m[0][1] + a.m[0][1] * b.m[1][1] + a.m[0][2] * b.m[2][1] + a.m[0][3] * b.m[3][1];
+    m.m[0][2] = a.m[0][0] * b.m[0][2] + a.m[0][1] * b.m[1][2] + a.m[0][2] * b.m[2][2] + a.m[0][3] * b.m[3][2];
+    m.m[0][3] = a.m[0][0] * b.m[0][3] + a.m[0][1] * b.m[1][3] + a.m[0][2] * b.m[2][3] + a.m[0][3] * b.m[3][3];
+
+    m.m[1][0] = a.m[1][0] * b.m[0][0] + a.m[1][1] * b.m[1][0] + a.m[1][2] * b.m[2][0] + a.m[1][3] * b.m[3][0];
+    m.m[1][1] = a.m[1][0] * b.m[0][1] + a.m[1][1] * b.m[1][1] + a.m[1][2] * b.m[2][1] + a.m[1][3] * b.m[3][1];
+    m.m[1][2] = a.m[1][0] * b.m[0][2] + a.m[1][1] * b.m[1][2] + a.m[1][2] * b.m[2][2] + a.m[1][3] * b.m[3][2];
+    m.m[1][3] = a.m[1][0] * b.m[0][3] + a.m[1][1] * b.m[1][3] + a.m[1][2] * b.m[2][3] + a.m[1][3] * b.m[3][3];
+
+    m.m[2][0] = a.m[2][0] * b.m[0][0] + a.m[2][1] * b.m[1][0] + a.m[2][2] * b.m[2][0] + a.m[2][3] * b.m[3][0];
+    m.m[2][1] = a.m[2][0] * b.m[0][1] + a.m[2][1] * b.m[1][1] + a.m[2][2] * b.m[2][1] + a.m[2][3] * b.m[3][1];
+    m.m[2][2] = a.m[2][0] * b.m[0][2] + a.m[2][1] * b.m[1][2] + a.m[2][2] * b.m[2][2] + a.m[2][3] * b.m[3][2];
+    m.m[2][3] = a.m[2][0] * b.m[0][3] + a.m[2][1] * b.m[1][3] + a.m[2][2] * b.m[2][3] + a.m[2][3] * b.m[3][3];
+
+    m.m[3][0] = a.m[3][0] * b.m[0][0] + a.m[3][1] * b.m[1][0] + a.m[3][2] * b.m[2][0] + a.m[3][3] * b.m[3][0];
+    m.m[3][1] = a.m[3][0] * b.m[0][1] + a.m[3][1] * b.m[1][1] + a.m[3][2] * b.m[2][1] + a.m[3][3] * b.m[3][1];
+    m.m[3][2] = a.m[3][0] * b.m[0][2] + a.m[3][1] * b.m[1][2] + a.m[3][2] * b.m[2][2] + a.m[3][3] * b.m[3][2];
+    m.m[3][3] = a.m[3][0] * b.m[0][3] + a.m[3][1] * b.m[1][3] + a.m[3][2] * b.m[2][3] + a.m[3][3] * b.m[3][3];
+
+    return m;
+}
 
 // perspective();
 
@@ -357,10 +441,15 @@ void player_update(game_input* input)
 void player_render()
 {
     glm::mat4 transform = glm::translate(glm::vec3(state.player.x, state.player.y, 0.0f));
+    m4f transu = tk_translate(state.player.x, state.player.y, 0.0f);
     glm::mat4 rotation = glm::rotate(state.player.angle, glm::vec3(0.0f, 0.0f, 1.0f));
+    m4f rotu = tk_rotate(state.player.angle, 0.0f, 0.0f, 1.0f);
     glm::mat4 scale = glm::scale(glm::vec3(0.5f, 0.5f, 0.75f));
+    m4f scalu = tk_scale(0.5f, 0.5f, 0.75f);
 
     glm::mat4 model = transform * rotation * scale;
+    m4f modu = tk_mul_m4f_m4f(scalu, rotu);
+    modu = tk_mul_m4f_m4f(modu, transu);
 
     glm::mat4 mvp = state.perspective * state.view * model;
 
