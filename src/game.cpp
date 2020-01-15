@@ -76,12 +76,50 @@ m4f tk_translate(f32 x, f32 y, f32 z)
     return m;
 }
 
-m4f tk_rotate(f32 angle, f32 x, f32 y, f32 z)
+m4f tk_rotate_x(f32 angle)
 {
-    m4f m;
+    f32 c = tk_cos(angle);
+    f32 s = tk_sin(angle);
 
-    // Todo: implement own rotate function
-    m = tk_convert_mat4(glm::rotate(angle, glm::vec3(x, y, z)));
+    m4f m = 
+    {{
+        { 1, 0, 0, 0 },
+        { 0, c, s, 0 },
+        { 0, -s, c, 0 },
+        { 0, 0, 0, 1 }
+    }};
+
+    return m;
+}
+
+m4f tk_rotate_y(f32 angle)
+{
+    f32 c = tk_cos(angle);
+    f32 s = tk_sin(angle);
+
+    m4f m = 
+    {{
+        { c, 0, -s, 0 },
+        { 0, 1, 0, 0 },
+        { s, 0, c, 0 },
+        { 0, 0, 0, 1 }
+    }};
+
+    return m;
+}
+
+m4f tk_rotate_z(f32 angle)
+{
+    f32 c = tk_cos(angle);
+    f32 s = tk_sin(angle);
+
+    m4f m = 
+    {{
+        { c, s, 0, 0 },
+        { -s, c, 0, 0 },
+        { 0, 0, 1, 0 },
+        { 0, 0, 0, 1 }
+    }};
 
     return m;
 }
@@ -327,7 +365,7 @@ void map_render()
             if (tile)
             {
                 m4f transform = tk_translate(2*x, 2*y, 0.0f);
-                m4f rotation = tk_rotate(0.0f, 0.0f, 0.0f, 1.0f);
+                m4f rotation = tk_rotate_z(0.0f);
                 m4f scale = tk_scale(1.0f, 1.0f, 1.0f);
 
                 m4f model = tk_mul_m4f_m4f(scale, rotation);
@@ -354,7 +392,7 @@ void enemies_render()
         game_enemy* enemy = &state.enemies[i];
 
         m4f transform = tk_translate(enemy->x, enemy->y, 0.0f);
-        m4f rotation = tk_rotate(enemy->angle, 0.0f, 0.0f, 1.0f);
+        m4f rotation = tk_rotate_z(enemy->angle);
         m4f scale = tk_scale(0.5f, 0.5f, 0.75f);
 
         m4f model = tk_mul_m4f_m4f(scale, rotation);
@@ -385,7 +423,7 @@ void bullets_render()
         game_bullet* bullet = &state.bullets[i];
 
         m4f transform = tk_translate(bullet->x, bullet->y, 0.0f);
-        m4f rotation = tk_rotate(bullet->angle, 0.0f, 0.0f, 1.0f);
+        m4f rotation = tk_rotate_z(bullet->angle);
         m4f scale = tk_scale(PROJECTILE_SIZE, PROJECTILE_SIZE, PROJECTILE_SIZE);
 
         m4f model = tk_mul_m4f_m4f(scale, rotation);
@@ -464,7 +502,7 @@ void player_update(game_input* input)
 void player_render()
 {
     m4f transform = tk_translate(state.player.x, state.player.y, 0.0f);
-    m4f rotation = tk_rotate(state.player.angle, 0.0f, 0.0f, 1.0f);
+    m4f rotation = tk_rotate_z(state.player.angle);
     m4f scale = tk_scale(0.5f, 0.5f, 0.75f);
 
     m4f model = tk_mul_m4f_m4f(scale, rotation);
