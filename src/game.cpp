@@ -1,31 +1,23 @@
 
 #include <math.h>
 
-typedef struct v2f
+typedef struct v2
 {
     f32 x;
     f32 y;
-} v2f;
+} v2;
 
-typedef struct v3f
-{
-    f32 x;
-    f32 y;
-    f32 z;
-} v3f;
-
-typedef struct v4f
+typedef struct v3
 {
     f32 x;
     f32 y;
     f32 z;
-    f32 w;
-} v4f;
+} v3;
 
-typedef struct m4f
+typedef struct m4
 {
     f32 m[4][4];
-} m4f;
+} m4;
 
 
 f32 tk_atan(f32 y, f32 x)
@@ -48,9 +40,9 @@ f32 tk_cos(f32 angle)
     return cos(angle);
 }
 
-m4f tk_convert_mat4(glm::mat4 t)
+m4 tk_convert_m4(glm::mat4 t)
 {
-    m4f m;
+    m4 m;
 
     for (u32 i = 0; i < 4; i++)
     {
@@ -63,123 +55,115 @@ m4f tk_convert_mat4(glm::mat4 t)
     return m;
 }
 
-m4f tk_translate(f32 x, f32 y, f32 z)
+m4 tk_translate(f32 x, f32 y, f32 z)
 {
-    m4f m = 
+    m4 m = 
     {{
-        { 1, 0, 0, 0 },
-        { 0, 1, 0, 0 },
-        { 0, 0, 1, 0 },
-        { x, y, z, 1 }
+        { 1.0f, 0.0f, 0.0f, 0.0f },
+        { 0.0f, 1.0f, 0.0f, 0.0f },
+        { 0.0f, 0.0f, 1.0f, 0.0f },
+        {    x,    y,    z, 1.0f }
     }};
 
     return m;
 }
 
-m4f tk_rotate_x(f32 angle)
+m4 tk_rotate_x(f32 angle)
 {
     f32 c = tk_cos(angle);
     f32 s = tk_sin(angle);
 
-    m4f m = 
+    m4 m = 
     {{
-        { 1, 0, 0, 0 },
-        { 0, c, s, 0 },
-        { 0, -s, c, 0 },
-        { 0, 0, 0, 1 }
+        { 1.0f, 0.0f, 0.0f, 0.0f },
+        { 0.0f,    c,    s, 0.0f },
+        { 0.0f,   -s,    c, 0.0f },
+        { 0.0f, 0.0f, 0.0f, 1.0f }
     }};
 
     return m;
 }
 
-m4f tk_rotate_y(f32 angle)
+m4 tk_rotate_y(f32 angle)
 {
     f32 c = tk_cos(angle);
     f32 s = tk_sin(angle);
 
-    m4f m = 
+    m4 m = 
     {{
-        { c, 0, -s, 0 },
-        { 0, 1, 0, 0 },
-        { s, 0, c, 0 },
-        { 0, 0, 0, 1 }
+        { c,    0.0f,   -s, 0.0f },
+        { 0.0f, 1.0f, 0.0f, 0.0f },
+        { s,    0.0f,    c, 0.0f },
+        { 0.0f, 0.0f, 0.0f, 1.0f }
     }};
 
     return m;
 }
 
-m4f tk_rotate_z(f32 angle)
+m4 tk_rotate_z(f32 angle)
 {
     f32 c = tk_cos(angle);
     f32 s = tk_sin(angle);
 
-    m4f m = 
+    m4 m = 
     {{
-        { c, s, 0, 0 },
-        { -s, c, 0, 0 },
-        { 0, 0, 1, 0 },
-        { 0, 0, 0, 1 }
+        {    c,    s, 0.0f, 0.0f },
+        {   -s,    c, 0.0f, 0.0f },
+        { 0.0f, 0.0f, 1.0f, 0.0f },
+        { 0.0f, 0.0f, 0.0f, 1.0f }
     }};
 
     return m;
 }
 
-m4f tk_scale(f32 x, f32 y, f32 z)
+m4 tk_scale(f32 x, f32 y, f32 z)
 {
-    m4f m = 
+    m4 m = 
     {{
-        { x, 0, 0, 0 },
-        { 0, y, 0, 0 },
-        { 0, 0, z, 0 },
-        { 0, 0, 0, 1 }
+        {    x, 0.0f, 0.0f, 0.0f },
+        { 0.0f,    y, 0.0f, 0.0f },
+        { 0.0f, 0.0f,    z, 0.0f },
+        { 0.0f, 0.0f, 0.0f, 1.0f }
     }};
 
     return m;
 }
 
-m4f tk_mul_m4f_m4f(m4f a, m4f b)
+m4 tk_m4_mul(m4 a, m4 b)
 {
-    m4f m;
+    m4 m;
 
-    m.m[0][0] = a.m[0][0] * b.m[0][0] + a.m[0][1] * b.m[1][0] + a.m[0][2] * b.m[2][0] + a.m[0][3] * b.m[3][0];
-    m.m[0][1] = a.m[0][0] * b.m[0][1] + a.m[0][1] * b.m[1][1] + a.m[0][2] * b.m[2][1] + a.m[0][3] * b.m[3][1];
-    m.m[0][2] = a.m[0][0] * b.m[0][2] + a.m[0][1] * b.m[1][2] + a.m[0][2] * b.m[2][2] + a.m[0][3] * b.m[3][2];
-    m.m[0][3] = a.m[0][0] * b.m[0][3] + a.m[0][1] * b.m[1][3] + a.m[0][2] * b.m[2][3] + a.m[0][3] * b.m[3][3];
-
-    m.m[1][0] = a.m[1][0] * b.m[0][0] + a.m[1][1] * b.m[1][0] + a.m[1][2] * b.m[2][0] + a.m[1][3] * b.m[3][0];
-    m.m[1][1] = a.m[1][0] * b.m[0][1] + a.m[1][1] * b.m[1][1] + a.m[1][2] * b.m[2][1] + a.m[1][3] * b.m[3][1];
-    m.m[1][2] = a.m[1][0] * b.m[0][2] + a.m[1][1] * b.m[1][2] + a.m[1][2] * b.m[2][2] + a.m[1][3] * b.m[3][2];
-    m.m[1][3] = a.m[1][0] * b.m[0][3] + a.m[1][1] * b.m[1][3] + a.m[1][2] * b.m[2][3] + a.m[1][3] * b.m[3][3];
-
-    m.m[2][0] = a.m[2][0] * b.m[0][0] + a.m[2][1] * b.m[1][0] + a.m[2][2] * b.m[2][0] + a.m[2][3] * b.m[3][0];
-    m.m[2][1] = a.m[2][0] * b.m[0][1] + a.m[2][1] * b.m[1][1] + a.m[2][2] * b.m[2][1] + a.m[2][3] * b.m[3][1];
-    m.m[2][2] = a.m[2][0] * b.m[0][2] + a.m[2][1] * b.m[1][2] + a.m[2][2] * b.m[2][2] + a.m[2][3] * b.m[3][2];
-    m.m[2][3] = a.m[2][0] * b.m[0][3] + a.m[2][1] * b.m[1][3] + a.m[2][2] * b.m[2][3] + a.m[2][3] * b.m[3][3];
-
-    m.m[3][0] = a.m[3][0] * b.m[0][0] + a.m[3][1] * b.m[1][0] + a.m[3][2] * b.m[2][0] + a.m[3][3] * b.m[3][0];
-    m.m[3][1] = a.m[3][0] * b.m[0][1] + a.m[3][1] * b.m[1][1] + a.m[3][2] * b.m[2][1] + a.m[3][3] * b.m[3][1];
-    m.m[3][2] = a.m[3][0] * b.m[0][2] + a.m[3][1] * b.m[1][2] + a.m[3][2] * b.m[2][2] + a.m[3][3] * b.m[3][2];
-    m.m[3][3] = a.m[3][0] * b.m[0][3] + a.m[3][1] * b.m[1][3] + a.m[3][2] * b.m[2][3] + a.m[3][3] * b.m[3][3];
+    for (u32 i = 0; i < 4; i++)
+    {
+        for (u32 j = 0; j < 4; j++)
+        {
+            m.m[i][j] =
+                a.m[i][0] * b.m[0][j] +
+                a.m[i][1] * b.m[1][j] + 
+                a.m[i][2] * b.m[2][j] + 
+                a.m[i][3] * b.m[3][j];
+        }
+    }
 
     return m;
 }
 
-m4f perspective(f32 fov, f32 aspect, f32 near, f32 far)
+m4 perspective(f32 fov, f32 aspect, f32 near, f32 far)
 {
-    m4f m;
+    m4 m;
 
     // Todo: implement own perspective function
     // Todo: get rid of degrees
-    m = tk_convert_mat4(glm::perspective(glm::radians(fov), aspect, 0.1f, 100.0f));
+    m = tk_convert_m4(glm::perspective(glm::radians(fov), aspect, 0.1f, 100.0f));
 
     return m;
 }
 
-m4f look_at(v3f eye, v3f center, v3f up)
+m4 look_at(v3 eye, v3 center, v3 up)
 {
-    m4f m;
+    m4 m;
 
-    m = tk_convert_mat4(glm::lookAt(
+    m = tk_convert_m4(glm::lookAt(
         glm::vec3(eye.x, eye.y, eye.z),
         glm::vec3(center.x, center.y, center.z),
         glm::vec3(up.x, up.y, up.z)));
@@ -212,9 +196,9 @@ typedef struct game_enemy
 
 typedef struct vertex
 {
-    v3f position;
-    v2f uv;
-    v3f normal;
+    v3 position;
+    v2 uv;
+    v3 normal;
 } vertex;
 
 typedef struct mesh
@@ -250,8 +234,8 @@ typedef struct game_state
     u32 num_enemies;
     s32 screen_width;
     s32 screen_height;
-    m4f perspective;
-    m4f view;
+    m4 perspective;
+    m4 view;
 } game_state;
 
 game_state state;
@@ -334,7 +318,7 @@ void generate_vertex_array(mesh* mesh)
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, normal));
 }
 
-void mesh_render(mesh* mesh, m4f* mvp, u32 texture)
+void mesh_render(mesh* mesh, m4* mvp, u32 texture)
 {
     glBindVertexArray(mesh->vao);
 
@@ -364,15 +348,15 @@ void map_render()
 
             if (tile)
             {
-                m4f transform = tk_translate(2*x, 2*y, 0.0f);
-                m4f rotation = tk_rotate_z(0.0f);
-                m4f scale = tk_scale(1.0f, 1.0f, 1.0f);
+                m4 transform = tk_translate(2*x, 2*y, 0.0f);
+                m4 rotation = tk_rotate_z(0.0f);
+                m4 scale = tk_scale(1.0f, 1.0f, 1.0f);
 
-                m4f model = tk_mul_m4f_m4f(scale, rotation);
-                model = tk_mul_m4f_m4f(model, transform);
+                m4 model = tk_m4_mul(scale, rotation);
+                model = tk_m4_mul(model, transform);
 
-                m4f mvp = tk_mul_m4f_m4f(model, state.view);
-                mvp = tk_mul_m4f_m4f(mvp, state.perspective);
+                m4 mvp = tk_m4_mul(model, state.view);
+                mvp = tk_m4_mul(mvp, state.perspective);
 
                 mesh_render(&state.wall, &mvp, state.texture_tileset);
             }
@@ -391,15 +375,15 @@ void enemies_render()
     {
         game_enemy* enemy = &state.enemies[i];
 
-        m4f transform = tk_translate(enemy->x, enemy->y, 0.0f);
-        m4f rotation = tk_rotate_z(enemy->angle);
-        m4f scale = tk_scale(0.5f, 0.5f, 0.75f);
+        m4 transform = tk_translate(enemy->x, enemy->y, 0.0f);
+        m4 rotation = tk_rotate_z(enemy->angle);
+        m4 scale = tk_scale(0.5f, 0.5f, 0.75f);
 
-        m4f model = tk_mul_m4f_m4f(scale, rotation);
-        model = tk_mul_m4f_m4f(model, transform);
+        m4 model = tk_m4_mul(scale, rotation);
+        model = tk_m4_mul(model, transform);
 
-        m4f mvp = tk_mul_m4f_m4f(model, state.view);
-        mvp = tk_mul_m4f_m4f(mvp, state.perspective);
+        m4 mvp = tk_m4_mul(model, state.view);
+        mvp = tk_m4_mul(mvp, state.perspective);
 
         mesh_render(&state.cube, &mvp, state.texture_enemy);
     }
@@ -422,15 +406,15 @@ void bullets_render()
     {
         game_bullet* bullet = &state.bullets[i];
 
-        m4f transform = tk_translate(bullet->x, bullet->y, 0.0f);
-        m4f rotation = tk_rotate_z(bullet->angle);
-        m4f scale = tk_scale(PROJECTILE_SIZE, PROJECTILE_SIZE, PROJECTILE_SIZE);
+        m4 transform = tk_translate(bullet->x, bullet->y, 0.0f);
+        m4 rotation = tk_rotate_z(bullet->angle);
+        m4 scale = tk_scale(PROJECTILE_SIZE, PROJECTILE_SIZE, PROJECTILE_SIZE);
 
-        m4f model = tk_mul_m4f_m4f(scale, rotation);
-        model = tk_mul_m4f_m4f(model, transform);
+        m4 model = tk_m4_mul(scale, rotation);
+        model = tk_m4_mul(model, transform);
 
-        m4f mvp = tk_mul_m4f_m4f(model, state.view);
-        mvp = tk_mul_m4f_m4f(mvp, state.perspective);
+        m4 mvp = tk_m4_mul(model, state.view);
+        mvp = tk_m4_mul(mvp, state.perspective);
 
         mesh_render(&state.sphere, &mvp, state.texture_sphere);
     }
@@ -501,15 +485,15 @@ void player_update(game_input* input)
 
 void player_render()
 {
-    m4f transform = tk_translate(state.player.x, state.player.y, 0.0f);
-    m4f rotation = tk_rotate_z(state.player.angle);
-    m4f scale = tk_scale(0.5f, 0.5f, 0.75f);
+    m4 transform = tk_translate(state.player.x, state.player.y, 0.0f);
+    m4 rotation = tk_rotate_z(state.player.angle);
+    m4 scale = tk_scale(0.5f, 0.5f, 0.75f);
 
-    m4f model = tk_mul_m4f_m4f(scale, rotation);
-    model = tk_mul_m4f_m4f(model, transform);
+    m4 model = tk_m4_mul(scale, rotation);
+    model = tk_m4_mul(model, transform);
 
-    m4f mvp = tk_mul_m4f_m4f(model, state.view);
-    mvp = tk_mul_m4f_m4f(mvp, state.perspective);
+    m4 mvp = tk_m4_mul(model, state.view);
+    mvp = tk_m4_mul(mvp, state.perspective);
 
     mesh_render(&state.cube, &mvp, state.texture_player);
 }
@@ -786,9 +770,9 @@ u64 string_read(s8* data, s8* str, u64 max_size)
     return bytes_read;
 }
 
-v3f in_vertices[4096];
-v3f in_normals[4096];
-v2f in_uvs[4096];
+v3 in_vertices[4096];
+v3 in_normals[4096];
+v2 in_uvs[4096];
 u32 in_faces[4096*3];
 
 u32 num_vertices;
@@ -811,7 +795,7 @@ void mesh_create(s8* path, mesh* mesh)
 
         if (str_compare(str, (s8*)"v"))
         {
-            v3f* v = &in_vertices[num_vertices++];
+            v3* v = &in_vertices[num_vertices++];
 
             fprintf(stderr, "v");
             
@@ -832,7 +816,7 @@ void mesh_create(s8* path, mesh* mesh)
         }
         else if (str_compare(str, (s8*)"vt"))
         {
-            v2f* uv = &in_uvs[num_uvs++];
+            v2* uv = &in_uvs[num_uvs++];
 
             fprintf(stderr, "vt");            
 
@@ -848,7 +832,7 @@ void mesh_create(s8* path, mesh* mesh)
         }
         else if (str_compare(str, (s8*)"vn"))
         {
-            v3f* n = &in_normals[num_normals++];
+            v3* n = &in_normals[num_normals++];
 
             fprintf(stderr, "vn");
 
