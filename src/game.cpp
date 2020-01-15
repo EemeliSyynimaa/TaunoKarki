@@ -126,11 +126,28 @@ m4f tk_mul_m4f_m4f(m4f a, m4f b)
     return m;
 }
 
-// perspective();
+m4f perspective(f32 fov, f32 aspect, f32 near, f32 far)
+{
+    m4f m;
 
-// radians();
+    // Todo: implement own perspective function
+    // Todo: get rid of degrees
+    m = tk_convert_mat4(glm::perspective(glm::radians(fov), aspect, 0.1f, 100.0f));
 
-// look_at();
+    return m;
+}
+
+m4f look_at(v3f eye, v3f center, v3f up)
+{
+    m4f m;
+
+    m = tk_convert_mat4(glm::lookAt(
+        glm::vec3(eye.x, eye.y, eye.z),
+        glm::vec3(center.x, center.y, center.z),
+        glm::vec3(up.x, up.y, up.z)));
+
+    return m;
+}
 
 typedef struct game_player
 {
@@ -157,9 +174,9 @@ typedef struct game_enemy
 
 typedef struct vertex
 {
-    glm::vec3 position;
-    glm::vec2 uv;
-    glm::vec3 normal;
+    v3f position;
+    v2f uv;
+    v3f normal;
 } vertex;
 
 typedef struct mesh
@@ -731,9 +748,9 @@ u64 string_read(s8* data, s8* str, u64 max_size)
     return bytes_read;
 }
 
-glm::vec3 in_vertices[4096];
-glm::vec3 in_normals[4096];
-glm::vec2 in_uvs[4096];
+v3f in_vertices[4096];
+v3f in_normals[4096];
+v2f in_uvs[4096];
 u32 in_faces[4096*3];
 
 u32 num_vertices;
@@ -756,7 +773,7 @@ void mesh_create(s8* path, mesh* mesh)
 
         if (str_compare(str, (s8*)"v"))
         {
-            glm::vec3* v = &in_vertices[num_vertices++];
+            v3f* v = &in_vertices[num_vertices++];
 
             fprintf(stderr, "v");
             
@@ -777,7 +794,7 @@ void mesh_create(s8* path, mesh* mesh)
         }
         else if (str_compare(str, (s8*)"vt"))
         {
-            glm::vec2* uv = &in_uvs[num_uvs++];
+            v2f* uv = &in_uvs[num_uvs++];
 
             fprintf(stderr, "vt");            
 
@@ -793,7 +810,7 @@ void mesh_create(s8* path, mesh* mesh)
         }
         else if (str_compare(str, (s8*)"vn"))
         {
-            glm::vec3* n = &in_normals[num_normals++];
+            v3f* n = &in_normals[num_normals++];
 
             fprintf(stderr, "vn");
 
@@ -864,13 +881,14 @@ void mesh_create(s8* path, mesh* mesh)
         {
             vertex other = mesh->vertices[j];
 
-            if (v.position == other.position && v.uv == other.uv && v.normal == other.normal)
-            {
-                mesh->indices[mesh->num_indices++] = j;
+            // Todo: fix this
+            // if (v.position == other.position && v.uv == other.uv && v.normal == other.normal)
+            // {
+            //     mesh->indices[mesh->num_indices++] = j;
 
-                found = true;
-                break;
-            }
+            //     found = true;
+            //     break;
+            // }
         }
 
         if (!found)
@@ -959,7 +977,7 @@ void init_game(s32 screen_width, s32 screen_height)
 
     state.screen_width = screen_width;
     state.screen_height = screen_height;
-    state.perspective = tk_convert_mat4(glm::perspective(glm::radians(60.0f), (f32)state.screen_width/(f32)state.screen_height, 0.1f, 100.0f));
+    state.perspective = perspective(60.0f, (f32)state.screen_width/(f32)state.screen_height, 0.1f, 100.0f);
 
     state.player.x = 7.0f;
     state.player.y = 6.0f;
@@ -1057,10 +1075,9 @@ void update_game(game_input* input)
         bullets_update(input);
     }
 
-    state.view = tk_convert_mat4(glm::lookAt(
-        glm::vec3(state.player.x, state.player.y, 20.0f),
-        glm::vec3(state.player.x, state.player.y, 0),
-        glm::vec3(0, 1, 0)));
+    state.view = look_at({state.player.x, state.player.y, 20.0f},
+        {state.player.x, state.player.y, 0},
+        {0, 1, 0});
 
     map_render();
     player_render();
