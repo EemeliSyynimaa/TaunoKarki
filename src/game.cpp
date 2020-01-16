@@ -24,20 +24,20 @@ typedef struct m4
 
 f32 tk_radians(f32 degrees)
 {
-    f32 value;
+    f32 result;
 
-    value = degrees * TK_PI / 180.0;
+    result = degrees * TK_PI / 180.0;
 
-    return value;
+    return result;
 }
 
 f32 tk_degrees(f32 radians)
 {
-    f32 value;
+    f32 result;
 
-    value = radians * 180.0 / TK_PI;
+    result = radians * 180.0 / TK_PI;
 
-    return value;
+    return result;
 }
 
 f32 tk_atan(f32 y, f32 x)
@@ -58,6 +58,12 @@ f32 tk_cos(f32 angle)
 {
     // Todo: implement own cos function
     return cos(angle);
+}
+
+f32 tk_sqrt(f32 value)
+{
+    // Todo: implement own sqrt function
+    return sqrt(value);
 }
 
 m4 tk_translate(f32 x, f32 y, f32 z)
@@ -166,6 +172,49 @@ m4 tk_convert_m4(glm::mat4 t)
     }
 
     return m;
+}
+
+
+f32 tk_v3_length(v3 v)
+{
+    f32 result;
+
+    result = tk_sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+
+    return result;
+}
+
+f32 tk_v3_dot(v3 a, v3 b)
+{
+    f32 result;
+
+    result = a.x * b.x + a.y * b.y + a.z * b.z;
+
+    return result;
+}
+
+v3 tk_v3_cross(v3 a, v3 b)
+{
+    v3 result;
+
+    result.x = a.y * b.z - a.z * b.y;
+    result.y = a.x * b.z - a.z * b.x;
+    result.z = a.x * b.y - a.y * b.x;
+
+    return result;
+}
+
+v3 tk_v3_normalize(v3 v)
+{
+    v3 result;
+
+    f32 length = tk_v3_length(v);
+
+    result.x = v.x / length;
+    result.y = v.y / length;
+    result.z = v.z / length;
+
+    return result;
 }
 
 m4 perspective(f32 fov, f32 aspect, f32 near, f32 far)
@@ -1048,6 +1097,18 @@ void init_game(s32 screen_width, s32 screen_height)
     mesh_create((s8*)"assets/meshes/cube.mesh", &state.cube);
     mesh_create((s8*)"assets/meshes/sphere.mesh", &state.sphere);
     mesh_create((s8*)"assets/meshes/wall.mesh", &state.wall);
+
+    v3 n1 = tk_v3_normalize({ 2.0f, 0.0f, 0.0f });
+    v3 n2 = tk_v3_normalize({ 0.0f, 3.0f, 3.0f });
+    v3 n3 = tk_v3_normalize({ 1.5f, 1.5f, 1.5f });
+
+    v3 c1 = tk_v3_cross({ 1.0f, 0.0f, 0.0f}, { 0.0f, 1.0f, 0.0f });
+    v3 c2 = tk_v3_cross({ 1.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, 1.0f });
+
+    f32 d1 = tk_v3_dot({ 2.5f, 2.5f, 0.0f }, { 6.4f, 6.4f, 0.0f});
+    f32 d2 = tk_v3_dot({ 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f});
+
+    f32 l1 = tk_v3_length({ 2.5f, 2.5f, 0.0f }) * tk_v3_length({ 6.4f, 6.4f, 0.0f });
 
     // s8 str[] = "testi";
     // s8 str2[] = "testi";
