@@ -1,6 +1,8 @@
 
 #include <math.h>
 
+#define TK_PI 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679
+
 typedef struct v2
 {
     f32 x;
@@ -20,6 +22,24 @@ typedef struct m4
 } m4;
 
 
+f32 tk_radians(f32 degrees)
+{
+    f32 value;
+
+    value = degrees * TK_PI / 180.0;
+
+    return value;
+}
+
+f32 tk_degrees(f32 radians)
+{
+    f32 value;
+
+    value = radians * 180.0 / TK_PI;
+
+    return value;
+}
+
 f32 tk_atan(f32 y, f32 x)
 {
     // Todo: implement own atan(2) function
@@ -38,21 +58,6 @@ f32 tk_cos(f32 angle)
 {
     // Todo: implement own cos function
     return cos(angle);
-}
-
-m4 tk_convert_m4(glm::mat4 t)
-{
-    m4 m;
-
-    for (u32 i = 0; i < 4; i++)
-    {
-        for (u32 j = 0; j < 4; j++)
-        {
-            m.m[i][j] = t[i][j];
-        }
-    }
-
-    return m;
 }
 
 m4 tk_translate(f32 x, f32 y, f32 z)
@@ -148,13 +153,29 @@ m4 tk_m4_mul(m4 a, m4 b)
     return m;
 }
 
+m4 tk_convert_m4(glm::mat4 t)
+{
+    m4 m;
+
+    for (u32 i = 0; i < 4; i++)
+    {
+        for (u32 j = 0; j < 4; j++)
+        {
+            m.m[i][j] = t[i][j];
+        }
+    }
+
+    return m;
+}
+
 m4 perspective(f32 fov, f32 aspect, f32 near, f32 far)
 {
     m4 m;
 
     // Todo: implement own perspective function
     // Todo: get rid of degrees
-    m = tk_convert_m4(glm::perspective(glm::radians(fov), aspect, 0.1f, 100.0f));
+
+    m = tk_convert_m4(glm::perspective(tk_radians(fov), aspect, 0.1f, 100.0f));
 
     return m;
 }
