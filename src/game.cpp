@@ -173,8 +173,6 @@ m4 perspective(f32 fov, f32 aspect, f32 near, f32 far)
     m4 m;
 
     // Todo: implement own perspective function
-    // Todo: get rid of degrees
-
     m = tk_convert_m4(glm::perspective(tk_radians(fov), aspect, 0.1f, 100.0f));
 
     return m;
@@ -184,6 +182,7 @@ m4 look_at(v3 eye, v3 center, v3 up)
 {
     m4 m;
 
+    // Todo: implement own look at function
     m = tk_convert_m4(glm::lookAt(
         glm::vec3(eye.x, eye.y, eye.z),
         glm::vec3(center.x, center.y, center.z),
