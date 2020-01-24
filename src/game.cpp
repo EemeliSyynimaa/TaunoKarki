@@ -227,19 +227,6 @@ m4 perspective(f32 fov, f32 aspect, f32 near, f32 far)
     return m;
 }
 
-m4 look_at(v3 eye, v3 center, v3 up)
-{
-    m4 m;
-
-    // Todo: implement own look at function
-    m = tk_convert_m4(glm::lookAt(
-        glm::vec3(eye.x, eye.y, eye.z),
-        glm::vec3(center.x, center.y, center.z),
-        glm::vec3(up.x, up.y, up.z)));
-
-    return m;
-}
-
 typedef struct game_player
 {
     f32 x;
@@ -1178,9 +1165,7 @@ void update_game(game_input* input)
         bullets_update(input);
     }
 
-    state.view = look_at({state.player.x, state.player.y, 20.0f},
-        {state.player.x, state.player.y, 0},
-        {0, 1, 0});
+    state.view = tk_translate(-state.player.x, -state.player.y, -20.0f);
 
     map_render();
     player_render();
