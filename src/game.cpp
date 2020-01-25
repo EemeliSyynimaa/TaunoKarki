@@ -60,6 +60,12 @@ f32 tk_cos(f32 angle)
     return cos(angle);
 }
 
+f32 tk_tan(f32 angle)
+{
+    // Todo: implement own tan function
+    return tan(angle);
+}
+
 f32 tk_sqrt(f32 value)
 {
     // Todo: implement own sqrt function
@@ -217,14 +223,19 @@ v3 tk_v3_normalize(v3 v)
     return result;
 }
 
-m4 perspective(f32 fov, f32 aspect, f32 near, f32 far)
+m4 tk_perspective(f32 fov, f32 aspect, f32 n, f32 f)
 {
-    m4 m;
+    f32 t = tk_tan(tk_radians(fov) / 2.0f);
 
-    // Todo: implement own perspective function
-    m = tk_convert_m4(glm::perspective(tk_radians(fov), aspect, 0.1f, 100.0f));
+    m4 m = 
+    {{
+        { 1.0f / (t*aspect), 0.0f, 0.0f, 0.0f },
+        { 0.0f, 1.0f/t, 0.0f, 0.0f },
+        { 0.0f, 0.0f, (f+n)/(n-f), -1.0f },
+        { 0.0f, 0.0f, (2.0f*f*n)/(n-f), 0.0f }
+    }};
 
-    return m;
+	return m;
 }
 
 typedef struct game_player
@@ -1055,7 +1066,7 @@ void init_game(s32 screen_width, s32 screen_height)
 
     state.screen_width = screen_width;
     state.screen_height = screen_height;
-    state.perspective = perspective(60.0f, (f32)state.screen_width/(f32)state.screen_height, 0.1f, 100.0f);
+    state.perspective = tk_perspective(60.0f, (f32)state.screen_width/(f32)state.screen_height, 0.1f, 100.0f);
 
     state.player.x = 7.0f;
     state.player.y = 6.0f;
