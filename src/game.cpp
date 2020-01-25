@@ -165,22 +165,6 @@ m4 tk_m4_mul(m4 a, m4 b)
     return m;
 }
 
-m4 tk_convert_m4(glm::mat4 t)
-{
-    m4 m;
-
-    for (u32 i = 0; i < 4; i++)
-    {
-        for (u32 j = 0; j < 4; j++)
-        {
-            m.m[i][j] = t[i][j];
-        }
-    }
-
-    return m;
-}
-
-
 f32 tk_v3_length(v3 v)
 {
     f32 result;

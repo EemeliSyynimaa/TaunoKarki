@@ -1,10 +1,8 @@
 #include <windows.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include "gl/gl.h"
-#include "glm/glm.hpp"
-#include "glm/gtc/type_ptr.hpp"
-#include "glm/gtx/transform.hpp"
 
 #include "platform.h"
 #include "opengl.c"
