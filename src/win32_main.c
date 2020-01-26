@@ -6,7 +6,7 @@
 
 #include "platform.h"
 #include "opengl.c"
-#include "game.cpp"
+#include "game.c"
 
 b32 running;
 LARGE_INTEGER queryPerformanceFrequency;
@@ -83,7 +83,7 @@ void load_file(s8* path, s8* data, u64 max_bytes, u64* read_bytes)
 
 LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    static PAINTSTRUCT ps = {};
+    static PAINTSTRUCT ps = { 0 };
 
     switch (uMsg)
     {
@@ -118,7 +118,7 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
 
 s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-    WNDCLASSA dummy_class = {};
+    WNDCLASSA dummy_class = { 0 };
     dummy_class.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
     dummy_class.lpfnWndProc = DefWindowProcA;
     dummy_class.hInstance = hInstance;
@@ -131,7 +131,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
     HDC dummy_dc = GetDC(dummy_window);
 
-    PIXELFORMATDESCRIPTOR dummy_pfd = {};
+    PIXELFORMATDESCRIPTOR dummy_pfd = { 0 };
     dummy_pfd.nSize = sizeof(dummy_pfd);
     dummy_pfd.nVersion = 1;
     dummy_pfd.iPixelType = PFD_TYPE_RGBA;
@@ -163,8 +163,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     HWND hwnd = 0;
     HDC hdc = 0;
     HGLRC hrc = 0;
-    WNDCLASSEXA wdx = {};
-    PIXELFORMATDESCRIPTOR pfd = {};
+    WNDCLASSEXA wdx = { 0 };
+    PIXELFORMATDESCRIPTOR pfd = { 0 };
 
     (void)hPrevInstance;
     (void)lpCmdLine;
@@ -255,14 +255,14 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
     init_game(screen_width, screen_height);
 
-    game_input old_input = {};
+    game_input old_input = { 0 };
 
     LARGE_INTEGER old_time = get_current_time();
     running = true;
 
     while (running)
     {
-        game_input new_input = {};
+        game_input new_input = { 0 };
         LARGE_INTEGER new_time = get_current_time();
         new_input.delta_time = get_elapsed_time(old_time, new_time);
         old_time = new_time;

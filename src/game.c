@@ -654,7 +654,7 @@ b32 is_space(s8 c)
     return (c >= 9 && c <= 13) || c == 32;
 }
 
-s64 int_parse(s8* data, u64* size = NULL)
+s64 int_parse(s8* data, u64* size)
 
 {
     // Todo: ignore leading whitespaces
@@ -693,7 +693,7 @@ s64 int_parse(s8* data, u64* size = NULL)
     return value;
 }
 
-f64 float_parse(s8* data, u64* size = NULL)
+f64 float_parse(s8* data, u64* size)
 {
     // Todo: ignore leading whitespaces
     // Todo: int parser has duplicate code
@@ -852,17 +852,17 @@ void mesh_create(s8* path, mesh* mesh)
             
             data += str_size;
             str_size = string_read(data, str, 255);
-            v->x = float_parse(str);
+            v->x = float_parse(str, NULL);
             fprintf(stderr, " %f", v->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            v->y = float_parse(str);
+            v->y = float_parse(str, NULL);
             fprintf(stderr, " %f", v->y);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            v->z = float_parse(str);
+            v->z = float_parse(str, NULL);
             fprintf(stderr, " %f\n", v->z);
         }
         else if (str_compare(str, (s8*)"vt"))
@@ -873,12 +873,12 @@ void mesh_create(s8* path, mesh* mesh)
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            uv->x = float_parse(str);
+            uv->x = float_parse(str, NULL);
             fprintf(stderr, " %f", uv->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            uv->y = float_parse(str);
+            uv->y = float_parse(str, NULL);
             fprintf(stderr, " %f\n", uv->y);
         }
         else if (str_compare(str, (s8*)"vn"))
@@ -889,17 +889,17 @@ void mesh_create(s8* path, mesh* mesh)
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            n->x = float_parse(str);
+            n->x = float_parse(str, NULL);
             fprintf(stderr, " %f", n->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            n->y = float_parse(str);
+            n->y = float_parse(str, NULL);
             fprintf(stderr, " %f", n->y);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            n->z = float_parse(str);
+            n->z = float_parse(str, NULL);
             fprintf(stderr, " %f\n", n->z);
         }
         else if (str_compare(str, (s8*)"f"))
@@ -1080,17 +1080,17 @@ void init_game(s32 screen_width, s32 screen_height)
     mesh_create((s8*)"assets/meshes/sphere.mesh", &state.sphere);
     mesh_create((s8*)"assets/meshes/wall.mesh", &state.wall);
 
-    v3 n1 = tk_v3_normalize({ 2.0f, 0.0f, 0.0f });
-    v3 n2 = tk_v3_normalize({ 0.0f, 3.0f, 3.0f });
-    v3 n3 = tk_v3_normalize({ 1.5f, 1.5f, 1.5f });
+    // v3 n1 = tk_v3_normalize({ 2.0f, 0.0f, 0.0f });
+    // v3 n2 = tk_v3_normalize({ 0.0f, 3.0f, 3.0f });
+    // v3 n3 = tk_v3_normalize({ 1.5f, 1.5f, 1.5f });
 
-    v3 c1 = tk_v3_cross({ 1.0f, 0.0f, 0.0f}, { 0.0f, 1.0f, 0.0f });
-    v3 c2 = tk_v3_cross({ 1.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, 1.0f });
+    // v3 c1 = tk_v3_cross({ 1.0f, 0.0f, 0.0f}, { 0.0f, 1.0f, 0.0f });
+    // v3 c2 = tk_v3_cross({ 1.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, 1.0f });
 
-    f32 d1 = tk_v3_dot({ 2.5f, 2.5f, 0.0f }, { 6.4f, 6.4f, 0.0f});
-    f32 d2 = tk_v3_dot({ 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f});
+    // f32 d1 = tk_v3_dot({ 2.5f, 2.5f, 0.0f }, { 6.4f, 6.4f, 0.0f});
+    // f32 d2 = tk_v3_dot({ 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f});
 
-    f32 l1 = tk_v3_length({ 2.5f, 2.5f, 0.0f }) * tk_v3_length({ 6.4f, 6.4f, 0.0f });
+    // f32 l1 = tk_v3_length({ 2.5f, 2.5f, 0.0f }) * tk_v3_length({ 6.4f, 6.4f, 0.0f });
 
     // s8 str[] = "testi";
     // s8 str2[] = "testi";
