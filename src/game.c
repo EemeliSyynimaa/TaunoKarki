@@ -1054,86 +1054,10 @@ void init_game(s32 screen_width, s32 screen_height)
 
     state.player.x = 7.0f;
     state.player.y = 6.0f;
-
-    // state.cube.num_vertices = state.assets.cubeMesh->getVertices().size();
-    // state.cube.num_indices = state.assets.cubeMesh->getIndices().size();
-    // state.cube.vertices = state.assets.cubeMesh->getVertices().data();
-    // state.cube.indices = state.assets.cubeMesh->getIndices().data();
-
-    // generate_vertex_array(&state.cube);
-
-    // state.sphere.num_vertices = state.assets.sphereMesh->getVertices().size();
-    // state.sphere.num_indices = state.assets.sphereMesh->getIndices().size();
-    // state.sphere.vertices = state.assets.sphereMesh->getVertices().data();
-    // state.sphere.indices = state.assets.sphereMesh->getIndices().data();
-
-    // generate_vertex_array(&state.sphere);
-
-    // state.wall.num_vertices = state.assets.wallMesh->getVertices().size();
-    // state.wall.num_indices = state.assets.wallMesh->getIndices().size();
-    // state.wall.vertices = state.assets.wallMesh->getVertices().data();
-    // state.wall.indices = state.assets.wallMesh->getIndices().data();
-
-    // generate_vertex_array(&state.wall);
-
+    
     mesh_create((s8*)"assets/meshes/cube.mesh", &state.cube);
     mesh_create((s8*)"assets/meshes/sphere.mesh", &state.sphere);
     mesh_create((s8*)"assets/meshes/wall.mesh", &state.wall);
-
-    // v3 n1 = tk_v3_normalize({ 2.0f, 0.0f, 0.0f });
-    // v3 n2 = tk_v3_normalize({ 0.0f, 3.0f, 3.0f });
-    // v3 n3 = tk_v3_normalize({ 1.5f, 1.5f, 1.5f });
-
-    // v3 c1 = tk_v3_cross({ 1.0f, 0.0f, 0.0f}, { 0.0f, 1.0f, 0.0f });
-    // v3 c2 = tk_v3_cross({ 1.0f, 0.0f, 0.0f}, { 0.0f, 0.0f, 1.0f });
-
-    // f32 d1 = tk_v3_dot({ 2.5f, 2.5f, 0.0f }, { 6.4f, 6.4f, 0.0f});
-    // f32 d2 = tk_v3_dot({ 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f});
-
-    // f32 l1 = tk_v3_length({ 2.5f, 2.5f, 0.0f }) * tk_v3_length({ 6.4f, 6.4f, 0.0f });
-
-    // s8 str[] = "testi";
-    // s8 str2[] = "testi";
-
-    // b32 cool = str_compare(str, str2);
-
-    // fprintf(stderr, "%s and %s are %s\n", str, str2, cool ? "the same" : "not the same");
-
-    // int_parse((s8*)"102900235");
-
-    // float_parse((s8*)"-123.41234");
-    // float_parse((s8*)"1243434.344423");
-    // float_parse((s8*)"1.00000000");
-    // float_parse((s8*)"-0.999999999");
-    // float_parse((s8*)"-1.0");
-    // float_parse((s8*)"0.0");
-    // float_parse((s8*)"-1233");
-    // float_parse((s8*)"24");
-
-    // float_parse((s8*)"3.012e+01");
-    // float_parse((s8*)"3.012e01");
-    // float_parse((s8*)"3.012e1");
-    // float_parse((s8*)"1.2e-3");
-    // float_parse((s8*)"1.2e-0003");
-
-    // s8* str1 = (s8*)"-10.135443 52.3445";
-    // s8 str[32] = {0};
-
-    // u64 bytes_read = string_read(str1, str);
-
-    // fprintf(stderr, "%s\n", str);
-
-    // float_parse(str);
-
-    // memset(str, 0, 32);
-
-    // str1 += bytes_read;
-
-    // fprintf(stderr, "%llu\n", string_read(str1, str));
-
-    // fprintf(stderr, "%s\n", str);
-
-    // float_parse(str);
 
     while (state.num_enemies < MAX_ENEMIES)
     {
