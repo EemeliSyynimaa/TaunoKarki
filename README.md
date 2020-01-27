@@ -1,22 +1,22 @@
-#Tauno Kärki
+Tauno Kärki
+===========
 
-3D shooting game. Written in modern C++11.
+Tauno Kärki (TK for short) is a 2D shooter with some 3D graphics elements (walls). TK is a roguelite with procedurally generated levels. It is written in C and has no external dependencies. It currently uses OpenGL 3.3 for rendering.
 
-Features:
- - Basic AI (wander, attack, pursue, escape) with Astar pathfinding
- - Inheritance based component system
+# Requirements
+
+ - Singleplayer
+ - Keyboard and mouse movement
+ - Killable monsters with AI
+ - 3D graphics for walls
+ - Shadows and lighting
  - Procedurally generated levels
- - Box2D used for collision detection
- - 3D OpenGL 3.3 rendering
- - Weapons level up
- - Beautiful pixel art
- - Sounds borrowed from Unity's example project
- - Unity build
- - Build and run from terminal
 
-To do:
- - Linux support
- - Rewrite in C
- - No additional libraries
-  - Software rendering
-  - Collision detection
+# Key questions
+
+ - Multiplayer? Split-srcreen or online.
+ - Controller support? 
+ - More weapons?
+ - More enemies?
+ - Stay with OpenGL? Could use vulkan or software for rendering.
+ - Raytracing? Could be fun.

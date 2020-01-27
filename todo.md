@@ -1,4 +1,25 @@
- X Replace glew
+# Todo
+
+ - [ ] Improve build tools
+ - [ ] Coding conventions
+ - [ ] Debug logging 
+ - [ ] Divide code to modules
+ - [ ] Memory management
+ - [ ] Game as a library
+ - [ ] Hot reload
+ - [ ] Graphics cleanup
+ - [ ] Player movement
+ - [ ] Collision detection
+ - [ ] Enemy AI
+ - [ ] Text rendering
+ - [ ] Procedural level generation
+ - [ ] Animations
+ - [ ] Sounds
+ - [ ] Linux support
+
+--
+
+X Replace glew
   X Fetch GL functions from the system by hand
  - Replace GLM
   - Make own implementation of all used math functions
