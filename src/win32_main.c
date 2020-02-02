@@ -33,7 +33,8 @@ f32 get_elapsed_time(LARGE_INTEGER start, LARGE_INTEGER end)
 {
     f32 result;
 
-    result = (f32)(end.QuadPart - start.QuadPart) / (f32)queryPerformanceFrequency.QuadPart;
+    result = (f32)(end.QuadPart - start.QuadPart) / 
+    (f32)queryPerformanceFrequency.QuadPart;
 
     return result;
 }
@@ -44,27 +45,17 @@ void load_file(s8* path, s8* data, u64 max_bytes, u64* read_bytes)
     
     HANDLE file;
 
-    file = CreateFileA(
-        (LPCSTR)path,
-        GENERIC_READ,
-        0,
-        0,
-        OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL,
-        0);
+    file = CreateFileA((LPCSTR)path, GENERIC_READ, 0, 0, OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL, 0);
 
     if (INVALID_HANDLE_VALUE != file)
     {
         u64 num_bytes_read = 0;
 
-        if (ReadFile(
-                file,
-                data,
-                max_bytes,
-                (LPDWORD)&num_bytes_read,
-                0))
+        if (ReadFile(file, data, max_bytes, (LPDWORD)&num_bytes_read, 0))
         {
-            fprintf(stderr, "Read %llu/%llu bytes from %s\n", num_bytes_read, max_bytes, path);
+            fprintf(stderr, "Read %llu/%llu bytes from %s\n", num_bytes_read,
+                max_bytes, path);
         }
         else
         {
@@ -81,7 +72,8 @@ void load_file(s8* path, s8* data, u64 max_bytes, u64* read_bytes)
     }
 }
 
-LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
+    LPARAM lParam)
 {
     static PAINTSTRUCT ps = { 0 };
 
@@ -116,7 +108,8 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lPar
     return 0;
 }
 
-s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, 
+    LPSTR lpCmdLine, int nCmdShow)
 {
     WNDCLASSA dummy_class = { 0 };
     dummy_class.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
@@ -126,8 +119,9 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
     RegisterClassA(&dummy_class);
 
-    HWND dummy_window = CreateWindowExA(0, dummy_class.lpszClassName, "Dummy OpenGl Window", 0, 
-        CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, dummy_class.hInstance, 0);
+    HWND dummy_window = CreateWindowExA(0, dummy_class.lpszClassName,
+        "Dummy OpenGl Window", 0, CW_USEDEFAULT, CW_USEDEFAULT, 
+        CW_USEDEFAULT, CW_USEDEFAULT, 0, 0, dummy_class.hInstance, 0);
 
     HDC dummy_dc = GetDC(dummy_window);
 
@@ -139,7 +133,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     dummy_pfd.cAlphaBits = 8;
     dummy_pfd.cDepthBits = 24;
     dummy_pfd.iLayerType = PFD_MAIN_PLANE;
-    dummy_pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+    dummy_pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | 
+        PFD_DOUBLEBUFFER;
 
     s32 dummy_pf = ChoosePixelFormat(dummy_dc, &dummy_pfd);
 
@@ -178,8 +173,9 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
     RegisterClassExA(&wdx);
 
-    hwnd = CreateWindowExA(0, wdx.lpszClassName, "TaunoKarki", WS_VISIBLE | WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT, CW_USEDEFAULT, screen_width, screen_height, 0, 0, hInstance, 0);
+    hwnd = CreateWindowExA(0, wdx.lpszClassName, "TaunoKarki", 
+        WS_VISIBLE | WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 
+        screen_width, screen_height, 0, 0, hInstance, 0);
 
     hdc = GetDC(hwnd);
 
@@ -198,7 +194,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
     s32 pixel_format;
     u32 num_formats;
     
-    assert(wglChoosePixelFormatARB(hdc, pixel_format_attribs, 0, 1, &pixel_format, &num_formats));
+    assert(wglChoosePixelFormatARB(hdc, pixel_format_attribs, 0, 1,
+        &pixel_format, &num_formats));
 
     DescribePixelFormat(hdc, pixel_format, sizeof(pfd), &pfd);
     
@@ -206,7 +203,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
     s32 attribs[] =
     {
-        WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_DEBUG_BIT_ARB | WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+        WGL_CONTEXT_FLAGS_ARB, WGL_CONTEXT_DEBUG_BIT_ARB | 
+            WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
         WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
         WGL_CONTEXT_MINOR_VERSION_ARB, 3,
         WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
@@ -301,31 +299,37 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
                         {
                             running = false;
                             // process_input(&new_input.back, is_down);
-                            fprintf(stderr, "ESCAPE - %s\n", is_down ? "down" :"up");
+                            fprintf(stderr, "ESCAPE - %s\n", 
+                                is_down ? "down" :"up");
                         }
                         else if (msg.wParam == 0x57)
                         {
                             process_input(&new_input.move_up, is_down);
-                            fprintf(stderr, "W - %s\n", is_down ? "down" : "up");
+                            fprintf(stderr, "W - %s\n",
+                                is_down ? "down" : "up");
                         }
                         else if (msg.wParam == 0x41)
                         {
-                            fprintf(stderr, "A - %s\n", is_down ? "down" : "up");
+                            fprintf(stderr, "A - %s\n",
+                                is_down ? "down" : "up");
                             process_input(&new_input.move_left, is_down);
                         }
                         else if (msg.wParam == 0x53)
                         {
-                            fprintf(stderr, "S - %s\n", is_down ? "down" : "up");
+                            fprintf(stderr, "S - %s\n",
+                                is_down ? "down" : "up");
                             process_input(&new_input.move_down, is_down);
                         }
                         else if (msg.wParam == 0x44)
                         {
-                            fprintf(stderr, "D - %s\n", is_down ? "down" : "up");
+                            fprintf(stderr, "D - %s\n",
+                                is_down ? "down" : "up");
                             process_input(&new_input.move_right, is_down);
                         }
                         else if (msg.wParam == 0x52)
                         {
-                            fprintf(stderr, "R - %s\n", is_down ? "down" : "up");
+                            fprintf(stderr, "R - %s\n",
+                                is_down ? "down" : "up");
                             process_input(&new_input.reload, is_down);
                         }
                     }
@@ -369,7 +373,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
         new_input.mouse_x = mouse.x;
         new_input.mouse_y = mouse.y;
 
-        new_input.shoot.key_down = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+        new_input.shoot.key_down = 
+            (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
 
         update_game(&new_input);
 

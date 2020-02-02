@@ -1,7 +1,7 @@
 
 #include <math.h>
 
-#define TK_PI 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679
+#define TK_PI 3.14159265358979323846264338327950288419716939937510582097494459
 
 typedef struct v2
 {
@@ -354,19 +354,24 @@ void generate_vertex_array(mesh* mesh)
 
     glGenBuffers(1, &mesh->vbo);
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-    glBufferData(GL_ARRAY_BUFFER, mesh->num_vertices * sizeof(vertex), mesh->vertices, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, mesh->num_vertices * sizeof(vertex),
+        mesh->vertices, GL_DYNAMIC_DRAW);
 
     glGenBuffers(1, &mesh->ibo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->num_indices * sizeof(u32), mesh->indices, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->num_indices * sizeof(u32),
+        mesh->indices, GL_DYNAMIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, position));
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, uv));
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), (void*)offsetof(vertex, normal));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex),
+        (void*)offsetof(vertex, position));
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex),
+        (void*)offsetof(vertex, uv));
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vertex),
+        (void*)offsetof(vertex, normal));
 }
 
 void mesh_render(mesh* mesh, m4* mvp, u32 texture)
@@ -459,7 +464,8 @@ void bullets_render()
 
         m4 transform = tk_translate(bullet->x, bullet->y, 0.0f);
         m4 rotation = tk_rotate_z(bullet->angle);
-        m4 scale = tk_scale(PROJECTILE_SIZE, PROJECTILE_SIZE, PROJECTILE_SIZE);
+        m4 scale = tk_scale(PROJECTILE_SIZE, PROJECTILE_SIZE,
+            PROJECTILE_SIZE);
 
         m4 model = tk_m4_mul(scale, rotation);
         model = tk_m4_mul(model, transform);
@@ -551,9 +557,6 @@ void player_render()
 
 typedef struct color_map_spec
 {
-    // First entry index (2 bytes): index of first color map entry that is included in the file
-    // Color map length (2 bytes): number of entries of the color map that are included in the file
-    // Color map entry size (1 byte): number of bits per pixel
     s16 index;
     s16 length;
     s8 size;
@@ -561,12 +564,6 @@ typedef struct color_map_spec
 
 typedef struct image_spec
 {
-    // X-origin (2 bytes): absolute coordinate of lower-left corner for displays where origin is at the lower left
-    // Y-origin (2 bytes): as for X-origin
-    // Image width (2 bytes): width in pixels
-    // Image height (2 bytes): height in pixels
-    // Pixel depth (1 byte): bits per pixel
-    // Image descriptor (1 byte): bits 3-0 give the alpha channel depth, bits 5-4 give direction
     s16 x;
     s16 y;
     s16 width;
@@ -575,7 +572,8 @@ typedef struct image_spec
     s8 desc;
 } image_spec;
 
-void tga_decode(s8* input, u64 in_size, s8* output, u64* out_size, u32* width, u32* height)
+void tga_decode(s8* input, u64 in_size, s8* output, u64* out_size, u32* width,
+    u32* height)
 {
     s8 id_length = *input++;
     s8 color_type = *input++;
@@ -618,7 +616,8 @@ u32 texture_create(s8* path)
     u32 height = 0;
 
     load_file(path, file_data, MAX_FILE_SIZE, &read_bytes);
-    tga_decode(file_data, read_bytes, pixel_data, &num_pixels, &width, &height);
+    tga_decode(file_data, read_bytes, pixel_data, &num_pixels, &width,
+        &height);
 
     glGenTextures(1, &id);
     glBindTexture(target, id);
@@ -626,7 +625,8 @@ u32 texture_create(s8* path)
     glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-    glTexImage2D(target, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixel_data);
+    glTexImage2D(target, 0, GL_RGBA, width, height, 0, GL_RGBA,
+        GL_UNSIGNED_BYTE, pixel_data);
 
     return id;
 }
@@ -920,7 +920,7 @@ void mesh_create(s8* path, mesh* mesh)
                 fprintf(stderr, " %d", face[0]);
                 s += bytes_read;
                 fprintf(stderr, "%c", *s++);
-                face[1] = (s32)int_parse(s, &bytes_read); 
+                face[1] = (s32)int_parse(s, &bytes_read);
                 fprintf(stderr, "%d", face[1]);
                 s += bytes_read;
                 fprintf(stderr, "%c", *s++);
@@ -955,7 +955,8 @@ void mesh_create(s8* path, mesh* mesh)
             vertex other = mesh->vertices[j];
 
             // Todo: fix this
-            // if (v.position == other.position && v.uv == other.uv && v.normal == other.normal)
+            // if (v.position == other.position && v.uv == other.uv &&
+            //     v.normal == other.normal)
             // {
             //     mesh->indices[mesh->num_indices++] = j;
 
@@ -1041,16 +1042,19 @@ void init_game(s32 screen_width, s32 screen_height)
 
     fprintf(stderr, "OpenGL %i.%i\n", version_major, version_minor);
 
-    state.shader = program_create((s8*)"assets/shaders/vertex.glsl", (s8*)"assets/shaders/fragment.glsl");
+    state.shader = program_create((s8*)"assets/shaders/vertex.glsl",
+        (s8*)"assets/shaders/fragment.glsl");
 
-    state.texture_tileset = texture_create((s8*)"assets/textures/tileset.tga");
+    state.texture_tileset = texture_create(
+        (s8*)"assets/textures/tileset.tga");
     state.texture_sphere = texture_create((s8*)"assets/textures/sphere.tga");
     state.texture_player = texture_create((s8*)"assets/textures/cube.tga");
     state.texture_enemy = texture_create((s8*)"assets/textures/enemy.tga");
 
     state.screen_width = screen_width;
     state.screen_height = screen_height;
-    state.perspective = tk_perspective(60.0f, (f32)state.screen_width/(f32)state.screen_height, 0.1f, 100.0f);
+    state.perspective = tk_perspective(60.0f, 
+        (f32)state.screen_width/(f32)state.screen_height, 0.1f, 100.0f);
 
     state.player.x = 7.0f;
     state.player.y = 6.0f;
