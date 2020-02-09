@@ -51,8 +51,8 @@ typedef struct game_input
     s32 mouse_y;
 } game_input;
 
-void init_game(s32 screen_width, s32 screen_height);
-void update_game(game_input* input);
-void load_file(s8* path, s8* data, u64 max_bytes, u64* bytes_read);
+void game_init(s32 screen_width, s32 screen_height);
+void game_update(game_input* input);
+void file_load(s8* path, s8* data, u64 max_bytes, u64* bytes_read);
 
 #endif

@@ -12,7 +12,7 @@
 b32 running;
 LARGE_INTEGER queryPerformanceFrequency;
 
-void process_input(key_state* state, b32 is_down)
+void input_process(key_state* state, b32 is_down)
 {
     if (state->key_down != is_down)
     {
@@ -21,7 +21,7 @@ void process_input(key_state* state, b32 is_down)
     }
 }
 
-LARGE_INTEGER get_current_time()
+LARGE_INTEGER current_time_get()
 {
     LARGE_INTEGER result;
 
@@ -30,7 +30,7 @@ LARGE_INTEGER get_current_time()
     return result;
 }
 
-f32 get_elapsed_time(LARGE_INTEGER start, LARGE_INTEGER end)
+f32 elapsed_time_get(LARGE_INTEGER start, LARGE_INTEGER end)
 {
     f32 result;
 
@@ -40,7 +40,7 @@ f32 get_elapsed_time(LARGE_INTEGER start, LARGE_INTEGER end)
     return result;
 }
 
-void load_file(s8* path, s8* data, u64 max_bytes, u64* read_bytes)
+void file_load(s8* path, s8* data, u64 max_bytes, u64* read_bytes)
 {
     *read_bytes = 0;
     
@@ -149,8 +149,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     wglMakeCurrent(dummy_dc, dummy_context);
 
-    LoadOpenGLFunction(wglCreateContextAttribsARB);
-    LoadOpenGLFunction(wglChoosePixelFormatARB);
+    OPEN_GL_FUNCTION_LOAD(wglCreateContextAttribsARB);
+    OPEN_GL_FUNCTION_LOAD(wglChoosePixelFormatARB);
 
     s32 pf = 0;
     s32 screen_width = 1920;
@@ -214,30 +214,30 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     hrc = wglCreateContextAttribsARB(hdc, 0, attribs);
 
-    LoadOpenGLFunction(glGetUniformLocation);
-    LoadOpenGLFunction(glCreateProgram);
-    LoadOpenGLFunction(glCreateShader);
-    LoadOpenGLFunction(glShaderSource);
-    LoadOpenGLFunction(glCompileShader);
-    LoadOpenGLFunction(glGetShaderiv);
-    LoadOpenGLFunction(glAttachShader);
-    LoadOpenGLFunction(glLinkProgram);
-    LoadOpenGLFunction(glGetProgramiv);
-    LoadOpenGLFunction(glDeleteShader);
-    LoadOpenGLFunction(glDeleteProgram);
-    LoadOpenGLFunction(glUseProgram);
-    LoadOpenGLFunction(glDeleteBuffers);
-    LoadOpenGLFunction(glBindBuffer);
-    LoadOpenGLFunction(glEnableVertexAttribArray);
-    LoadOpenGLFunction(glDisableVertexAttribArray);
-    LoadOpenGLFunction(glVertexAttribPointer);
-    LoadOpenGLFunction(glUniform1i);
-    LoadOpenGLFunction(glUniformMatrix4fv);
-    LoadOpenGLFunction(glGenBuffers);
-    LoadOpenGLFunction(glBufferData);
-    LoadOpenGLFunction(glGenVertexArrays);
-    LoadOpenGLFunction(glBindVertexArray);
-    LoadOpenGLFunction(glActiveTexture);
+    OPEN_GL_FUNCTION_LOAD(glGetUniformLocation);
+    OPEN_GL_FUNCTION_LOAD(glCreateProgram);
+    OPEN_GL_FUNCTION_LOAD(glCreateShader);
+    OPEN_GL_FUNCTION_LOAD(glShaderSource);
+    OPEN_GL_FUNCTION_LOAD(glCompileShader);
+    OPEN_GL_FUNCTION_LOAD(glGetShaderiv);
+    OPEN_GL_FUNCTION_LOAD(glAttachShader);
+    OPEN_GL_FUNCTION_LOAD(glLinkProgram);
+    OPEN_GL_FUNCTION_LOAD(glGetProgramiv);
+    OPEN_GL_FUNCTION_LOAD(glDeleteShader);
+    OPEN_GL_FUNCTION_LOAD(glDeleteProgram);
+    OPEN_GL_FUNCTION_LOAD(glUseProgram);
+    OPEN_GL_FUNCTION_LOAD(glDeleteBuffers);
+    OPEN_GL_FUNCTION_LOAD(glBindBuffer);
+    OPEN_GL_FUNCTION_LOAD(glEnableVertexAttribArray);
+    OPEN_GL_FUNCTION_LOAD(glDisableVertexAttribArray);
+    OPEN_GL_FUNCTION_LOAD(glVertexAttribPointer);
+    OPEN_GL_FUNCTION_LOAD(glUniform1i);
+    OPEN_GL_FUNCTION_LOAD(glUniformMatrix4fv);
+    OPEN_GL_FUNCTION_LOAD(glGenBuffers);
+    OPEN_GL_FUNCTION_LOAD(glBufferData);
+    OPEN_GL_FUNCTION_LOAD(glGenVertexArrays);
+    OPEN_GL_FUNCTION_LOAD(glBindVertexArray);
+    OPEN_GL_FUNCTION_LOAD(glActiveTexture);
 
     wglMakeCurrent(dummy_dc, 0);
     wglDeleteContext(dummy_context);
@@ -252,18 +252,18 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     QueryPerformanceFrequency(&queryPerformanceFrequency);
 
-    init_game(screen_width, screen_height);
+    game_init(screen_width, screen_height);
 
     game_input old_input = { 0 };
 
-    LARGE_INTEGER old_time = get_current_time();
+    LARGE_INTEGER old_time = current_time_get();
     running = true;
 
     while (running)
     {
         game_input new_input = { 0 };
-        LARGE_INTEGER new_time = get_current_time();
-        new_input.delta_time = get_elapsed_time(old_time, new_time);
+        LARGE_INTEGER new_time = current_time_get();
+        new_input.delta_time = elapsed_time_get(old_time, new_time);
         old_time = new_time;
 
         s32 keys = sizeof(new_input.keys)/sizeof(new_input.keys[0]);
@@ -299,13 +299,13 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                         if (msg.wParam == VK_ESCAPE)
                         {
                             running = false;
-                            // process_input(&new_input.back, is_down);
+                            // input_process(&new_input.back, is_down);
                             fprintf(stderr, "ESCAPE - %s\n", 
                                 is_down ? "down" :"up");
                         }
                         else if (msg.wParam == 0x57)
                         {
-                            process_input(&new_input.move_up, is_down);
+                            input_process(&new_input.move_up, is_down);
                             fprintf(stderr, "W - %s\n",
                                 is_down ? "down" : "up");
                         }
@@ -313,25 +313,25 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                         {
                             fprintf(stderr, "A - %s\n",
                                 is_down ? "down" : "up");
-                            process_input(&new_input.move_left, is_down);
+                            input_process(&new_input.move_left, is_down);
                         }
                         else if (msg.wParam == 0x53)
                         {
                             fprintf(stderr, "S - %s\n",
                                 is_down ? "down" : "up");
-                            process_input(&new_input.move_down, is_down);
+                            input_process(&new_input.move_down, is_down);
                         }
                         else if (msg.wParam == 0x44)
                         {
                             fprintf(stderr, "D - %s\n",
                                 is_down ? "down" : "up");
-                            process_input(&new_input.move_right, is_down);
+                            input_process(&new_input.move_right, is_down);
                         }
                         else if (msg.wParam == 0x52)
                         {
                             fprintf(stderr, "R - %s\n",
                                 is_down ? "down" : "up");
-                            process_input(&new_input.reload, is_down);
+                            input_process(&new_input.reload, is_down);
                         }
                     }
                 } break;
@@ -377,7 +377,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         new_input.shoot.key_down = 
             (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
 
-        update_game(&new_input);
+        game_update(&new_input);
 
         SwapBuffers(hdc);
 

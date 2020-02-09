@@ -391,7 +391,7 @@ u32 texture_create(s8* path)
     u32 width = 0;
     u32 height = 0;
 
-    load_file(path, file_data, MAX_FILE_SIZE, &read_bytes);
+    file_load(path, file_data, MAX_FILE_SIZE, &read_bytes);
     tga_decode(file_data, read_bytes, pixel_data, &num_pixels, &width,
         &height);
 
@@ -430,15 +430,13 @@ b32 is_space(s8 c)
     return (c >= 9 && c <= 13) || c == 32;
 }
 
-s64 int_parse(s8* data, u64* size)
-
+s32 s32_parse(s8* data, u64* size)
 {
     // Todo: ignore leading whitespaces
-    u64 value = 0;
+    s32 value = 0;
     u64 bytes = 0;
     b32 negative = false;
     
-
     if (*data == '-')
     {
         negative = true;
@@ -469,11 +467,11 @@ s64 int_parse(s8* data, u64* size)
     return value;
 }
 
-f64 float_parse(s8* data, u64* size)
+f32 f32_parse(s8* data, u64* size)
 {
     // Todo: ignore leading whitespaces
     // Todo: int parser has duplicate code
-    f64 value = 0;
+    f32 value = 0;
     b32 negative = false;
     u64 bytes = 0;
 
@@ -611,7 +609,7 @@ void mesh_create(s8* path, mesh* mesh)
 {
     u64 read_bytes = 0;
 
-    load_file(path, file_data, MAX_FILE_SIZE, &read_bytes);
+    file_load(path, file_data, MAX_FILE_SIZE, &read_bytes);
 
     s8* data = file_data;
     s8 str[255] = {0};
@@ -628,17 +626,17 @@ void mesh_create(s8* path, mesh* mesh)
             
             data += str_size;
             str_size = string_read(data, str, 255);
-            v->x = float_parse(str, NULL);
+            v->x = f32_parse(str, NULL);
             fprintf(stderr, " %f", v->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            v->y = float_parse(str, NULL);
+            v->y = f32_parse(str, NULL);
             fprintf(stderr, " %f", v->y);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            v->z = float_parse(str, NULL);
+            v->z = f32_parse(str, NULL);
             fprintf(stderr, " %f\n", v->z);
         }
         else if (str_compare(str, (s8*)"vt"))
@@ -649,12 +647,12 @@ void mesh_create(s8* path, mesh* mesh)
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            uv->x = float_parse(str, NULL);
+            uv->x = f32_parse(str, NULL);
             fprintf(stderr, " %f", uv->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            uv->y = float_parse(str, NULL);
+            uv->y = f32_parse(str, NULL);
             fprintf(stderr, " %f\n", uv->y);
         }
         else if (str_compare(str, (s8*)"vn"))
@@ -665,17 +663,17 @@ void mesh_create(s8* path, mesh* mesh)
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            n->x = float_parse(str, NULL);
+            n->x = f32_parse(str, NULL);
             fprintf(stderr, " %f", n->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            n->y = float_parse(str, NULL);
+            n->y = f32_parse(str, NULL);
             fprintf(stderr, " %f", n->y);
 
             data += str_size;
             str_size = string_read(data, str, 255);
-            n->z = float_parse(str, NULL);
+            n->z = f32_parse(str, NULL);
             fprintf(stderr, " %f\n", n->z);
         }
         else if (str_compare(str, (s8*)"f"))
@@ -692,15 +690,15 @@ void mesh_create(s8* path, mesh* mesh)
                 s8* s = str;
 
                 u64 bytes_read = 0;
-                face[0] = (s32)int_parse(s, &bytes_read); 
+                face[0] = s32_parse(s, &bytes_read); 
                 fprintf(stderr, " %d", face[0]);
                 s += bytes_read;
                 fprintf(stderr, "%c", *s++);
-                face[1] = (s32)int_parse(s, &bytes_read);
+                face[1] = s32_parse(s, &bytes_read);
                 fprintf(stderr, "%d", face[1]);
                 s += bytes_read;
                 fprintf(stderr, "%c", *s++);
-                face[2] = (s32)int_parse(s, &bytes_read); 
+                face[2] = s32_parse(s, &bytes_read); 
                 fprintf(stderr, "%d", face[2]);
 
                 num_faces += 3;
@@ -769,7 +767,7 @@ u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
     assert(vertex_shader);
     assert(fragment_shader);
 
-    load_file(vertex_shader_path, file_data, MAX_FILE_SIZE, &read_bytes);
+    file_load(vertex_shader_path, file_data, MAX_FILE_SIZE, &read_bytes);
 
     const GLchar* temp = (const GLchar*)file_data;
 
@@ -780,7 +778,7 @@ u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
 
     memset((void*)file_data, 0, MAX_FILE_SIZE);
 
-    load_file(fragment_shader_path, file_data, MAX_FILE_SIZE, &read_bytes);
+    file_load(fragment_shader_path, file_data, MAX_FILE_SIZE, &read_bytes);
     
     temp = (const GLchar*)file_data;
 
@@ -804,7 +802,7 @@ u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
     return program;
 }
 
-void init_game(s32 screen_width, s32 screen_height)
+void game_init(s32 screen_width, s32 screen_height)
 {
     s32 version_major = 0;
     s32 version_minor = 0;
@@ -848,7 +846,7 @@ void init_game(s32 screen_width, s32 screen_height)
     }
 }
 
-void update_game(game_input* input)
+void game_update(game_input* input)
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
