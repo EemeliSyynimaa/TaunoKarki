@@ -1,7 +1,7 @@
 Tauno Kärki
 ===========
 
-Tauno Kärki (TK for short) is a 2D shooter with some 3D graphics elements (walls). TK is a roguelite with procedurally generated levels. It is written in C and has no external dependencies. It currently uses OpenGL 3.3 for rendering.
+Tauno Kärki (TK for short) is a 2D shooter with some 3D graphics elements (walls). TK is a roguelite with procedurally generated levels. It is written in C and has no external dependencies. It uses OpenGL 3.3 for rendering.
 
 # Requirements
 

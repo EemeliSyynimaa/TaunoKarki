@@ -1,227 +1,3 @@
-
-#include <math.h>
-
-#define TK_PI 3.14159265358979323846264338327950288419716939937510582097494459
-
-typedef struct v2
-{
-    f32 x;
-    f32 y;
-} v2;
-
-typedef struct v3
-{
-    f32 x;
-    f32 y;
-    f32 z;
-} v3;
-
-typedef struct m4
-{
-    f32 m[4][4];
-} m4;
-
-
-f32 tk_radians(f32 degrees)
-{
-    f32 result;
-
-    result = degrees * TK_PI / 180.0;
-
-    return result;
-}
-
-f32 tk_degrees(f32 radians)
-{
-    f32 result;
-
-    result = radians * 180.0 / TK_PI;
-
-    return result;
-}
-
-f32 tk_atan(f32 y, f32 x)
-{
-    // Todo: implement own atan(2) function
-    return atan2(y, x);
-}
-
-
-f32 tk_sin(f32 angle)
-{
-    // Todo: implement own sin function
-    return sin(angle);
-}
-
-
-f32 tk_cos(f32 angle)
-{
-    // Todo: implement own cos function
-    return cos(angle);
-}
-
-f32 tk_tan(f32 angle)
-{
-    // Todo: implement own tan function
-    return tan(angle);
-}
-
-f32 tk_sqrt(f32 value)
-{
-    // Todo: implement own sqrt function
-    return sqrt(value);
-}
-
-m4 tk_translate(f32 x, f32 y, f32 z)
-{
-    m4 m = 
-    {{
-        { 1.0f, 0.0f, 0.0f, 0.0f },
-        { 0.0f, 1.0f, 0.0f, 0.0f },
-        { 0.0f, 0.0f, 1.0f, 0.0f },
-        {    x,    y,    z, 1.0f }
-    }};
-
-    return m;
-}
-
-m4 tk_rotate_x(f32 angle)
-{
-    f32 c = tk_cos(angle);
-    f32 s = tk_sin(angle);
-
-    m4 m = 
-    {{
-        { 1.0f, 0.0f, 0.0f, 0.0f },
-        { 0.0f,    c,    s, 0.0f },
-        { 0.0f,   -s,    c, 0.0f },
-        { 0.0f, 0.0f, 0.0f, 1.0f }
-    }};
-
-    return m;
-}
-
-m4 tk_rotate_y(f32 angle)
-{
-    f32 c = tk_cos(angle);
-    f32 s = tk_sin(angle);
-
-    m4 m = 
-    {{
-        { c,    0.0f,   -s, 0.0f },
-        { 0.0f, 1.0f, 0.0f, 0.0f },
-        { s,    0.0f,    c, 0.0f },
-        { 0.0f, 0.0f, 0.0f, 1.0f }
-    }};
-
-    return m;
-}
-
-m4 tk_rotate_z(f32 angle)
-{
-    f32 c = tk_cos(angle);
-    f32 s = tk_sin(angle);
-
-    m4 m = 
-    {{
-        {    c,    s, 0.0f, 0.0f },
-        {   -s,    c, 0.0f, 0.0f },
-        { 0.0f, 0.0f, 1.0f, 0.0f },
-        { 0.0f, 0.0f, 0.0f, 1.0f }
-    }};
-
-    return m;
-}
-
-m4 tk_scale(f32 x, f32 y, f32 z)
-{
-    m4 m = 
-    {{
-        {    x, 0.0f, 0.0f, 0.0f },
-        { 0.0f,    y, 0.0f, 0.0f },
-        { 0.0f, 0.0f,    z, 0.0f },
-        { 0.0f, 0.0f, 0.0f, 1.0f }
-    }};
-
-    return m;
-}
-
-m4 tk_m4_mul(m4 a, m4 b)
-{
-    m4 m;
-
-    for (u32 i = 0; i < 4; i++)
-    {
-        for (u32 j = 0; j < 4; j++)
-        {
-            m.m[i][j] =
-                a.m[i][0] * b.m[0][j] +
-                a.m[i][1] * b.m[1][j] + 
-                a.m[i][2] * b.m[2][j] + 
-                a.m[i][3] * b.m[3][j];
-        }
-    }
-
-    return m;
-}
-
-f32 tk_v3_length(v3 v)
-{
-    f32 result;
-
-    result = tk_sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
-
-    return result;
-}
-
-f32 tk_v3_dot(v3 a, v3 b)
-{
-    f32 result;
-
-    result = a.x * b.x + a.y * b.y + a.z * b.z;
-
-    return result;
-}
-
-v3 tk_v3_cross(v3 a, v3 b)
-{
-    v3 result;
-
-    result.x = a.y * b.z - a.z * b.y;
-    result.y = a.x * b.z - a.z * b.x;
-    result.z = a.x * b.y - a.y * b.x;
-
-    return result;
-}
-
-v3 tk_v3_normalize(v3 v)
-{
-    v3 result;
-
-    f32 length = tk_v3_length(v);
-
-    result.x = v.x / length;
-    result.y = v.y / length;
-    result.z = v.z / length;
-
-    return result;
-}
-
-m4 tk_perspective(f32 fov, f32 aspect, f32 n, f32 f)
-{
-    f32 t = tk_tan(tk_radians(fov) / 2.0f);
-
-    m4 m = 
-    {{
-        { 1.0f / (t*aspect), 0.0f, 0.0f, 0.0f },
-        { 0.0f, 1.0f/t, 0.0f, 0.0f },
-        { 0.0f, 0.0f, (f+n)/(n-f), -1.0f },
-        { 0.0f, 0.0f, (2.0f*f*n)/(n-f), 0.0f }
-    }};
-
-	return m;
-}
-
 typedef struct game_player
 {
     f32 x;
@@ -404,15 +180,15 @@ void map_render()
 
             if (tile)
             {
-                m4 transform = tk_translate(2*x, 2*y, 0.0f);
-                m4 rotation = tk_rotate_z(0.0f);
-                m4 scale = tk_scale(1.0f, 1.0f, 1.0f);
+                m4 transform = m4_translate(2*x, 2*y, 0.0f);
+                m4 rotation = m4_rotate_z(0.0f);
+                m4 scale = m4_scale(1.0f, 1.0f, 1.0f);
 
-                m4 model = tk_m4_mul(scale, rotation);
-                model = tk_m4_mul(model, transform);
+                m4 model = m4_mul(scale, rotation);
+                model = m4_mul(model, transform);
 
-                m4 mvp = tk_m4_mul(model, state.view);
-                mvp = tk_m4_mul(mvp, state.perspective);
+                m4 mvp = m4_mul(model, state.view);
+                mvp = m4_mul(mvp, state.perspective);
 
                 mesh_render(&state.wall, &mvp, state.texture_tileset);
             }
@@ -431,15 +207,15 @@ void enemies_render()
     {
         game_enemy* enemy = &state.enemies[i];
 
-        m4 transform = tk_translate(enemy->x, enemy->y, 0.0f);
-        m4 rotation = tk_rotate_z(enemy->angle);
-        m4 scale = tk_scale(0.5f, 0.5f, 0.75f);
+        m4 transform = m4_translate(enemy->x, enemy->y, 0.0f);
+        m4 rotation = m4_rotate_z(enemy->angle);
+        m4 scale = m4_scale(0.5f, 0.5f, 0.75f);
 
-        m4 model = tk_m4_mul(scale, rotation);
-        model = tk_m4_mul(model, transform);
+        m4 model = m4_mul(scale, rotation);
+        model = m4_mul(model, transform);
 
-        m4 mvp = tk_m4_mul(model, state.view);
-        mvp = tk_m4_mul(mvp, state.perspective);
+        m4 mvp = m4_mul(model, state.view);
+        mvp = m4_mul(mvp, state.perspective);
 
         mesh_render(&state.cube, &mvp, state.texture_enemy);
     }
@@ -462,16 +238,16 @@ void bullets_render()
     {
         game_bullet* bullet = &state.bullets[i];
 
-        m4 transform = tk_translate(bullet->x, bullet->y, 0.0f);
-        m4 rotation = tk_rotate_z(bullet->angle);
-        m4 scale = tk_scale(PROJECTILE_SIZE, PROJECTILE_SIZE,
+        m4 transform = m4_translate(bullet->x, bullet->y, 0.0f);
+        m4 rotation = m4_rotate_z(bullet->angle);
+        m4 scale = m4_scale(PROJECTILE_SIZE, PROJECTILE_SIZE,
             PROJECTILE_SIZE);
 
-        m4 model = tk_m4_mul(scale, rotation);
-        model = tk_m4_mul(model, transform);
+        m4 model = m4_mul(scale, rotation);
+        model = m4_mul(model, transform);
 
-        m4 mvp = tk_m4_mul(model, state.view);
-        mvp = tk_m4_mul(mvp, state.perspective);
+        m4 mvp = m4_mul(model, state.view);
+        mvp = m4_mul(mvp, state.perspective);
 
         mesh_render(&state.sphere, &mvp, state.texture_sphere);
     }
@@ -509,7 +285,7 @@ void player_update(game_input* input)
     f32 mouse_x = (state.screen_width / 2.0f - input->mouse_x) * -1;
     f32 mouse_y = (state.screen_height / 2.0f - input->mouse_y);
 
-    state.player.angle = tk_atan(mouse_y, mouse_x);
+    state.player.angle = f32_atan(mouse_y, mouse_x);
 
     if (input->shoot.key_down)
     {
@@ -522,8 +298,8 @@ void player_update(game_input* input)
 
             game_bullet* bullet = &state.bullets[state.free_bullet];
 
-            f32 dir_x = tk_cos(state.player.angle);
-            f32 dir_y = tk_sin(state.player.angle);
+            f32 dir_x = f32_cos(state.player.angle);
+            f32 dir_y = f32_sin(state.player.angle);
             f32 speed = PISTOL_BULLET_SPEED;
 
             bullet->x = state.player.x;
@@ -542,15 +318,15 @@ void player_update(game_input* input)
 
 void player_render()
 {
-    m4 transform = tk_translate(state.player.x, state.player.y, 0.0f);
-    m4 rotation = tk_rotate_z(state.player.angle);
-    m4 scale = tk_scale(0.5f, 0.5f, 0.75f);
+    m4 transform = m4_translate(state.player.x, state.player.y, 0.0f);
+    m4 rotation = m4_rotate_z(state.player.angle);
+    m4 scale = m4_scale(0.5f, 0.5f, 0.75f);
 
-    m4 model = tk_m4_mul(scale, rotation);
-    model = tk_m4_mul(model, transform);
+    m4 model = m4_mul(scale, rotation);
+    model = m4_mul(model, transform);
 
-    m4 mvp = tk_m4_mul(model, state.view);
-    mvp = tk_m4_mul(mvp, state.perspective);
+    m4 mvp = m4_mul(model, state.view);
+    mvp = m4_mul(mvp, state.perspective);
 
     mesh_render(&state.cube, &mvp, state.texture_player);
 }
@@ -1053,7 +829,7 @@ void init_game(s32 screen_width, s32 screen_height)
 
     state.screen_width = screen_width;
     state.screen_height = screen_height;
-    state.perspective = tk_perspective(60.0f, 
+    state.perspective = m4_perspective(60.0f, 
         (f32)state.screen_width/(f32)state.screen_height, 0.1f, 100.0f);
 
     state.player.x = 7.0f;
@@ -1088,7 +864,7 @@ void update_game(game_input* input)
         bullets_update(input);
     }
 
-    state.view = tk_translate(-state.player.x, -state.player.y, -20.0f);
+    state.view = m4_translate(-state.player.x, -state.player.y, -20.0f);
 
     map_render();
     player_render();

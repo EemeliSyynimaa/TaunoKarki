@@ -6,6 +6,7 @@
 
 #include "platform.h"
 #include "opengl.c"
+#include "math.c"
 #include "game.c"
 
 b32 running;
