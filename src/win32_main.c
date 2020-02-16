@@ -12,6 +12,11 @@
 b32 running;
 LARGE_INTEGER queryPerformanceFrequency;
 
+void log_debug(s8* text, ...)
+{
+    // Todo: implement
+}
+
 void input_process(key_state* state, b32 is_down)
 {
     if (state->key_down != is_down)

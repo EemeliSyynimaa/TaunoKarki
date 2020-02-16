@@ -50,6 +50,7 @@ typedef struct game_state
     mesh cube;
     mesh sphere;
     mesh wall;
+    mesh floor;
     b32 fired;
     f32 accumulator;
     u32 shader;
@@ -59,6 +60,7 @@ typedef struct game_state
     u32 texture_enemy;
     u32 free_bullet;
     u32 num_enemies;
+    u32 level;
     s32 screen_width;
     s32 screen_height;
     m4 perspective;
@@ -87,7 +89,7 @@ game_state state;
 #define MACHINEGUN_BULLET_SPEED     1.0f
 #define MACHINEGUN_FIRE_RATE        0.12f
 #define MACHINEGUN_BULLET_SPREAD    0.05
-#define PISTOL_DAMAGE               30.0
+#define PISTOL_DAMAGE               30.0t
 #define PISTOL_BULLET_SPEED         1.0f
 #define PISTOL_CLIP_SIZE            8.0f
 #define PISTOL_RELOAD_TIME          1.5f
@@ -107,19 +109,19 @@ s8 pixel_data[MAX_FILE_SIZE];
 u8 map_data[] =
 {
     0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,0,
-    1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 ,0,
-    1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 1 ,1,
-    1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0 ,1,
-    1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0 ,1,
-    1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0 ,1,
-    0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 ,1,
-    0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0 ,1,
-    0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 1, 1 ,1,
-    0, 0, 0, 1, 0, 1, 1, 1, 1, 1, 0, 0, 1, 0 ,0,
-    0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0 ,0,
-    0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0 ,0,
-    0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0 ,0,
-    0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0 ,0,
+    1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1 ,0,
+    1, 2, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1 ,1,
+    1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 1, 2, 2 ,1,
+    1, 2, 2, 1, 2, 1, 1, 1, 1, 1, 0, 1, 2, 2 ,1,
+    1, 1, 1, 1, 2, 1, 2, 2, 2, 1, 1, 1, 2, 2 ,1,
+    0, 0, 0, 1, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2 ,1,
+    0, 0, 0, 1, 2, 1, 2, 2, 2, 1, 2, 2, 2, 2 ,1,
+    0, 0, 0, 1, 2, 1, 2, 2, 2, 1, 2, 2, 1, 1 ,1,
+    0, 0, 0, 1, 2, 1, 1, 1, 1, 1, 2, 2, 1, 0 ,0,
+    0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0 ,0,
+    0, 0, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 0 ,0,
+    0, 0, 1, 2, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0 ,0,
+    0, 0, 1, 2, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0 ,0,
     0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 ,0
 };
 
@@ -178,9 +180,26 @@ void map_render()
         {
             u8 tile = map_data[y * MAP_WIDTH + x];
 
-            if (tile)
+            if (tile == 1)
             {
-                m4 transform = m4_translate(2*x, 2*y, 0.0f);
+                for (u32 i = 0; i < state.level; i++)
+                {
+                    m4 transform = m4_translate(2*x, 2*y, -1.0f * (state.level - i - 1));
+                    m4 rotation = m4_rotate_z(0.0f);
+                    m4 scale = m4_scale(1.0f, 1.0f, 1.0f);
+
+                    m4 model = m4_mul(scale, rotation);
+                    model = m4_mul(model, transform);
+
+                    m4 mvp = m4_mul(model, state.view);
+                    mvp = m4_mul(mvp, state.perspective);
+
+                    mesh_render(&state.wall, &mvp, state.texture_tileset);
+                }
+            }
+            else if (tile == 2)
+            {
+                m4 transform = m4_translate(2*x, 2*y, -1.0f);
                 m4 rotation = m4_rotate_z(0.0f);
                 m4 scale = m4_scale(1.0f, 1.0f, 1.0f);
 
@@ -190,7 +209,7 @@ void map_render()
                 m4 mvp = m4_mul(model, state.view);
                 mvp = m4_mul(mvp, state.perspective);
 
-                mesh_render(&state.wall, &mvp, state.texture_tileset);
+                mesh_render(&state.floor, &mvp, state.texture_tileset);
             }
         }
     }
@@ -812,7 +831,7 @@ void game_init(s32 screen_width, s32 screen_height)
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
     glEnable(GL_CULL_FACE);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
     fprintf(stderr, "OpenGL %i.%i\n", version_major, version_minor);
 
@@ -832,10 +851,13 @@ void game_init(s32 screen_width, s32 screen_height)
 
     state.player.x = 7.0f;
     state.player.y = 6.0f;
+
+    state.level = 10;
     
     mesh_create((s8*)"assets/meshes/cube.mesh", &state.cube);
     mesh_create((s8*)"assets/meshes/sphere.mesh", &state.sphere);
     mesh_create((s8*)"assets/meshes/wall.mesh", &state.wall);
+    mesh_create((s8*)"assets/meshes/floor.mesh", &state.floor);
 
     while (state.num_enemies < MAX_ENEMIES)
     {
