@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <assert.h>
 
 #include "gl/gl.h"
@@ -12,9 +13,13 @@
 b32 running;
 LARGE_INTEGER queryPerformanceFrequency;
 
-void log_debug(s8* text, ...)
+void debug_log(s8* format, ...)
 {
-    // Todo: implement
+    // Todo: implement own vfprintf function
+    va_list args;
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
 }
 
 void input_process(key_state* state, b32 is_down)
@@ -60,12 +65,12 @@ void file_load(s8* path, s8* data, u64 max_bytes, u64* read_bytes)
 
         if (ReadFile(file, data, max_bytes, (LPDWORD)&num_bytes_read, 0))
         {
-            fprintf(stderr, "Read %llu/%llu bytes from %s\n", num_bytes_read,
+            debug_log("Read %llu/%llu bytes from %s\n", num_bytes_read,
                 max_bytes, path);
         }
         else
         {
-            fprintf(stderr, "Could not read from file: %s\n", path);
+            debug_log("Could not read from file: %s\n", path);
         }
 
         *read_bytes = num_bytes_read;
@@ -74,7 +79,7 @@ void file_load(s8* path, s8* data, u64 max_bytes, u64* read_bytes)
     }
     else
     {
-        fprintf(stderr, "File not found: %s\n", path);
+        debug_log("File not found: %s\n", path);
     }
 }
 
@@ -305,37 +310,32 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                         {
                             running = false;
                             // input_process(&new_input.back, is_down);
-                            fprintf(stderr, "ESCAPE - %s\n", 
+                            debug_log("ESCAPE - %s\n", 
                                 is_down ? "down" :"up");
                         }
                         else if (msg.wParam == 0x57)
                         {
                             input_process(&new_input.move_up, is_down);
-                            fprintf(stderr, "W - %s\n",
-                                is_down ? "down" : "up");
+                            debug_log("W - %s\n", is_down ? "down" : "up");
                         }
                         else if (msg.wParam == 0x41)
                         {
-                            fprintf(stderr, "A - %s\n",
-                                is_down ? "down" : "up");
+                            debug_log("A - %s\n", is_down ? "down" : "up");
                             input_process(&new_input.move_left, is_down);
                         }
                         else if (msg.wParam == 0x53)
                         {
-                            fprintf(stderr, "S - %s\n",
-                                is_down ? "down" : "up");
+                            debug_log("S - %s\n", is_down ? "down" : "up");
                             input_process(&new_input.move_down, is_down);
                         }
                         else if (msg.wParam == 0x44)
                         {
-                            fprintf(stderr, "D - %s\n",
-                                is_down ? "down" : "up");
+                            debug_log("D - %s\n", is_down ? "down" : "up");
                             input_process(&new_input.move_right, is_down);
                         }
                         else if (msg.wParam == 0x52)
                         {
-                            fprintf(stderr, "R - %s\n",
-                                is_down ? "down" : "up");
+                            debug_log("R - %s\n", is_down ? "down" : "up");
                             input_process(&new_input.reload, is_down);
                         }
                     }

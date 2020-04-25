@@ -2,7 +2,7 @@
 
  - [X] Improve build tools
  - [X] Coding conventions
- - [ ] Debug logging 
+ - [X] Debug logging 
  - [ ] Memory management
  - [ ] Game as a library
  - [ ] Hot reload

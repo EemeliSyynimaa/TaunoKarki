@@ -55,6 +55,6 @@ void game_init(s32 screen_width, s32 screen_height);
 void game_update(game_input* input);
 void file_load(s8* path, s8* data, u64 max_bytes, u64* bytes_read);
 
-void log_debug(s8* text, ...);
+void debug_log(s8* format, ...);
 
 #endif

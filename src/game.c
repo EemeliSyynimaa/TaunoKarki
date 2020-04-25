@@ -89,7 +89,7 @@ game_state state;
 #define MACHINEGUN_BULLET_SPEED     1.0f
 #define MACHINEGUN_FIRE_RATE        0.12f
 #define MACHINEGUN_BULLET_SPREAD    0.05
-#define PISTOL_DAMAGE               30.0t
+#define PISTOL_DAMAGE               30.0
 #define PISTOL_BULLET_SPEED         1.0f
 #define PISTOL_CLIP_SIZE            8.0f
 #define PISTOL_RELOAD_TIME          1.5f
@@ -184,7 +184,8 @@ void map_render()
             {
                 for (u32 i = 0; i < state.level; i++)
                 {
-                    m4 transform = m4_translate(2*x, 2*y, -1.0f * (state.level - i - 1));
+                    m4 transform = m4_translate(2*x, 2*y,
+                        -1.0f * (state.level - i - 1));
                     m4 rotation = m4_rotate_z(0.0f);
                     m4 scale = m4_scale(1.0f, 1.0f, 1.0f);
 
@@ -641,63 +642,63 @@ void mesh_create(s8* path, mesh* mesh)
         {
             v3* v = &in_vertices[num_vertices++];
 
-            fprintf(stderr, "v");
+            // debug_log("v");
             
             data += str_size;
             str_size = string_read(data, str, 255);
             v->x = f32_parse(str, NULL);
-            fprintf(stderr, " %f", v->x);
+            // debug_log(" %f", v->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
             v->y = f32_parse(str, NULL);
-            fprintf(stderr, " %f", v->y);
+            // debug_log(" %f", v->y);
 
             data += str_size;
             str_size = string_read(data, str, 255);
             v->z = f32_parse(str, NULL);
-            fprintf(stderr, " %f\n", v->z);
+            // debug_log(" %f\n", v->z);
         }
         else if (str_compare(str, (s8*)"vt"))
         {
             v2* uv = &in_uvs[num_uvs++];
 
-            fprintf(stderr, "vt");            
+            // debug_log("vt");            
 
             data += str_size;
             str_size = string_read(data, str, 255);
             uv->x = f32_parse(str, NULL);
-            fprintf(stderr, " %f", uv->x);
+            // debug_log(" %f", uv->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
             uv->y = f32_parse(str, NULL);
-            fprintf(stderr, " %f\n", uv->y);
+            // debug_log(" %f\n", uv->y);
         }
         else if (str_compare(str, (s8*)"vn"))
         {
             v3* n = &in_normals[num_normals++];
 
-            fprintf(stderr, "vn");
+            // debug_log("vn");
 
             data += str_size;
             str_size = string_read(data, str, 255);
             n->x = f32_parse(str, NULL);
-            fprintf(stderr, " %f", n->x);
+            // debug_log(" %f", n->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
             n->y = f32_parse(str, NULL);
-            fprintf(stderr, " %f", n->y);
+            // debug_log(" %f", n->y);
 
             data += str_size;
             str_size = string_read(data, str, 255);
             n->z = f32_parse(str, NULL);
-            fprintf(stderr, " %f\n", n->z);
+            // debug_log(" %f\n", n->z);
         }
         else if (str_compare(str, (s8*)"f"))
         {
-            fprintf(stderr, "f");
+            // debug_log("f");
 
             for (u32 i = 0; i < 3; i++)
             {
@@ -710,20 +711,20 @@ void mesh_create(s8* path, mesh* mesh)
 
                 u64 bytes_read = 0;
                 face[0] = s32_parse(s, &bytes_read); 
-                fprintf(stderr, " %d", face[0]);
-                s += bytes_read;
-                fprintf(stderr, "%c", *s++);
+                // debug_log(" %d", face[0]);
+                s += bytes_read + 1;
+                // debug_log("%c", *s++);
                 face[1] = s32_parse(s, &bytes_read);
-                fprintf(stderr, "%d", face[1]);
-                s += bytes_read;
-                fprintf(stderr, "%c", *s++);
+                // debug_log("%d", face[1]);
+                s += bytes_read + 1;
+                // debug_log("%c", *s++);
                 face[2] = s32_parse(s, &bytes_read); 
-                fprintf(stderr, "%d", face[2]);
+                // debug_log("%d", face[2]);
 
                 num_faces += 3;
             }
 
-            fprintf(stderr, "\n");
+            // debug_log("\n");
         }
         else
         {
@@ -833,16 +834,15 @@ void game_init(s32 screen_width, s32 screen_height)
     glEnable(GL_CULL_FACE);
     glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
-    fprintf(stderr, "OpenGL %i.%i\n", version_major, version_minor);
+    debug_log("OpenGL %i.%i\n", version_major, version_minor);
 
-    state.shader = program_create((s8*)"assets/shaders/vertex.glsl",
-        (s8*)"assets/shaders/fragment.glsl");
+    state.shader = program_create("assets/shaders/vertex.glsl",
+        "assets/shaders/fragment.glsl");
 
-    state.texture_tileset = texture_create(
-        (s8*)"assets/textures/tileset.tga");
-    state.texture_sphere = texture_create((s8*)"assets/textures/sphere.tga");
-    state.texture_player = texture_create((s8*)"assets/textures/cube.tga");
-    state.texture_enemy = texture_create((s8*)"assets/textures/enemy.tga");
+    state.texture_tileset = texture_create("assets/textures/tileset.tga");
+    state.texture_sphere = texture_create("assets/textures/sphere.tga");
+    state.texture_player = texture_create("assets/textures/cube.tga");
+    state.texture_enemy = texture_create("assets/textures/enemy.tga");
 
     state.screen_width = screen_width;
     state.screen_height = screen_height;
@@ -854,10 +854,10 @@ void game_init(s32 screen_width, s32 screen_height)
 
     state.level = 10;
     
-    mesh_create((s8*)"assets/meshes/cube.mesh", &state.cube);
-    mesh_create((s8*)"assets/meshes/sphere.mesh", &state.sphere);
-    mesh_create((s8*)"assets/meshes/wall.mesh", &state.wall);
-    mesh_create((s8*)"assets/meshes/floor.mesh", &state.floor);
+    mesh_create("assets/meshes/cube.mesh", &state.cube);
+    mesh_create("assets/meshes/sphere.mesh", &state.sphere);
+    mesh_create("assets/meshes/wall.mesh", &state.wall);
+    mesh_create("assets/meshes/floor.mesh", &state.floor);
 
     while (state.num_enemies < MAX_ENEMIES)
     {
