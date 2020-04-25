@@ -12,6 +12,8 @@
 
 b32 running;
 LARGE_INTEGER queryPerformanceFrequency;
+LPVOID mem_address;
+u64 mem_size = 1024*1024*1024;
 
 void debug_log(s8* format, ...)
 {
@@ -35,7 +37,7 @@ LARGE_INTEGER current_time_get()
 {
     LARGE_INTEGER result;
 
-        QueryPerformanceCounter(&result);
+    QueryPerformanceCounter(&result);
     
     return result;
 }
@@ -261,6 +263,16 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     ShowWindow(hwnd, nCmdShow);
 
     QueryPerformanceFrequency(&queryPerformanceFrequency);
+
+    mem_address = VirtualAlloc(NULL, mem_size, MEM_COMMIT | MEM_RESERVE,
+        PAGE_READWRITE);
+
+    assert(mem_address);
+
+    // for (u64 i = 0; i < mem_size; i++)
+    // {
+    //     ((u8*)mem_address)[i] = 254;
+    // }
 
     game_init(screen_width, screen_height);
 
