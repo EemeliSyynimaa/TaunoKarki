@@ -30,12 +30,9 @@ typedef struct vertex
 
 typedef struct mesh
 {
-    vertex vertices[4096];
-    u32 indices[4096];
     u32 vao;
     u32 vbo;
-    u32 ibo;    
-    u32 num_vertices;
+    u32 ibo;
     u32 num_indices;
 } mesh;
 
@@ -103,6 +100,7 @@ game_state* g_state;
 #define SHOTGUN_NUMBER_OF_SHELLS    12
 #define PROJECTILE_SIZE             0.1f
 
+// Todo: remove file_data and pixel_data, use reserved memory instead
 s8 file_data[MAX_FILE_SIZE];
 s8 pixel_data[MAX_FILE_SIZE];
 
@@ -125,20 +123,21 @@ u8 map_data[] =
     0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 ,0
 };
 
-void generate_vertex_array(mesh* mesh)
+void generate_vertex_array(mesh* mesh, vertex* vertices, u32 num_vertices,
+    u32* indices)
 {
     glGenVertexArrays(1, &mesh->vao);
     glBindVertexArray(mesh->vao);
 
     glGenBuffers(1, &mesh->vbo);
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-    glBufferData(GL_ARRAY_BUFFER, mesh->num_vertices * sizeof(vertex),
-        mesh->vertices, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(vertex), vertices,
+        GL_DYNAMIC_DRAW);
 
     glGenBuffers(1, &mesh->ibo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->num_indices * sizeof(u32),
-        mesh->indices, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->num_indices * sizeof(u32), 
+        indices, GL_DYNAMIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
@@ -374,6 +373,8 @@ typedef struct image_spec
 void tga_decode(s8* input, u64 in_size, s8* output, u64* out_size, u32* width,
     u32* height)
 {
+    // Todo: reserve space for pixel data
+
     s8 id_length = *input++;
     s8 color_type = *input++;
     s8 image_type = *input++;
@@ -407,6 +408,10 @@ void tga_decode(s8* input, u64 in_size, s8* output, u64* out_size, u32* width,
 
 u32 texture_create(s8* path)
 {
+    // Todo:
+    // - read file size
+    // - reserve space for file data
+
     u64 read_bytes = 0;
     u64 num_pixels = 0;
     u32 target = GL_TEXTURE_2D;
@@ -618,18 +623,32 @@ u64 string_read(s8* data, s8* str, u64 max_size)
     return bytes_read;
 }
 
-v3 in_vertices[4096];
-v3 in_normals[4096];
-v2 in_uvs[4096];
-u32 in_faces[4096*3];
-
-u32 num_vertices;
-u32 num_normals;
-u32 num_uvs;
-u32 num_faces;
-
 void mesh_create(s8* path, mesh* mesh)
 {
+    // Todo: remove statics
+    static v3 in_vertices[4096];
+    static v3 in_normals[4096];
+    static v2 in_uvs[4096];
+    static u32 in_faces[4096*3];
+    static vertex vertices[4096];
+    static u32 indices[4096];
+
+    u32 num_in_vertices = 0;
+    u32 num_in_normals = 0;
+    u32 num_in_uvs = 0;
+    u32 num_in_faces = 0;
+    u32 num_vertices = 0;
+
+    // Todo:
+    // - read file size
+    // - reserve space for file data
+    // - reserve space for vertices, faces, texture coords and normals
+    //   - can it be calculated beforehand?
+    //   - read each line and count each face, vertex normal etc and then
+    //     reserve memory accordingly?
+    // - reserve space for vertices and indices
+    // - count indices
+
     u64 read_bytes = 0;
 
     file_load(path, file_data, MAX_FILE_SIZE, &read_bytes);
@@ -643,7 +662,7 @@ void mesh_create(s8* path, mesh* mesh)
 
         if (str_compare(str, (s8*)"v"))
         {
-            v3* v = &in_vertices[num_vertices++];
+            v3* v = &in_vertices[num_in_vertices++];
 
             // debug_log("v");
             
@@ -664,7 +683,7 @@ void mesh_create(s8* path, mesh* mesh)
         }
         else if (str_compare(str, (s8*)"vt"))
         {
-            v2* uv = &in_uvs[num_uvs++];
+            v2* uv = &in_uvs[num_in_uvs++];
 
             // debug_log("vt");            
 
@@ -680,7 +699,7 @@ void mesh_create(s8* path, mesh* mesh)
         }
         else if (str_compare(str, (s8*)"vn"))
         {
-            v3* n = &in_normals[num_normals++];
+            v3* n = &in_normals[num_in_normals++];
 
             // debug_log("vn");
 
@@ -705,7 +724,7 @@ void mesh_create(s8* path, mesh* mesh)
 
             for (u32 i = 0; i < 3; i++)
             {
-                u32* face = &in_faces[num_faces];
+                u32* face = &in_faces[num_in_faces];
 
                 data += str_size;
                 str_size = string_read(data, str, 255);
@@ -724,7 +743,7 @@ void mesh_create(s8* path, mesh* mesh)
                 face[2] = s32_parse(s, &bytes_read); 
                 // debug_log("%d", face[2]);
 
-                num_faces += 3;
+                num_in_faces += 3;
             }
 
             // debug_log("\n");
@@ -735,7 +754,7 @@ void mesh_create(s8* path, mesh* mesh)
         }
     }
 
-    for (u32 i = 0; i < num_faces; i += 3)
+    for (u32 i = 0; i < num_in_faces; i += 3)
     {
         u32* face = &in_faces[i];
 
@@ -747,9 +766,9 @@ void mesh_create(s8* path, mesh* mesh)
 
         b32 found = false;
 
-        for (u32 j = 0; j < mesh->num_vertices; j++)
+        for (u32 j = 0; j < num_vertices; j++)
         {
-            vertex other = mesh->vertices[j];
+            vertex other = vertices[j];
 
             // Todo: fix this
             // if (v.position == other.position && v.uv == other.uv &&
@@ -764,21 +783,24 @@ void mesh_create(s8* path, mesh* mesh)
 
         if (!found)
         {
-            mesh->vertices[mesh->num_vertices++] = v;
-            mesh->indices[mesh->num_indices++] = mesh->num_vertices - 1;
+            vertices[num_vertices++] = v;
+            indices[mesh->num_indices++] = num_vertices - 1;
         }
     }
 
-    num_vertices = 0;
-    num_faces = 0;
-    num_normals = 0;
-    num_uvs = 0;
+    num_in_vertices = 0;
+    num_in_faces = 0;
+    num_in_normals = 0;
+    num_in_uvs = 0;
 
-    generate_vertex_array(mesh);
+    generate_vertex_array(mesh, vertices, num_vertices, indices);
 }
 
 u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
 {
+    // Todo:
+    // - read file size
+    // - reserve space for file data
     u64 read_bytes = 0;
 
     u32 result = 0;
