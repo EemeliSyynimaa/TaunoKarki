@@ -274,7 +274,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     //     ((u8*)mem_address)[i] = 254;
     // }
 
-    game_init(screen_width, screen_height);
+    game_init(screen_width, screen_height, mem_address);
 
     game_input old_input = { 0 };
 

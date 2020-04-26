@@ -67,7 +67,7 @@ typedef struct game_state
     m4 view;
 } game_state;
 
-game_state state;
+game_state* g_state;
 
 #define MAX_FILE_SIZE   10*1024*1024
 #define MAP_WIDTH       15
@@ -152,14 +152,14 @@ void generate_vertex_array(mesh* mesh)
         (void*)offsetof(vertex, normal));
 }
 
-void mesh_render(mesh* mesh, m4* mvp, u32 texture)
+void mesh_render(mesh* mesh, m4* mvp, u32 texture, u32 shader)
 {
     glBindVertexArray(mesh->vao);
 
-    glUseProgram(state.shader);
+    glUseProgram(shader);
 
-    u32 uniform_mvp = glGetUniformLocation(state.shader, "MVP");
-    u32 uniform_texture = glGetUniformLocation(state.shader, "texture");
+    u32 uniform_mvp = glGetUniformLocation(shader, "MVP");
+    u32 uniform_texture = glGetUniformLocation(shader, "texture");
 
     glUniform1i(uniform_texture, 0);
     glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, (GLfloat*)mvp);
@@ -172,7 +172,7 @@ void mesh_render(mesh* mesh, m4* mvp, u32 texture)
     glUseProgram(0);
 }
 
-void map_render()
+void map_render(game_state* state)
 {
     for (u32 y = 0; y < MAP_HEIGHT; y++)
     {
@@ -182,20 +182,21 @@ void map_render()
 
             if (tile == 1)
             {
-                for (u32 i = 0; i < state.level; i++)
+                for (u32 i = 0; i < state->level; i++)
                 {
                     m4 transform = m4_translate(2*x, 2*y,
-                        -1.0f * (state.level - i - 1));
+                        -1.0f * (state->level - i - 1));
                     m4 rotation = m4_rotate_z(0.0f);
                     m4 scale = m4_scale(1.0f, 1.0f, 1.0f);
 
                     m4 model = m4_mul(scale, rotation);
                     model = m4_mul(model, transform);
 
-                    m4 mvp = m4_mul(model, state.view);
-                    mvp = m4_mul(mvp, state.perspective);
+                    m4 mvp = m4_mul(model, state->view);
+                    mvp = m4_mul(mvp, state->perspective);
 
-                    mesh_render(&state.wall, &mvp, state.texture_tileset);
+                    mesh_render(&state->wall, &mvp, state->texture_tileset, 
+                        state->shader);
                 }
             }
             else if (tile == 2)
@@ -207,25 +208,26 @@ void map_render()
                 m4 model = m4_mul(scale, rotation);
                 model = m4_mul(model, transform);
 
-                m4 mvp = m4_mul(model, state.view);
-                mvp = m4_mul(mvp, state.perspective);
+                m4 mvp = m4_mul(model, state->view);
+                mvp = m4_mul(mvp, state->perspective);
 
-                mesh_render(&state.floor, &mvp, state.texture_tileset);
+                mesh_render(&state->floor, &mvp, state->texture_tileset,
+                    state->shader);
             }
         }
     }
 }
 
-void enemies_update(game_input* input)
+void enemies_update(game_state* state, game_input* input)
 {
 
 }
 
-void enemies_render()
+void enemies_render(game_state* state)
 {
     for (u32 i = 0; i < MAX_ENEMIES; i++)
     {
-        game_enemy* enemy = &state.enemies[i];
+        game_enemy* enemy = &state->enemies[i];
 
         m4 transform = m4_translate(enemy->x, enemy->y, 0.0f);
         m4 rotation = m4_rotate_z(enemy->angle);
@@ -234,29 +236,29 @@ void enemies_render()
         m4 model = m4_mul(scale, rotation);
         model = m4_mul(model, transform);
 
-        m4 mvp = m4_mul(model, state.view);
-        mvp = m4_mul(mvp, state.perspective);
+        m4 mvp = m4_mul(model, state->view);
+        mvp = m4_mul(mvp, state->perspective);
 
-        mesh_render(&state.cube, &mvp, state.texture_enemy);
+        mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader);
     }
 }
 
-void bullets_update(game_input* input)
+void bullets_update(game_state* state, game_input* input)
 {
     for (u32 i = 0; i < MAX_BULLETS; i++)
     {
-        game_bullet* bullet = &state.bullets[i];
+        game_bullet* bullet = &state->bullets[i];
 
         bullet->x += bullet->velocity_x;
         bullet->y += bullet->velocity_y;
     }
 }
 
-void bullets_render()
+void bullets_render(game_state* state)
 {
     for (u32 i = 0; i < MAX_BULLETS; i++)
     {
-        game_bullet* bullet = &state.bullets[i];
+        game_bullet* bullet = &state->bullets[i];
 
         m4 transform = m4_translate(bullet->x, bullet->y, 0.0f);
         m4 rotation = m4_rotate_z(bullet->angle);
@@ -266,14 +268,15 @@ void bullets_render()
         m4 model = m4_mul(scale, rotation);
         model = m4_mul(model, transform);
 
-        m4 mvp = m4_mul(model, state.view);
-        mvp = m4_mul(mvp, state.perspective);
+        m4 mvp = m4_mul(model, state->view);
+        mvp = m4_mul(mvp, state->perspective);
 
-        mesh_render(&state.sphere, &mvp, state.texture_sphere);
+        mesh_render(&state->sphere, &mvp, state->texture_sphere,
+            state->shader);
     }
 }
 
-void player_update(game_input* input)
+void player_update(game_state* state, game_input* input)
 {
     f32 velocity_x = 0.0f;
     f32 velocity_y = 0.0f;
@@ -299,56 +302,56 @@ void player_update(game_input* input)
         velocity_y -= move_speed;
     }
 
-    state.player.x += velocity_x;
-    state.player.y += velocity_y;
+    state->player.x += velocity_x;
+    state->player.y += velocity_y;
 
-    f32 mouse_x = (state.screen_width / 2.0f - input->mouse_x) * -1;
-    f32 mouse_y = (state.screen_height / 2.0f - input->mouse_y);
+    f32 mouse_x = (state->screen_width / 2.0f - input->mouse_x) * -1;
+    f32 mouse_y = (state->screen_height / 2.0f - input->mouse_y);
 
-    state.player.angle = f32_atan(mouse_y, mouse_x);
+    state->player.angle = f32_atan(mouse_y, mouse_x);
 
     if (input->shoot.key_down)
     {
-        if (!state.fired)
+        if (!state->fired)
         {
-            if (++state.free_bullet == MAX_BULLETS)
+            if (++state->free_bullet == MAX_BULLETS)
             {
-                state.free_bullet = 0;
+                state->free_bullet = 0;
             }
 
-            game_bullet* bullet = &state.bullets[state.free_bullet];
+            game_bullet* bullet = &state->bullets[state->free_bullet];
 
-            f32 dir_x = f32_cos(state.player.angle);
-            f32 dir_y = f32_sin(state.player.angle);
+            f32 dir_x = f32_cos(state->player.angle);
+            f32 dir_y = f32_sin(state->player.angle);
             f32 speed = PISTOL_BULLET_SPEED;
 
-            bullet->x = state.player.x;
-            bullet->y = state.player.y;
+            bullet->x = state->player.x;
+            bullet->y = state->player.y;
             bullet->velocity_x = dir_x * speed;
             bullet->velocity_y = dir_y * speed;
 
-            state.fired = true;
+            state->fired = true;
         }
     }
     else
     {
-        state.fired = false;
+        state->fired = false;
     }
 }
 
-void player_render()
+void player_render(game_state* state)
 {
-    m4 transform = m4_translate(state.player.x, state.player.y, 0.0f);
-    m4 rotation = m4_rotate_z(state.player.angle);
+    m4 transform = m4_translate(state->player.x, state->player.y, 0.0f);
+    m4 rotation = m4_rotate_z(state->player.angle);
     m4 scale = m4_scale(0.5f, 0.5f, 0.75f);
 
     m4 model = m4_mul(scale, rotation);
     model = m4_mul(model, transform);
 
-    m4 mvp = m4_mul(model, state.view);
-    mvp = m4_mul(mvp, state.perspective);
+    m4 mvp = m4_mul(model, state->view);
+    mvp = m4_mul(mvp, state->perspective);
 
-    mesh_render(&state.cube, &mvp, state.texture_player);
+    mesh_render(&state->cube, &mvp, state->texture_player, state->shader);
 }
 
 typedef struct color_map_spec
@@ -822,7 +825,7 @@ u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
     return program;
 }
 
-void game_init(s32 screen_width, s32 screen_height)
+void game_init(s32 screen_width, s32 screen_height, void* mem_address)
 {
     s32 version_major = 0;
     s32 version_minor = 0;
@@ -836,34 +839,36 @@ void game_init(s32 screen_width, s32 screen_height)
 
     debug_log("OpenGL %i.%i\n", version_major, version_minor);
 
-    state.shader = program_create("assets/shaders/vertex.glsl",
+    g_state = (game_state*)mem_address;
+
+    g_state->shader = program_create("assets/shaders/vertex.glsl",
         "assets/shaders/fragment.glsl");
 
-    state.texture_tileset = texture_create("assets/textures/tileset.tga");
-    state.texture_sphere = texture_create("assets/textures/sphere.tga");
-    state.texture_player = texture_create("assets/textures/cube.tga");
-    state.texture_enemy = texture_create("assets/textures/enemy.tga");
+    g_state->texture_tileset = texture_create("assets/textures/tileset.tga");
+    g_state->texture_sphere = texture_create("assets/textures/sphere.tga");
+    g_state->texture_player = texture_create("assets/textures/cube.tga");
+    g_state->texture_enemy = texture_create("assets/textures/enemy.tga");
 
-    state.screen_width = screen_width;
-    state.screen_height = screen_height;
-    state.perspective = m4_perspective(60.0f, 
-        (f32)state.screen_width/(f32)state.screen_height, 0.1f, 100.0f);
+    g_state->screen_width = screen_width;
+    g_state->screen_height = screen_height;
+    g_state->perspective = m4_perspective(60.0f, 
+        (f32)g_state->screen_width/(f32)g_state->screen_height, 0.1f, 100.0f);
 
-    state.player.x = 7.0f;
-    state.player.y = 6.0f;
+    g_state->player.x = 7.0f;
+    g_state->player.y = 6.0f;
 
-    state.level = 10;
+    g_state->level = 10;
     
-    mesh_create("assets/meshes/cube.mesh", &state.cube);
-    mesh_create("assets/meshes/sphere.mesh", &state.sphere);
-    mesh_create("assets/meshes/wall.mesh", &state.wall);
-    mesh_create("assets/meshes/floor.mesh", &state.floor);
+    mesh_create("assets/meshes/cube.mesh", &g_state->cube);
+    mesh_create("assets/meshes/sphere.mesh", &g_state->sphere);
+    mesh_create("assets/meshes/wall.mesh", &g_state->wall);
+    mesh_create("assets/meshes/floor.mesh", &g_state->floor);
 
-    while (state.num_enemies < MAX_ENEMIES)
+    while (g_state->num_enemies < MAX_ENEMIES)
     {
-        game_enemy* enemy = &state.enemies[state.num_enemies++];
+        game_enemy* enemy = &g_state->enemies[g_state->num_enemies++];
             
-        enemy->x = 5.0f - state.num_enemies * 5.0f;
+        enemy->x = 5.0f - g_state->num_enemies * 5.0f;
         enemy->y = 0.0f;
     }
 }
@@ -873,21 +878,22 @@ void game_update(game_input* input)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     f32 step = 1.0f / 60.0f;
-    state.accumulator += input->delta_time;
+    g_state->accumulator += input->delta_time;
 
-    while (state.accumulator >= step)
+    while (g_state->accumulator >= step)
     {
-        state.accumulator -= step;
+        g_state->accumulator -= step;
 
-        player_update(input);
-        enemies_update(input);
-        bullets_update(input);
+        player_update(g_state, input);
+        enemies_update(g_state, input);
+        bullets_update(g_state, input);
     }
 
-    state.view = m4_translate(-state.player.x, -state.player.y, -20.0f);
+    g_state->view = m4_translate(-g_state->player.x, -g_state->player.y, 
+        -20.0f);
 
-    map_render();
-    player_render();
-    enemies_render();
-    bullets_render();
+    map_render(g_state);
+    player_render(g_state);
+    enemies_render(g_state);
+    bullets_render(g_state);
 }
