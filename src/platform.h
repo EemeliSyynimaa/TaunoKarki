@@ -53,8 +53,10 @@ typedef struct game_input
 
 typedef u64 file_handle;
 
-void game_init(s32 screen_width, s32 screen_height, void* mem_address);
+void game_init(s32 screen_width, s32 screen_height, s8* memory,
+    u64 memory_size);
 void game_update(game_input* input);
+
 void file_open(file_handle* file, s8* path);
 void file_close(file_handle* file);
 void file_read(file_handle* file, s8* data, u64 bytes_max, u64* bytes_read);

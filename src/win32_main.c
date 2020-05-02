@@ -11,9 +11,9 @@
 #include "game.c"
 
 b32 running;
-LARGE_INTEGER queryPerformanceFrequency;
-LPVOID mem_address;
-u64 mem_size = 1024*1024*1024;
+LARGE_INTEGER query_performance_frequency;
+s8* memory_base;
+u64 memory_size = 1024*1024*1024;
 
 void debug_log(s8* format, ...)
 {
@@ -47,7 +47,7 @@ f32 elapsed_time_get(LARGE_INTEGER start, LARGE_INTEGER end)
     f32 result;
 
     result = (f32)(end.QuadPart - start.QuadPart) / 
-        (f32)queryPerformanceFrequency.QuadPart;
+        (f32)query_performance_frequency.QuadPart;
 
     return result;
 }
@@ -315,19 +315,14 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     
     ShowWindow(hwnd, nCmdShow);
 
-    QueryPerformanceFrequency(&queryPerformanceFrequency);
+    QueryPerformanceFrequency(&query_performance_frequency);
 
-    mem_address = VirtualAlloc(NULL, mem_size, MEM_COMMIT | MEM_RESERVE,
-        PAGE_READWRITE);
+    memory_base = (s8*)VirtualAlloc(NULL, memory_size,
+        MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 
-    assert(mem_address);
+    assert(memory_base);
 
-    // for (u64 i = 0; i < mem_size; i++)
-    // {
-    //     ((u8*)mem_address)[i] = 254;
-    // }
-
-    game_init(screen_width, screen_height, mem_address);
+    game_init(screen_width, screen_height, memory_base, memory_size);
 
     game_input old_input = { 0 };
 

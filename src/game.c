@@ -101,7 +101,6 @@ game_state* g_state;
 #define PROJECTILE_SIZE             0.1f
 
 // Todo: remove file_data and pixel_data, use reserved memory instead
-s8 file_data[MAX_FILE_SIZE];
 s8 pixel_data[MAX_FILE_SIZE];
 
 u8 map_data[] =
@@ -122,6 +121,34 @@ u8 map_data[] =
     0, 0, 1, 2, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0 ,0,
     0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 ,0
 };
+
+// Todo: create memory block struct with address and size
+s8* memory_base;
+s8* memory_current;
+u64 memory_size;
+
+void* memory_get(u64 size)
+{
+    if (memory_current + size > memory_base + memory_size)
+    {
+        debug_log("Not enough memory\n");
+
+        return 0;
+    }
+
+    // Todo: error checking
+    void* memory_return = (void*)memory_current;
+
+    memory_current += size;
+
+    return memory_return;
+}
+
+void memory_free(void* memory)
+{
+    // Todo: error checking!
+    memory_current = (s8*)memory;
+}
 
 void generate_vertex_array(mesh* mesh, vertex* vertices, u32 num_vertices,
     u32* indices)
@@ -408,10 +435,6 @@ void tga_decode(s8* input, u64 in_size, s8* output, u64* out_size, u32* width,
 
 u32 texture_create(s8* path)
 {
-    // Todo:
-    // X read file size
-    // - reserve space for file data
-
     u64 read_bytes = 0;
     u64 num_pixels = 0;
     u32 target = GL_TEXTURE_2D;
@@ -421,14 +444,20 @@ u32 texture_create(s8* path)
 
     file_handle file;
     u64 file_size = 0;
+    s8* file_data = 0;
 
     file_open(&file, path);
     file_size_get(&file, &file_size);
-    file_read(&file, file_data, MAX_FILE_SIZE, &read_bytes);
+
+    file_data = memory_get(file_size);
+
+    file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
 
     tga_decode(file_data, read_bytes, pixel_data, &num_pixels, &width,
         &height);
+
+    memory_free(file_data);
 
     glGenTextures(1, &id);
     glBindTexture(target, id);
@@ -648,7 +677,7 @@ void mesh_create(s8* path, mesh* mesh)
 
     // Todo:
     // X read file size
-    // - reserve space for file data
+    // X reserve space for file data
     // - reserve space for vertices, faces, texture coords and normals
     //   - can it be calculated beforehand?
     //   - read each line and count each face, vertex normal etc and then
@@ -658,11 +687,15 @@ void mesh_create(s8* path, mesh* mesh)
 
     u64 read_bytes = 0;
     u64 file_size = 0;
+    s8* file_data = 0;
 
     file_handle file;
     file_open(&file, path);
     file_size_get(&file, &file_size);
-    file_read(&file, file_data, MAX_FILE_SIZE, &read_bytes);
+
+    file_data = memory_get(file_size);
+
+    file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
 
     s8* data = file_data;
@@ -800,6 +833,8 @@ void mesh_create(s8* path, mesh* mesh)
         }
     }
 
+    memory_free(file_data);
+
     num_in_vertices = 0;
     num_in_faces = 0;
     num_in_normals = 0;
@@ -810,11 +845,9 @@ void mesh_create(s8* path, mesh* mesh)
 
 u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
 {
-    // Todo:
-    // X read file size
-    // - reserve space for file data
     u64 read_bytes = 0;
     u64 file_size = 0;
+    s8* file_data = 0;
 
     u32 result = 0;
     u32 program = glCreateProgram();
@@ -825,11 +858,17 @@ u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
     assert(vertex_shader);
     assert(fragment_shader);
 
+    // Note: glShaderSource requires for each string to be null terminated.
+    // If read directly from a file, each line ends in CR LF (0d 0a).
+    // These should be replaced with 0.
     file_handle file;
 
     file_open(&file, vertex_shader_path);
     file_size_get(&file, &file_size);
-    file_read(&file, file_data, MAX_FILE_SIZE, &read_bytes);
+
+    file_data = memory_get(file_size);
+
+    file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
 
     const GLchar* temp = (const GLchar*)file_data;
@@ -839,10 +878,17 @@ u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
     glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, (GLint*)&result);
     assert(result);
 
-    memset((void*)file_data, 0, MAX_FILE_SIZE);
+    // Todo: remove memset
+    memset((void*)file_data, 0, file_size);
+
+    memory_free(file_data);
 
     file_open(&file, fragment_shader_path);
-    file_read(&file, file_data, MAX_FILE_SIZE, &read_bytes);
+    file_size_get(&file, &file_size);
+
+    file_data = memory_get(file_size);
+
+    file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
 
     temp = (const GLchar*)file_data;
@@ -852,7 +898,10 @@ u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
     glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, (GLint*)&result);
     assert(result);
 
-    memset((void*)file_data, 0, MAX_FILE_SIZE);
+    // Todo: remove memset
+    memset((void*)file_data, 0, file_size);
+
+    memory_free(file_data);
 
     glAttachShader(program, vertex_shader);
     glAttachShader(program, fragment_shader);
@@ -867,7 +916,8 @@ u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
     return program;
 }
 
-void game_init(s32 screen_width, s32 screen_height, void* mem_address)
+void game_init(s32 screen_width, s32 screen_height, s8* memory,
+    u64 memory_size)
 {
     s32 version_major = 0;
     s32 version_minor = 0;
@@ -881,7 +931,11 @@ void game_init(s32 screen_width, s32 screen_height, void* mem_address)
 
     debug_log("OpenGL %i.%i\n", version_major, version_minor);
 
-    g_state = (game_state*)mem_address;
+    memory_base = memory;
+    memory_current = memory;
+    memory_size = memory_size;
+
+    g_state = (game_state*)memory_get(sizeof(game_state));
 
     g_state->shader = program_create("assets/shaders/vertex.glsl",
         "assets/shaders/fragment.glsl");
