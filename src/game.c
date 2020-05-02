@@ -409,7 +409,7 @@ void tga_decode(s8* input, u64 in_size, s8* output, u64* out_size, u32* width,
 u32 texture_create(s8* path)
 {
     // Todo:
-    // - read file size
+    // X read file size
     // - reserve space for file data
 
     u64 read_bytes = 0;
@@ -419,7 +419,14 @@ u32 texture_create(s8* path)
     u32 width = 0;
     u32 height = 0;
 
-    file_load(path, file_data, MAX_FILE_SIZE, &read_bytes);
+    file_handle file;
+    u64 file_size = 0;
+
+    file_open(&file, path);
+    file_size_get(&file, &file_size);
+    file_read(&file, file_data, MAX_FILE_SIZE, &read_bytes);
+    file_close(&file);
+
     tga_decode(file_data, read_bytes, pixel_data, &num_pixels, &width,
         &height);
 
@@ -640,7 +647,7 @@ void mesh_create(s8* path, mesh* mesh)
     u32 num_vertices = 0;
 
     // Todo:
-    // - read file size
+    // X read file size
     // - reserve space for file data
     // - reserve space for vertices, faces, texture coords and normals
     //   - can it be calculated beforehand?
@@ -650,8 +657,13 @@ void mesh_create(s8* path, mesh* mesh)
     // - count indices
 
     u64 read_bytes = 0;
+    u64 file_size = 0;
 
-    file_load(path, file_data, MAX_FILE_SIZE, &read_bytes);
+    file_handle file;
+    file_open(&file, path);
+    file_size_get(&file, &file_size);
+    file_read(&file, file_data, MAX_FILE_SIZE, &read_bytes);
+    file_close(&file);
 
     s8* data = file_data;
     s8 str[255] = {0};
@@ -799,9 +811,10 @@ void mesh_create(s8* path, mesh* mesh)
 u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
 {
     // Todo:
-    // - read file size
+    // X read file size
     // - reserve space for file data
     u64 read_bytes = 0;
+    u64 file_size = 0;
 
     u32 result = 0;
     u32 program = glCreateProgram();
@@ -812,7 +825,12 @@ u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
     assert(vertex_shader);
     assert(fragment_shader);
 
-    file_load(vertex_shader_path, file_data, MAX_FILE_SIZE, &read_bytes);
+    file_handle file;
+
+    file_open(&file, vertex_shader_path);
+    file_size_get(&file, &file_size);
+    file_read(&file, file_data, MAX_FILE_SIZE, &read_bytes);
+    file_close(&file);
 
     const GLchar* temp = (const GLchar*)file_data;
 
@@ -823,8 +841,10 @@ u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
 
     memset((void*)file_data, 0, MAX_FILE_SIZE);
 
-    file_load(fragment_shader_path, file_data, MAX_FILE_SIZE, &read_bytes);
-    
+    file_open(&file, fragment_shader_path);
+    file_read(&file, file_data, MAX_FILE_SIZE, &read_bytes);
+    file_close(&file);
+
     temp = (const GLchar*)file_data;
 
     glShaderSource(fragment_shader, 1, &temp, 0);

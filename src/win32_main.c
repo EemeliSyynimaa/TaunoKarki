@@ -47,41 +47,94 @@ f32 elapsed_time_get(LARGE_INTEGER start, LARGE_INTEGER end)
     f32 result;
 
     result = (f32)(end.QuadPart - start.QuadPart) / 
-    (f32)queryPerformanceFrequency.QuadPart;
+        (f32)queryPerformanceFrequency.QuadPart;
 
     return result;
 }
 
-void file_load(s8* path, s8* data, u64 max_bytes, u64* read_bytes)
+void file_open(file_handle* file, s8* path)
 {
-    *read_bytes = 0;
-    
-    HANDLE file;
+    HANDLE win32_handle;
+    win32_handle = CreateFileA((LPCSTR)path, GENERIC_READ, 0, 0,
+        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
 
-    file = CreateFileA((LPCSTR)path, GENERIC_READ, 0, 0, OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL, 0);
-
-    if (INVALID_HANDLE_VALUE != file)
+    if (win32_handle != INVALID_HANDLE_VALUE)
     {
-        u64 num_bytes_read = 0;
-
-        if (ReadFile(file, data, max_bytes, (LPDWORD)&num_bytes_read, 0))
-        {
-            debug_log("Read %llu/%llu bytes from %s\n", num_bytes_read,
-                max_bytes, path);
-        }
-        else
-        {
-            debug_log("Could not read from file: %s\n", path);
-        }
-
-        *read_bytes = num_bytes_read;
-
-        CloseHandle(file);
+        *file = (u64)win32_handle;
     }
     else
     {
-        debug_log("File not found: %s\n", path);
+        // Todo: return error value
+        debug_log("Could not read from file: %s\n", path);
+    }
+}
+
+void file_close(file_handle* handle)
+{
+    HANDLE* win32_handle = (HANDLE*)handle;
+
+    if (INVALID_HANDLE_VALUE != *win32_handle)
+    {
+        CloseHandle(*win32_handle);
+    }
+    else
+    {
+        // Todo: return error value
+        debug_log("Handle of invalid value\n");
+    }
+}
+
+void file_read(file_handle* handle, s8* data, u64 bytes_max, u64* bytes_read)
+{
+    *bytes_read = 0;
+
+    HANDLE* win32_handle = (HANDLE*)handle;
+
+    if (INVALID_HANDLE_VALUE != win32_handle)
+    {
+        u64 num_bytes_read = 0;
+
+        if (ReadFile(*win32_handle, data, bytes_max, (LPDWORD)&num_bytes_read,
+            0))
+        {
+            debug_log("Read %llu/%llu bytes\n", num_bytes_read, bytes_max);
+        }
+        else
+        {
+            // Todo: return error value
+            debug_log("Could not read from file\n");
+        }
+
+        *bytes_read = num_bytes_read;
+    }
+    else
+    {
+        // Todo: return error value
+        debug_log("Handle of invalid value\n");
+    }
+}
+
+void file_size_get(file_handle* handle, u64* file_size)
+{
+    HANDLE* win32_handle = (HANDLE*)handle;
+
+    if (INVALID_HANDLE_VALUE != win32_handle)
+    {
+        LARGE_INTEGER size = { 0 };
+        if (GetFileSizeEx(*win32_handle, &size))
+        {
+            *file_size = size.QuadPart; 
+        }
+        else
+        {
+            // Todo: return error value
+            debug_log("Could not read file size\n");
+        }
+    }
+    else
+    {
+        // Todo: return error value
+        debug_log("Handle of invalid value\n");
     }
 }
 

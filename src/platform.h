@@ -51,9 +51,14 @@ typedef struct game_input
     s32 mouse_y;
 } game_input;
 
+typedef u64 file_handle;
+
 void game_init(s32 screen_width, s32 screen_height, void* mem_address);
 void game_update(game_input* input);
-void file_load(s8* path, s8* data, u64 max_bytes, u64* bytes_read);
+void file_open(file_handle* file, s8* path);
+void file_close(file_handle* file);
+void file_read(file_handle* file, s8* data, u64 bytes_max, u64* bytes_read);
+void file_size_get(file_handle* file, u64* file_size);
 
 void debug_log(s8* format, ...);
 
