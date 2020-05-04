@@ -11,7 +11,10 @@ pushd ..
 if not exist build mkdir build
 pushd build
 
+del *.pdb > NUL 2> NUL
+
 rem cl %release_flags% -Fegame.exe ..\src\win32_main.c /link %linker_flags% 
+cl %debug_flags%  -Fegame.dll ..\src\game.c -LD /link -incremental:no -PDB:game_%random%.pdb -opt:ref -EXPORT:game_init -EXPORT:game_update
 cl %debug_flags% -Fegamed.exe ..\src\win32_main.c /link %linker_flags% 
 
 xcopy "..\assets" "assets" /d /k /y /e /s /i
