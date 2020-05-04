@@ -39,6 +39,14 @@ typedef struct mesh
 #define MAX_BULLETS 8
 #define MAX_ENEMIES 4
 
+typedef struct memory_block
+{
+    s8* base;
+    s8* current;
+    s8* last;
+    u64 size;
+} memory_block;
+
 typedef struct game_state
 {
     game_player player;
@@ -62,6 +70,7 @@ typedef struct game_state
     s32 screen_height;
     m4 perspective;
     m4 view;
+    memory_block temporary;
 } game_state;
 
 game_state* g_state;
@@ -122,30 +131,25 @@ u8 map_data[] =
     0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 ,0
 };
 
-// Todo: create memory block struct with address and size
-s8* memory_base;
-s8* memory_current;
-s8* memory_last;
-u64 memory_size;
-
-void* memory_get(u64 size)
+void* memory_get(memory_block* block, u64 size)
 {
-    if (memory_current + size > memory_base + memory_size)
+    if (block->current + size > block->base + block->size)
     {
         debug_log("Not enough memory\n");
 
         return 0;
     }
 
-    memory_last = memory_current;
-    memory_current += size;
+    // Todo: check alignment
+    block->last = block->current;
+    block->current += size;
 
-    return (void*)memory_last;
+    return (void*)block->last;
 }
 
-void memory_free()
+void memory_free(memory_block* block)
 {
-    memory_current = memory_last;
+    block->current = block->last;
 }
 
 void generate_vertex_array(mesh* mesh, vertex* vertices, u32 num_vertices,
@@ -431,7 +435,7 @@ void tga_decode(s8* input, u64 in_size, s8* output, u64* out_size, u32* width,
     *height = i_spec->height;
 }
 
-u32 texture_create(s8* path)
+u32 texture_create(memory_block* block, s8* path)
 {
     u64 read_bytes = 0;
     u64 num_pixels = 0;
@@ -447,7 +451,7 @@ u32 texture_create(s8* path)
     file_open(&file, path);
     file_size_get(&file, &file_size);
 
-    file_data = memory_get(file_size);
+    file_data = memory_get(block, file_size);
 
     file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
@@ -455,7 +459,7 @@ u32 texture_create(s8* path)
     tga_decode(file_data, read_bytes, pixel_data, &num_pixels, &width,
         &height);
 
-    memory_free();
+    memory_free(block);
 
     glGenTextures(1, &id);
     glBindTexture(target, id);
@@ -657,7 +661,7 @@ u64 string_read(s8* data, s8* str, u64 max_size)
     return bytes_read;
 }
 
-void mesh_create(s8* path, mesh* mesh)
+void mesh_create(memory_block* block, s8* path, mesh* mesh)
 {
     // Todo: remove statics
     static v3 in_vertices[4096];
@@ -691,7 +695,7 @@ void mesh_create(s8* path, mesh* mesh)
     file_open(&file, path);
     file_size_get(&file, &file_size);
 
-    file_data = memory_get(file_size);
+    file_data = memory_get(block, file_size);
 
     file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
@@ -831,7 +835,7 @@ void mesh_create(s8* path, mesh* mesh)
         }
     }
 
-    memory_free();
+    memory_free(block);
 
     num_in_vertices = 0;
     num_in_faces = 0;
@@ -841,7 +845,8 @@ void mesh_create(s8* path, mesh* mesh)
     generate_vertex_array(mesh, vertices, num_vertices, indices);
 }
 
-u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
+u32 program_create(memory_block* block, s8* vertex_shader_path,
+    s8* fragment_shader_path)
 {
     u64 read_bytes = 0;
     u64 file_size = 0;
@@ -864,7 +869,7 @@ u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
     file_open(&file, vertex_shader_path);
     file_size_get(&file, &file_size);
 
-    file_data = memory_get(file_size);
+    file_data = memory_get(block, file_size);
 
     file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
@@ -879,12 +884,12 @@ u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
     // Todo: remove memset
     memset((void*)file_data, 0, file_size);
 
-    memory_free();
+    memory_free(block);
 
     file_open(&file, fragment_shader_path);
     file_size_get(&file, &file_size);
 
-    file_data = memory_get(file_size);
+    file_data = memory_get(block, file_size);
 
     file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
@@ -899,7 +904,7 @@ u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
     // Todo: remove memset
     memset((void*)file_data, 0, file_size);
 
-    memory_free();
+    memory_free(block);
 
     glAttachShader(program, vertex_shader);
     glAttachShader(program, fragment_shader);
@@ -929,19 +934,27 @@ void game_init(s32 screen_width, s32 screen_height, s8* memory,
 
     debug_log("OpenGL %i.%i\n", version_major, version_minor);
 
-    memory_base = memory;
-    memory_current = memory;
-    memory_size = memory_size;
+    g_state = (game_state*)memory;
 
-    g_state = (game_state*)memory_get(sizeof(game_state));
+    s8* temp_memory_address = memory + sizeof(game_state);
 
-    g_state->shader = program_create("assets/shaders/vertex.glsl",
+    g_state->temporary.base = temp_memory_address;
+    g_state->temporary.last = temp_memory_address;
+    g_state->temporary.current = temp_memory_address;
+    g_state->temporary.size = 100*1024*1024;
+
+    g_state->shader = program_create(&g_state->temporary,
+        "assets/shaders/vertex.glsl",
         "assets/shaders/fragment.glsl");
 
-    g_state->texture_tileset = texture_create("assets/textures/tileset.tga");
-    g_state->texture_sphere = texture_create("assets/textures/sphere.tga");
-    g_state->texture_player = texture_create("assets/textures/cube.tga");
-    g_state->texture_enemy = texture_create("assets/textures/enemy.tga");
+    g_state->texture_tileset = texture_create(&g_state->temporary,
+        "assets/textures/tileset.tga");
+    g_state->texture_sphere = texture_create(&g_state->temporary,
+        "assets/textures/sphere.tga");
+    g_state->texture_player = texture_create(&g_state->temporary,
+        "assets/textures/cube.tga");
+    g_state->texture_enemy = texture_create(&g_state->temporary, 
+        "assets/textures/enemy.tga");
 
     g_state->screen_width = screen_width;
     g_state->screen_height = screen_height;
@@ -953,10 +966,14 @@ void game_init(s32 screen_width, s32 screen_height, s8* memory,
 
     g_state->level = 10;
     
-    mesh_create("assets/meshes/cube.mesh", &g_state->cube);
-    mesh_create("assets/meshes/sphere.mesh", &g_state->sphere);
-    mesh_create("assets/meshes/wall.mesh", &g_state->wall);
-    mesh_create("assets/meshes/floor.mesh", &g_state->floor);
+    mesh_create(&g_state->temporary, "assets/meshes/cube.mesh",
+        &g_state->cube);
+    mesh_create(&g_state->temporary, "assets/meshes/sphere.mesh",
+        &g_state->sphere);
+    mesh_create(&g_state->temporary, "assets/meshes/wall.mesh",
+        &g_state->wall);
+    mesh_create(&g_state->temporary, "assets/meshes/floor.mesh",
+        &g_state->floor);
 
     while (g_state->num_enemies < MAX_ENEMIES)
     {
