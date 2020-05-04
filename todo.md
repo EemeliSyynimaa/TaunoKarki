@@ -3,7 +3,7 @@
  - [X] Improve build tools
  - [X] Coding conventions
  - [X] Debug logging 
- - [ ] Memory management
+ - [X] Memory management
  - [ ] Game as a library
  - [ ] Hot reload
  - [ ] Graphics cleanup
