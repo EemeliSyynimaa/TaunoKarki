@@ -109,9 +109,6 @@ game_state* g_state;
 #define SHOTGUN_NUMBER_OF_SHELLS    12
 #define PROJECTILE_SIZE             0.1f
 
-// Todo: remove file_data and pixel_data, use reserved memory instead
-s8 pixel_data[MAX_FILE_SIZE];
-
 u8 map_data[] =
 {
     0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,0,
@@ -382,6 +379,7 @@ void player_render(game_state* state)
     mesh_render(&state->cube, &mvp, state->texture_player, state->shader);
 }
 
+// Todo: create single struct for header (requires packing)
 typedef struct color_map_spec
 {
     s16 index;
@@ -399,11 +397,9 @@ typedef struct image_spec
     s8 desc;
 } image_spec;
 
-void tga_decode(s8* input, u64 in_size, s8* output, u64* out_size, u32* width,
+void tga_decode(s8* input, u64 out_size, s8* output, u32* width,
     u32* height)
 {
-    // Todo: reserve space for pixel data
-
     s8 id_length = *input++;
     s8 color_type = *input++;
     s8 image_type = *input++;
@@ -419,7 +415,7 @@ void tga_decode(s8* input, u64 in_size, s8* output, u64* out_size, u32* width,
     u64 bytes_per_color = i_spec->depth / 8;
     u64 byte_count = i_spec->height * i_spec->width;
 
-    for (u64 i = 0; i < byte_count; i++)
+    for (u64 i = 0; i < byte_count && i < out_size; i++)
     {
         output[2] = input[0];
         output[1] = input[1];
@@ -430,7 +426,6 @@ void tga_decode(s8* input, u64 in_size, s8* output, u64* out_size, u32* width,
         input += bytes_per_color;
     }
 
-    *out_size = i_spec->height * i_spec->width * bytes_per_color;
     *width = i_spec->width;
     *height = i_spec->height;
 }
@@ -438,7 +433,6 @@ void tga_decode(s8* input, u64 in_size, s8* output, u64* out_size, u32* width,
 u32 texture_create(memory_block* block, s8* path)
 {
     u64 read_bytes = 0;
-    u64 num_pixels = 0;
     u32 target = GL_TEXTURE_2D;
     u32 id = 0;
     u32 width = 0;
@@ -447,19 +441,19 @@ u32 texture_create(memory_block* block, s8* path)
     file_handle file;
     u64 file_size = 0;
     s8* file_data = 0;
+    s8* pixel_data = 0; 
 
     file_open(&file, path);
     file_size_get(&file, &file_size);
 
     file_data = memory_get(block, file_size);
+    pixel_data = memory_get(block, file_size);
 
     file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
 
-    tga_decode(file_data, read_bytes, pixel_data, &num_pixels, &width,
+    tga_decode(file_data, read_bytes, pixel_data, &width,
         &height);
-
-    memory_free(block);
 
     glGenTextures(1, &id);
     glBindTexture(target, id);
@@ -469,6 +463,9 @@ u32 texture_create(memory_block* block, s8* path)
 
     glTexImage2D(target, 0, GL_RGBA, width, height, 0, GL_RGBA,
         GL_UNSIGNED_BYTE, pixel_data);
+
+    memory_free(block);
+    memory_free(block);
 
     return id;
 }
