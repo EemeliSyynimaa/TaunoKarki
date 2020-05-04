@@ -1,132 +1,133 @@
 #include "platform.h"
-// #include "math.c"
+#include "math.c"
+#include "debug.c"
 
-// typedef struct game_player
-// {
-//     f32 x;
-//     f32 y;
-//     f32 angle;
-// } game_player;
+typedef struct game_player
+{
+    f32 x;
+    f32 y;
+    f32 angle;
+} game_player;
 
-// typedef struct game_bullet
-// {
-//     f32 x;
-//     f32 y;
-//     f32 velocity_x;
-//     f32 velocity_y;
-//     f32 angle;
-// } game_bullet;
+typedef struct game_bullet
+{
+    f32 x;
+    f32 y;
+    f32 velocity_x;
+    f32 velocity_y;
+    f32 angle;
+} game_bullet;
 
-// typedef struct game_enemy
-// {
-//     f32 x;
-//     f32 y;
-//     f32 angle;
-// } game_enemy;
+typedef struct game_enemy
+{
+    f32 x;
+    f32 y;
+    f32 angle;
+} game_enemy;
 
-// typedef struct vertex
-// {
-//     v3 position;
-//     v2 uv;
-//     v3 normal;
-// } vertex;
+typedef struct vertex
+{
+    v3 position;
+    v2 uv;
+    v3 normal;
+} vertex;
 
-// typedef struct mesh
-// {
-//     u32 vao;
-//     u32 vbo;
-//     u32 ibo;
-//     u32 num_indices;
-// } mesh;
+typedef struct mesh
+{
+    u32 vao;
+    u32 vbo;
+    u32 ibo;
+    u32 num_indices;
+} mesh;
 
-// #define MAX_BULLETS 8
-// #define MAX_ENEMIES 4
+#define MAX_BULLETS 8
+#define MAX_ENEMIES 4
 
-// typedef struct memory_block
-// {
-//     s8* base;
-//     s8* current;
-//     s8* last;
-//     u64 size;
-// } memory_block;
+typedef struct memory_block
+{
+    s8* base;
+    s8* current;
+    s8* last;
+    u64 size;
+} memory_block;
 
-// typedef struct game_state
-// {
-//     game_player player;
-//     game_bullet bullets[MAX_BULLETS];
-//     game_enemy enemies[MAX_ENEMIES];
-//     mesh cube;
-//     mesh sphere;
-//     mesh wall;
-//     mesh floor;
-//     b32 fired;
-//     f32 accumulator;
-//     u32 shader;
-//     u32 texture_tileset;
-//     u32 texture_sphere;
-//     u32 texture_player;
-//     u32 texture_enemy;
-//     u32 free_bullet;
-//     u32 num_enemies;
-//     u32 level;
-//     s32 screen_width;
-//     s32 screen_height;
-//     m4 perspective;
-//     m4 view;
-//     memory_block temporary;
-// } game_state;
+typedef struct game_state
+{
+    game_player player;
+    game_bullet bullets[MAX_BULLETS];
+    game_enemy enemies[MAX_ENEMIES];
+    mesh cube;
+    mesh sphere;
+    mesh wall;
+    mesh floor;
+    b32 fired;
+    f32 accumulator;
+    u32 shader;
+    u32 texture_tileset;
+    u32 texture_sphere;
+    u32 texture_player;
+    u32 texture_enemy;
+    u32 free_bullet;
+    u32 num_enemies;
+    u32 level;
+    s32 screen_width;
+    s32 screen_height;
+    m4 perspective;
+    m4 view;
+    memory_block temporary;
+} game_state;
 
-// #define MAP_WIDTH       15
-// #define MAP_HEIGHT      15
+#define MAP_WIDTH       15
+#define MAP_HEIGHT      15
  
-// #define PLAYER_HEALTH               500.0f
-// #define PLAYER_SPEED                0.2f
-// #define PLAYER_HEALTH_PER_PACK      100.f
-// #define ENEMY_HEALTH                50.0
-// #define ENEMY_SPEED                 0.12
-// #define ENEMY_ACTIVATION_DISTANCE   20.0
-// #define ENEMY_HEALTH_PER_LEVEL      10.0
-// #define ENEMY_HIT_DAMAGE            50.0
-// #define ENEMY_HIT_DAMAGE_PER_LEVEL  5.0f
-// #define ENEMY_ANGLE_OF_VISION       60.0
-// #define MACHINEGUN_DAMAGE           25.0
-// #define MACHINEGUN_RELOAD_TIME      2.50
-// #define MACHINEGUN_CLIP_SIZE        25.0
-// #define MACHINEGUN_BULLET_SPEED     1.0f
-// #define MACHINEGUN_FIRE_RATE        0.12f
-// #define MACHINEGUN_BULLET_SPREAD    0.05
-// #define PISTOL_DAMAGE               30.0
-// #define PISTOL_BULLET_SPEED         1.0f
-// #define PISTOL_CLIP_SIZE            8.0f
-// #define PISTOL_RELOAD_TIME          1.5f
-// #define PISTOL_BULLET_SPREAD        0.01
-// #define SHOTGUN_DAMAGE              12.5
-// #define SHOTGUN_BULLET_SPEED        1.0f
-// #define SHOTGUN_CLIP_SIZE           7.0f
-// #define SHOTGUN_RELOAD_TIME         3.0f
-// #define SHOTGUN_FIRE_RATE           0.7f
-// #define SHOTGUN_BULLET_SPREAD       0.12f
-// #define SHOTGUN_NUMBER_OF_SHELLS    12
-// #define PROJECTILE_SIZE             0.1f
+#define PLAYER_HEALTH               500.0f
+#define PLAYER_SPEED                0.2f
+#define PLAYER_HEALTH_PER_PACK      100.f
+#define ENEMY_HEALTH                50.0
+#define ENEMY_SPEED                 0.12
+#define ENEMY_ACTIVATION_DISTANCE   20.0
+#define ENEMY_HEALTH_PER_LEVEL      10.0
+#define ENEMY_HIT_DAMAGE            50.0
+#define ENEMY_HIT_DAMAGE_PER_LEVEL  5.0f
+#define ENEMY_ANGLE_OF_VISION       60.0
+#define MACHINEGUN_DAMAGE           25.0
+#define MACHINEGUN_RELOAD_TIME      2.50
+#define MACHINEGUN_CLIP_SIZE        25.0
+#define MACHINEGUN_BULLET_SPEED     1.0f
+#define MACHINEGUN_FIRE_RATE        0.12f
+#define MACHINEGUN_BULLET_SPREAD    0.05
+#define PISTOL_DAMAGE               30.0
+#define PISTOL_BULLET_SPEED         1.0f
+#define PISTOL_CLIP_SIZE            8.0f
+#define PISTOL_RELOAD_TIME          1.5f
+#define PISTOL_BULLET_SPREAD        0.01
+#define SHOTGUN_DAMAGE              12.5
+#define SHOTGUN_BULLET_SPEED        1.0f
+#define SHOTGUN_CLIP_SIZE           7.0f
+#define SHOTGUN_RELOAD_TIME         3.0f
+#define SHOTGUN_FIRE_RATE           0.7f
+#define SHOTGUN_BULLET_SPREAD       0.12f
+#define SHOTGUN_NUMBER_OF_SHELLS    12
+#define PROJECTILE_SIZE             0.1f
 
-// u8 map_data[] =
-// {
-//     0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,0,
-//     1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1 ,0,
-//     1, 2, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1 ,1,
-//     1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 1, 2, 2 ,1,
-//     1, 2, 2, 1, 2, 1, 1, 1, 1, 1, 0, 1, 2, 2 ,1,
-//     1, 1, 1, 1, 2, 1, 2, 2, 2, 1, 1, 1, 2, 2 ,1,
-//     0, 0, 0, 1, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2 ,1,
-//     0, 0, 0, 1, 2, 1, 2, 2, 2, 1, 2, 2, 2, 2 ,1,
-//     0, 0, 0, 1, 2, 1, 2, 2, 2, 1, 2, 2, 1, 1 ,1,
-//     0, 0, 0, 1, 2, 1, 1, 1, 1, 1, 2, 2, 1, 0 ,0,
-//     0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0 ,0,
-//     0, 0, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 0 ,0,
-//     0, 0, 1, 2, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0 ,0,
-//     0, 0, 1, 2, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0 ,0,
-//     0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 ,0
-// };
+u8 map_data[] =
+{
+    0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,0,
+    1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1 ,0,
+    1, 2, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1 ,1,
+    1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 1, 2, 2 ,1,
+    1, 2, 2, 1, 2, 1, 1, 1, 1, 1, 0, 1, 2, 2 ,1,
+    1, 1, 1, 1, 2, 1, 2, 2, 2, 1, 1, 1, 2, 2 ,1,
+    0, 0, 0, 1, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2 ,1,
+    0, 0, 0, 1, 2, 1, 2, 2, 2, 1, 2, 2, 2, 2 ,1,
+    0, 0, 0, 1, 2, 1, 2, 2, 2, 1, 2, 2, 1, 1 ,1,
+    0, 0, 0, 1, 2, 1, 1, 1, 1, 1, 2, 2, 1, 0 ,0,
+    0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0 ,0,
+    0, 0, 1, 1, 2, 1, 1, 2, 1, 1, 1, 1, 1, 0 ,0,
+    0, 0, 1, 2, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0 ,0,
+    0, 0, 1, 2, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0 ,0,
+    0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 ,0
+};
 
 // void* memory_get(memory_block* block, u64 size)
 // {
@@ -918,10 +919,15 @@
 
 void game_init(game_memory* memory, s32 screen_width, s32 screen_height)
 {
-    // game_state* state = (game_state*)memory->base;
+    game_state* state = (game_state*)memory->base;
 
-    // s32 version_major = 0;
-    // s32 version_minor = 0;
+    s32 version_major = 0;
+    s32 version_minor = 0;
+
+    // Todo:
+    // - get opengl functions from the platform layer
+    // - get file functions from the platform layer
+
     // glGetIntegerv(GL_MAJOR_VERSION, &version_major);
     // glGetIntegerv(GL_MINOR_VERSION, &version_minor);
 
@@ -930,7 +936,7 @@ void game_init(game_memory* memory, s32 screen_width, s32 screen_height)
     // glEnable(GL_CULL_FACE);
     // glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
-    // debug_log("OpenGL %i.%i\n", version_major, version_minor);
+    debug_log("OpenGL %i.%i\n", version_major, version_minor);
 
     // state->temporary.base = (s8*)state + sizeof(game_state);
     // state->temporary.last = state->temporary.base;
