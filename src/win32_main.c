@@ -12,8 +12,6 @@
 
 b32 running;
 LARGE_INTEGER query_performance_frequency;
-s8* memory_base;
-u64 memory_size = 1024*1024*1024;
 
 void debug_log(s8* format, ...)
 {
@@ -317,12 +315,14 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     QueryPerformanceFrequency(&query_performance_frequency);
 
-    memory_base = (s8*)VirtualAlloc(NULL, memory_size,
-        MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    game_memory memory = { 0 };
+    memory.size = 1024*1024*1024;
+    memory.base = VirtualAlloc(NULL, memory.size, MEM_COMMIT | MEM_RESERVE,
+        PAGE_READWRITE);
 
-    assert(memory_base);
+    assert(memory.base);
 
-    game_init(screen_width, screen_height, memory_base, memory_size);
+    game_init(&memory, screen_width, screen_height);
 
     game_input old_input = { 0 };
 
@@ -442,7 +442,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         new_input.shoot.key_down = 
             (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
 
-        game_update(&new_input);
+        game_update(&memory, &new_input);
 
         SwapBuffers(hdc);
 

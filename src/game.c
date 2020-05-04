@@ -73,8 +73,6 @@ typedef struct game_state
     memory_block temporary;
 } game_state;
 
-game_state* g_state;
-
 #define MAX_FILE_SIZE   10*1024*1024
 #define MAP_WIDTH       15
 #define MAP_HEIGHT      15
@@ -916,9 +914,10 @@ u32 program_create(memory_block* block, s8* vertex_shader_path,
     return program;
 }
 
-void game_init(s32 screen_width, s32 screen_height, s8* memory,
-    u64 memory_size)
+void game_init(game_memory* memory, s32 screen_width, s32 screen_height)
 {
+    game_state* state = (game_state*)memory->base;
+
     s32 version_major = 0;
     s32 version_minor = 0;
     glGetIntegerv(GL_MAJOR_VERSION, &version_major);
@@ -931,77 +930,75 @@ void game_init(s32 screen_width, s32 screen_height, s8* memory,
 
     debug_log("OpenGL %i.%i\n", version_major, version_minor);
 
-    g_state = (game_state*)memory;
+    state->temporary.base = (s8*)state + sizeof(game_state);
+    state->temporary.last = state->temporary.base;
+    state->temporary.current = state->temporary.base;
+    state->temporary.size = 100*1024*1024;
 
-    s8* temp_memory_address = memory + sizeof(game_state);
-
-    g_state->temporary.base = temp_memory_address;
-    g_state->temporary.last = temp_memory_address;
-    g_state->temporary.current = temp_memory_address;
-    g_state->temporary.size = 100*1024*1024;
-
-    g_state->shader = program_create(&g_state->temporary,
+    state->shader = program_create(&state->temporary,
         "assets/shaders/vertex.glsl",
         "assets/shaders/fragment.glsl");
 
-    g_state->texture_tileset = texture_create(&g_state->temporary,
+    state->texture_tileset = texture_create(&state->temporary,
         "assets/textures/tileset.tga");
-    g_state->texture_sphere = texture_create(&g_state->temporary,
+    state->texture_sphere = texture_create(&state->temporary,
         "assets/textures/sphere.tga");
-    g_state->texture_player = texture_create(&g_state->temporary,
+    state->texture_player = texture_create(&state->temporary,
         "assets/textures/cube.tga");
-    g_state->texture_enemy = texture_create(&g_state->temporary, 
+    state->texture_enemy = texture_create(&state->temporary, 
         "assets/textures/enemy.tga");
 
-    g_state->screen_width = screen_width;
-    g_state->screen_height = screen_height;
-    g_state->perspective = m4_perspective(60.0f, 
-        (f32)g_state->screen_width/(f32)g_state->screen_height, 0.1f, 100.0f);
+    state->screen_width = screen_width;
+    state->screen_height = screen_height;
+    state->perspective = m4_perspective(60.0f, 
+        (f32)state->screen_width/(f32)state->screen_height, 0.1f, 100.0f);
 
-    g_state->player.x = 7.0f;
-    g_state->player.y = 6.0f;
+    state->player.x = 7.0f;
+    state->player.y = 6.0f;
 
-    g_state->level = 10;
+    state->level = 10;
     
-    mesh_create(&g_state->temporary, "assets/meshes/cube.mesh",
-        &g_state->cube);
-    mesh_create(&g_state->temporary, "assets/meshes/sphere.mesh",
-        &g_state->sphere);
-    mesh_create(&g_state->temporary, "assets/meshes/wall.mesh",
-        &g_state->wall);
-    mesh_create(&g_state->temporary, "assets/meshes/floor.mesh",
-        &g_state->floor);
+    mesh_create(&state->temporary, "assets/meshes/cube.mesh",
+        &state->cube);
+    mesh_create(&state->temporary, "assets/meshes/sphere.mesh",
+        &state->sphere);
+    mesh_create(&state->temporary, "assets/meshes/wall.mesh",
+        &state->wall);
+    mesh_create(&state->temporary, "assets/meshes/floor.mesh",
+        &state->floor);
 
-    while (g_state->num_enemies < MAX_ENEMIES)
+    while (state->num_enemies < MAX_ENEMIES)
     {
-        game_enemy* enemy = &g_state->enemies[g_state->num_enemies++];
+        game_enemy* enemy = &state->enemies[state->num_enemies++];
             
-        enemy->x = 5.0f - g_state->num_enemies * 5.0f;
+        enemy->x = 5.0f - state->num_enemies * 5.0f;
         enemy->y = 0.0f;
     }
 }
 
-void game_update(game_input* input)
+void game_update(game_memory* memory, game_input* input)
 {
+    game_state* state = (game_state*)memory->base;
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     f32 step = 1.0f / 60.0f;
-    g_state->accumulator += input->delta_time;
+    state->accumulator += input->delta_time;
 
-    while (g_state->accumulator >= step)
+    while (state->accumulator >= step)
     {
-        g_state->accumulator -= step;
+        state->accumulator -= step;
 
-        player_update(g_state, input);
-        enemies_update(g_state, input);
-        bullets_update(g_state, input);
+        player_update(state, input);
+        enemies_update(state, input);
+        bullets_update(state, input);
     }
 
-    g_state->view = m4_translate(-g_state->player.x, -g_state->player.y, 
+    state->view = m4_translate(-state->player.x, -state->player.y, 
         -20.0f);
 
-    map_render(g_state);
-    player_render(g_state);
-    enemies_render(g_state);
-    bullets_render(g_state);
+    map_render(state);
+    player_render(state);
+    enemies_render(state);
+    bullets_render(state);
 }

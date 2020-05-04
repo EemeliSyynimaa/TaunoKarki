@@ -51,11 +51,16 @@ typedef struct game_input
     s32 mouse_y;
 } game_input;
 
+typedef struct game_memory
+{
+    void* base;
+    u64 size;
+} game_memory;
+
 typedef u64 file_handle;
 
-void game_init(s32 screen_width, s32 screen_height, s8* memory,
-    u64 memory_size);
-void game_update(game_input* input);
+void game_init(game_memory* memory, s32 screen_width, s32 screen_height);
+void game_update(game_memory* memory, game_input* input);
 
 void file_open(file_handle* file, s8* path);
 void file_close(file_handle* file);
