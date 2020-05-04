@@ -59,9 +59,6 @@ typedef struct game_memory
 
 typedef u64 file_handle;
 
-void game_init(game_memory* memory, s32 screen_width, s32 screen_height);
-void game_update(game_memory* memory, game_input* input);
-
 void file_open(file_handle* file, s8* path);
 void file_close(file_handle* file);
 void file_read(file_handle* file, s8* data, u64 bytes_max, u64* bytes_read);

@@ -7,11 +7,36 @@
 
 #include "platform.h"
 #include "opengl.c"
-#include "math.c"
-#include "game.c"
 
 b32 running;
 LARGE_INTEGER query_performance_frequency;
+
+HMODULE game_lib;
+
+typedef void game_init(game_memory*, s32, s32);
+typedef void game_update(game_memory*, game_input*);
+game_init* win32_game_init;
+game_update* win32_game_update;
+
+void game_lib_load()
+{
+    debug_log("Trying to load new game lib...");
+    if (game_lib)
+    {
+        FreeLibrary(game_lib);
+        win32_game_init = 0;
+        win32_game_update = 0;
+    }
+
+    CopyFileA("game.dll", "game-run.dll", FALSE);
+
+    game_lib = LoadLibraryA("game-run.dll");
+
+    win32_game_update = (game_update*)GetProcAddress(game_lib, "game_update");
+    win32_game_init = (game_init*)GetProcAddress(game_lib, "game_init");
+
+    debug_log("done\n");
+}
 
 void debug_log(s8* format, ...)
 {
@@ -322,12 +347,16 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     assert(memory.base);
 
-    game_init(&memory, screen_width, screen_height);
+    game_lib_load();
+
+    win32_game_init(&memory, screen_width, screen_height);
 
     game_input old_input = { 0 };
 
     LARGE_INTEGER old_time = current_time_get();
     running = true;
+
+    FILETIME game_lib_write_time_last = { 0 };
 
     while (running)
     {
@@ -409,6 +438,20 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             }
         }
 
+        WIN32_FILE_ATTRIBUTE_DATA data;
+        
+        GetFileAttributesEx("game.dll", GetFileExInfoStandard, &data);
+        
+        FILETIME game_lib_write_time = data.ftLastWriteTime;
+        
+        if (CompareFileTime(&game_lib_write_time, 
+            &game_lib_write_time_last) != 0)
+        {
+            game_lib_write_time_last = game_lib_write_time;
+
+            game_lib_load();
+        }
+
         POINT mouse;
         RECT window_rect;
 
@@ -442,7 +485,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         new_input.shoot.key_down = 
             (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
 
-        game_update(&memory, &new_input);
+        win32_game_update(&memory, &new_input);
 
         SwapBuffers(hdc);
 
