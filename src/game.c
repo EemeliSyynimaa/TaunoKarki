@@ -125,6 +125,7 @@ u8 map_data[] =
 // Todo: create memory block struct with address and size
 s8* memory_base;
 s8* memory_current;
+s8* memory_last;
 u64 memory_size;
 
 void* memory_get(u64 size)
@@ -136,18 +137,15 @@ void* memory_get(u64 size)
         return 0;
     }
 
-    // Todo: error checking
-    void* memory_return = (void*)memory_current;
-
+    memory_last = memory_current;
     memory_current += size;
 
-    return memory_return;
+    return (void*)memory_last;
 }
 
-void memory_free(void* memory)
+void memory_free()
 {
-    // Todo: error checking!
-    memory_current = (s8*)memory;
+    memory_current = memory_last;
 }
 
 void generate_vertex_array(mesh* mesh, vertex* vertices, u32 num_vertices,
@@ -457,7 +455,7 @@ u32 texture_create(s8* path)
     tga_decode(file_data, read_bytes, pixel_data, &num_pixels, &width,
         &height);
 
-    memory_free(file_data);
+    memory_free();
 
     glGenTextures(1, &id);
     glBindTexture(target, id);
@@ -833,7 +831,7 @@ void mesh_create(s8* path, mesh* mesh)
         }
     }
 
-    memory_free(file_data);
+    memory_free();
 
     num_in_vertices = 0;
     num_in_faces = 0;
@@ -881,7 +879,7 @@ u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
     // Todo: remove memset
     memset((void*)file_data, 0, file_size);
 
-    memory_free(file_data);
+    memory_free();
 
     file_open(&file, fragment_shader_path);
     file_size_get(&file, &file_size);
@@ -901,7 +899,7 @@ u32 program_create(s8* vertex_shader_path, s8* fragment_shader_path)
     // Todo: remove memset
     memset((void*)file_data, 0, file_size);
 
-    memory_free(file_data);
+    memory_free();
 
     glAttachShader(program, vertex_shader);
     glAttachShader(program, fragment_shader);
