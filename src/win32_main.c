@@ -1,12 +1,11 @@
 #include <windows.h>
-#include <stdio.h>
-#include <stdarg.h>
 #include <assert.h>
 
 #include "gl/gl.h"
 
 #include "platform.h"
 #include "opengl.c"
+#include "debug.c"
 
 b32 running;
 LARGE_INTEGER query_performance_frequency;
@@ -37,15 +36,6 @@ void game_lib_load()
     game_init = (type_game_init*)GetProcAddress(game_lib, "game_init");
 
     debug_log("done\n");
-}
-
-void debug_log(s8* format, ...)
-{
-    // Todo: implement own vfprintf function
-    va_list args;
-    va_start(args, format);
-    vfprintf(stderr, format, args);
-    va_end(args);
 }
 
 void input_process(key_state* state, b32 is_down)
