@@ -13,27 +13,28 @@ LARGE_INTEGER query_performance_frequency;
 
 HMODULE game_lib;
 
-typedef void game_init(game_memory*, s32, s32);
-typedef void game_update(game_memory*, game_input*);
-game_init* win32_game_init;
-game_update* win32_game_update;
+typedef void type_game_init(game_memory*, s32, s32);
+typedef void type_game_update(game_memory*, game_input*);
+type_game_init* game_init;
+type_game_update* game_update;
 
 void game_lib_load()
 {
-    debug_log("Trying to load new game lib...");
+    debug_log("Trying to load new game lib... ");
+
     if (game_lib)
     {
         FreeLibrary(game_lib);
-        win32_game_init = 0;
-        win32_game_update = 0;
+        game_init = 0;
+        game_update = 0;
     }
 
     CopyFileA("game.dll", "game-run.dll", FALSE);
 
     game_lib = LoadLibraryA("game-run.dll");
 
-    win32_game_update = (game_update*)GetProcAddress(game_lib, "game_update");
-    win32_game_init = (game_init*)GetProcAddress(game_lib, "game_init");
+    game_update = (type_game_update*)GetProcAddress(game_lib, "game_update");
+    game_init = (type_game_init*)GetProcAddress(game_lib, "game_init");
 
     debug_log("done\n");
 }
@@ -349,7 +350,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     game_lib_load();
 
-    win32_game_init(&memory, screen_width, screen_height);
+    game_init(&memory, screen_width, screen_height);
 
     game_input old_input = { 0 };
 
@@ -485,7 +486,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         new_input.shoot.key_down = 
             (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
 
-        win32_game_update(&memory, &new_input);
+        game_update(&memory, &new_input);
 
         SwapBuffers(hdc);
 
