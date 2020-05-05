@@ -1,11 +1,9 @@
 #include <windows.h>
 #include <assert.h>
 
-#include "gl/gl.h"
-
 #include "platform.h"
-#include "opengl.h"
 #include "debug.c"
+#include "win32_opengl.h"
 
 b32 running;
 LARGE_INTEGER query_performance_frequency;

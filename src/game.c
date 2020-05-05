@@ -1,6 +1,7 @@
 #include "platform.h"
 #include "math.c"
 #include "debug.c"
+#include "opengl.h"
 
 typedef struct game_player
 {

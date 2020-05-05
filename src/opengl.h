@@ -10,76 +10,55 @@
 #define GL_MAJOR_VERSION                       0x821B
 #define GL_MINOR_VERSION                       0x821C
 
-#define WGL_DRAW_TO_WINDOW_ARB                 0x2001
-#define WGL_SUPPORT_OPENGL_ARB                 0x2010
-#define WGL_DOUBLE_BUFFER_ARB                  0x2011
-#define WGL_ACCELERATION_ARB                   0x2003
-#define WGL_FULL_ACCELERATION_ARB              0x2027
-#define WGL_PIXEL_TYPE_ARB                     0x2013
-#define WGL_TYPE_RGBA_ARB                      0x202B
-#define WGL_COLOR_BITS_ARB                     0x2014
-#define WGL_DEPTH_BITS_ARB                     0x2022
-#define WGL_ALPHA_BITS_ARB                     0x201B
-#define WGL_CONTEXT_FLAGS_ARB                  0x2094
-#define WGL_CONTEXT_DEBUG_BIT_ARB              0x00000001
-#define WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB 0x00000002
-#define WGL_CONTEXT_MAJOR_VERSION_ARB          0x2091
-#define WGL_CONTEXT_MINOR_VERSION_ARB          0x2092
-#define WGL_CONTEXT_PROFILE_MASK_ARB           0x9126
-#define WGL_CONTEXT_CORE_PROFILE_BIT_ARB       0x00000001
-
 #define OPEN_GL_FUNCTION(name) type_##name* name;
-#define OPEN_GL_FUNCTION_LOAD(name) name = \
-    (type_##name*)wglGetProcAddress(#name);
 
-// typedef signed   long long int khronos_intptr_t;
-// typedef unsigned long long int khronos_uintptr_t;
-// typedef signed   long long int khronos_ssize_t;
-// typedef unsigned long long int khronos_usize_t;
+typedef u64 GLsizeiptr;
+typedef u32 GLenum;
+typedef u32 GLbitfield;
+typedef u32 GLuint;
+typedef s32 GLint;
+typedef s32 GLsizei;
+typedef f32 GLfloat;
+typedef f32 GLclampf;
+typedef u16 GLushort;
+typedef s8 GLchar;
+typedef u8 GLboolean;
+typedef s8 GLbyte;
+typedef u8 GLubyte;
+typedef void GLvoid;
 
-typedef long long int GLsizeiptr;
-typedef char GLchar;
-
-typedef HGLRC WINAPI type_wglCreateContextAttribsARB(HDC hDC, 
-    HGLRC hShareContext, const int *attribList);
-typedef BOOL WINAPI type_wglChoosePixelFormatARB(HDC hdc,
-    const int *piAttribIList, const float *pfAttribFList, UINT nMaxFormats,
-    int *piFormats, UINT *nNumFormats);
-
-typedef GLint WINAPI type_glGetUniformLocation (GLuint program,
+typedef GLint type_glGetUniformLocation(GLuint program,
     const GLchar *name);
-typedef GLuint WINAPI type_glCreateProgram(void);
-typedef GLuint WINAPI type_glCreateShader(GLenum type);
-typedef void WINAPI type_glShaderSource(GLuint shader, GLsizei count,
+typedef GLuint type_glCreateProgram(void);
+typedef GLuint type_glCreateShader(GLenum type);
+typedef void type_glShaderSource(GLuint shader, GLsizei count,
     const GLchar *const*string, const GLint *length);
-typedef void WINAPI type_glCompileShader(GLuint shader);
-typedef void WINAPI type_glGetShaderiv(GLuint shader, GLenum pname,
+typedef void type_glCompileShader(GLuint shader);
+typedef void type_glGetShaderiv(GLuint shader, GLenum pname,
     GLint *params);
-typedef void WINAPI type_glAttachShader(GLuint program, GLuint shader);
-typedef void WINAPI type_glLinkProgram(GLuint program);
-typedef void WINAPI type_glGetProgramiv(GLuint program, GLenum pname,
+typedef void type_glAttachShader(GLuint program, GLuint shader);
+typedef void type_glLinkProgram(GLuint program);
+typedef void type_glGetProgramiv(GLuint program, GLenum pname,
     GLint *params);
-typedef void WINAPI type_glDeleteShader(GLuint shader);
-typedef void WINAPI type_glDeleteProgram(GLuint program);
-typedef void WINAPI type_glUseProgram(GLuint program);
-typedef void WINAPI type_glDeleteBuffers(GLsizei n, const GLuint *buffers);
-typedef void WINAPI type_glBindBuffer(GLenum target, GLuint buffer);
-typedef void WINAPI type_glEnableVertexAttribArray(GLuint index);
-typedef void WINAPI type_glDisableVertexAttribArray(GLuint index);
-typedef void WINAPI type_glVertexAttribPointer(GLuint index, GLint size,
+typedef void type_glDeleteShader(GLuint shader);
+typedef void type_glDeleteProgram(GLuint program);
+typedef void type_glUseProgram(GLuint program);
+typedef void type_glDeleteBuffers(GLsizei n, const GLuint *buffers);
+typedef void type_glBindBuffer(GLenum target, GLuint buffer);
+typedef void type_glEnableVertexAttribArray(GLuint index);
+typedef void type_glDisableVertexAttribArray(GLuint index);
+typedef void type_glVertexAttribPointer(GLuint index, GLint size,
     GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
-typedef void WINAPI type_glUniform1i(GLint location, GLint v0);
-typedef void WINAPI type_glUniformMatrix4fv(GLint location, GLsizei count,
+typedef void type_glUniform1i(GLint location, GLint v0);
+typedef void type_glUniformMatrix4fv(GLint location, GLsizei count,
     GLboolean transpose, const GLfloat *value);
-typedef void WINAPI type_glGenBuffers(GLsizei n, GLuint *buffers);
-typedef void WINAPI type_glBufferData(GLenum target, GLsizeiptr size,
+typedef void type_glGenBuffers(GLsizei n, GLuint *buffers);
+typedef void type_glBufferData(GLenum target, GLsizeiptr size,
     const void *data, GLenum usage);
-typedef void WINAPI type_glGenVertexArrays(GLsizei n, GLuint *arrays);
-typedef void WINAPI type_glBindVertexArray(GLuint array);
-typedef void WINAPI type_glActiveTexture(GLenum texture);
+typedef void type_glGenVertexArrays(GLsizei n, GLuint *arrays);
+typedef void type_glBindVertexArray(GLuint array);
+typedef void type_glActiveTexture(GLenum texture);
 
-OPEN_GL_FUNCTION(wglCreateContextAttribsARB);
-OPEN_GL_FUNCTION(wglChoosePixelFormatARB);
 OPEN_GL_FUNCTION(glGetUniformLocation);
 OPEN_GL_FUNCTION(glCreateProgram);
 OPEN_GL_FUNCTION(glCreateShader);
