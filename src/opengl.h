@@ -27,19 +27,16 @@ typedef s8 GLbyte;
 typedef u8 GLubyte;
 typedef void GLvoid;
 
-typedef GLint type_glGetUniformLocation(GLuint program,
-    const GLchar *name);
+typedef GLint type_glGetUniformLocation(GLuint program, const GLchar *name);
 typedef GLuint type_glCreateProgram(void);
 typedef GLuint type_glCreateShader(GLenum type);
 typedef void type_glShaderSource(GLuint shader, GLsizei count,
     const GLchar *const*string, const GLint *length);
 typedef void type_glCompileShader(GLuint shader);
-typedef void type_glGetShaderiv(GLuint shader, GLenum pname,
-    GLint *params);
+typedef void type_glGetShaderiv(GLuint shader, GLenum pname, GLint *params);
 typedef void type_glAttachShader(GLuint program, GLuint shader);
 typedef void type_glLinkProgram(GLuint program);
-typedef void type_glGetProgramiv(GLuint program, GLenum pname,
-    GLint *params);
+typedef void type_glGetProgramiv(GLuint program, GLenum pname, GLint *params);
 typedef void type_glDeleteShader(GLuint shader);
 typedef void type_glDeleteProgram(GLuint program);
 typedef void type_glUseProgram(GLuint program);
@@ -47,8 +44,8 @@ typedef void type_glDeleteBuffers(GLsizei n, const GLuint *buffers);
 typedef void type_glBindBuffer(GLenum target, GLuint buffer);
 typedef void type_glEnableVertexAttribArray(GLuint index);
 typedef void type_glDisableVertexAttribArray(GLuint index);
-typedef void type_glVertexAttribPointer(GLuint index, GLint size,
-    GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
+typedef void type_glVertexAttribPointer(GLuint index, GLint size, GLenum type,
+    GLboolean normalized, GLsizei stride, const void *pointer);
 typedef void type_glUniform1i(GLint location, GLint v0);
 typedef void type_glUniformMatrix4fv(GLint location, GLsizei count,
     GLboolean transpose, const GLfloat *value);
@@ -58,6 +55,7 @@ typedef void type_glBufferData(GLenum target, GLsizeiptr size,
 typedef void type_glGenVertexArrays(GLsizei n, GLuint *arrays);
 typedef void type_glBindVertexArray(GLuint array);
 typedef void type_glActiveTexture(GLenum texture);
+typedef void type_glGetIntegerv(GLenum pname, GLint* data);
 
 OPEN_GL_FUNCTION(glGetUniformLocation);
 OPEN_GL_FUNCTION(glCreateProgram);
@@ -83,3 +81,4 @@ OPEN_GL_FUNCTION(glBufferData);
 OPEN_GL_FUNCTION(glGenVertexArrays);
 OPEN_GL_FUNCTION(glBindVertexArray);
 OPEN_GL_FUNCTION(glActiveTexture);
+OPEN_GL_FUNCTION(glGetIntegerv);

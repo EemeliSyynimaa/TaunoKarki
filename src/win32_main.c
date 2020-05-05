@@ -186,6 +186,14 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     return 0;
 }
 
+opengl_functions gl;
+
+#define OPEN_GL_FUNCTION_LOAD(name) gl.name = \
+    (type_##name*)wglGetProcAddress(#name)
+
+#define OPEN_WGL_FUNCTION_LOAD(name) name = \
+    (type_##name*)wglGetProcAddress(#name)
+
 s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, 
     LPSTR lpCmdLine, int nCmdShow)
 {
@@ -226,8 +234,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     wglMakeCurrent(dummy_dc, dummy_context);
 
-    OPEN_GL_FUNCTION_LOAD(wglCreateContextAttribsARB);
-    OPEN_GL_FUNCTION_LOAD(wglChoosePixelFormatARB);
+    OPEN_WGL_FUNCTION_LOAD(wglCreateContextAttribsARB);
+    OPEN_WGL_FUNCTION_LOAD(wglChoosePixelFormatARB);
 
     s32 pf = 0;
     s32 screen_width = 1920;
