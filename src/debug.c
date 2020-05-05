@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+// Todo: implement as a macro
 void debug_log(s8* format, ...)
 {
     // Todo: implement own vfprintf function

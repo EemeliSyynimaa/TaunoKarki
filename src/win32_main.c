@@ -4,7 +4,7 @@
 #include "gl/gl.h"
 
 #include "platform.h"
-#include "opengl.c"
+#include "opengl.h"
 #include "debug.c"
 
 b32 running;
