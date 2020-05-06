@@ -66,4 +66,5 @@ void file_size_get(file_handle* file, u64* file_size);
 
 void debug_log(s8* format, ...);
 
+
 #endif

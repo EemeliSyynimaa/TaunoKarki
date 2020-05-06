@@ -12,8 +12,10 @@ HMODULE game_lib;
 
 typedef void type_game_init(game_memory*, s32, s32);
 typedef void type_game_update(game_memory*, game_input*);
+typedef void type_opengl_functions_set(opengl_functions*);
 type_game_init* game_init;
 type_game_update* game_update;
+type_opengl_functions_set* opengl_functions_set;
 
 void game_lib_load()
 {
@@ -24,6 +26,7 @@ void game_lib_load()
         FreeLibrary(game_lib);
         game_init = 0;
         game_update = 0;
+        opengl_functions_set = 0;
     }
 
     CopyFileA("game.dll", "game-run.dll", FALSE);
@@ -32,6 +35,8 @@ void game_lib_load()
 
     game_update = (type_game_update*)GetProcAddress(game_lib, "game_update");
     game_init = (type_game_init*)GetProcAddress(game_lib, "game_init");
+    opengl_functions_set = (type_opengl_functions_set*)GetProcAddress(
+        game_lib, "opengl_functions_set");
 
     debug_log("done\n");
 }
@@ -194,6 +199,8 @@ opengl_functions gl;
 #define OPEN_WGL_FUNCTION_LOAD(name) name = \
     (type_##name*)wglGetProcAddress(#name)
 
+#define OPEN_GL_FUNCTION_COPY(name) gl.name = name
+
 s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, 
     LPSTR lpCmdLine, int nCmdShow)
 {
@@ -323,6 +330,11 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     OPEN_GL_FUNCTION_LOAD(glGenVertexArrays);
     OPEN_GL_FUNCTION_LOAD(glBindVertexArray);
     OPEN_GL_FUNCTION_LOAD(glActiveTexture);
+    OPEN_GL_FUNCTION_COPY(glGetIntegerv);
+    OPEN_GL_FUNCTION_COPY(glEnable);
+    OPEN_GL_FUNCTION_COPY(glDepthFunc);
+    OPEN_GL_FUNCTION_COPY(glClearColor);
+    OPEN_GL_FUNCTION_COPY(glClear);
 
     wglMakeCurrent(dummy_dc, 0);
     wglDeleteContext(dummy_context);
@@ -345,6 +357,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     assert(memory.base);
 
     game_lib_load();
+
+    opengl_functions_set(&gl);
 
     game_init(&memory, screen_width, screen_height);
 
@@ -447,6 +461,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             game_lib_write_time_last = game_lib_write_time;
 
             game_lib_load();
+
+            opengl_functions_set(&gl);
         }
 
         POINT mouse;

@@ -1,16 +1,21 @@
-#define GL_VERTEX_SHADER                       0x8B31
-#define GL_FRAGMENT_SHADER                     0x8B30
-#define GL_COMPILE_STATUS                      0x8B81
-#define GL_LINK_STATUS                         0x8B82
-#define GL_ELEMENT_ARRAY_BUFFER                0x8893
-#define GL_ARRAY_BUFFER                        0x8892
-#define GL_TEXTURE0                            0x84C0
-#define GL_DYNAMIC_DRAW                        0x88E8
-#define GL_STATIC_DRAW                         0x88E4
-#define GL_MAJOR_VERSION                       0x821B
-#define GL_MINOR_VERSION                       0x821C
+#include "opengl_api.h"
 
-#define OPEN_GL_FUNCTION(name) type_##name* name;
+#define GL_VERTEX_SHADER                        0x8B31
+#define GL_FRAGMENT_SHADER                      0x8B30
+#define GL_COMPILE_STATUS                       0x8B81
+#define GL_LINK_STATUS                          0x8B82
+#define GL_ELEMENT_ARRAY_BUFFER                 0x8893
+#define GL_ARRAY_BUFFER                         0x8892
+#define GL_TEXTURE0                             0x84C0
+#define GL_DYNAMIC_DRAW                         0x88E8
+#define GL_STATIC_DRAW                          0x88E4
+#define GL_MAJOR_VERSION                        0x821B
+#define GL_MINOR_VERSION                        0x821C
+#define GL_DEPTH_TEST                           0x0B71
+#define GL_LESS                                 0x0201
+#define GL_CULL_FACE                            0x0B44
+#define GL_COLOR_BUFFER_BIT                     0x00004000
+#define GL_DEPTH_BUFFER_BIT                     0x00000100
 
 typedef u64 GLsizeiptr;
 typedef u32 GLenum;
@@ -26,36 +31,6 @@ typedef u8 GLboolean;
 typedef s8 GLbyte;
 typedef u8 GLubyte;
 typedef void GLvoid;
-
-typedef GLint type_glGetUniformLocation(GLuint program, const GLchar *name);
-typedef GLuint type_glCreateProgram(void);
-typedef GLuint type_glCreateShader(GLenum type);
-typedef void type_glShaderSource(GLuint shader, GLsizei count,
-    const GLchar *const*string, const GLint *length);
-typedef void type_glCompileShader(GLuint shader);
-typedef void type_glGetShaderiv(GLuint shader, GLenum pname, GLint *params);
-typedef void type_glAttachShader(GLuint program, GLuint shader);
-typedef void type_glLinkProgram(GLuint program);
-typedef void type_glGetProgramiv(GLuint program, GLenum pname, GLint *params);
-typedef void type_glDeleteShader(GLuint shader);
-typedef void type_glDeleteProgram(GLuint program);
-typedef void type_glUseProgram(GLuint program);
-typedef void type_glDeleteBuffers(GLsizei n, const GLuint *buffers);
-typedef void type_glBindBuffer(GLenum target, GLuint buffer);
-typedef void type_glEnableVertexAttribArray(GLuint index);
-typedef void type_glDisableVertexAttribArray(GLuint index);
-typedef void type_glVertexAttribPointer(GLuint index, GLint size, GLenum type,
-    GLboolean normalized, GLsizei stride, const void *pointer);
-typedef void type_glUniform1i(GLint location, GLint v0);
-typedef void type_glUniformMatrix4fv(GLint location, GLsizei count,
-    GLboolean transpose, const GLfloat *value);
-typedef void type_glGenBuffers(GLsizei n, GLuint *buffers);
-typedef void type_glBufferData(GLenum target, GLsizeiptr size,
-    const void *data, GLenum usage);
-typedef void type_glGenVertexArrays(GLsizei n, GLuint *arrays);
-typedef void type_glBindVertexArray(GLuint array);
-typedef void type_glActiveTexture(GLenum texture);
-typedef void type_glGetIntegerv(GLenum pname, GLint* data);
 
 OPEN_GL_FUNCTION(glGetUniformLocation);
 OPEN_GL_FUNCTION(glCreateProgram);
@@ -82,3 +57,46 @@ OPEN_GL_FUNCTION(glGenVertexArrays);
 OPEN_GL_FUNCTION(glBindVertexArray);
 OPEN_GL_FUNCTION(glActiveTexture);
 OPEN_GL_FUNCTION(glGetIntegerv);
+OPEN_GL_FUNCTION(glEnable);
+OPEN_GL_FUNCTION(glDisable);
+OPEN_GL_FUNCTION(glDepthFunc);
+OPEN_GL_FUNCTION(glClearColor);
+OPEN_GL_FUNCTION(glClear);
+
+#define OPEN_GL_FUNCTION_COPY(name) name = gl->##name
+
+void opengl_functions_set(opengl_functions* gl)
+{
+    debug_log("Copying opengl functions...");
+    OPEN_GL_FUNCTION_COPY(glGetUniformLocation);
+    OPEN_GL_FUNCTION_COPY(glCreateProgram);
+    OPEN_GL_FUNCTION_COPY(glCreateShader);
+    OPEN_GL_FUNCTION_COPY(glShaderSource);
+    OPEN_GL_FUNCTION_COPY(glCompileShader);
+    OPEN_GL_FUNCTION_COPY(glGetShaderiv);
+    OPEN_GL_FUNCTION_COPY(glAttachShader);
+    OPEN_GL_FUNCTION_COPY(glLinkProgram);
+    OPEN_GL_FUNCTION_COPY(glGetProgramiv);
+    OPEN_GL_FUNCTION_COPY(glDeleteShader);
+    OPEN_GL_FUNCTION_COPY(glDeleteProgram);
+    OPEN_GL_FUNCTION_COPY(glUseProgram);
+    OPEN_GL_FUNCTION_COPY(glDeleteBuffers);
+    OPEN_GL_FUNCTION_COPY(glBindBuffer);
+    OPEN_GL_FUNCTION_COPY(glEnableVertexAttribArray);
+    OPEN_GL_FUNCTION_COPY(glDisableVertexAttribArray);
+    OPEN_GL_FUNCTION_COPY(glVertexAttribPointer);
+    OPEN_GL_FUNCTION_COPY(glUniform1i);
+    OPEN_GL_FUNCTION_COPY(glUniformMatrix4fv);
+    OPEN_GL_FUNCTION_COPY(glGenBuffers);
+    OPEN_GL_FUNCTION_COPY(glBufferData);
+    OPEN_GL_FUNCTION_COPY(glGenVertexArrays);
+    OPEN_GL_FUNCTION_COPY(glBindVertexArray);
+    OPEN_GL_FUNCTION_COPY(glActiveTexture);
+    OPEN_GL_FUNCTION_COPY(glGetIntegerv);
+    OPEN_GL_FUNCTION_COPY(glEnable);
+    OPEN_GL_FUNCTION_COPY(glDisable);
+    OPEN_GL_FUNCTION_COPY(glDepthFunc);
+    OPEN_GL_FUNCTION_COPY(glClearColor);
+    OPEN_GL_FUNCTION_COPY(glClear);
+    debug_log("done\n");
+}

@@ -1,4 +1,5 @@
 #include "gl/gl.h"
+#include "opengl_api.h"
 
 #define WGL_DRAW_TO_WINDOW_ARB                 0x2001
 #define WGL_SUPPORT_OPENGL_ARB                 0x2010
@@ -18,81 +19,19 @@
 #define WGL_CONTEXT_PROFILE_MASK_ARB           0x9126
 #define WGL_CONTEXT_CORE_PROFILE_BIT_ARB       0x00000001
 
-#define OPEN_GL_FUNCTION(name) type_##name* name
-
-// typedef signed   long long int khronos_intptr_t;
-// typedef unsigned long long int khronos_uintptr_t;
-// typedef signed   long long int khronos_ssize_t;
-// typedef unsigned long long int khronos_usize_t;
-
-typedef long long int GLsizeiptr;
-typedef char GLchar;
-
 typedef HGLRC WINAPI type_wglCreateContextAttribsARB(HDC hDC, 
     HGLRC hShareContext, const int *attribList);
 typedef BOOL WINAPI type_wglChoosePixelFormatARB(HDC hdc,
     const int *piAttribIList, const float *pfAttribFList, UINT nMaxFormats,
     int *piFormats, UINT *nNumFormats);
 
-typedef GLint WINAPI type_glGetUniformLocation (GLuint program,
-    const GLchar *name);
-typedef GLuint WINAPI type_glCreateProgram(void);
-typedef GLuint WINAPI type_glCreateShader(GLenum type);
-typedef void WINAPI type_glShaderSource(GLuint shader, GLsizei count,
-    const GLchar *const*string, const GLint *length);
-typedef void WINAPI type_glCompileShader(GLuint shader);
-typedef void WINAPI type_glGetShaderiv(GLuint shader, GLenum pname,
-    GLint *params);
-typedef void WINAPI type_glAttachShader(GLuint program, GLuint shader);
-typedef void WINAPI type_glLinkProgram(GLuint program);
-typedef void WINAPI type_glGetProgramiv(GLuint program, GLenum pname,
-    GLint *params);
-typedef void WINAPI type_glDeleteShader(GLuint shader);
-typedef void WINAPI type_glDeleteProgram(GLuint program);
-typedef void WINAPI type_glUseProgram(GLuint program);
-typedef void WINAPI type_glDeleteBuffers(GLsizei n, const GLuint *buffers);
-typedef void WINAPI type_glBindBuffer(GLenum target, GLuint buffer);
-typedef void WINAPI type_glEnableVertexAttribArray(GLuint index);
-typedef void WINAPI type_glDisableVertexAttribArray(GLuint index);
-typedef void WINAPI type_glVertexAttribPointer(GLuint index, GLint size,
-    GLenum type, GLboolean normalized, GLsizei stride, const void *pointer);
-typedef void WINAPI type_glUniform1i(GLint location, GLint v0);
-typedef void WINAPI type_glUniformMatrix4fv(GLint location, GLsizei count,
-    GLboolean transpose, const GLfloat *value);
-typedef void WINAPI type_glGenBuffers(GLsizei n, GLuint *buffers);
-typedef void WINAPI type_glBufferData(GLenum target, GLsizeiptr size,
-    const void *data, GLenum usage);
-typedef void WINAPI type_glGenVertexArrays(GLsizei n, GLuint *arrays);
-typedef void WINAPI type_glBindVertexArray(GLuint array);
-typedef void WINAPI type_glActiveTexture(GLenum texture);
-
 OPEN_GL_FUNCTION(wglCreateContextAttribsARB);
 OPEN_GL_FUNCTION(wglChoosePixelFormatARB);
 
-typedef struct opengl_functions
-{
-    OPEN_GL_FUNCTION(glGetUniformLocation);
-    OPEN_GL_FUNCTION(glCreateProgram);
-    OPEN_GL_FUNCTION(glCreateShader);
-    OPEN_GL_FUNCTION(glShaderSource);
-    OPEN_GL_FUNCTION(glCompileShader);
-    OPEN_GL_FUNCTION(glGetShaderiv);
-    OPEN_GL_FUNCTION(glAttachShader);
-    OPEN_GL_FUNCTION(glLinkProgram);
-    OPEN_GL_FUNCTION(glGetProgramiv);
-    OPEN_GL_FUNCTION(glDeleteShader);
-    OPEN_GL_FUNCTION(glDeleteProgram);
-    OPEN_GL_FUNCTION(glUseProgram);
-    OPEN_GL_FUNCTION(glDeleteBuffers);
-    OPEN_GL_FUNCTION(glBindBuffer);
-    OPEN_GL_FUNCTION(glEnableVertexAttribArray);
-    OPEN_GL_FUNCTION(glDisableVertexAttribArray);
-    OPEN_GL_FUNCTION(glVertexAttribPointer);
-    OPEN_GL_FUNCTION(glUniform1i);
-    OPEN_GL_FUNCTION(glUniformMatrix4fv);
-    OPEN_GL_FUNCTION(glGenBuffers);
-    OPEN_GL_FUNCTION(glBufferData);
-    OPEN_GL_FUNCTION(glGenVertexArrays);
-    OPEN_GL_FUNCTION(glBindVertexArray);
-    OPEN_GL_FUNCTION(glActiveTexture);
-} opengl_functions;
+// Todo:
+// - siirrä opengl_functions opengl.h
+// - linkkaa se tähän headeriin
+// - lisää glGetIntegerv yms.
+// - aseta funktioiden pointterit win32_mainissa
+// - lähetä pointterit gamelle
+// - game ottaa ne käyttöön
