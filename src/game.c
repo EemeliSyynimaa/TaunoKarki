@@ -929,13 +929,13 @@ void game_init(game_memory* memory, s32 screen_width, s32 screen_height)
     // - get opengl functions from the platform layer
     // - get file functions from the platform layer
 
-    // glGetIntegerv(GL_MAJOR_VERSION, &version_major);
-    // glGetIntegerv(GL_MINOR_VERSION, &version_minor);
+    glGetIntegerv(GL_MAJOR_VERSION, &version_major);
+    glGetIntegerv(GL_MINOR_VERSION, &version_minor);
 
-    // glEnable(GL_DEPTH_TEST);
-    // glDepthFunc(GL_LESS);
-    // glEnable(GL_CULL_FACE);
-    // glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_CULL_FACE);
+    glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
     debug_log("OpenGL %i.%i\n", version_major, version_minor);
 
@@ -987,9 +987,9 @@ void game_init(game_memory* memory, s32 screen_width, s32 screen_height)
 
 void game_update(game_memory* memory, game_input* input)
 {
-    // game_state* state = (game_state*)memory->base;
+    game_state* state = (game_state*)memory->base;
 
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     // f32 step = 1.0f / 60.0f;
     // state->accumulator += input->delta_time;
