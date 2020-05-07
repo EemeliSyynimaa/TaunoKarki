@@ -49,7 +49,14 @@ typedef void type_glDisable(u32 cap);
 typedef void type_glDepthFunc(u32 func);
 typedef void type_glClearColor(f32 red, f32 green, f32 blue, f32 alpha);
 typedef void type_glClear(u32 mask);
-
+typedef void type_glBindTexture(u32 target, u32 texture);
+typedef void type_glDrawElements(u32 mode, s32 count, u32 type, 
+    const void* indices);
+typedef void type_glGenTextures(s32 n, u32* textures);
+typedef void type_glTexParameteri(u32 target, u32 pname, s32 param);
+typedef void type_glTexImage2D(u32 target, s32 level, s32 internalformat,
+    s32 width, s32 height, s32 border, u32 format, u32 type, 
+    const void* data);
 typedef struct opengl_functions
 {
     OPEN_GL_FUNCTION(glGetUniformLocation);
@@ -82,4 +89,9 @@ typedef struct opengl_functions
     OPEN_GL_FUNCTION(glDepthFunc);
     OPEN_GL_FUNCTION(glClearColor);
     OPEN_GL_FUNCTION(glClear);
+    OPEN_GL_FUNCTION(glBindTexture);
+    OPEN_GL_FUNCTION(glDrawElements);
+    OPEN_GL_FUNCTION(glGenTextures);
+    OPEN_GL_FUNCTION(glTexParameteri);
+    OPEN_GL_FUNCTION(glTexImage2D);
 } opengl_functions;

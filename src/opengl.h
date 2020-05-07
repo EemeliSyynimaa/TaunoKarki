@@ -16,6 +16,26 @@
 #define GL_CULL_FACE                            0x0B44
 #define GL_COLOR_BUFFER_BIT                     0x00004000
 #define GL_DEPTH_BUFFER_BIT                     0x00000100
+#define GL_BYTE                           0x1400
+#define GL_UNSIGNED_BYTE                  0x1401
+#define GL_SHORT                          0x1402
+#define GL_UNSIGNED_SHORT                 0x1403
+#define GL_INT                            0x1404
+#define GL_UNSIGNED_INT                   0x1405
+#define GL_FLOAT                          0x1406
+#define GL_2_BYTES                        0x1407
+#define GL_3_BYTES                        0x1408
+#define GL_4_BYTES                        0x1409
+#define GL_DOUBLE                         0x140A
+#define GL_TRUE                           1
+#define GL_FALSE                          0
+#define GL_TEXTURE_2D                     0x0DE1
+#define GL_TRIANGLES                      0x0004
+#define GL_TEXTURE_MAG_FILTER             0x2800
+#define GL_TEXTURE_MIN_FILTER             0x2801
+#define GL_NEAREST                        0x2600
+#define GL_LINEAR                         0x2601
+#define GL_RGBA                           0x1908
 
 typedef u64 GLsizeiptr;
 typedef u32 GLenum;
@@ -62,6 +82,11 @@ OPEN_GL_FUNCTION(glDisable);
 OPEN_GL_FUNCTION(glDepthFunc);
 OPEN_GL_FUNCTION(glClearColor);
 OPEN_GL_FUNCTION(glClear);
+OPEN_GL_FUNCTION(glBindTexture);
+OPEN_GL_FUNCTION(glDrawElements);
+OPEN_GL_FUNCTION(glGenTextures);
+OPEN_GL_FUNCTION(glTexParameteri);
+OPEN_GL_FUNCTION(glTexImage2D);
 
 #define OPEN_GL_FUNCTION_COPY(name) name = gl->##name
 
@@ -98,5 +123,10 @@ void opengl_functions_set(opengl_functions* gl)
     OPEN_GL_FUNCTION_COPY(glDepthFunc);
     OPEN_GL_FUNCTION_COPY(glClearColor);
     OPEN_GL_FUNCTION_COPY(glClear);
+    OPEN_GL_FUNCTION_COPY(glBindTexture);
+    OPEN_GL_FUNCTION_COPY(glDrawElements);
+    OPEN_GL_FUNCTION_COPY(glGenTextures);
+    OPEN_GL_FUNCTION_COPY(glTexParameteri);
+    OPEN_GL_FUNCTION_COPY(glTexImage2D);
     debug_log("done\n");
 }
