@@ -156,7 +156,11 @@ void file_read(file_handle* handle, s8* data, u64 bytes_max, u64* bytes_read)
             debug_log("Could not read from file\n");
         }
 
-        *bytes_read = num_bytes_read;
+        // Note: add zero to end
+        data += num_bytes_read;
+        *data = '\0';
+
+        *bytes_read = num_bytes_read + 1;
     }
     else
     {
@@ -174,7 +178,8 @@ void file_size_get(file_handle* handle, u64* file_size)
         LARGE_INTEGER size = { 0 };
         if (GetFileSizeEx(*win32_handle, &size))
         {
-            *file_size = size.QuadPart; 
+            // Note: reserve one byte for zero
+            *file_size = size.QuadPart + 1; 
         }
         else
         {
@@ -370,6 +375,11 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     OPEN_GL_FUNCTION_COPY(glDepthFunc);
     OPEN_GL_FUNCTION_COPY(glClearColor);
     OPEN_GL_FUNCTION_COPY(glClear);
+    OPEN_GL_FUNCTION_COPY(glBindTexture);
+    OPEN_GL_FUNCTION_COPY(glDrawElements);
+    OPEN_GL_FUNCTION_COPY(glGenTextures);
+    OPEN_GL_FUNCTION_COPY(glTexParameteri);
+    OPEN_GL_FUNCTION_COPY(glTexImage2D);
 
     wglMakeCurrent(dummy_dc, 0);
     wglDeleteContext(dummy_context);
