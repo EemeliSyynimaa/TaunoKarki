@@ -768,7 +768,7 @@ void mesh_create(memory_block* block, s8* path, mesh* mesh)
         }
         else if (str_compare(str, (s8*)"f"))
         {
-            debug_log("f");
+            // debug_log("f");
 
             for (u32 i = 0; i < 3; i++)
             {
@@ -781,20 +781,20 @@ void mesh_create(memory_block* block, s8* path, mesh* mesh)
 
                 u64 bytes_read = 0;
                 face[0] = s32_parse(s, &bytes_read); 
-                debug_log(" %d", face[0]);
-                s += bytes_read;
-                debug_log("%c", *s++);
+                // debug_log(" %d", face[0]);
+                s += bytes_read + 1;
+                // debug_log("%c", *s++);
                 face[1] = s32_parse(s, &bytes_read);
-                debug_log("%d", face[1]);
-                s += bytes_read;
-                debug_log("%c", *s++);
+                // debug_log("%d", face[1]);
+                s += bytes_read + 1;
+                // debug_log("%c", *s++);
                 face[2] = s32_parse(s, &bytes_read); 
-                debug_log("%d", face[2]);
+                // debug_log("%d", face[2]);
 
                 num_in_faces += 3;
             }
 
-            debug_log("\n");
+            // debug_log("\n");
         }
         else
         {
@@ -923,10 +923,6 @@ void game_init(game_memory* memory, s32 screen_width, s32 screen_height)
     s32 version_major = 0;
     s32 version_minor = 0;
 
-    // Todo:
-    // - get opengl functions from the platform layer
-    // - get file functions from the platform layer
-
     glGetIntegerv(GL_MAJOR_VERSION, &version_major);
     glGetIntegerv(GL_MINOR_VERSION, &version_minor);
 
@@ -1001,8 +997,7 @@ void game_update(game_memory* memory, game_input* input)
         bullets_update(state, input);
     }
 
-    state->view = m4_translate(-state->player.x, -state->player.y, 
-        -20.0f);
+    state->view = m4_translate(-state->player.x, -state->player.y, -20.0f);
 
     map_render(state);
     player_render(state);

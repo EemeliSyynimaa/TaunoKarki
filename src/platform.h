@@ -57,6 +57,4 @@ typedef struct game_memory
     u64 size;
 } game_memory;
 
-void debug_log(s8* format, ...);
-
 #endif
