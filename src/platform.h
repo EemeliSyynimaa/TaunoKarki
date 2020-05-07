@@ -57,14 +57,6 @@ typedef struct game_memory
     u64 size;
 } game_memory;
 
-typedef u64 file_handle;
-
-void file_open(file_handle* file, s8* path);
-void file_close(file_handle* file);
-void file_read(file_handle* file, s8* data, u64 bytes_max, u64* bytes_read);
-void file_size_get(file_handle* file, u64* file_size);
-
 void debug_log(s8* format, ...);
-
 
 #endif
