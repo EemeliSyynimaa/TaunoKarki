@@ -4,8 +4,9 @@
  - [X] Coding conventions
  - [X] Debug logging 
  - [X] Memory management
- - [ ] Game as a library
- - [ ] Hot reload
+ - [X] Game as a library
+ - [X] Hot reload
+ - [ ] Game-platform cleanup
  - [ ] Graphics cleanup
  - [ ] Player movement
  - [ ] Collision detection
