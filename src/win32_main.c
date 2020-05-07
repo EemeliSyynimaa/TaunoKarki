@@ -4,6 +4,7 @@
 #include "gl/gl.h"
 #include "platform.h"
 #include "opengl_api.h"
+#include "file_api.h"
 #include "debug.c"
 
 #define WGL_DRAW_TO_WINDOW_ARB                 0x2001
@@ -41,9 +42,11 @@ HMODULE game_lib;
 typedef void type_game_init(game_memory*, s32, s32);
 typedef void type_game_update(game_memory*, game_input*);
 typedef void type_opengl_functions_set(opengl_functions*);
+typedef void type_file_functions_set(file_functions*);
 type_game_init* game_init;
 type_game_update* game_update;
 type_opengl_functions_set* opengl_functions_set;
+type_file_functions_set* file_functions_set;
 
 void game_lib_load()
 {
@@ -55,6 +58,7 @@ void game_lib_load()
         game_init = 0;
         game_update = 0;
         opengl_functions_set = 0;
+        file_functions_set = 0;
     }
 
     CopyFileA("game.dll", "game-run.dll", FALSE);
@@ -65,6 +69,8 @@ void game_lib_load()
     game_init = (type_game_init*)GetProcAddress(game_lib, "game_init");
     opengl_functions_set = (type_opengl_functions_set*)GetProcAddress(
         game_lib, "opengl_functions_set");
+    file_functions_set = (type_file_functions_set*)GetProcAddress(game_lib,
+        "file_functions_set");
 
     debug_log("done\n");
 }
@@ -219,6 +225,7 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     return 0;
 }
 
+file_functions file;
 opengl_functions gl;
 
 #define OPEN_GL_FUNCTION_LOAD(name) gl.name = \
@@ -375,6 +382,11 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     
     ShowWindow(hwnd, nCmdShow);
 
+    file.file_open = file_open;
+    file.file_close = file_close;
+    file.file_read = file_read;
+    file.file_size_get = file_size_get;
+
     QueryPerformanceFrequency(&query_performance_frequency);
 
     game_memory memory = { 0 };
@@ -387,6 +399,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     game_lib_load();
 
     opengl_functions_set(&gl);
+    file_functions_set(&file);
 
     game_init(&memory, screen_width, screen_height);
 
@@ -491,6 +504,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             game_lib_load();
 
             opengl_functions_set(&gl);
+            file_functions_set(&file);
         }
 
         POINT mouse;

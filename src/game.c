@@ -2,6 +2,7 @@
 #include "math.c"
 #include "debug.c"
 #include "opengl.h"
+#include "file.h"
 
 typedef struct game_player
 {
