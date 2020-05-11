@@ -920,87 +920,104 @@ void game_init(game_memory* memory, s32 screen_width, s32 screen_height)
 {
     game_state* state = (game_state*)memory->base;
 
-    s32 version_major = 0;
-    s32 version_minor = 0;
-
-    glGetIntegerv(GL_MAJOR_VERSION, &version_major);
-    glGetIntegerv(GL_MINOR_VERSION, &version_minor);
-
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-    glEnable(GL_CULL_FACE);
-    glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
-
-    debug_log("OpenGL %i.%i\n", version_major, version_minor);
-
-    state->temporary.base = (s8*)state + sizeof(game_state);
-    state->temporary.last = state->temporary.base;
-    state->temporary.current = state->temporary.base;
-    state->temporary.size = 100*1024*1024;
-
-    state->shader = program_create(&state->temporary,
-        "assets/shaders/vertex.glsl",
-        "assets/shaders/fragment.glsl");
-
-    state->texture_tileset = texture_create(&state->temporary,
-        "assets/textures/tileset.tga");
-    state->texture_sphere = texture_create(&state->temporary,
-        "assets/textures/sphere.tga");
-    state->texture_player = texture_create(&state->temporary,
-        "assets/textures/cube.tga");
-    state->texture_enemy = texture_create(&state->temporary, 
-        "assets/textures/enemy.tga");
-
-    state->screen_width = screen_width;
-    state->screen_height = screen_height;
-    state->perspective = m4_perspective(60.0f, 
-        (f32)state->screen_width/(f32)state->screen_height, 0.1f, 100.0f);
-
-    state->player.x = 7.0f;
-    state->player.y = 6.0f;
-
-    state->level = 10;
-    
-    mesh_create(&state->temporary, "assets/meshes/cube.mesh",
-        &state->cube);
-    mesh_create(&state->temporary, "assets/meshes/sphere.mesh",
-        &state->sphere);
-    mesh_create(&state->temporary, "assets/meshes/wall.mesh",
-        &state->wall);
-    mesh_create(&state->temporary, "assets/meshes/floor.mesh",
-        &state->floor);
-
-    while (state->num_enemies < MAX_ENEMIES)
+    if (!memory->initialized)
     {
-        game_enemy* enemy = &state->enemies[state->num_enemies++];
-            
-        enemy->x = 5.0f - state->num_enemies * 5.0f;
-        enemy->y = 0.0f;
+        s32 version_major = 0;
+        s32 version_minor = 0;
+
+        glGetIntegerv(GL_MAJOR_VERSION, &version_major);
+        glGetIntegerv(GL_MINOR_VERSION, &version_minor);
+
+        glEnable(GL_DEPTH_TEST);
+        glDepthFunc(GL_LESS);
+        glEnable(GL_CULL_FACE);
+        glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
+
+        debug_log("OpenGL %i.%i\n", version_major, version_minor);
+
+        state->temporary.base = (s8*)state + sizeof(game_state);
+        state->temporary.last = state->temporary.base;
+        state->temporary.current = state->temporary.base;
+        state->temporary.size = 100*1024*1024;
+
+        state->shader = program_create(&state->temporary,
+            "assets/shaders/vertex.glsl",
+            "assets/shaders/fragment.glsl");
+
+        state->texture_tileset = texture_create(&state->temporary,
+            "assets/textures/tileset.tga");
+        state->texture_sphere = texture_create(&state->temporary,
+            "assets/textures/sphere.tga");
+        state->texture_player = texture_create(&state->temporary,
+            "assets/textures/cube.tga");
+        state->texture_enemy = texture_create(&state->temporary, 
+            "assets/textures/enemy.tga");
+
+        state->screen_width = screen_width;
+        state->screen_height = screen_height;
+        state->perspective = m4_perspective(60.0f, 
+            (f32)state->screen_width/(f32)state->screen_height, 0.1f, 100.0f);
+
+        state->player.x = 7.0f;
+        state->player.y = 6.0f;
+
+        state->level = 10;
+        
+        mesh_create(&state->temporary, "assets/meshes/cube.mesh",
+            &state->cube);
+        mesh_create(&state->temporary, "assets/meshes/sphere.mesh",
+            &state->sphere);
+        mesh_create(&state->temporary, "assets/meshes/wall.mesh",
+            &state->wall);
+        mesh_create(&state->temporary, "assets/meshes/floor.mesh",
+            &state->floor);
+
+        while (state->num_enemies < MAX_ENEMIES)
+        {
+            game_enemy* enemy = &state->enemies[state->num_enemies++];
+                
+            enemy->x = 5.0f - state->num_enemies * 5.0f;
+            enemy->y = 0.0f;
+        }
+
+        memory->initialized = true;
+    }
+
+    if (!memory->initialized)
+    {
+        debug_log("game_init: end of init, memory not initalized!\n");
     }
 }
 
 void game_update(game_memory* memory, game_input* input)
 {
-    game_state* state = (game_state*)memory->base;
-
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-    f32 step = 1.0f / 60.0f;
-    state->accumulator += input->delta_time;
-
-    while (state->accumulator >= step)
+    if (memory->initialized)
     {
-        state->accumulator -= step;
+        game_state* state = (game_state*)memory->base;
 
-        player_update(state, input);
-        enemies_update(state, input);
-        bullets_update(state, input);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        
+        f32 step = 1.0f / 60.0f;
+        state->accumulator += input->delta_time;
+
+        while (state->accumulator >= step)
+        {
+            state->accumulator -= step;
+
+            player_update(state, input);
+            enemies_update(state, input);
+            bullets_update(state, input);
+        }
+
+        state->view = m4_translate(-state->player.x, -state->player.y, -20.0f);
+
+        map_render(state);
+        player_render(state);
+        enemies_render(state);
+        bullets_render(state);
     }
-
-    state->view = m4_translate(-state->player.x, -state->player.y, -20.0f);
-
-    map_render(state);
-    player_render(state);
-    enemies_render(state);
-    bullets_render(state);
+    else
+    {
+        debug_log("game_update: memory not initialized!\n");
+    }
 }

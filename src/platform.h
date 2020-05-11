@@ -53,6 +53,7 @@ typedef struct game_input
 
 typedef struct game_memory
 {
+    b32 initialized;
     void* base;
     u64 size;
 } game_memory;
