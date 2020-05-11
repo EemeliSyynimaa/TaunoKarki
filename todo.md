@@ -7,6 +7,7 @@
  - [X] Game as a library
  - [X] Hot reload
  - [ ] Game-platform cleanup
+ - [ ] Recording
  - [ ] Graphics cleanup
  - [ ] Player movement
  - [ ] Collision detection
