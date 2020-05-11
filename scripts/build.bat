@@ -14,7 +14,7 @@ pushd build
 del *.pdb > NUL 2> NUL
 
 rem cl %release_flags% -Fegame.exe ..\src\win32_main.c /link %linker_flags% 
-cl %debug_flags% -Fegame.dll ..\src\game.c -LDd /link -incremental:no -PDB:game_%random%.pdb -opt:ref %game_export%
+cl %debug_flags% -Fegame.dll ..\src\tk_game.c -LDd /link -incremental:no -PDB:game_%random%.pdb -opt:ref %game_export%
 cl %debug_flags% -Fegamed.exe ..\src\win32_main.c /link %linker_flags% 
 
 xcopy "..\assets" "assets" /d /k /y /e /s /i

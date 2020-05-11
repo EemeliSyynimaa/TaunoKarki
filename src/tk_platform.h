@@ -1,8 +1,7 @@
-#ifndef PLATFORM_H
-#define PLATFORM_H
-
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdio.h>
+#include <stdarg.h>
 
 typedef int8_t      s8;
 typedef int16_t     s16;
@@ -58,4 +57,12 @@ typedef struct game_memory
     u64 size;
 } game_memory;
 
-#endif
+// Todo: implement as a macro
+void debug_log(s8* format, ...)
+{
+    // Todo: implement own vfprintf function
+    va_list args;
+    va_start(args, format);
+    vfprintf(stderr, format, args);
+    va_end(args);
+}

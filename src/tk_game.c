@@ -1,8 +1,7 @@
-#include "platform.h"
-#include "math.c"
-#include "debug.c"
-#include "opengl.h"
-#include "file.h"
+#include "tk_platform.h"
+#include "tk_math.h"
+#include "tk_opengl.h"
+#include "tk_file.h"
 
 typedef struct game_player
 {

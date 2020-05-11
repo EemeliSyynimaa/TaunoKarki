@@ -2,10 +2,9 @@
 #include <assert.h>
 
 #include "gl/gl.h"
-#include "platform.h"
-#include "opengl_api.h"
-#include "file_api.h"
-#include "debug.c"
+#include "tk_platform.h"
+#include "tk_opengl_api.h"
+#include "tk_file_api.h"
 
 #define WGL_DRAW_TO_WINDOW_ARB                 0x2001
 #define WGL_SUPPORT_OPENGL_ARB                 0x2010
