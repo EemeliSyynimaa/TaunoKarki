@@ -37,21 +37,6 @@
 #define GL_LINEAR                         0x2601
 #define GL_RGBA                           0x1908
 
-typedef u64 GLsizeiptr;
-typedef u32 GLenum;
-typedef u32 GLbitfield;
-typedef u32 GLuint;
-typedef s32 GLint;
-typedef s32 GLsizei;
-typedef f32 GLfloat;
-typedef f32 GLclampf;
-typedef u16 GLushort;
-typedef s8 GLchar;
-typedef u8 GLboolean;
-typedef s8 GLbyte;
-typedef u8 GLubyte;
-typedef void GLvoid;
-
 OPEN_GL_FUNCTION(glGetUniformLocation);
 OPEN_GL_FUNCTION(glCreateProgram);
 OPEN_GL_FUNCTION(glCreateShader);

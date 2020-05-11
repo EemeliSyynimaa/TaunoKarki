@@ -1,62 +1,63 @@
 #define OPEN_GL_FUNCTION(name) type_##name* name
 
-// typedef u64 GLsizeiptr;
-// typedef u32 GLenum;
-// typedef u32 GLbitfield;
-// typedef u32 GLuint;
-// typedef s32 GLint;
-// typedef s32 GLsizei;
-// typedef f32 GLfloat;
-// typedef f32 GLclampf;
-// typedef u16 GLushort;
-// typedef s8 GLchar;
-// typedef u8 GLboolean;
-// typedef s8 GLbyte;
-// typedef u8 GLubyte;
-// typedef void GLvoid;
+typedef u64 GLsizeiptr;
+typedef u32 GLenum;
+typedef u32 GLbitfield;
+typedef u32 GLuint;
+typedef s32 GLint;
+typedef s32 GLsizei;
+typedef f32 GLfloat;
+typedef f32 GLclampf;
+typedef u16 GLushort;
+typedef s8 GLchar;
+typedef u8 GLboolean;
+typedef s8 GLbyte;
+typedef u8 GLubyte;
+typedef void GLvoid;
 
-typedef s32 type_glGetUniformLocation(u32 program, const s8* name);
-typedef u32 type_glCreateProgram(void);
-typedef u32 type_glCreateShader(u32 type);
-typedef void type_glShaderSource(u32 shader, s32 count,
-    const s8* const* string, const s32* length);
-typedef void type_glCompileShader(u32 shader);
-typedef void type_glGetShaderiv(u32 shader, u32 pname, s32* params);
-typedef void type_glAttachShader(u32 program, u32 shader);
-typedef void type_glLinkProgram(u32 program);
-typedef void type_glGetProgramiv(u32 program, u32 pname, s32* params);
-typedef void type_glDeleteShader(u32 shader);
-typedef void type_glDeleteProgram(u32 program);
-typedef void type_glUseProgram(u32 program);
-typedef void type_glDeleteBuffers(s32 n, const u32* buffers);
-typedef void type_glBindBuffer(u32 target, u32 buffer);
-typedef void type_glEnableVertexAttribArray(u32 index);
-typedef void type_glDisableVertexAttribArray(u32 index);
-typedef void type_glVertexAttribPointer(u32 index, s32 size, u32 type,
-    u8 normalized, s32 stride, const void* pointer);
-typedef void type_glUniform1i(s32 location, s32 v0);
-typedef void type_glUniformMatrix4fv(s32 location, s32 count, u8 transpose, 
-    const f32* value);
-typedef void type_glGenBuffers(s32 n, u32* buffers);
-typedef void type_glBufferData(u32 target, u64 size,
-    const void *data, u32 usage);
-typedef void type_glGenVertexArrays(s32 n, u32* arrays);
-typedef void type_glBindVertexArray(u32 array);
-typedef void type_glActiveTexture(u32 texture);
-typedef void type_glGetIntegerv(u32 pname, s32* data);
-typedef void type_glEnable(u32 cap);
-typedef void type_glDisable(u32 cap);
-typedef void type_glDepthFunc(u32 func);
-typedef void type_glClearColor(f32 red, f32 green, f32 blue, f32 alpha);
-typedef void type_glClear(u32 mask);
-typedef void type_glBindTexture(u32 target, u32 texture);
-typedef void type_glDrawElements(u32 mode, s32 count, u32 type, 
+typedef GLint type_glGetUniformLocation(GLuint program, const GLchar* name);
+typedef GLuint type_glCreateProgram(void);
+typedef GLuint type_glCreateShader(GLenum type);
+typedef void type_glShaderSource(GLuint shader, GLsizei count,
+    const GLchar* const* string, const GLint* length);
+typedef void type_glCompileShader(GLuint shader);
+typedef void type_glGetShaderiv(GLuint shader, GLenum pname, GLint* params);
+typedef void type_glAttachShader(GLuint program, GLuint shader);
+typedef void type_glLinkProgram(GLuint program);
+typedef void type_glGetProgramiv(GLuint program, GLenum pname, GLint* params);
+typedef void type_glDeleteShader(GLuint shader);
+typedef void type_glDeleteProgram(GLuint program);
+typedef void type_glUseProgram(GLuint program);
+typedef void type_glDeleteBuffers(GLsizei n, const GLuint* buffers);
+typedef void type_glBindBuffer(GLenum target, GLuint buffer);
+typedef void type_glEnableVertexAttribArray(GLuint index);
+typedef void type_glDisableVertexAttribArray(GLuint index);
+typedef void type_glVertexAttribPointer(GLuint index, GLint size,
+    GLenum type, GLboolean normalized, GLsizei stride, const void* pointer);
+typedef void type_glUniform1i(GLint location, GLint v0);
+typedef void type_glUniformMatrix4fv(GLint location, GLsizei count,
+    GLboolean transpose, const GLfloat* value);
+typedef void type_glGenBuffers(GLsizei n, GLuint* buffers);
+typedef void type_glBufferData(GLenum target, GLsizeiptr size,
+    const void* data, GLenum usage);
+typedef void type_glGenVertexArrays(GLsizei n, GLuint *arrays);
+typedef void type_glBindVertexArray(GLuint array);
+typedef void type_glActiveTexture(GLenum texture);
+typedef void type_glGetIntegerv(GLenum pname, GLint* data);
+typedef void type_glEnable(GLenum cap);
+typedef void type_glDisable(GLenum cap);
+typedef void type_glDepthFunc(GLenum func);
+typedef void type_glClearColor(GLfloat red, GLfloat green, GLfloat blue, 
+    GLfloat alpha);
+typedef void type_glClear(GLbitfield mask);
+typedef void type_glBindTexture(GLenum target, GLuint texture);
+typedef void type_glDrawElements(GLenum mode, GLsizei count, GLenum type, 
     const void* indices);
-typedef void type_glGenTextures(s32 n, u32* textures);
-typedef void type_glTexParameteri(u32 target, u32 pname, s32 param);
-typedef void type_glTexImage2D(u32 target, s32 level, s32 internalformat,
-    s32 width, s32 height, s32 border, u32 format, u32 type, 
-    const void* data);
+typedef void type_glGenTextures(GLsizei n, GLuint* textures);
+typedef void type_glTexParameteri(GLenum target, GLenum pname, GLint param);
+typedef void type_glTexImage2D(GLenum target, GLint level,
+    GLint internalformat, GLsizei width, GLsizei height, GLint border, 
+    GLenum format, GLenum type, const void* data);
 
 typedef struct opengl_functions
 {
