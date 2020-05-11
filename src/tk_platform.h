@@ -57,8 +57,7 @@ typedef struct game_memory
     u64 size;
 } game_memory;
 
-// Todo: implement as a macro
-void debug_log(s8* format, ...)
+void _log(s8* format, ...)
 {
     // Todo: implement own vfprintf function
     va_list args;
@@ -66,3 +65,5 @@ void debug_log(s8* format, ...)
     vfprintf(stderr, format, args);
     va_end(args);
 }
+
+#define LOG(format, ...) _log(##format, __VA_ARGS__);

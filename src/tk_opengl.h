@@ -92,7 +92,7 @@ OPEN_GL_FUNCTION(glTexImage2D);
 
 void opengl_functions_set(opengl_functions* gl)
 {
-    debug_log("Copying opengl functions...");
+    LOG("Copying opengl functions...");
     OPEN_GL_FUNCTION_COPY(glGetUniformLocation);
     OPEN_GL_FUNCTION_COPY(glCreateProgram);
     OPEN_GL_FUNCTION_COPY(glCreateShader);
@@ -128,5 +128,5 @@ void opengl_functions_set(opengl_functions* gl)
     OPEN_GL_FUNCTION_COPY(glGenTextures);
     OPEN_GL_FUNCTION_COPY(glTexParameteri);
     OPEN_GL_FUNCTION_COPY(glTexImage2D);
-    debug_log("done\n");
+    LOG("done\n");
 }

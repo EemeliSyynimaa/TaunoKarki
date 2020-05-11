@@ -46,7 +46,7 @@ type_game_update* game_update;
 
 void game_lib_load()
 {
-    debug_log("Trying to load new game lib...");
+    LOG("Trying to load new game lib...");
 
     if (game_lib)
     {
@@ -62,7 +62,7 @@ void game_lib_load()
     game_update = (type_game_update*)GetProcAddress(game_lib, "game_update");
     game_init = (type_game_init*)GetProcAddress(game_lib, "game_init");
 
-    debug_log("done\n");
+    LOG("done\n");
 }
 
 void input_process(key_state* state, b32 is_down)
@@ -106,7 +106,7 @@ void file_open(file_handle* file, s8* path)
     else
     {
         // Todo: return error value
-        debug_log("Could not read from file: %s\n", path);
+        LOG("Could not read from file: %s\n", path);
     }
 }
 
@@ -121,7 +121,7 @@ void file_close(file_handle* handle)
     else
     {
         // Todo: return error value
-        debug_log("Handle of invalid value\n");
+        LOG("Handle of invalid value\n");
     }
 }
 
@@ -138,12 +138,12 @@ void file_read(file_handle* handle, s8* data, u64 bytes_max, u64* bytes_read)
         if (ReadFile(*win32_handle, data, bytes_max, (LPDWORD)&num_bytes_read,
             0))
         {
-            debug_log("Read %llu/%llu bytes\n", num_bytes_read, bytes_max);
+            LOG("Read %llu/%llu bytes\n", num_bytes_read, bytes_max);
         }
         else
         {
             // Todo: return error value
-            debug_log("Could not read from file\n");
+            LOG("Could not read from file\n");
         }
 
         // Note: add zero to end
@@ -155,7 +155,7 @@ void file_read(file_handle* handle, s8* data, u64 bytes_max, u64* bytes_read)
     else
     {
         // Todo: return error value
-        debug_log("Handle of invalid value\n");
+        LOG("Handle of invalid value\n");
     }
 }
 
@@ -174,13 +174,13 @@ void file_size_get(file_handle* handle, u64* file_size)
         else
         {
             // Todo: return error value
-            debug_log("Could not read file size\n");
+            LOG("Could not read file size\n");
         }
     }
     else
     {
         // Todo: return error value
-        debug_log("Handle of invalid value\n");
+        LOG("Handle of invalid value\n");
     }
 }
 
@@ -444,32 +444,32 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                         {
                             running = false;
                             // input_process(&new_input.back, is_down);
-                            debug_log("ESCAPE - %s\n", 
+                            LOG("ESCAPE - %s\n", 
                                 is_down ? "down" :"up");
                         }
                         else if (msg.wParam == 0x57)
                         {
                             input_process(&new_input.move_up, is_down);
-                            debug_log("W - %s\n", is_down ? "down" : "up");
+                            LOG("W - %s\n", is_down ? "down" : "up");
                         }
                         else if (msg.wParam == 0x41)
                         {
-                            debug_log("A - %s\n", is_down ? "down" : "up");
+                            LOG("A - %s\n", is_down ? "down" : "up");
                             input_process(&new_input.move_left, is_down);
                         }
                         else if (msg.wParam == 0x53)
                         {
-                            debug_log("S - %s\n", is_down ? "down" : "up");
+                            LOG("S - %s\n", is_down ? "down" : "up");
                             input_process(&new_input.move_down, is_down);
                         }
                         else if (msg.wParam == 0x44)
                         {
-                            debug_log("D - %s\n", is_down ? "down" : "up");
+                            LOG("D - %s\n", is_down ? "down" : "up");
                             input_process(&new_input.move_right, is_down);
                         }
                         else if (msg.wParam == 0x52)
                         {
-                            debug_log("R - %s\n", is_down ? "down" : "up");
+                            LOG("R - %s\n", is_down ? "down" : "up");
                             input_process(&new_input.reload, is_down);
                         }
                     }

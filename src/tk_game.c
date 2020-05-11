@@ -134,7 +134,7 @@ void* memory_get(memory_block* block, u64 size)
 {
     if (block->current + size > block->base + block->size)
     {
-        debug_log("Not enough memory\n");
+        LOG("Not enough memory\n");
 
         return 0;
     }
@@ -711,63 +711,63 @@ void mesh_create(memory_block* block, s8* path, mesh* mesh)
         {
             v3* v = &in_vertices[num_in_vertices++];
 
-            // debug_log("v");
+            // LOG("v");
             
             data += str_size;
             str_size = string_read(data, str, 255);
             v->x = f32_parse(str, NULL);
-            // debug_log(" %f", v->x);
+            // LOG(" %f", v->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
             v->y = f32_parse(str, NULL);
-            // debug_log(" %f", v->y);
+            // LOG(" %f", v->y);
 
             data += str_size;
             str_size = string_read(data, str, 255);
             v->z = f32_parse(str, NULL);
-            // debug_log(" %f\n", v->z);
+            // LOG(" %f\n", v->z);
         }
         else if (str_compare(str, (s8*)"vt"))
         {
             v2* uv = &in_uvs[num_in_uvs++];
 
-            // debug_log("vt");            
+            // LOG("vt");            
 
             data += str_size;
             str_size = string_read(data, str, 255);
             uv->x = f32_parse(str, NULL);
-            // debug_log(" %f", uv->x);
+            // LOG(" %f", uv->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
             uv->y = f32_parse(str, NULL);
-            // debug_log(" %f\n", uv->y);
+            // LOG(" %f\n", uv->y);
         }
         else if (str_compare(str, (s8*)"vn"))
         {
             v3* n = &in_normals[num_in_normals++];
 
-            // debug_log("vn");
+            // LOG("vn");
 
             data += str_size;
             str_size = string_read(data, str, 255);
             n->x = f32_parse(str, NULL);
-            // debug_log(" %f", n->x);
+            // LOG(" %f", n->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
             n->y = f32_parse(str, NULL);
-            // debug_log(" %f", n->y);
+            // LOG(" %f", n->y);
 
             data += str_size;
             str_size = string_read(data, str, 255);
             n->z = f32_parse(str, NULL);
-            // debug_log(" %f\n", n->z);
+            // LOG(" %f\n", n->z);
         }
         else if (str_compare(str, (s8*)"f"))
         {
-            // debug_log("f");
+            // LOG("f");
 
             for (u32 i = 0; i < 3; i++)
             {
@@ -780,20 +780,20 @@ void mesh_create(memory_block* block, s8* path, mesh* mesh)
 
                 u64 bytes_read = 0;
                 face[0] = s32_parse(s, &bytes_read); 
-                // debug_log(" %d", face[0]);
+                // LOG(" %d", face[0]);
                 s += bytes_read + 1;
-                // debug_log("%c", *s++);
+                // LOG("%c", *s++);
                 face[1] = s32_parse(s, &bytes_read);
-                // debug_log("%d", face[1]);
+                // LOG("%d", face[1]);
                 s += bytes_read + 1;
-                // debug_log("%c", *s++);
+                // LOG("%c", *s++);
                 face[2] = s32_parse(s, &bytes_read); 
-                // debug_log("%d", face[2]);
+                // LOG("%d", face[2]);
 
                 num_in_faces += 3;
             }
 
-            // debug_log("\n");
+            // LOG("\n");
         }
         else
         {
@@ -936,7 +936,7 @@ void game_init(game_memory* memory, s32 screen_width, s32 screen_height,
         glEnable(GL_CULL_FACE);
         glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
-        debug_log("OpenGL %i.%i\n", version_major, version_minor);
+        LOG("OpenGL %i.%i\n", version_major, version_minor);
 
         state->temporary.base = (s8*)state + sizeof(game_state);
         state->temporary.last = state->temporary.base;
@@ -988,7 +988,7 @@ void game_init(game_memory* memory, s32 screen_width, s32 screen_height,
 
     if (!memory->initialized)
     {
-        debug_log("game_init: end of init, memory not initalized!\n");
+        LOG("game_init: end of init, memory not initalized!\n");
     }
 }
 
@@ -1021,6 +1021,6 @@ void game_update(game_memory* memory, game_input* input)
     }
     else
     {
-        debug_log("game_update: memory not initialized!\n");
+        LOG("game_update: memory not initialized!\n");
     }
 }
