@@ -57,6 +57,7 @@ typedef void type_glTexParameteri(u32 target, u32 pname, s32 param);
 typedef void type_glTexImage2D(u32 target, s32 level, s32 internalformat,
     s32 width, s32 height, s32 border, u32 format, u32 type, 
     const void* data);
+
 typedef struct opengl_functions
 {
     OPEN_GL_FUNCTION(glGetUniformLocation);

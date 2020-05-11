@@ -39,26 +39,21 @@ LARGE_INTEGER query_performance_frequency;
 
 HMODULE game_lib;
 
-typedef void type_game_init(game_memory*, s32, s32);
+typedef void type_game_init(game_memory*, s32, s32, opengl_functions*,
+    file_functions*);
 typedef void type_game_update(game_memory*, game_input*);
-typedef void type_opengl_functions_set(opengl_functions*);
-typedef void type_file_functions_set(file_functions*);
 type_game_init* game_init;
 type_game_update* game_update;
-type_opengl_functions_set* opengl_functions_set;
-type_file_functions_set* file_functions_set;
 
 void game_lib_load()
 {
-    debug_log("Trying to load new game lib... ");
+    debug_log("Trying to load new game lib...");
 
     if (game_lib)
     {
         FreeLibrary(game_lib);
         game_init = 0;
         game_update = 0;
-        opengl_functions_set = 0;
-        file_functions_set = 0;
     }
 
     CopyFileA("game.dll", "game-run.dll", FALSE);
@@ -67,10 +62,6 @@ void game_lib_load()
 
     game_update = (type_game_update*)GetProcAddress(game_lib, "game_update");
     game_init = (type_game_init*)GetProcAddress(game_lib, "game_init");
-    opengl_functions_set = (type_opengl_functions_set*)GetProcAddress(
-        game_lib, "opengl_functions_set");
-    file_functions_set = (type_file_functions_set*)GetProcAddress(game_lib,
-        "file_functions_set");
 
     debug_log("done\n");
 }
@@ -406,13 +397,6 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     assert(memory.base);
 
-    game_lib_load();
-
-    opengl_functions_set(&gl);
-    file_functions_set(&file);
-
-    game_init(&memory, screen_width, screen_height);
-
     game_input old_input = { 0 };
 
     LARGE_INTEGER old_time = current_time_get();
@@ -512,9 +496,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             game_lib_write_time_last = game_lib_write_time;
 
             game_lib_load();
-
-            opengl_functions_set(&gl);
-            file_functions_set(&file);
+            game_init(&memory, screen_width, screen_height, &gl, &file);
         }
 
         POINT mouse;

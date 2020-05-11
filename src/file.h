@@ -7,8 +7,10 @@ type_file_size_get* file_size_get;
 
 void file_functions_set(file_functions* file)
 {
+    debug_log("Copying file functions...");
     file_open = file->file_open;
     file_close = file->file_close;
     file_read = file->file_read;
     file_size_get = file->file_size_get;
+    debug_log("done\n");
 }

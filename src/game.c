@@ -916,9 +916,13 @@ u32 program_create(memory_block* block, s8* vertex_shader_path,
     return program;
 }
 
-void game_init(game_memory* memory, s32 screen_width, s32 screen_height)
+void game_init(game_memory* memory, s32 screen_width, s32 screen_height,
+    opengl_functions* gl, file_functions* file)
 {
     game_state* state = (game_state*)memory->base;
+
+    opengl_functions_set(gl);
+    file_functions_set(file);
 
     if (!memory->initialized)
     {
