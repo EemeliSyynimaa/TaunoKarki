@@ -6,7 +6,7 @@
  - [X] Memory management
  - [X] Game as a library
  - [X] Hot reload
- - [ ] Game-platform cleanup
+ - [X] Game-platform cleanup
  - [ ] Recording
  - [ ] Graphics cleanup
  - [ ] Player movement
