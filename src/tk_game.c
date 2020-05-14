@@ -3,64 +3,67 @@
 #include "tk_opengl.h"
 #include "tk_file.h"
 
-typedef struct game_player
+struct player
 {
     f32 x;
     f32 y;
     f32 angle;
-} game_player;
+};
 
-typedef struct game_bullet
+struct bullet
 {
     f32 x;
     f32 y;
     f32 velocity_x;
     f32 velocity_y;
     f32 angle;
-} game_bullet;
+};
 
-typedef struct game_enemy
+struct enemy
 {
     f32 x;
     f32 y;
     f32 angle;
-} game_enemy;
+};
 
-typedef struct vertex
+struct vertex
 {
-    v3 position;
-    v2 uv;
-    v3 normal;
-} vertex;
+    struct v3 position;
+    struct v2 uv;
+    struct v3 normal;
+};
 
-typedef struct mesh
+struct mesh
 {
     u32 vao;
     u32 vbo;
     u32 ibo;
     u32 num_indices;
-} mesh;
+};
 
 #define MAX_BULLETS 8
 #define MAX_ENEMIES 4
 
-typedef struct memory_block
+struct memory_block
 {
     s8* base;
     s8* current;
     s8* last;
     u64 size;
-} memory_block;
+};
 
-typedef struct game_state
+struct game_state
 {
-    game_player player;
-    game_bullet bullets[MAX_BULLETS];
-    game_enemy enemies[MAX_ENEMIES];
-    mesh cube;
-    mesh sphere;
-    mesh wall;
-    mesh floor;
+    struct player player;
+    struct bullet bullets[MAX_BULLETS];
+    struct enemy enemies[MAX_ENEMIES];
+    struct mesh cube;
+    struct mesh sphere;
+    struct mesh wall;
+    struct mesh floor;
+    struct m4 perspective;
+    struct m4 view;
+    struct memory_block temporary;
     b32 fired;
     f32 accumulator;
     u32 shader;
@@ -73,10 +76,7 @@ typedef struct game_state
     u32 level;
     s32 screen_width;
     s32 screen_height;
-    m4 perspective;
-    m4 view;
-    memory_block temporary;
-} game_state;
+};
 
 #define MAP_WIDTH       15
 #define MAP_HEIGHT      15
@@ -130,7 +130,7 @@ u8 map_data[] =
     0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 ,0
 };
 
-void* memory_get(memory_block* block, u64 size)
+void* memory_get(struct memory_block* block, u64 size)
 {
     if (block->current + size > block->base + block->size)
     {
@@ -146,21 +146,21 @@ void* memory_get(memory_block* block, u64 size)
     return (void*)block->last;
 }
 
-void memory_free(memory_block* block)
+void memory_free(struct memory_block* block)
 {
     block->current = block->last;
 }
 
-void generate_vertex_array(mesh* mesh, vertex* vertices, u32 num_vertices,
-    u32* indices)
+void generate_vertex_array(struct mesh* mesh, struct vertex* vertices, 
+    u32 num_vertices, u32* indices)
 {
     glGenVertexArrays(1, &mesh->vao);
     glBindVertexArray(mesh->vao);
 
     glGenBuffers(1, &mesh->vbo);
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-    glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(vertex), vertices,
-        GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct vertex), 
+        vertices, GL_DYNAMIC_DRAW);
 
     glGenBuffers(1, &mesh->ibo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
@@ -172,15 +172,15 @@ void generate_vertex_array(mesh* mesh, vertex* vertices, u32 num_vertices,
     glEnableVertexAttribArray(2);
 
     // Todo: implement offsetof
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertex), 
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex), 
         (void*)0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(vertex), 
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
         (void*)12);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(vertex),
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
         (void*)20);
 }
 
-void mesh_render(mesh* mesh, m4* mvp, u32 texture, u32 shader)
+void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader)
 {
     glBindVertexArray(mesh->vao);
 
@@ -200,7 +200,7 @@ void mesh_render(mesh* mesh, m4* mvp, u32 texture, u32 shader)
     glUseProgram(0);
 }
 
-void map_render(game_state* state)
+void map_render(struct game_state* state)
 {
     for (u32 y = 0; y < MAP_HEIGHT; y++)
     {
@@ -212,15 +212,15 @@ void map_render(game_state* state)
             {
                 for (u32 i = 0; i < state->level; i++)
                 {
-                    m4 transform = m4_translate(2*x, 2*y,
+                    struct m4 transform = m4_translate(2*x, 2*y,
                         -1.0f * (state->level - i - 1));
-                    m4 rotation = m4_rotate_z(0.0f);
-                    m4 scale = m4_scale(1.0f, 1.0f, 1.0f);
+                    struct m4 rotation = m4_rotate_z(0.0f);
+                    struct m4 scale = m4_scale(1.0f, 1.0f, 1.0f);
 
-                    m4 model = m4_mul(scale, rotation);
+                    struct m4 model = m4_mul(scale, rotation);
                     model = m4_mul(model, transform);
 
-                    m4 mvp = m4_mul(model, state->view);
+                    struct m4 mvp = m4_mul(model, state->view);
                     mvp = m4_mul(mvp, state->perspective);
 
                     mesh_render(&state->wall, &mvp, state->texture_tileset, 
@@ -229,14 +229,14 @@ void map_render(game_state* state)
             }
             else if (tile == 2)
             {
-                m4 transform = m4_translate(2*x, 2*y, -1.0f);
-                m4 rotation = m4_rotate_z(0.0f);
-                m4 scale = m4_scale(1.0f, 1.0f, 1.0f);
+                struct m4 transform = m4_translate(2*x, 2*y, -1.0f);
+                struct m4 rotation = m4_rotate_z(0.0f);
+                struct m4 scale = m4_scale(1.0f, 1.0f, 1.0f);
 
-                m4 model = m4_mul(scale, rotation);
+                struct m4 model = m4_mul(scale, rotation);
                 model = m4_mul(model, transform);
 
-                m4 mvp = m4_mul(model, state->view);
+                struct m4 mvp = m4_mul(model, state->view);
                 mvp = m4_mul(mvp, state->perspective);
 
                 mesh_render(&state->floor, &mvp, state->texture_tileset,
@@ -246,57 +246,57 @@ void map_render(game_state* state)
     }
 }
 
-void enemies_update(game_state* state, game_input* input)
+void enemies_update(struct game_state* state, struct game_input* input)
 {
 
 }
 
-void enemies_render(game_state* state)
+void enemies_render(struct game_state* state)
 {
     for (u32 i = 0; i < MAX_ENEMIES; i++)
     {
-        game_enemy* enemy = &state->enemies[i];
+        struct enemy* enemy = &state->enemies[i];
 
-        m4 transform = m4_translate(enemy->x, enemy->y, 0.0f);
-        m4 rotation = m4_rotate_z(enemy->angle);
-        m4 scale = m4_scale(0.5f, 0.5f, 0.75f);
+        struct m4 transform = m4_translate(enemy->x, enemy->y, 0.0f);
+        struct m4 rotation = m4_rotate_z(enemy->angle);
+        struct m4 scale = m4_scale(0.5f, 0.5f, 0.75f);
 
-        m4 model = m4_mul(scale, rotation);
+        struct m4 model = m4_mul(scale, rotation);
         model = m4_mul(model, transform);
 
-        m4 mvp = m4_mul(model, state->view);
+        struct m4 mvp = m4_mul(model, state->view);
         mvp = m4_mul(mvp, state->perspective);
 
         mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader);
     }
 }
 
-void bullets_update(game_state* state, game_input* input)
+void bullets_update(struct game_state* state, struct game_input* input)
 {
     for (u32 i = 0; i < MAX_BULLETS; i++)
     {
-        game_bullet* bullet = &state->bullets[i];
+        struct bullet* bullet = &state->bullets[i];
 
         bullet->x += bullet->velocity_x;
         bullet->y += bullet->velocity_y;
     }
 }
 
-void bullets_render(game_state* state)
+void bullets_render(struct game_state* state)
 {
     for (u32 i = 0; i < MAX_BULLETS; i++)
     {
-        game_bullet* bullet = &state->bullets[i];
+        struct bullet* bullet = &state->bullets[i];
 
-        m4 transform = m4_translate(bullet->x, bullet->y, 0.0f);
-        m4 rotation = m4_rotate_z(bullet->angle);
-        m4 scale = m4_scale(PROJECTILE_SIZE, PROJECTILE_SIZE,
+        struct m4 transform = m4_translate(bullet->x, bullet->y, 0.0f);
+        struct m4 rotation = m4_rotate_z(bullet->angle);
+        struct m4 scale = m4_scale(PROJECTILE_SIZE, PROJECTILE_SIZE,
             PROJECTILE_SIZE);
 
-        m4 model = m4_mul(scale, rotation);
+        struct m4 model = m4_mul(scale, rotation);
         model = m4_mul(model, transform);
 
-        m4 mvp = m4_mul(model, state->view);
+        struct m4 mvp = m4_mul(model, state->view);
         mvp = m4_mul(mvp, state->perspective);
 
         mesh_render(&state->sphere, &mvp, state->texture_sphere,
@@ -304,7 +304,7 @@ void bullets_render(game_state* state)
     }
 }
 
-void player_update(game_state* state, game_input* input)
+void player_update(struct game_state* state, struct game_input* input)
 {
     f32 velocity_x = 0.0f;
     f32 velocity_y = 0.0f;
@@ -347,7 +347,7 @@ void player_update(game_state* state, game_input* input)
                 state->free_bullet = 0;
             }
 
-            game_bullet* bullet = &state->bullets[state->free_bullet];
+            struct bullet* bullet = &state->bullets[state->free_bullet];
 
             f32 dir_x = f32_cos(state->player.angle);
             f32 dir_y = f32_sin(state->player.angle);
@@ -367,30 +367,30 @@ void player_update(game_state* state, game_input* input)
     }
 }
 
-void player_render(game_state* state)
+void player_render(struct game_state* state)
 {
-    m4 transform = m4_translate(state->player.x, state->player.y, 0.0f);
-    m4 rotation = m4_rotate_z(state->player.angle);
-    m4 scale = m4_scale(0.5f, 0.5f, 0.75f);
+    struct m4 transform = m4_translate(state->player.x, state->player.y, 0.0f);
+    struct m4 rotation = m4_rotate_z(state->player.angle);
+    struct m4 scale = m4_scale(0.5f, 0.5f, 0.75f);
 
-    m4 model = m4_mul(scale, rotation);
+    struct m4 model = m4_mul(scale, rotation);
     model = m4_mul(model, transform);
 
-    m4 mvp = m4_mul(model, state->view);
+    struct m4 mvp = m4_mul(model, state->view);
     mvp = m4_mul(mvp, state->perspective);
 
     mesh_render(&state->cube, &mvp, state->texture_player, state->shader);
 }
 
 // Todo: create single struct for header (requires packing)
-typedef struct color_map_spec
+struct color_map_spec
 {
     s16 index;
     s16 length;
     s8 size;
-} color_map_spec;
+};
 
-typedef struct image_spec
+struct image_spec
 {
     s16 x;
     s16 y;
@@ -398,7 +398,7 @@ typedef struct image_spec
     s16 height;
     s8 depth;
     s8 desc;
-} image_spec;
+};
 
 void tga_decode(s8* input, u64 out_size, s8* output, u32* width,
     u32* height)
@@ -407,10 +407,10 @@ void tga_decode(s8* input, u64 out_size, s8* output, u32* width,
     s8 color_type = *input++;
     s8 image_type = *input++;
     
-    color_map_spec* c_spec = (color_map_spec*)input;
+    struct color_map_spec* c_spec = (struct color_map_spec*)input;
     input += 5;
 
-    image_spec* i_spec = (image_spec*)input;
+    struct image_spec* i_spec = (struct image_spec*)input;
     input += 10;
 
     // Todo: read (or skip) image id and color map stuff
@@ -433,7 +433,7 @@ void tga_decode(s8* input, u64 out_size, s8* output, u32* width,
     *height = i_spec->height;
 }
 
-u32 texture_create(memory_block* block, s8* path)
+u32 texture_create(struct memory_block* block, s8* path)
 {
     u64 read_bytes = 0;
     u32 target = GL_TEXTURE_2D;
@@ -661,14 +661,14 @@ u64 string_read(s8* data, s8* str, u64 max_size)
     return bytes_read;
 }
 
-void mesh_create(memory_block* block, s8* path, mesh* mesh)
+void mesh_create(struct memory_block* block, s8* path, struct mesh* mesh)
 {
     // Todo: remove statics
-    static v3 in_vertices[4096];
-    static v3 in_normals[4096];
-    static v2 in_uvs[4096];
+    static struct v3 in_vertices[4096];
+    static struct v3 in_normals[4096];
+    static struct v2 in_uvs[4096];
+    static struct vertex vertices[4096];
     static u32 in_faces[4096*3];
-    static vertex vertices[4096];
     static u32 indices[4096];
 
     u32 num_in_vertices = 0;
@@ -709,7 +709,7 @@ void mesh_create(memory_block* block, s8* path, mesh* mesh)
 
         if (str_compare(str, (s8*)"v"))
         {
-            v3* v = &in_vertices[num_in_vertices++];
+            struct v3* v = &in_vertices[num_in_vertices++];
 
             // LOG("v");
             
@@ -730,7 +730,7 @@ void mesh_create(memory_block* block, s8* path, mesh* mesh)
         }
         else if (str_compare(str, (s8*)"vt"))
         {
-            v2* uv = &in_uvs[num_in_uvs++];
+            struct v2* uv = &in_uvs[num_in_uvs++];
 
             // LOG("vt");            
 
@@ -746,7 +746,7 @@ void mesh_create(memory_block* block, s8* path, mesh* mesh)
         }
         else if (str_compare(str, (s8*)"vn"))
         {
-            v3* n = &in_normals[num_in_normals++];
+            struct v3* n = &in_normals[num_in_normals++];
 
             // LOG("vn");
 
@@ -805,7 +805,7 @@ void mesh_create(memory_block* block, s8* path, mesh* mesh)
     {
         u32* face = &in_faces[i];
 
-        vertex v;
+        struct vertex v;
 
         v.position = in_vertices[face[0] - 1];
         v.uv = in_uvs[face[1] - 1];
@@ -815,7 +815,7 @@ void mesh_create(memory_block* block, s8* path, mesh* mesh)
 
         for (u32 j = 0; j < num_vertices; j++)
         {
-            vertex other = vertices[j];
+            struct vertex other = vertices[j];
 
             // Todo: fix this
             // if (v.position == other.position && v.uv == other.uv &&
@@ -840,7 +840,7 @@ void mesh_create(memory_block* block, s8* path, mesh* mesh)
     generate_vertex_array(mesh, vertices, num_vertices, indices);
 }
 
-u32 program_create(memory_block* block, s8* vertex_shader_path,
+u32 program_create(struct memory_block* block, s8* vertex_shader_path,
     s8* fragment_shader_path)
 {
     u64 read_bytes = 0;
@@ -915,10 +915,10 @@ u32 program_create(memory_block* block, s8* vertex_shader_path,
     return program;
 }
 
-void game_init(game_memory* memory, s32 screen_width, s32 screen_height,
-    opengl_functions* gl, file_functions* file)
+void game_init(struct game_memory* memory, s32 screen_width, s32 screen_height,
+    struct opengl_functions* gl, struct file_functions* file)
 {
-    game_state* state = (game_state*)memory->base;
+    struct game_state* state = (struct game_state*)memory->base;
 
     opengl_functions_set(gl);
     file_functions_set(file);
@@ -938,7 +938,7 @@ void game_init(game_memory* memory, s32 screen_width, s32 screen_height,
 
         LOG("OpenGL %i.%i\n", version_major, version_minor);
 
-        state->temporary.base = (s8*)state + sizeof(game_state);
+        state->temporary.base = (s8*)state + sizeof(struct game_state);
         state->temporary.last = state->temporary.base;
         state->temporary.current = state->temporary.base;
         state->temporary.size = 100*1024*1024;
@@ -977,7 +977,7 @@ void game_init(game_memory* memory, s32 screen_width, s32 screen_height,
 
         while (state->num_enemies < MAX_ENEMIES)
         {
-            game_enemy* enemy = &state->enemies[state->num_enemies++];
+            struct enemy* enemy = &state->enemies[state->num_enemies++];
                 
             enemy->x = 5.0f - state->num_enemies * 5.0f;
             enemy->y = 0.0f;
@@ -992,11 +992,11 @@ void game_init(game_memory* memory, s32 screen_width, s32 screen_height,
     }
 }
 
-void game_update(game_memory* memory, game_input* input)
+void game_update(struct game_memory* memory, struct game_input* input)
 {
     if (memory->initialized)
     {
-        game_state* state = (game_state*)memory->base;
+        struct game_state* state = (struct game_state*)memory->base;
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         

@@ -2,23 +2,23 @@
 
 #define F64_PI 3.1415926535897932384626433832795028841971693993751058209749445
 
-typedef struct v2
+struct v2
 {
     f32 x;
     f32 y;
-} v2;
+};
 
-typedef struct v3
+struct v3
 {
     f32 x;
     f32 y;
     f32 z;
-} v3;
+};
 
-typedef struct m4
+struct m4
 {
     f32 m[4][4];
-} m4;
+};
 
 f32 f32_radians(f32 degrees)
 {
@@ -68,9 +68,9 @@ f32 f32_sqrt(f32 value)
     return sqrt(value);
 }
 
-m4 m4_translate(f32 x, f32 y, f32 z)
+struct m4 m4_translate(f32 x, f32 y, f32 z)
 {
-    m4 m = 
+    struct m4 m = 
     {{
         { 1.0f, 0.0f, 0.0f, 0.0f },
         { 0.0f, 1.0f, 0.0f, 0.0f },
@@ -81,12 +81,12 @@ m4 m4_translate(f32 x, f32 y, f32 z)
     return m;
 }
 
-m4 m4_rotate_x(f32 angle)
+struct m4 m4_rotate_x(f32 angle)
 {
     f32 c = f32_cos(angle);
     f32 s = f32_sin(angle);
 
-    m4 m = 
+    struct m4 m = 
     {{
         { 1.0f, 0.0f, 0.0f, 0.0f },
         { 0.0f,    c,    s, 0.0f },
@@ -97,12 +97,12 @@ m4 m4_rotate_x(f32 angle)
     return m;
 }
 
-m4 m4_rotate_y(f32 angle)
+struct m4 m4_rotate_y(f32 angle)
 {
     f32 c = f32_cos(angle);
     f32 s = f32_sin(angle);
 
-    m4 m = 
+    struct m4 m = 
     {{
         { c,    0.0f,   -s, 0.0f },
         { 0.0f, 1.0f, 0.0f, 0.0f },
@@ -113,12 +113,12 @@ m4 m4_rotate_y(f32 angle)
     return m;
 }
 
-m4 m4_rotate_z(f32 angle)
+struct m4 m4_rotate_z(f32 angle)
 {
     f32 c = f32_cos(angle);
     f32 s = f32_sin(angle);
 
-    m4 m = 
+    struct m4 m = 
     {{
         {    c,    s, 0.0f, 0.0f },
         {   -s,    c, 0.0f, 0.0f },
@@ -129,9 +129,9 @@ m4 m4_rotate_z(f32 angle)
     return m;
 }
 
-m4 m4_scale(f32 x, f32 y, f32 z)
+struct m4 m4_scale(f32 x, f32 y, f32 z)
 {
-    m4 m = 
+    struct m4 m = 
     {{
         {    x, 0.0f, 0.0f, 0.0f },
         { 0.0f,    y, 0.0f, 0.0f },
@@ -142,9 +142,9 @@ m4 m4_scale(f32 x, f32 y, f32 z)
     return m;
 }
 
-m4 m4_mul(m4 a, m4 b)
+struct m4 m4_mul(struct m4 a, struct m4 b)
 {
-    m4 m;
+    struct m4 m;
 
     for (u32 i = 0; i < 4; i++)
     {
@@ -161,7 +161,7 @@ m4 m4_mul(m4 a, m4 b)
     return m;
 }
 
-f32 v3_length(v3 v)
+f32 v3_length(struct v3 v)
 {
     f32 result;
 
@@ -170,7 +170,7 @@ f32 v3_length(v3 v)
     return result;
 }
 
-f32 v3_dot(v3 a, v3 b)
+f32 v3_dot(struct v3 a, struct v3 b)
 {
     f32 result;
 
@@ -179,9 +179,9 @@ f32 v3_dot(v3 a, v3 b)
     return result;
 }
 
-v3 v3_cross(v3 a, v3 b)
+struct v3 v3_cross(struct v3 a, struct v3 b)
 {
-    v3 result;
+    struct v3 result;
 
     result.x = a.y * b.z - a.z * b.y;
     result.y = a.x * b.z - a.z * b.x;
@@ -190,9 +190,9 @@ v3 v3_cross(v3 a, v3 b)
     return result;
 }
 
-v3 v3_normalize(v3 v)
+struct v3 v3_normalize(struct v3 v)
 {
-    v3 result;
+    struct v3 result;
 
     f32 length = v3_length(v);
 
@@ -203,11 +203,11 @@ v3 v3_normalize(v3 v)
     return result;
 }
 
-m4 m4_perspective(f32 fov, f32 aspect, f32 n, f32 f)
+struct m4 m4_perspective(f32 fov, f32 aspect, f32 n, f32 f)
 {
     f32 t = f32_tan(f32_radians(fov) / 2.0f);
 
-    m4 m = 
+    struct m4 m = 
     {{
         { 1.0f / (t*aspect), 0.0f, 0.0f, 0.0f },
         { 0.0f, 1.0f/t, 0.0f, 0.0f },

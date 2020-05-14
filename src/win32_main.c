@@ -38,9 +38,9 @@ LARGE_INTEGER query_performance_frequency;
 
 HMODULE game_lib;
 
-typedef void type_game_init(game_memory*, s32, s32, opengl_functions*,
-    file_functions*);
-typedef void type_game_update(game_memory*, game_input*);
+typedef void type_game_init(struct game_memory*, s32, s32,
+    struct opengl_functions*, struct file_functions*);
+typedef void type_game_update(struct game_memory*, struct game_input*);
 type_game_init* game_init;
 type_game_update* game_update;
 
@@ -65,7 +65,7 @@ void game_lib_load()
     LOG("done\n");
 }
 
-void input_process(key_state* state, b32 is_down)
+void input_process(struct key_state* state, b32 is_down)
 {
     if (state->key_down != is_down)
     {
@@ -220,8 +220,8 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     return 0;
 }
 
-file_functions file;
-opengl_functions gl;
+struct file_functions file;
+struct opengl_functions gl;
 
 #define OPEN_GL_FUNCTION_LOAD(name) gl.name = \
     (type_##name*)wglGetProcAddress(#name)
@@ -389,14 +389,14 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     QueryPerformanceFrequency(&query_performance_frequency);
 
-    game_memory memory = { 0 };
+    struct game_memory memory = { 0 };
     memory.size = 1024*1024*1024;
     memory.base = VirtualAlloc(NULL, memory.size, MEM_COMMIT | MEM_RESERVE,
         PAGE_READWRITE);
 
     assert(memory.base);
 
-    game_input old_input = { 0 };
+    struct game_input old_input = { 0 };
 
     LARGE_INTEGER old_time = current_time_get();
     running = true;
@@ -405,7 +405,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     while (running)
     {
-        game_input new_input = { 0 };
+        struct game_input new_input = { 0 };
         LARGE_INTEGER new_time = current_time_get();
         new_input.delta_time = elapsed_time_get(old_time, new_time);
         old_time = new_time;

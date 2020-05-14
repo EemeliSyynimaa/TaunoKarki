@@ -96,7 +96,7 @@ typedef void type_glTexImage2D(GLenum target, GLint level,
     GLint internalformat, GLsizei width, GLsizei height, GLint border, 
     GLenum format, GLenum type, const void* data);
 
-typedef struct opengl_functions
+struct opengl_functions
 {
     OPEN_GL_FUNCTION(glGetUniformLocation);
     OPEN_GL_FUNCTION(glCreateProgram);
@@ -133,4 +133,4 @@ typedef struct opengl_functions
     OPEN_GL_FUNCTION(glGenTextures);
     OPEN_GL_FUNCTION(glTexParameteri);
     OPEN_GL_FUNCTION(glTexImage2D);
-} opengl_functions;
+};

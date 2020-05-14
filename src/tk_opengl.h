@@ -38,7 +38,7 @@ OPEN_GL_FUNCTION(glTexImage2D);
 
 #define OPEN_GL_FUNCTION_COPY(name) name = gl->##name
 
-void opengl_functions_set(opengl_functions* gl)
+void opengl_functions_set(struct opengl_functions* gl)
 {
     LOG("Copying opengl functions...");
     OPEN_GL_FUNCTION_COPY(glGetUniformLocation);

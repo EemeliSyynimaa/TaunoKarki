@@ -18,44 +18,44 @@ typedef double      f64;
 
 typedef bool        b32;
 
-typedef struct key_state
+struct key_state
 {
     u32 transitions;
     b32 key_down;
-} key_state;
+};
 
-typedef struct game_input
+struct game_input
 {
     f32 delta_time;
 
     union 
     {
-        key_state keys[7];
+        struct key_state keys[7];
 
         struct
         {
-            key_state move_up;
-            key_state move_down;
-            key_state move_right;
-            key_state move_left;
+            struct key_state move_up;
+            struct key_state move_down;
+            struct key_state move_right;
+            struct key_state move_left;
 
-            key_state reload;
-            key_state shoot;
+            struct key_state reload;
+            struct key_state shoot;
 
-            key_state back;
+            struct key_state back;
         };
     };
 
     s32 mouse_x;
     s32 mouse_y;
-} game_input;
+};
 
-typedef struct game_memory
+struct game_memory
 {
     b32 initialized;
     void* base;
     u64 size;
-} game_memory;
+};
 
 void _log(s8* format, ...)
 {
