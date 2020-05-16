@@ -934,7 +934,6 @@ void game_init(struct game_memory* memory, s32 screen_width, s32 screen_height,
         glEnable(GL_DEPTH_TEST);
         glDepthFunc(GL_LESS);
         glEnable(GL_CULL_FACE);
-        glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
         LOG("OpenGL %i.%i\n", version_major, version_minor);
 
@@ -985,6 +984,8 @@ void game_init(struct game_memory* memory, s32 screen_width, s32 screen_height,
 
         memory->initialized = true;
     }
+    
+    glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
     if (!memory->initialized)
     {
