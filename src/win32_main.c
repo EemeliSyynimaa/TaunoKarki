@@ -3,8 +3,6 @@
 
 #include "gl/gl.h"
 #include "tk_platform.h"
-#include "tk_opengl_api.h"
-#include "tk_file_api.h"
 
 #define WGL_DRAW_TO_WINDOW_ARB                 0x2001
 #define WGL_SUPPORT_OPENGL_ARB                 0x2010
@@ -38,8 +36,7 @@ LARGE_INTEGER query_performance_frequency;
 
 HMODULE game_lib;
 
-typedef void type_game_init(struct game_memory*, s32, s32,
-    struct opengl_functions*, struct file_functions*);
+typedef void type_game_init(struct game_memory*, struct game_init*);
 typedef void type_game_update(struct game_memory*, struct game_input*);
 type_game_init* game_init;
 type_game_update* game_update;
@@ -237,6 +234,7 @@ u32 recorded_inputs_current = 0;
 s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, 
     LPSTR lpCmdLine, int nCmdShow)
 {
+    OutputDebugStringA("TROLOLO\n");
     WNDCLASSA dummy_class = { 0 };
     dummy_class.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
     dummy_class.lpfnWndProc = DefWindowProcA;
@@ -389,6 +387,12 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     file.file_close = file_close;
     file.file_read = file_read;
     file.file_size_get = file_size_get;
+
+    struct game_init init = { 0 };
+    init.file = &file;
+    init.gl = &gl;
+    init.screen_width = screen_width;
+    init.screen_height = screen_height;
 
     QueryPerformanceFrequency(&query_performance_frequency);
 
@@ -554,7 +558,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             game_lib_write_time_last = game_lib_write_time;
 
             game_lib_load();
-            game_init(&memory, screen_width, screen_height, &gl, &file);
+            game_init(&memory, &init);
         }
 
         if (!playing)

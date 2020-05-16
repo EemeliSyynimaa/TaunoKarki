@@ -915,13 +915,12 @@ u32 program_create(struct memory_block* block, s8* vertex_shader_path,
     return program;
 }
 
-void game_init(struct game_memory* memory, s32 screen_width, s32 screen_height,
-    struct opengl_functions* gl, struct file_functions* file)
+void game_init(struct game_memory* memory, struct game_init* init)
 {
     struct game_state* state = (struct game_state*)memory->base;
 
-    opengl_functions_set(gl);
-    file_functions_set(file);
+    opengl_functions_set(init->gl);
+    file_functions_set(init->file);
 
     if (!memory->initialized)
     {
@@ -955,8 +954,8 @@ void game_init(struct game_memory* memory, s32 screen_width, s32 screen_height,
         state->texture_enemy = texture_create(&state->temporary, 
             "assets/textures/enemy.tga");
 
-        state->screen_width = screen_width;
-        state->screen_height = screen_height;
+        state->screen_width = init->screen_width;
+        state->screen_height = init->screen_height;
         state->perspective = m4_perspective(60.0f, 
             (f32)state->screen_width/(f32)state->screen_height, 0.1f, 100.0f);
 

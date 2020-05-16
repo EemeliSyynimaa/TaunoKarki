@@ -1,5 +1,3 @@
-#include "tk_opengl_api.h"
-
 OPEN_GL_FUNCTION(glGetUniformLocation);
 OPEN_GL_FUNCTION(glCreateProgram);
 OPEN_GL_FUNCTION(glCreateShader);

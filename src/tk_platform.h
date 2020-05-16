@@ -50,6 +50,17 @@ struct game_input
     s32 mouse_y;
 };
 
+#include "tk_opengl_api.h"
+#include "tk_file_api.h"
+
+struct game_init
+{
+    struct opengl_functions* gl;
+    struct file_functions* file;
+    s32 screen_width;
+    s32 screen_height;
+};
+
 struct game_memory
 {
     b32 initialized;
