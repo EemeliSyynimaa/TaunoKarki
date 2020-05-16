@@ -222,6 +222,9 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 
 struct file_functions file;
 struct opengl_functions gl;
+struct game_input recorded_inputs[4096];
+u32 recorded_inputs_count = 0;
+u32 recorded_inputs_current = 0;
 
 #define OPEN_GL_FUNCTION_LOAD(name) gl.name = \
     (type_##name*)wglGetProcAddress(#name)
@@ -403,19 +406,36 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     FILETIME game_lib_write_time_last = { 0 };
 
+    b32 recording = false;
+    b32 playing = false;
+
     while (running)
     {
         struct game_input new_input = { 0 };
+
         LARGE_INTEGER new_time = current_time_get();
+
+        s32 num_keys = sizeof(new_input.keys)/sizeof(new_input.keys[0]);
+
+        if (playing)
+        {
+            new_input = recorded_inputs[recorded_inputs_current];
+
+            if (++recorded_inputs_current == recorded_inputs_count)
+            {
+                recorded_inputs_current = 0;
+            }
+        }
+        else
+        {
+            for (s32 i = 0; i < num_keys; i++)
+            {
+                new_input.keys[i].key_down = old_input.keys[i].key_down;
+            }
+        }
+        
         new_input.delta_time = elapsed_time_get(old_time, new_time);
         old_time = new_time;
-
-        s32 keys = sizeof(new_input.keys)/sizeof(new_input.keys[0]);
-
-        for (s32 i = 0; i < keys; i++)
-        {
-            new_input.keys[i].key_down = old_input.keys[i].key_down;
-        }
 
         MSG msg;
 
@@ -447,30 +467,69 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             LOG("ESCAPE - %s\n", 
                                 is_down ? "down" :"up");
                         }
-                        else if (msg.wParam == 0x57)
+                        else if (msg.wParam == VK_F5 && was_down)
                         {
-                            input_process(&new_input.move_up, is_down);
-                            LOG("W - %s\n", is_down ? "down" : "up");
+                            if (playing)
+                            {
+                                LOG("Stop playing\n");
+                                playing = false;
+
+                                for (s32 i = 0; i < num_keys; i++)
+                                {
+                                    new_input.keys[i].key_down = 0;
+                                    new_input.mouse_x = 0;
+                                    new_input.mouse_y = 0;
+                                }
+                            }
+                            else
+                            {
+                                LOG("Start playing\n");
+                                playing = true;
+                                recorded_inputs_current = 0;
+                            }
                         }
-                        else if (msg.wParam == 0x41)
+                        else if (msg.wParam == VK_F6 && was_down)
                         {
-                            LOG("A - %s\n", is_down ? "down" : "up");
-                            input_process(&new_input.move_left, is_down);
+                            if (recording)
+                            {
+                                LOG("Stop recording\n");
+                                recording = false;
+                            }
+                            else
+                            {
+                                LOG("Start recording\n");
+                                recording = true;
+                                recorded_inputs_count = 0;
+                            }
                         }
-                        else if (msg.wParam == 0x53)
+                        else if (!playing)
                         {
-                            LOG("S - %s\n", is_down ? "down" : "up");
-                            input_process(&new_input.move_down, is_down);
-                        }
-                        else if (msg.wParam == 0x44)
-                        {
-                            LOG("D - %s\n", is_down ? "down" : "up");
-                            input_process(&new_input.move_right, is_down);
-                        }
-                        else if (msg.wParam == 0x52)
-                        {
-                            LOG("R - %s\n", is_down ? "down" : "up");
-                            input_process(&new_input.reload, is_down);
+                            // read input only if we are not playing
+                            if (msg.wParam == 0x57)
+                            {
+                                input_process(&new_input.move_up, is_down);
+                                LOG("W - %s\n", is_down ? "down" : "up");
+                            }
+                            else if (msg.wParam == 0x41)
+                            {
+                                LOG("A - %s\n", is_down ? "down" : "up");
+                                input_process(&new_input.move_left, is_down);
+                            }
+                            else if (msg.wParam == 0x53)
+                            {
+                                LOG("S - %s\n", is_down ? "down" : "up");
+                                input_process(&new_input.move_down, is_down);
+                            }
+                            else if (msg.wParam == 0x44)
+                            {
+                                LOG("D - %s\n", is_down ? "down" : "up");
+                                input_process(&new_input.move_right, is_down);
+                            }
+                            else if (msg.wParam == 0x52)
+                            {
+                                LOG("R - %s\n", is_down ? "down" : "up");
+                                input_process(&new_input.reload, is_down);
+                            }
                         }
                     }
                 } break;
@@ -498,38 +557,46 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             game_init(&memory, screen_width, screen_height, &gl, &file);
         }
 
-        POINT mouse;
-        RECT window_rect;
-
-        GetWindowRect(hwnd, &window_rect);
-        GetCursorPos(&mouse);
-
-        mouse.x -= window_rect.left;
-        mouse.y -= window_rect.top;
-
-        if (mouse.x < 0)
+        if (!playing)
         {
-            mouse.x = 0;
-        }
-        else if (mouse.x > screen_width)
-        {
-            mouse.x = screen_width;
-        }
+            POINT mouse;
+            RECT window_rect;
 
-        if (mouse.y < 0)
-        {
-            mouse.y = 0;
-        }
-        else if (mouse.y > screen_height)
-        {
-            mouse.y = screen_height;
-        }
+            GetWindowRect(hwnd, &window_rect);
+            GetCursorPos(&mouse);
 
-        new_input.mouse_x = mouse.x;
-        new_input.mouse_y = mouse.y;
+            mouse.x -= window_rect.left;
+            mouse.y -= window_rect.top;
 
-        new_input.shoot.key_down = 
-            (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+            if (mouse.x < 0)
+            {
+                mouse.x = 0;
+            }
+            else if (mouse.x > screen_width)
+            {
+                mouse.x = screen_width;
+            }
+
+            if (mouse.y < 0)
+            {
+                mouse.y = 0;
+            }
+            else if (mouse.y > screen_height)
+            {
+                mouse.y = screen_height;
+            }
+
+            new_input.mouse_x = mouse.x;
+            new_input.mouse_y = mouse.y;
+
+            new_input.shoot.key_down = 
+                (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+        }
+        
+        if (recording)
+        {
+            recorded_inputs[recorded_inputs_count++] = new_input;
+        }
 
         game_update(&memory, &new_input);
 
