@@ -106,11 +106,20 @@ f32 win32_elapsed_time_get(LARGE_INTEGER start, LARGE_INTEGER end)
     return result;
 }
 
-void win32_file_open(file_handle* file, s8* path)
+void win32_file_open(file_handle* file, s8* path, b32 read)
 {
     HANDLE win32_handle;
-    win32_handle = CreateFileA((LPCSTR)path, GENERIC_READ, 0, 0,
-        OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+
+    if (read)
+    {
+        win32_handle = CreateFileA((LPCSTR)path, GENERIC_READ, 0, 0,
+            OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+    }
+    else
+    {
+        win32_handle = CreateFileA((LPCSTR)path, GENERIC_WRITE, 0, 0,
+            CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+    }
 
     if (win32_handle != INVALID_HANDLE_VALUE)
     {
@@ -119,7 +128,7 @@ void win32_file_open(file_handle* file, s8* path)
     else
     {
         // Todo: return error value
-        LOG("Could not read from file: %s\n", path);
+        LOG("Could not open file: %s\n", path);
     }
 }
 
@@ -138,7 +147,8 @@ void win32_file_close(file_handle* handle)
     }
 }
 
-void win32_file_read(file_handle* handle, s8* data, u64 bytes_max, u64* bytes_read)
+void win32_file_read(file_handle* handle, s8* data, u64 bytes_max, 
+    u64* bytes_read)
 {
     *bytes_read = 0;
 
@@ -164,6 +174,32 @@ void win32_file_read(file_handle* handle, s8* data, u64 bytes_max, u64* bytes_re
         *data = '\0';
 
         *bytes_read = num_bytes_read + 1;
+    }
+    else
+    {
+        // Todo: return error value
+        LOG("Handle of invalid value\n");
+    }
+}
+
+void win32_file_write(file_handle* handle, s8* data, u64 bytes)
+{
+    HANDLE* win32_handle = (HANDLE*)handle;
+
+    if (INVALID_HANDLE_VALUE != win32_handle)
+    {
+        u64 num_bytes_written = 0;
+
+        if (WriteFile(*win32_handle, data, bytes, (LPDWORD)&num_bytes_written,
+            0))
+        {
+            LOG("Wrote %llu/%llu bytes\n", num_bytes_written, bytes);
+        }
+        else
+        {
+            // Todo: return error value
+            LOG("Could not write to file\n");
+        }
     }
     else
     {

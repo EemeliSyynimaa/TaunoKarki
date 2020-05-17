@@ -446,7 +446,7 @@ u32 texture_create(struct memory_block* block, s8* path)
     s8* file_data = 0;
     s8* pixel_data = 0; 
 
-    file_open(&file, path);
+    file_open(&file, path, true);
     file_size_get(&file, &file_size);
 
     file_data = memory_get(block, file_size);
@@ -692,7 +692,7 @@ void mesh_create(struct memory_block* block, s8* path, struct mesh* mesh)
     s8* file_data = 0;
 
     file_handle file;
-    file_open(&file, path);
+    file_open(&file, path, true);
     file_size_get(&file, &file_size);
 
     file_data = memory_get(block, file_size);
@@ -862,7 +862,7 @@ u32 program_create(struct memory_block* block, s8* vertex_shader_path,
     // These should be replaced with 0.
     file_handle file;
 
-    file_open(&file, vertex_shader_path);
+    file_open(&file, vertex_shader_path, true);
     file_size_get(&file, &file_size);
 
     file_data = memory_get(block, file_size);
@@ -882,7 +882,7 @@ u32 program_create(struct memory_block* block, s8* vertex_shader_path,
 
     memory_free(block);
 
-    file_open(&file, fragment_shader_path);
+    file_open(&file, fragment_shader_path, true);
     file_size_get(&file, &file_size);
 
     file_data = memory_get(block, file_size);
