@@ -41,7 +41,23 @@ typedef void type_game_update(struct game_memory*, struct game_input*);
 type_game_init* game_init;
 type_game_update* game_update;
 
-void game_lib_load()
+void win32_log(s8* format, ...)
+{
+    // Todo: implement own vfprintf function
+    s8 buffer[4096] = { 0 };
+    va_list args;
+
+    va_start(args, format);
+    vsnprintf(buffer, 4096, format, args);
+    va_end(args);
+
+    // Note: write log to both debug and stdout
+    OutputDebugStringA(buffer);
+    fprintf(stdout, buffer);
+    fflush(stdout);
+}
+
+void win32_game_lib_load()
 {
     LOG("Trying to load new game lib...");
 
@@ -62,7 +78,7 @@ void game_lib_load()
     LOG("done\n");
 }
 
-void input_process(struct key_state* state, b32 is_down)
+void win32_input_process(struct key_state* state, b32 is_down)
 {
     if (state->key_down != is_down)
     {
@@ -71,7 +87,7 @@ void input_process(struct key_state* state, b32 is_down)
     }
 }
 
-LARGE_INTEGER current_time_get()
+LARGE_INTEGER win32_current_time_get()
 {
     LARGE_INTEGER result;
 
@@ -80,7 +96,7 @@ LARGE_INTEGER current_time_get()
     return result;
 }
 
-f32 elapsed_time_get(LARGE_INTEGER start, LARGE_INTEGER end)
+f32 win32_elapsed_time_get(LARGE_INTEGER start, LARGE_INTEGER end)
 {
     f32 result;
 
@@ -90,7 +106,7 @@ f32 elapsed_time_get(LARGE_INTEGER start, LARGE_INTEGER end)
     return result;
 }
 
-void file_open(file_handle* file, s8* path)
+void win32_file_open(file_handle* file, s8* path)
 {
     HANDLE win32_handle;
     win32_handle = CreateFileA((LPCSTR)path, GENERIC_READ, 0, 0,
@@ -107,7 +123,7 @@ void file_open(file_handle* file, s8* path)
     }
 }
 
-void file_close(file_handle* handle)
+void win32_file_close(file_handle* handle)
 {
     HANDLE* win32_handle = (HANDLE*)handle;
 
@@ -122,7 +138,7 @@ void file_close(file_handle* handle)
     }
 }
 
-void file_read(file_handle* handle, s8* data, u64 bytes_max, u64* bytes_read)
+void win32_file_read(file_handle* handle, s8* data, u64 bytes_max, u64* bytes_read)
 {
     *bytes_read = 0;
 
@@ -156,7 +172,7 @@ void file_read(file_handle* handle, s8* data, u64 bytes_max, u64* bytes_read)
     }
 }
 
-void file_size_get(file_handle* handle, u64* file_size)
+void win32_file_size_get(file_handle* handle, u64* file_size)
 {
     HANDLE* win32_handle = (HANDLE*)handle;
 
@@ -234,7 +250,8 @@ u32 recorded_inputs_current = 0;
 s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, 
     LPSTR lpCmdLine, int nCmdShow)
 {
-    OutputDebugStringA("TROLOLO\n");
+    _log = win32_log;
+
     WNDCLASSA dummy_class = { 0 };
     dummy_class.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
     dummy_class.lpfnWndProc = DefWindowProcA;
@@ -383,14 +400,15 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     
     ShowWindow(hwnd, nCmdShow);
 
-    file.file_open = file_open;
-    file.file_close = file_close;
-    file.file_read = file_read;
-    file.file_size_get = file_size_get;
+    file.file_open = win32_file_open;
+    file.file_close = win32_file_close;
+    file.file_read = win32_file_read;
+    file.file_size_get = win32_file_size_get;
 
     struct game_init init = { 0 };
     init.file = &file;
     init.gl = &gl;
+    init.log = win32_log;
     init.screen_width = screen_width;
     init.screen_height = screen_height;
 
@@ -405,7 +423,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     struct game_input old_input = { 0 };
 
-    LARGE_INTEGER old_time = current_time_get();
+    LARGE_INTEGER old_time = win32_current_time_get();
     running = true;
 
     FILETIME game_lib_write_time_last = { 0 };
@@ -417,7 +435,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     {
         struct game_input new_input = { 0 };
 
-        LARGE_INTEGER new_time = current_time_get();
+        LARGE_INTEGER new_time = win32_current_time_get();
 
         s32 num_keys = sizeof(new_input.keys)/sizeof(new_input.keys[0]);
 
@@ -438,7 +456,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             }
         }
         
-        new_input.delta_time = elapsed_time_get(old_time, new_time);
+        new_input.delta_time = win32_elapsed_time_get(old_time, new_time);
         old_time = new_time;
 
         MSG msg;
@@ -511,28 +529,33 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             // read input only if we are not playing
                             if (msg.wParam == 0x57)
                             {
-                                input_process(&new_input.move_up, is_down);
                                 LOG("W - %s\n", is_down ? "down" : "up");
+                                win32_input_process(&new_input.move_up, 
+                                    is_down);
                             }
                             else if (msg.wParam == 0x41)
                             {
                                 LOG("A - %s\n", is_down ? "down" : "up");
-                                input_process(&new_input.move_left, is_down);
+                                win32_input_process(&new_input.move_left, 
+                                    is_down);
                             }
                             else if (msg.wParam == 0x53)
                             {
                                 LOG("S - %s\n", is_down ? "down" : "up");
-                                input_process(&new_input.move_down, is_down);
+                                win32_input_process(&new_input.move_down, 
+                                    is_down);
                             }
                             else if (msg.wParam == 0x44)
                             {
                                 LOG("D - %s\n", is_down ? "down" : "up");
-                                input_process(&new_input.move_right, is_down);
+                                win32_input_process(&new_input.move_right, 
+                                    is_down);
                             }
                             else if (msg.wParam == 0x52)
                             {
                                 LOG("R - %s\n", is_down ? "down" : "up");
-                                input_process(&new_input.reload, is_down);
+                                win32_input_process(&new_input.reload, 
+                                    is_down);
                             }
                         }
                     }
@@ -557,7 +580,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         {
             game_lib_write_time_last = game_lib_write_time;
 
-            game_lib_load();
+            win32_game_lib_load();
             game_init(&memory, &init);
         }
 

@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <stdbool.h>
+
 #include <stdio.h>
 #include <stdarg.h>
 
@@ -17,6 +18,11 @@ typedef float       f32;
 typedef double      f64;
 
 typedef bool        b32;
+
+#include "tk_opengl_api.h"
+#include "tk_file_api.h"
+
+typedef void type_log(s8*, ...);
 
 struct key_state
 {
@@ -50,13 +56,11 @@ struct game_input
     s32 mouse_y;
 };
 
-#include "tk_opengl_api.h"
-#include "tk_file_api.h"
-
 struct game_init
 {
     struct opengl_functions* gl;
     struct file_functions* file;
+    type_log* log;
     s32 screen_width;
     s32 screen_height;
 };
@@ -68,13 +72,6 @@ struct game_memory
     u64 size;
 };
 
-void _log(s8* format, ...)
-{
-    // Todo: implement own vfprintf function
-    va_list args;
-    va_start(args, format);
-    vfprintf(stderr, format, args);
-    va_end(args);
-}
+type_log* _log;
 
 #define LOG(format, ...) _log(##format, __VA_ARGS__);

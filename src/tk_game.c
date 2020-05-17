@@ -919,6 +919,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
 {
     struct game_state* state = (struct game_state*)memory->base;
 
+    _log = *init->log;
     opengl_functions_set(init->gl);
     file_functions_set(init->file);
 
