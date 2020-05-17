@@ -169,11 +169,15 @@ void win32_file_read(file_handle* handle, s8* data, u64 bytes_max,
             LOG("Could not read from file\n");
         }
 
-        // Note: add zero to end
-        data += num_bytes_read;
-        *data = '\0';
+        *bytes_read = num_bytes_read;
 
-        *bytes_read = num_bytes_read + 1;
+        // Note: add zero to end
+        if (num_bytes_read < bytes_max)
+        {
+            data += num_bytes_read;
+            *data = '\0';
+            *bytes_read++;
+        }
     }
     else
     {
@@ -482,6 +486,17 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             if (++recorded_inputs_current == recorded_inputs_count)
             {
                 recorded_inputs_current = 0;
+
+                file_handle file;
+                u64 bytes_read = 0;
+
+                win32_file_open(&file, "recorded_memory",
+                    true);
+                win32_file_read(&file, memory.base,
+                    memory.size, &bytes_read);
+
+                assert(bytes_read == memory.size);
+                win32_file_close(&file);
             }
         }
         else
@@ -544,6 +559,17 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                 LOG("Start playing\n");
                                 playing = true;
                                 recorded_inputs_current = 0;
+
+                                file_handle file;
+                                u64 bytes_read = 0;
+
+                                win32_file_open(&file, "recorded_memory",
+                                    true);
+                                win32_file_read(&file, memory.base,
+                                    memory.size, &bytes_read);
+
+                                assert(bytes_read == memory.size);
+                                win32_file_close(&file);
                             }
                         }
                         else if (msg.wParam == VK_F6 && was_down)
@@ -558,6 +584,13 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                 LOG("Start recording\n");
                                 recording = true;
                                 recorded_inputs_count = 0;
+
+                                file_handle file;
+                                win32_file_open(&file, "recorded_memory", 
+                                    false);
+                                win32_file_write(&file, memory.base, 
+                                    memory.size);
+                                win32_file_close(&file);
                             }
                         }
                         else if (!playing)
