@@ -237,6 +237,25 @@ void win32_file_size_get(file_handle* handle, u64* file_size)
     }
 }
 
+void win32_recorded_memory_read(struct game_memory* memory)
+{
+    file_handle file;
+    u64 bytes_read = 0;
+    win32_file_open(&file, "recorded_memory", true);
+    win32_file_read(&file, memory->base, memory->size, &bytes_read);
+    win32_file_close(&file);
+
+    assert(bytes_read == memory->size);
+}
+
+void win32_recorded_memory_write(struct game_memory* memory)
+{
+    file_handle file;
+    win32_file_open(&file, "recorded_memory", false);
+    win32_file_write(&file, memory->base, memory->size);
+    win32_file_close(&file);
+}
+
 LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     LPARAM lParam)
 {
@@ -273,6 +292,7 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     return 0;
 }
 
+// Todo: write recorded inputs to a file also
 #define RECORDED_INPUTS_MAX 4096
 struct file_functions file;
 struct opengl_functions gl;
@@ -487,17 +507,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             if (++recorded_inputs_current == recorded_inputs_count)
             {
                 recorded_inputs_current = 0;
-
-                file_handle file;
-                u64 bytes_read = 0;
-
-                win32_file_open(&file, "recorded_memory",
-                    true);
-                win32_file_read(&file, memory.base,
-                    memory.size, &bytes_read);
-
-                assert(bytes_read == memory.size);
-                win32_file_close(&file);
+                win32_recorded_memory_read(&memory);
             }
         }
         else
@@ -562,17 +572,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                     LOG("Start playing\n");
                                     playing = true;
                                     recorded_inputs_current = 0;
-
-                                    file_handle file;
-                                    u64 bytes_read = 0;
-
-                                    win32_file_open(&file, "recorded_memory",
-                                        true);
-                                    win32_file_read(&file, memory.base,
-                                        memory.size, &bytes_read);
-
-                                    assert(bytes_read == memory.size);
-                                    win32_file_close(&file);
+                                    win32_recorded_memory_read(&memory);
                                 }
                             }
                         }
@@ -590,13 +590,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                     LOG("Start recording\n");
                                     recording = true;
                                     recorded_inputs_count = 0;
-
-                                    file_handle file;
-                                    win32_file_open(&file, "recorded_memory", 
-                                        false);
-                                    win32_file_write(&file, memory.base, 
-                                        memory.size);
-                                    win32_file_close(&file);
+                                    win32_recorded_memory_write(&memory);
                                 }   
                             }
                         }
