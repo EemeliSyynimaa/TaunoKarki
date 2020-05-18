@@ -273,9 +273,10 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     return 0;
 }
 
+#define RECORDED_INPUTS_MAX 4096
 struct file_functions file;
 struct opengl_functions gl;
-struct game_input recorded_inputs[4096];
+struct game_input recorded_inputs[RECORDED_INPUTS_MAX];
 u32 recorded_inputs_count = 0;
 u32 recorded_inputs_current = 0;
 
@@ -542,55 +543,61 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                         }
                         else if (msg.wParam == VK_F5 && was_down)
                         {
-                            if (playing)
+                            if (!recording)
                             {
-                                LOG("Stop playing\n");
-                                playing = false;
-
-                                for (s32 i = 0; i < num_keys; i++)
+                                if (playing)
                                 {
-                                    new_input.keys[i].key_down = 0;
-                                    new_input.mouse_x = 0;
-                                    new_input.mouse_y = 0;
+                                    LOG("Stop playing\n");
+                                    playing = false;
+
+                                    for (s32 i = 0; i < num_keys; i++)
+                                    {
+                                        new_input.keys[i].key_down = 0;
+                                        new_input.mouse_x = 0;
+                                        new_input.mouse_y = 0;
+                                    }
                                 }
-                            }
-                            else
-                            {
-                                LOG("Start playing\n");
-                                playing = true;
-                                recorded_inputs_current = 0;
+                                else
+                                {
+                                    LOG("Start playing\n");
+                                    playing = true;
+                                    recorded_inputs_current = 0;
 
-                                file_handle file;
-                                u64 bytes_read = 0;
+                                    file_handle file;
+                                    u64 bytes_read = 0;
 
-                                win32_file_open(&file, "recorded_memory",
-                                    true);
-                                win32_file_read(&file, memory.base,
-                                    memory.size, &bytes_read);
+                                    win32_file_open(&file, "recorded_memory",
+                                        true);
+                                    win32_file_read(&file, memory.base,
+                                        memory.size, &bytes_read);
 
-                                assert(bytes_read == memory.size);
-                                win32_file_close(&file);
+                                    assert(bytes_read == memory.size);
+                                    win32_file_close(&file);
+                                }
                             }
                         }
                         else if (msg.wParam == VK_F6 && was_down)
                         {
-                            if (recording)
+                            if (!playing)
                             {
-                                LOG("Stop recording\n");
-                                recording = false;
-                            }
-                            else
-                            {
-                                LOG("Start recording\n");
-                                recording = true;
-                                recorded_inputs_count = 0;
+                                if (recording)
+                                {
+                                    LOG("Stop recording\n");
+                                    recording = false;
+                                }
+                                else
+                                {
+                                    LOG("Start recording\n");
+                                    recording = true;
+                                    recorded_inputs_count = 0;
 
-                                file_handle file;
-                                win32_file_open(&file, "recorded_memory", 
-                                    false);
-                                win32_file_write(&file, memory.base, 
-                                    memory.size);
-                                win32_file_close(&file);
+                                    file_handle file;
+                                    win32_file_open(&file, "recorded_memory", 
+                                        false);
+                                    win32_file_write(&file, memory.base, 
+                                        memory.size);
+                                    win32_file_close(&file);
+                                }   
                             }
                         }
                         else if (!playing)
@@ -692,6 +699,13 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         if (recording)
         {
             recorded_inputs[recorded_inputs_count++] = new_input;
+
+            if (recorded_inputs_count == RECORDED_INPUTS_MAX)
+            {
+                LOG("Recording limit reached\n");
+                LOG("Stop recording\n");
+                recording = false;
+            }
         }
 
         game_update(&memory, &new_input);
