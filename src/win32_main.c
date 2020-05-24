@@ -32,9 +32,6 @@ OPEN_GL_FUNCTION(wglCreateContextAttribsARB);
 OPEN_GL_FUNCTION(wglChoosePixelFormatARB);
 
 b32 running;
-LARGE_INTEGER query_performance_frequency;
-
-HMODULE game_lib;
 
 typedef void type_game_init(struct game_memory*, struct game_init*);
 typedef void type_game_update(struct game_memory*, struct game_input*);
@@ -57,7 +54,7 @@ void win32_log(s8* format, ...)
     fflush(stdout);
 }
 
-void win32_game_lib_load()
+void win32_game_lib_load(HMODULE game_lib)
 {
     LOG("Trying to load new game lib...");
 
@@ -96,12 +93,13 @@ LARGE_INTEGER win32_current_time_get()
     return result;
 }
 
-f32 win32_elapsed_time_get(LARGE_INTEGER start, LARGE_INTEGER end)
+f32 win32_elapsed_time_get(LARGE_INTEGER frequency, LARGE_INTEGER start,
+    LARGE_INTEGER end)
 {
     f32 result;
 
     result = (f32)(end.QuadPart - start.QuadPart) / 
-        (f32)query_performance_frequency.QuadPart;
+        (f32)frequency.QuadPart;
 
     return result;
 }
@@ -264,8 +262,6 @@ struct win32_recorded_inputs
     struct game_input inputs[RECORDED_INPUTS_MAX];
 };
 
-struct win32_recorded_inputs record;
-
 void win32_recorded_inputs_read(struct win32_recorded_inputs* inputs)
 {
     file_handle file;
@@ -322,8 +318,10 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     return 0;
 }
 
+// Todo: get rid of globals
 struct file_functions file;
 struct opengl_functions gl;
+struct win32_recorded_inputs record;
 
 #define OPEN_GL_FUNCTION_LOAD(name) gl.name = \
     (type_##name*)wglGetProcAddress(#name)
@@ -336,6 +334,7 @@ struct opengl_functions gl;
 s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, 
     LPSTR lpCmdLine, int nCmdShow)
 {
+    // Todo: clean function
     _log = win32_log;
 
     WNDCLASSA dummy_class = { 0 };
@@ -498,6 +497,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     init.screen_width = screen_width;
     init.screen_height = screen_height;
 
+    LARGE_INTEGER query_performance_frequency;
     QueryPerformanceFrequency(&query_performance_frequency);
 
     struct game_memory memory = { 0 };
@@ -513,6 +513,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     running = true;
 
     FILETIME game_lib_write_time_last = { 0 };
+    HMODULE game_lib = 0;
 
     b32 recording = false;
     b32 playing = false;
@@ -525,25 +526,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         s32 num_keys = sizeof(new_input.keys)/sizeof(new_input.keys[0]);
 
-        if (playing)
-        {
-            new_input = record.inputs[record.current];
-
-            if (++record.current == record.count)
-            {
-                record.current = 0;
-                win32_recorded_memory_read(&memory);
-            }
-        }
-        else
-        {
-            for (s32 i = 0; i < num_keys; i++)
-            {
-                new_input.keys[i].key_down = old_input.keys[i].key_down;
-            }
-        }
-        
-        new_input.delta_time = win32_elapsed_time_get(old_time, new_time);
+        new_input.delta_time = win32_elapsed_time_get(
+            query_performance_frequency, old_time, new_time);
         old_time = new_time;
 
         MSG msg;
@@ -582,7 +566,6 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             {
                                 if (playing)
                                 {
-                                    LOG("Stop playing\n");
                                     playing = false;
 
                                     for (s32 i = 0; i < num_keys; i++)
@@ -591,13 +574,14 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                         new_input.mouse_x = 0;
                                         new_input.mouse_y = 0;
                                     }
+                                    LOG("Stop playing\n");
                                 }
                                 else
                                 {
-                                    LOG("Start playing\n");
-                                    playing = true;
                                     win32_recorded_memory_read(&memory);
                                     win32_recorded_inputs_read(&record);
+                                    LOG("Start playing\n");
+                                    playing = true;
                                 }
                             }
                         }
@@ -607,17 +591,17 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             {
                                 if (recording)
                                 {
-                                    LOG("Stop recording\n");
                                     recording = false;
                                     win32_recorded_inputs_write(&record);
+                                    LOG("Stop recording\n");
                                 }
                                 else
                                 {
+                                    win32_recorded_memory_write(&memory);
                                     LOG("Start recording\n");
                                     recording = true;
                                     record.count = 0;
                                     record.current = 0;
-                                    win32_recorded_memory_write(&memory);
                                 }   
                             }
                         }
@@ -677,7 +661,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         {
             game_lib_write_time_last = game_lib_write_time;
 
-            win32_game_lib_load();
+            win32_game_lib_load(game_lib);
             game_init(&memory, &init);
         }
 
@@ -715,6 +699,24 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
             new_input.shoot.key_down = 
                 (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+        }
+
+        if (playing)
+        {
+            if (record.current >= record.count)
+            {
+                record.current = 0;
+                win32_recorded_memory_read(&memory);
+            }
+
+            new_input = record.inputs[record.current++];
+        }
+        else
+        {
+            for (s32 i = 0; i < num_keys; i++)
+            {
+                new_input.keys[i].key_down = old_input.keys[i].key_down;
+            }
         }
         
         if (recording)
