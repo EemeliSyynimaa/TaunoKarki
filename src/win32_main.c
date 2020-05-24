@@ -256,6 +256,36 @@ void win32_recorded_memory_write(struct game_memory* memory)
     win32_file_close(&file);
 }
 
+#define RECORDED_INPUTS_MAX 4096
+struct win32_recorded_inputs
+{
+    u32 count;
+    u32 current;
+    struct game_input inputs[RECORDED_INPUTS_MAX];
+};
+
+struct win32_recorded_inputs record;
+
+void win32_recorded_inputs_read(struct win32_recorded_inputs* inputs)
+{
+    file_handle file;
+    u64 bytes_read = 0;
+    win32_file_open(&file, "recorded_inputs", true);
+    win32_file_read(&file, (s8*)inputs, sizeof(struct win32_recorded_inputs),
+        &bytes_read);
+    win32_file_close(&file);
+
+    assert(bytes_read == sizeof(struct win32_recorded_inputs));
+}
+
+void win32_recorded_inputs_write(struct win32_recorded_inputs* inputs)
+{
+    file_handle file;
+    win32_file_open(&file, "recorded_inputs", false);
+    win32_file_write(&file, (s8*)inputs, sizeof(struct win32_recorded_inputs));
+    win32_file_close(&file);
+}
+
 LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     LPARAM lParam)
 {
@@ -292,13 +322,8 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     return 0;
 }
 
-// Todo: write recorded inputs to a file also
-#define RECORDED_INPUTS_MAX 4096
 struct file_functions file;
 struct opengl_functions gl;
-struct game_input recorded_inputs[RECORDED_INPUTS_MAX];
-u32 recorded_inputs_count = 0;
-u32 recorded_inputs_current = 0;
 
 #define OPEN_GL_FUNCTION_LOAD(name) gl.name = \
     (type_##name*)wglGetProcAddress(#name)
@@ -502,11 +527,11 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         if (playing)
         {
-            new_input = recorded_inputs[recorded_inputs_current];
+            new_input = record.inputs[record.current];
 
-            if (++recorded_inputs_current == recorded_inputs_count)
+            if (++record.current == record.count)
             {
-                recorded_inputs_current = 0;
+                record.current = 0;
                 win32_recorded_memory_read(&memory);
             }
         }
@@ -571,8 +596,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                 {
                                     LOG("Start playing\n");
                                     playing = true;
-                                    recorded_inputs_current = 0;
                                     win32_recorded_memory_read(&memory);
+                                    win32_recorded_inputs_read(&record);
                                 }
                             }
                         }
@@ -584,12 +609,14 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                 {
                                     LOG("Stop recording\n");
                                     recording = false;
+                                    win32_recorded_inputs_write(&record);
                                 }
                                 else
                                 {
                                     LOG("Start recording\n");
                                     recording = true;
-                                    recorded_inputs_count = 0;
+                                    record.count = 0;
+                                    record.current = 0;
                                     win32_recorded_memory_write(&memory);
                                 }   
                             }
@@ -692,9 +719,9 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         
         if (recording)
         {
-            recorded_inputs[recorded_inputs_count++] = new_input;
+            record.inputs[record.count++] = new_input;
 
-            if (recorded_inputs_count == RECORDED_INPUTS_MAX)
+            if (record.count == RECORDED_INPUTS_MAX)
             {
                 LOG("Recording limit reached\n");
                 LOG("Stop recording\n");
