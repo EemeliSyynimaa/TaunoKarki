@@ -202,6 +202,8 @@ void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader)
 
 void map_render(struct game_state* state)
 {
+    // Todo: fix map rendering glitch (a wall block randomly drawn in a 
+    //       wrong place)
     for (u32 y = 0; y < MAP_HEIGHT; y++)
     {
         for (u32 x = 0; x < MAP_WIDTH; x++)
@@ -963,7 +965,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->player.x = 7.0f;
         state->player.y = 6.0f;
 
-        state->level = 10;
+        state->level = 5;
         
         mesh_create(&state->temporary, "assets/meshes/cube.mesh",
             &state->cube);
@@ -985,6 +987,8 @@ void game_init(struct game_memory* memory, struct game_init* init)
         memory->initialized = true;
     }
     
+    state->level = 6;
+
     glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
     if (!memory->initialized)

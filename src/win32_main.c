@@ -33,6 +33,7 @@ OPEN_GL_FUNCTION(wglChoosePixelFormatARB);
 
 b32 running;
 
+// Todo: clean usage
 typedef void type_game_init(struct game_memory*, struct game_init*);
 typedef void type_game_update(struct game_memory*, struct game_input*);
 type_game_init* game_init;
@@ -54,25 +55,49 @@ void win32_log(s8* format, ...)
     fflush(stdout);
 }
 
-void win32_game_lib_load(HMODULE game_lib)
+// Todo: this loads a new game lib twice everytime it's changed, why?
+b32 win32_game_lib_load()
 {
-    LOG("Trying to load new game lib...");
+    static HMODULE game_lib = 0;
+    static FILETIME game_lib_write_time_last = { 0 };
+    s8 game_lib_name[] = "game.dll";
+    s8 game_lib_name_temp[] = "game-run.dll";
 
-    if (game_lib)
+    WIN32_FILE_ATTRIBUTE_DATA data;
+    
+    GetFileAttributesExA(game_lib_name, GetFileExInfoStandard, &data);
+    
+    FILETIME game_lib_write_time = data.ftLastWriteTime;
+
+    if (CompareFileTime(&game_lib_write_time, 
+        &game_lib_write_time_last) != 0)
     {
-        FreeLibrary(game_lib);
-        game_init = 0;
-        game_update = 0;
+        game_lib_write_time_last = game_lib_write_time;
+
+        LOG("Trying to load new game lib...");
+
+        if (game_lib)
+        {
+            FreeLibrary(game_lib);
+            game_init = 0;
+            game_update = 0;
+        }
+
+        CopyFileA(game_lib_name, game_lib_name_temp, FALSE);
+
+        game_lib = LoadLibraryA(game_lib_name_temp);
+
+        // Todo: get rid of magic strings
+        game_update = (type_game_update*)GetProcAddress(game_lib, 
+            "game_update");
+        game_init = (type_game_init*)GetProcAddress(game_lib, "game_init");
+
+        LOG("done\n");
+
+        return true;
     }
 
-    CopyFileA("game.dll", "game-run.dll", FALSE);
-
-    game_lib = LoadLibraryA("game-run.dll");
-
-    game_update = (type_game_update*)GetProcAddress(game_lib, "game_update");
-    game_init = (type_game_init*)GetProcAddress(game_lib, "game_init");
-
-    LOG("done\n");
+    return false;
 }
 
 void win32_input_process(struct key_state* state, b32 is_down)
@@ -512,9 +537,6 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     LARGE_INTEGER old_time = win32_current_time_get();
     running = true;
 
-    FILETIME game_lib_write_time_last = { 0 };
-    HMODULE game_lib = 0;
-
     b32 recording = false;
     b32 playing = false;
 
@@ -524,11 +546,16 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         LARGE_INTEGER new_time = win32_current_time_get();
 
-        s32 num_keys = sizeof(new_input.keys)/sizeof(new_input.keys[0]);
-
-        new_input.delta_time = win32_elapsed_time_get(
+        f32 delta_time = win32_elapsed_time_get(
             query_performance_frequency, old_time, new_time);
         old_time = new_time;
+
+        s32 num_keys = sizeof(new_input.keys)/sizeof(new_input.keys[0]);
+
+        for (s32 i = 0; i < num_keys; i++)
+        {
+            new_input.keys[i].key_down = old_input.keys[i].key_down;
+        }
 
         MSG msg;
 
@@ -650,18 +677,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             }
         }
 
-        WIN32_FILE_ATTRIBUTE_DATA data;
-        
-        GetFileAttributesEx("game.dll", GetFileExInfoStandard, &data);
-        
-        FILETIME game_lib_write_time = data.ftLastWriteTime;
-        
-        if (CompareFileTime(&game_lib_write_time, 
-            &game_lib_write_time_last) != 0)
+        if (win32_game_lib_load())
         {
-            game_lib_write_time_last = game_lib_write_time;
-
-            win32_game_lib_load(game_lib);
             game_init(&memory, &init);
         }
 
@@ -711,13 +728,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
             new_input = record.inputs[record.current++];
         }
-        else
-        {
-            for (s32 i = 0; i < num_keys; i++)
-            {
-                new_input.keys[i].key_down = old_input.keys[i].key_down;
-            }
-        }
+        
+        new_input.delta_time = delta_time; 
         
         if (recording)
         {
