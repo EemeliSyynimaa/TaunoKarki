@@ -8,8 +8,9 @@
  - [X] Hot reload
  - [X] Game-platform cleanup
  - [X] Recording
- - [ ] Recording cleanup
+ - [X] Recording cleanup
  - [ ] File system cleanup
+ - [ ] Win32 platform layer cleanup
  - [ ] Graphics cleanup
  - [ ] Player movement
  - [ ] Collision detection
