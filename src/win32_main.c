@@ -41,7 +41,7 @@ type_game_update* game_update;
 
 void win32_log(s8* format, ...)
 {
-    // Todo: implement own vfprintf function
+    // Todo: implement own printf functions
     s8 buffer[4096] = { 0 };
     va_list args;
 
@@ -403,8 +403,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     OPEN_WGL_FUNCTION_LOAD(wglChoosePixelFormatARB);
 
     s32 pf = 0;
-    s32 screen_width = 1920;
-    s32 screen_height = 1080;
+    s32 screen_width = 1280;
+    s32 screen_height = 1280;
     
     HWND hwnd = 0;
     HDC hdc = 0;
@@ -425,7 +425,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     RegisterClassExA(&wdx);
 
     hwnd = CreateWindowExA(0, wdx.lpszClassName, "TaunoKarki", 
-        WS_VISIBLE | WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 
+        WS_VISIBLE | WS_OVERLAPPEDWINDOW, 0, 0, 
         screen_width, screen_height, 0, 0, hInstance, 0);
 
     hdc = GetDC(hwnd);
