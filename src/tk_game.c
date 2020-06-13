@@ -42,7 +42,7 @@ struct mesh
 };
 
 #define MAX_BULLETS 8
-#define MAX_ENEMIES 4
+#define MAX_ENEMIES 8
 
 struct memory_block
 {
@@ -82,7 +82,7 @@ struct game_state
 #define MAP_HEIGHT      15
  
 #define PLAYER_HEALTH               500.0f
-#define PLAYER_SPEED                0.2f
+#define PLAYER_SPEED                0.1f
 #define PLAYER_HEALTH_PER_PACK      100.f
 #define ENEMY_HEALTH                50.0
 #define ENEMY_SPEED                 0.12
@@ -214,10 +214,10 @@ void map_render(struct game_state* state)
             {
                 for (u32 i = 0; i < state->level; i++)
                 {
-                    struct m4 transform = m4_translate(2*x, 2*y,
+                    struct m4 transform = m4_translate(x, y,
                         -1.0f * (state->level - i - 1));
                     struct m4 rotation = m4_rotate_z(0.0f);
-                    struct m4 scale = m4_scale(1.0f, 1.0f, 1.0f);
+                    struct m4 scale = m4_scale(0.5f, 0.5f, 0.5f);
 
                     struct m4 model = m4_mul(scale, rotation);
                     model = m4_mul(model, transform);
@@ -231,9 +231,9 @@ void map_render(struct game_state* state)
             }
             else if (tile == 2)
             {
-                struct m4 transform = m4_translate(2*x, 2*y, -1.0f);
+                struct m4 transform = m4_translate(x, y, -1.0f);
                 struct m4 rotation = m4_rotate_z(0.0f);
-                struct m4 scale = m4_scale(1.0f, 1.0f, 1.0f);
+                struct m4 scale = m4_scale(0.5f, 0.5f, 0.5f);
 
                 struct m4 model = m4_mul(scale, rotation);
                 model = m4_mul(model, transform);
@@ -261,7 +261,7 @@ void enemies_render(struct game_state* state)
 
         struct m4 transform = m4_translate(enemy->x, enemy->y, 0.0f);
         struct m4 rotation = m4_rotate_z(enemy->angle);
-        struct m4 scale = m4_scale(0.5f, 0.5f, 0.75f);
+        struct m4 scale = m4_scale(0.25f, 0.25f, 0.5f);
 
         struct m4 model = m4_mul(scale, rotation);
         model = m4_mul(model, transform);
@@ -373,7 +373,7 @@ void player_render(struct game_state* state)
 {
     struct m4 transform = m4_translate(state->player.x, state->player.y, 0.0f);
     struct m4 rotation = m4_rotate_z(state->player.angle);
-    struct m4 scale = m4_scale(0.5f, 0.5f, 0.75f);
+    struct m4 scale = m4_scale(0.25f, 0.25f, 0.5f);
 
     struct m4 model = m4_mul(scale, rotation);
     model = m4_mul(model, transform);
@@ -925,20 +925,20 @@ void game_init(struct game_memory* memory, struct game_init* init)
     opengl_functions_set(init->gl);
     file_functions_set(init->file);
 
+    s32 version_major = 0;
+    s32 version_minor = 0;
+
+    glGetIntegerv(GL_MAJOR_VERSION, &version_major);
+    glGetIntegerv(GL_MINOR_VERSION, &version_minor);
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_CULL_FACE);
+
+    LOG("OpenGL %i.%i\n", version_major, version_minor);
+
     if (!memory->initialized)
     {
-        s32 version_major = 0;
-        s32 version_minor = 0;
-
-        glGetIntegerv(GL_MAJOR_VERSION, &version_major);
-        glGetIntegerv(GL_MINOR_VERSION, &version_minor);
-
-        glEnable(GL_DEPTH_TEST);
-        glDepthFunc(GL_LESS);
-        glEnable(GL_CULL_FACE);
-
-        LOG("OpenGL %i.%i\n", version_major, version_minor);
-
         state->temporary.base = (s8*)state + sizeof(struct game_state);
         state->temporary.last = state->temporary.base;
         state->temporary.current = state->temporary.base;
@@ -957,16 +957,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->texture_enemy = texture_create(&state->temporary, 
             "assets/textures/enemy.tga");
 
-        state->screen_width = init->screen_width;
-        state->screen_height = init->screen_height;
-        state->perspective = m4_perspective(60.0f, 
-            (f32)state->screen_width/(f32)state->screen_height, 0.1f, 100.0f);
-
-        state->player.x = 7.0f;
-        state->player.y = 6.0f;
-
-        state->level = 5;
-        
         mesh_create(&state->temporary, "assets/meshes/cube.mesh",
             &state->cube);
         mesh_create(&state->temporary, "assets/meshes/sphere.mesh",
@@ -976,18 +966,28 @@ void game_init(struct game_memory* memory, struct game_init* init)
         mesh_create(&state->temporary, "assets/meshes/floor.mesh",
             &state->floor);
 
-        while (state->num_enemies < MAX_ENEMIES)
-        {
-            struct enemy* enemy = &state->enemies[state->num_enemies++];
-                
-            enemy->x = 5.0f - state->num_enemies * 5.0f;
-            enemy->y = 0.0f;
-        }
-
         memory->initialized = true;
     }
-    
+
+    state->screen_width = init->screen_width;
+    state->screen_height = init->screen_height;
+    state->perspective = m4_perspective(60.0f, 
+        (f32)state->screen_width/(f32)state->screen_height, 0.1f, 100.0f);
+
+    state->num_enemies = MAX_ENEMIES;
+
+    for (u32 i = 0; i < state->num_enemies; i++)
+    {
+        struct enemy* enemy = &state->enemies[i];
+            
+        enemy->x = 1.0f + i * 1.5f;
+        enemy->y = -1.0f;
+    }
+
     state->level = 6;
+
+    state->player.x = 1.5f;
+    state->player.y = 3.0f;
 
     glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
@@ -1017,7 +1017,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
             bullets_update(state, input);
         }
 
-        state->view = m4_translate(-state->player.x, -state->player.y, -20.0f);
+        state->view = m4_translate(-state->player.x, -state->player.y, -15.0f);
 
         map_render(state);
         player_render(state);
