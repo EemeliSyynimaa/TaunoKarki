@@ -6,17 +6,12 @@
  - [X] Memory management
  - [X] Game as a library
  - [X] Hot reload
- - [X] Game-platform cleanup
  - [X] Recording
- - [X] Recording cleanup
- - [ ] File system cleanup
- - [ ] Win32 platform layer cleanup
- - [ ] Graphics cleanup
- - [ ] Player movement
  - [ ] Collision detection
  - [ ] Enemy AI
  - [ ] Text rendering
  - [ ] Procedural level generation
  - [ ] Animations
+ - [ ] Player movement
  - [ ] Sounds
  - [ ] Linux support
