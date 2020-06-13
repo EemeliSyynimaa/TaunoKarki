@@ -260,15 +260,23 @@ void win32_file_size_get(file_handle* handle, u64* file_size)
     }
 }
 
-void win32_recorded_memory_read(struct game_memory* memory)
+bool win32_recorded_memory_read(struct game_memory* memory)
 {
     file_handle file;
     u64 bytes_read = 0;
     win32_file_open(&file, "recorded_memory", true);
-    win32_file_read(&file, memory->base, memory->size, &bytes_read);
-    win32_file_close(&file);
 
-    assert(bytes_read == memory->size);
+    if (file)
+    {
+        win32_file_read(&file, memory->base, memory->size, &bytes_read);
+        win32_file_close(&file);
+
+        assert(bytes_read == memory->size);
+
+        return true;
+    }
+
+    return false;
 }
 
 void win32_recorded_memory_write(struct game_memory* memory)
@@ -287,16 +295,24 @@ struct win32_recorded_inputs
     struct game_input inputs[RECORDED_INPUTS_MAX];
 };
 
-void win32_recorded_inputs_read(struct win32_recorded_inputs* inputs)
+bool win32_recorded_inputs_read(struct win32_recorded_inputs* inputs)
 {
     file_handle file;
     u64 bytes_read = 0;
     win32_file_open(&file, "recorded_inputs", true);
-    win32_file_read(&file, (s8*)inputs, sizeof(struct win32_recorded_inputs),
-        &bytes_read);
-    win32_file_close(&file);
 
-    assert(bytes_read == sizeof(struct win32_recorded_inputs));
+    if (file)
+    {
+        win32_file_read(&file, (s8*)inputs, 
+            sizeof(struct win32_recorded_inputs), &bytes_read);
+        win32_file_close(&file);
+
+        assert(bytes_read == sizeof(struct win32_recorded_inputs));
+
+        return true;
+    }
+
+    return false;
 }
 
 void win32_recorded_inputs_write(struct win32_recorded_inputs* inputs)
@@ -605,10 +621,12 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                 }
                                 else
                                 {
-                                    win32_recorded_memory_read(&memory);
-                                    win32_recorded_inputs_read(&record);
-                                    LOG("Start playing\n");
-                                    playing = true;
+                                    if (win32_recorded_memory_read(&memory) &&
+                                        win32_recorded_inputs_read(&record))
+                                    {
+                                        LOG("Start playing\n");
+                                        playing = true;
+                                    }
                                 }
                             }
                         }
