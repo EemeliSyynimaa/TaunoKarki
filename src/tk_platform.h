@@ -74,4 +74,4 @@ struct game_memory
 
 type_log* _log;
 
-#define LOG(format, ...) _log(##format, __VA_ARGS__);
+#define LOG(...) _log(__VA_ARGS__);

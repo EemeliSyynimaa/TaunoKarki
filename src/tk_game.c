@@ -3,6 +3,8 @@
 #include "tk_opengl.h"
 #include "tk_file.h"
 
+#include <string.h>
+
 struct player
 {
     f32 x;
