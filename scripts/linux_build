@@ -4,6 +4,7 @@ if [ -d "../build" ]; then
     echo "Directory already exists";
 else
 `mkdir ../build`;
-
-gcc ../src/linux_main.c -o ../build/game
 fi
+
+gcc ../src/tk_game.c -shared -o ../build/game.so -fPIC
+gcc ../src/linux_main.c -o ../build/game

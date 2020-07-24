@@ -35,7 +35,7 @@ OPEN_GL_FUNCTION(glGenTextures);
 OPEN_GL_FUNCTION(glTexParameteri);
 OPEN_GL_FUNCTION(glTexImage2D);
 
-#define OPEN_GL_FUNCTION_COPY(name) name = gl->##name
+#define OPEN_GL_FUNCTION_COPY(name) name = gl->name
 
 void opengl_functions_set(struct opengl_functions* gl)
 {
