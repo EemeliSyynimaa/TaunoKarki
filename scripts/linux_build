@@ -1,0 +1,9 @@
+#!/bin/bash
+
+if [ -d "../build" ]; then
+    echo "Directory already exists";
+else
+`mkdir ../build`;
+
+gcc ../src/linux_main.c -o ../build/game
+fi
