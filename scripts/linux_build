@@ -7,4 +7,4 @@ else
 fi
 
 gcc ../src/tk_game.c -shared -o ../build/game.so -fPIC
-gcc ../src/linux_main.c -o ../build/game
+gcc ../src/linux_main.c -o ../build/game -lX11 -L/usr/X11R6/lib -I/opt/X11R6/include
