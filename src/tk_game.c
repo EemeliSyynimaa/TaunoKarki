@@ -82,7 +82,7 @@ struct game_state
 #define MAP_HEIGHT      15
  
 #define PLAYER_HEALTH               500.0f
-#define PLAYER_SPEED                0.1f
+#define PLAYER_SPEED                0.01f
 #define PLAYER_HEALTH_PER_PACK      100.f
 #define ENEMY_HEALTH                50.0
 #define ENEMY_SPEED                 0.12
@@ -220,6 +220,9 @@ void map_render(struct game_state* state)
             if (tile == 1)
             {
                 struct v4 color;
+
+                f32 distance_to_player = f32_distance(x, y, state->player.x,
+                    state->player.y);
 
                 if (state->player.x + 0.25f > x - 0.5f && 
                     state->player.y + 0.25f > y - 0.5f &&
@@ -1040,7 +1043,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
             bullets_update(state, input);
         }
 
-        state->view = m4_translate(-state->player.x, -state->player.y, -15.0f);
+        state->view = m4_translate(-state->player.x, -state->player.y, -10.0f);
 
         map_render(state);
         player_render(state);

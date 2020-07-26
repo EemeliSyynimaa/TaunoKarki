@@ -10,9 +10,22 @@ struct v2
 
 struct v3
 {
-    f32 x;
-    f32 y;
-    f32 z;
+    union
+    {
+        struct
+        {
+            f32 x;
+            f32 y;
+            f32 z;
+        };
+
+        struct
+        {
+            f32 r;
+            f32 g;
+            f32 b;
+        };
+    };
 };
 
 struct v4
@@ -88,6 +101,15 @@ f32 f32_sqrt(f32 value)
 {
     // Todo: implement own sqrt function
     return sqrt(value);
+}
+
+f32 f32_distance(f32 ax, f32 ay, f32 bx, f32 by)
+{
+    f32 result;
+
+    result = f32_sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
+
+    return result;
 }
 
 struct m4 m4_translate(f32 x, f32 y, f32 z)
