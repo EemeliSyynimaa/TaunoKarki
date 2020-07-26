@@ -219,6 +219,20 @@ void map_render(struct game_state* state)
 
             if (tile == 1)
             {
+                struct v4 color;
+
+                if (state->player.x + 0.25f > x - 0.5f && 
+                    state->player.y + 0.25f > y - 0.5f &&
+                    state->player.x - 0.25f < x + 0.5f && 
+                    state->player.y - 0.25f < y + 0.5f)
+                {
+                    color = color_red;
+                }
+                else
+                {
+                    color = color_white;
+                }
+
                 for (u32 i = 0; i < state->level; i++)
                 {
                     struct m4 transform = m4_translate(x, y,
@@ -233,7 +247,7 @@ void map_render(struct game_state* state)
                     mvp = m4_mul(mvp, state->perspective);
 
                     mesh_render(&state->wall, &mvp, state->texture_tileset, 
-                        state->shader, color_white);
+                        state->shader, color);
                 }
             }
             else if (tile == 2)
