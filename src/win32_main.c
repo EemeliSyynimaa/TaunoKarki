@@ -498,6 +498,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     OPEN_GL_FUNCTION_LOAD(glDisableVertexAttribArray);
     OPEN_GL_FUNCTION_LOAD(glVertexAttribPointer);
     OPEN_GL_FUNCTION_LOAD(glUniform1i);
+    OPEN_GL_FUNCTION_LOAD(glUniform4fv);
     OPEN_GL_FUNCTION_LOAD(glUniformMatrix4fv);
     OPEN_GL_FUNCTION_LOAD(glGenBuffers);
     OPEN_GL_FUNCTION_LOAD(glBufferData);

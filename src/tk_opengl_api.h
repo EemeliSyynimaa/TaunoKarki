@@ -72,6 +72,8 @@ typedef void type_glDisableVertexAttribArray(GLuint index);
 typedef void type_glVertexAttribPointer(GLuint index, GLint size,
     GLenum type, GLboolean normalized, GLsizei stride, const void* pointer);
 typedef void type_glUniform1i(GLint location, GLint v0);
+typedef void type_glUniform4fv(GLint location, GLsizei count,
+    const GLfloat* value);
 typedef void type_glUniformMatrix4fv(GLint location, GLsizei count,
     GLboolean transpose, const GLfloat* value);
 typedef void type_glGenBuffers(GLsizei n, GLuint* buffers);
@@ -116,6 +118,7 @@ struct opengl_functions
     OPEN_GL_FUNCTION(glDisableVertexAttribArray);
     OPEN_GL_FUNCTION(glVertexAttribPointer);
     OPEN_GL_FUNCTION(glUniform1i);
+    OPEN_GL_FUNCTION(glUniform4fv);
     OPEN_GL_FUNCTION(glUniformMatrix4fv);
     OPEN_GL_FUNCTION(glGenBuffers);
     OPEN_GL_FUNCTION(glBufferData);

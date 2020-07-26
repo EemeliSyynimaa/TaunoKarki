@@ -15,6 +15,28 @@ struct v3
     f32 z;
 };
 
+struct v4
+{
+    union
+    {
+        struct
+        {
+            f32 x;
+            f32 y;
+            f32 z;
+            f32 w;
+        };
+
+        struct
+        {
+            f32 r;
+            f32 g;
+            f32 b;
+            f32 a;
+        };
+    };
+};
+
 struct m4
 {
     f32 m[4][4];

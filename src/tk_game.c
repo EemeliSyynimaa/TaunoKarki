@@ -111,6 +111,10 @@ struct game_state
 #define SHOTGUN_NUMBER_OF_SHELLS    12
 #define PROJECTILE_SIZE             0.1f
 
+struct v4 color_white = { 1.0, 1.0, 1.0, 1.0 };
+struct v4 color_black = { 0.0, 0.0, 0.0, 0.0 };
+struct v4 color_red   = { 1.0, 0.0, 0.0, 0.0 }; 
+
 u8 map_data[] =
 {
     0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,0,
@@ -180,7 +184,8 @@ void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
         (void*)20);
 }
 
-void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader)
+void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader, 
+    struct v4 color)
 {
     glBindVertexArray(mesh->vao);
 
@@ -188,9 +193,11 @@ void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader)
 
     u32 uniform_mvp = glGetUniformLocation(shader, "MVP");
     u32 uniform_texture = glGetUniformLocation(shader, "texture");
+    u32 uniform_color = glGetUniformLocation(shader, "color");
 
     glUniform1i(uniform_texture, 0);
     glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, (GLfloat*)mvp);
+    glUniform4fv(uniform_color, 1, (GLfloat*)&color);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -226,7 +233,7 @@ void map_render(struct game_state* state)
                     mvp = m4_mul(mvp, state->perspective);
 
                     mesh_render(&state->wall, &mvp, state->texture_tileset, 
-                        state->shader);
+                        state->shader, color_white);
                 }
             }
             else if (tile == 2)
@@ -242,7 +249,7 @@ void map_render(struct game_state* state)
                 mvp = m4_mul(mvp, state->perspective);
 
                 mesh_render(&state->floor, &mvp, state->texture_tileset,
-                    state->shader);
+                    state->shader, color_white);
             }
         }
     }
@@ -269,7 +276,8 @@ void enemies_render(struct game_state* state)
         struct m4 mvp = m4_mul(model, state->view);
         mvp = m4_mul(mvp, state->perspective);
 
-        mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader);
+        mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader,
+            color_white);
     }
 }
 
@@ -302,7 +310,7 @@ void bullets_render(struct game_state* state)
         mvp = m4_mul(mvp, state->perspective);
 
         mesh_render(&state->sphere, &mvp, state->texture_sphere,
-            state->shader);
+            state->shader, color_white);
     }
 }
 
@@ -381,7 +389,8 @@ void player_render(struct game_state* state)
     struct m4 mvp = m4_mul(model, state->view);
     mvp = m4_mul(mvp, state->perspective);
 
-    mesh_render(&state->cube, &mvp, state->texture_player, state->shader);
+    mesh_render(&state->cube, &mvp, state->texture_player, state->shader,
+        color_white);
 }
 
 // Todo: create single struct for header (requires packing)
