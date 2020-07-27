@@ -119,9 +119,9 @@ u8 map_data[] =
 {
     0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 ,0,
     1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1 ,0,
-    1, 2, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1 ,1,
-    1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 1, 2, 2 ,1,
-    1, 2, 2, 1, 2, 1, 1, 1, 1, 1, 0, 1, 2, 2 ,1,
+    1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 2, 1 ,1,
+    1, 2, 1, 2, 2, 1, 0, 0, 0, 0, 0, 1, 2, 2 ,1,
+    1, 2, 2, 2, 2, 1, 1, 1, 1, 1, 0, 1, 2, 2 ,1,
     1, 1, 1, 1, 2, 1, 2, 2, 2, 1, 1, 1, 2, 2 ,1,
     0, 0, 0, 1, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2 ,1,
     0, 0, 0, 1, 2, 1, 2, 2, 2, 1, 2, 2, 2, 2 ,1,
@@ -219,21 +219,31 @@ void map_render(struct game_state* state)
 
             if (tile == 1)
             {
-                struct v4 color;
+                struct v4 color = color_white;
 
                 f32 distance_to_player = f32_distance(x, y, state->player.x,
                     state->player.y);
 
-                if (state->player.x + 0.25f > x - 0.5f && 
-                    state->player.y + 0.25f > y - 0.5f &&
-                    state->player.x - 0.25f < x + 0.5f && 
-                    state->player.y - 0.25f < y + 0.5f)
+                f32 angle_to_player = f32_atan(f32_abs(y - state->player.y),
+                    f32_abs(x - state->player.x));
+
+                f32 distance_to_collision = 0;
+
+                if (angle_to_player < F64_PI/4)
+                {
+                    distance_to_collision = 0.5f / f32_cos(angle_to_player) + 
+                        0.25f;
+
+                }
+                else if (angle_to_player < F64_PI/2)
+                {
+                    distance_to_collision = 0.5f / f32_sin(angle_to_player) + 
+                        0.25f;
+                }
+
+                if (distance_to_player < distance_to_collision)
                 {
                     color = color_red;
-                }
-                else
-                {
-                    color = color_white;
                 }
 
                 for (u32 i = 0; i < state->level; i++)
@@ -406,7 +416,7 @@ void player_render(struct game_state* state)
     struct m4 mvp = m4_mul(model, state->view);
     mvp = m4_mul(mvp, state->perspective);
 
-    mesh_render(&state->cube, &mvp, state->texture_player, state->shader,
+    mesh_render(&state->sphere, &mvp, state->texture_sphere, state->shader,
         color_white);
 }
 
@@ -1043,7 +1053,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
             bullets_update(state, input);
         }
 
-        state->view = m4_translate(-state->player.x, -state->player.y, -10.0f);
+        state->view = m4_translate(-state->player.x, -state->player.y, -5.0f);
 
         map_render(state);
         player_render(state);

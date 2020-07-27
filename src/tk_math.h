@@ -103,6 +103,15 @@ f32 f32_sqrt(f32 value)
     return sqrt(value);
 }
 
+f32 f32_abs(f32 value)
+{
+    f32 result = 0;
+
+    result = value < 0 ? value * -1 : value;
+    
+    return result;
+}
+
 f32 f32_distance(f32 ax, f32 ay, f32 bx, f32 by)
 {
     f32 result;
