@@ -270,3 +270,15 @@ struct m4 m4_perspective(f32 fov, f32 aspect, f32 n, f32 f)
 
     return m;
 }
+
+struct v4 v4_mul(struct v4 a, struct v4 b)
+{
+    struct v4 result;
+
+    result.x = a.x * b.x;
+    result.y = a.y * b.y;
+    result.z = a.z * b.z;
+    result.w = a.w * b.w;
+
+    return result;
+}

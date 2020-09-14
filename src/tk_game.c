@@ -114,6 +114,7 @@ struct game_state
 struct v4 color_white = { 1.0, 1.0, 1.0, 1.0 };
 struct v4 color_black = { 0.0, 0.0, 0.0, 0.0 };
 struct v4 color_red   = { 1.0, 0.0, 0.0, 0.0 }; 
+struct v4 color_blue  = { 0.0, 0.0, 1.0, 0.0 };
 
 u8 map_data[] =
 {
@@ -241,9 +242,51 @@ void map_render(struct game_state* state)
                         0.25f;
                 }
 
-                if (distance_to_player < distance_to_collision)
+                b32 collides = distance_to_player < distance_to_collision;
+
+                f32 player_left = state->player.x - 0.25f;
+                f32 player_right = state->player.x + 0.25f;
+                f32 player_top = state->player.y + 0.25f;
+                f32 player_bottom = state->player.y - 0.25f;
+                
+                f32 wall_left = x - 0.5f;
+                f32 wall_right = x + 0.5f;
+                f32 wall_top = y + 0.5f;
+                f32 wall_bottom = y - 0.5f;
+
+                f32 col_x = state->player.x;
+
+                if (player_right < wall_left)
                 {
-                    color = color_red;
+                    col_x = wall_left;
+                }
+                else if (player_left > wall_right)
+                {
+                    col_x = wall_right;
+                }
+
+                f32 col_y = state->player.y;
+
+                if (player_top < wall_bottom)
+                {
+                    col_y = wall_bottom;
+                }
+                else if (player_bottom > wall_top)
+                {
+                    col_y = wall_top;
+                }
+
+                f32 distance_to_collision2 = f32_distance(state->player.x,
+                    state->player.y, col_x, col_y);
+
+                b32 collides2 = distance_to_collision2 < 0.25f;
+
+
+                if (collides || collides2)
+                {
+                    color = color_black;
+                    color.r = collides ? 1.0f : 0.0f;
+                    color.b = collides2 ? 1.0f : 0.0f;
                 }
 
                 for (u32 i = 0; i < state->level; i++)
@@ -1059,6 +1102,8 @@ void game_update(struct game_memory* memory, struct game_input* input)
         player_render(state);
         enemies_render(state);
         bullets_render(state);
+
+        // LOG("Player x=%2.3f y=%2.3f\n", state->player.x, state->player.y);
     }
     else
     {
