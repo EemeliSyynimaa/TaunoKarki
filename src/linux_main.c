@@ -1,35 +1,39 @@
 #include "tk_platform.h"
 #include <X11/Xlib.h>
 
-int main(int argc, char *argv[]) {
-  Display *display;
-  Window window;
-  Screen *screen;
-  s32 screen_id;
-  XEvent ev;
+s32 main(s32 argc, s8 *argv[])
+{
+    Display* display;
+    Window window;
+    Screen* screen;
+    s32 screen_id;
+    XEvent ev;
 
-  display = XOpenDisplay(NULL);
-  if (!display) {
-    return 1;
-  }
+    display = XOpenDisplay(NULL);
 
-  screen = DefaultScreenOfDisplay(display);
-  screen_id = DefaultScreen(display);
+    if (!display) 
+    {
+        return 1;
+    }
 
-  window = XCreateSimpleWindow(display, RootWindowOfScreen(screen), 0, 0, 1280,
-                               720, 1, BlackPixel(display, screen_id),
-                               WhitePixel(display, screen_id));
+    screen = DefaultScreenOfDisplay(display);
+    screen_id = DefaultScreen(display);
 
-  XClearWindow(display, window);
-  XMapRaised(display, window);
+    window = XCreateSimpleWindow(display, RootWindowOfScreen(screen), 0, 0,
+        1280, 720, 1, BlackPixel(display, screen_id), 
+        WhitePixel(display, screen_id));
 
-  while (true) {
-    XNextEvent(display, &ev);
-  }
+    XClearWindow(display, window);
+    XMapRaised(display, window);
 
-  XDestroyWindow(display, window);
-  XFree(screen);
-  XCloseDisplay(display);
+    while (true)
+    {
+        XNextEvent(display, &ev);
+    }
 
-  return 0;
+    XDestroyWindow(display, window);
+    XFree(screen);
+    XCloseDisplay(display);
+
+    return 0;
 }
