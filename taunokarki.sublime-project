@@ -11,5 +11,23 @@
         [
             80
         ]
-    }
+    },
+     "build_systems":
+    [
+        {
+            "working_dir": "${project_path}/scripts",
+            "file_regex": "(^.*\\.(?:c|cpp|h)):(\\d+):(\\d+):\\s*(.+)",
+            "line_regex": "^.*\\.(?:c|cpp|h):(\\d+):(\\d+):\\s*(.+)",
+ 
+            "name": "TaunoBuild",
+            "linux":
+            {
+                "shell_cmd": "./linux_build",
+            },
+            "windows":
+            {
+                // Todo: add windows builds
+            }
+        }
+    ]
 }
