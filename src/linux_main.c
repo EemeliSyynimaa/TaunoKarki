@@ -1,7 +1,7 @@
 #include "tk_platform.h"
 #include <X11/Xlib.h>
 
-s32 main(s32 argc, s8 *argv[])
+s32 main(s32 argc, char *argv[])
 {
     Display* display;
     Window window;

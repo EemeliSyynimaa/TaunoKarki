@@ -46,7 +46,7 @@ typedef s32 GLsizei;
 typedef f32 GLfloat;
 typedef f32 GLclampf;
 typedef u16 GLushort;
-typedef s8 GLchar;
+typedef char GLchar;
 typedef u8 GLboolean;
 typedef s8 GLbyte;
 typedef u8 GLubyte;
