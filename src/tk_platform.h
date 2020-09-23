@@ -22,7 +22,7 @@ typedef bool        b32;
 #include "tk_opengl_api.h"
 #include "tk_file_api.h"
 
-typedef void type_log(s8*, ...);
+typedef void type_log(char*, ...);
 
 struct key_state
 {

@@ -113,10 +113,10 @@ struct game_state
 #define SHOTGUN_NUMBER_OF_SHELLS    12
 #define PROJECTILE_SIZE             0.1f
 
-struct v4 color_white = { 1.0, 1.0, 1.0, 1.0 };
-struct v4 color_black = { 0.0, 0.0, 0.0, 0.0 };
-struct v4 color_red   = { 1.0, 0.0, 0.0, 0.0 }; 
-struct v4 color_blue  = { 0.0, 0.0, 1.0, 0.0 };
+struct v4 color_white = {{{ 1.0, 1.0, 1.0, 1.0 }}};
+struct v4 color_black = {{{ 0.0, 0.0, 0.0, 0.0 }}};
+struct v4 color_red   = {{{ 1.0, 0.0, 0.0, 0.0 }}}; 
+struct v4 color_blue  = {{{ 0.0, 0.0, 1.0, 0.0 }}};
 
 u8 map_data[] =
 {
@@ -486,11 +486,6 @@ struct image_spec
 void tga_decode(s8* input, u64 out_size, s8* output, u32* width,
     u32* height)
 {
-    s8 id_length = *input++;
-    s8 color_type = *input++;
-    s8 image_type = *input++;
-    
-    struct color_map_spec* c_spec = (struct color_map_spec*)input;
     input += 5;
 
     struct image_spec* i_spec = (struct image_spec*)input;
@@ -516,7 +511,7 @@ void tga_decode(s8* input, u64 out_size, s8* output, u32* width,
     *height = i_spec->height;
 }
 
-u32 texture_create(struct memory_block* block, s8* path)
+u32 texture_create(struct memory_block* block, char* path)
 {
     u64 read_bytes = 0;
     u32 target = GL_TEXTURE_2D;
@@ -658,7 +653,6 @@ f32 f32_parse(s8* data, u64* size)
 
         if (*data++ == 'e')
         {
-            s32 num_exponents = 0;
             b32 negative_exponent = false;
 
             bytes++;
@@ -744,7 +738,7 @@ u64 string_read(s8* data, s8* str, u64 max_size)
     return bytes_read;
 }
 
-void mesh_create(struct memory_block* block, s8* path, struct mesh* mesh)
+void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
 {
     // Todo: remove statics
     static struct v3 in_vertices[4096];
@@ -898,7 +892,7 @@ void mesh_create(struct memory_block* block, s8* path, struct mesh* mesh)
 
         for (u32 j = 0; j < num_vertices; j++)
         {
-            struct vertex other = vertices[j];
+            // struct vertex other = vertices[j];
 
             // Todo: fix this
             // if (v.position == other.position && v.uv == other.uv &&
@@ -923,8 +917,8 @@ void mesh_create(struct memory_block* block, s8* path, struct mesh* mesh)
     generate_vertex_array(mesh, vertices, num_vertices, indices);
 }
 
-u32 program_create(struct memory_block* block, s8* vertex_shader_path,
-    s8* fragment_shader_path)
+u32 program_create(struct memory_block* block, char* vertex_shader_path,
+    char* fragment_shader_path)
 {
     u64 read_bytes = 0;
     u64 file_size = 0;
