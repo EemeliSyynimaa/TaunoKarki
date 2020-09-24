@@ -39,10 +39,10 @@ typedef void type_game_update(struct game_memory*, struct game_input*);
 type_game_init* game_init;
 type_game_update* game_update;
 
-void win32_log(s8* format, ...)
+void win32_log(char* format, ...)
 {
     // Todo: implement own printf functions
-    s8 buffer[4096] = { 0 };
+    char buffer[4096] = { 0 };
     va_list args;
 
     va_start(args, format);
@@ -60,8 +60,8 @@ b32 win32_game_lib_load()
 {
     static HMODULE game_lib = 0;
     static FILETIME game_lib_write_time_last = { 0 };
-    s8 game_lib_name[] = "game.dll";
-    s8 game_lib_name_temp[] = "game-run.dll";
+    char game_lib_name[] = "game.dll";
+    char game_lib_name_temp[] = "game-run.dll";
 
     WIN32_FILE_ATTRIBUTE_DATA data;
     
@@ -129,7 +129,7 @@ f32 win32_elapsed_time_get(LARGE_INTEGER frequency, LARGE_INTEGER start,
     return result;
 }
 
-void win32_file_open(file_handle* file, s8* path, b32 read)
+void win32_file_open(file_handle* file, char* path, b32 read)
 {
     HANDLE win32_handle;
 
