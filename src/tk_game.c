@@ -551,7 +551,7 @@ u32 texture_create(struct memory_block* block, char* path)
     return id;
 }
 
-b32 str_compare(s8* str1, s8* str2)
+b32 str_compare(char* str1, char* str2)
 {
     while (*str1++ == *str2++)
     {
@@ -564,33 +564,33 @@ b32 str_compare(s8* str1, s8* str2)
     return false;
 }
 
-b32 is_digit(s8 c)
+b32 is_digit(char c)
 {
     return c >= '0' && c <= '9';
 }
 
-b32 is_space(s8 c)
+b32 is_space(char c)
 {
     return (c >= 9 && c <= 13) || c == 32;
 }
 
-s32 s32_parse(s8* data, u64* size)
+s32 s32_parse(char* str, u64* size)
 {
     // Todo: ignore leading whitespaces
     s32 value = 0;
     u64 bytes = 0;
     b32 negative = false;
     
-    if (*data == '-')
+    if (*str == '-')
     {
         negative = true;
-        data++;
+        str++;
         bytes++;
     }
 
-    while (is_digit(*data))
+    while (is_digit(*str))
     {  
-        u8 val = *data++ - '0';
+        u8 val = *str++ - '0';
 
         value *= 10.0;
         value += val;
@@ -611,7 +611,7 @@ s32 s32_parse(s8* data, u64* size)
     return value;
 }
 
-f32 f32_parse(s8* data, u64* size)
+f32 f32_parse(char* str, u64* size)
 {
     // Todo: ignore leading whitespaces
     // Todo: int parser has duplicate code
@@ -619,30 +619,30 @@ f32 f32_parse(s8* data, u64* size)
     b32 negative = false;
     u64 bytes = 0;
 
-    if (*data == '-')
+    if (*str == '-')
     {
         negative = true;
-        data++;
+        str++;
         bytes++;
     }
 
-    while (is_digit(*data))
+    while (is_digit(*str))
     {  
-        u8 val = *data++ - '0';
+        u8 val = *str++ - '0';
 
         value *= 10.0;
         value += val;
         bytes++;
     }
 
-    if (*data++ == '.')
+    if (*str++ == '.')
     {
         s32 num_decimals = 0;
         bytes++;
         
-        while (is_digit(*data))
+        while (is_digit(*str))
         {  
-            u8 val = *data++ - '0';
+            u8 val = *str++ - '0';
 
             value *= 10.0;
             value += val;
@@ -651,30 +651,30 @@ f32 f32_parse(s8* data, u64* size)
             bytes++;
         }
 
-        if (*data++ == 'e')
+        if (*str++ == 'e')
         {
             b32 negative_exponent = false;
 
             bytes++;
 
-            if (*data == '-')
+            if (*str == '-')
             {
                 negative_exponent = true;
-                data++;
+                str++;
                 bytes++;
             }
-            else if (*data == '+')
+            else if (*str == '+')
             {
                 negative_exponent = false;
-                data++;
+                str++;
                 bytes++;
             }
 
             u32 exponent = 0;
 
-            while (is_digit(*data))
+            while (is_digit(*str))
             {
-                u8 val = *data++ - '0';
+                u8 val = *str++ - '0';
 
                 exponent *= 10.0;
                 exponent += val;
@@ -713,7 +713,7 @@ f32 f32_parse(s8* data, u64* size)
     return value;
 }
 
-u64 string_read(s8* data, s8* str, u64 max_size)
+u64 string_read(char* data, char* str, u64 max_size)
 {
     u64 bytes_read = 0;
 
@@ -777,14 +777,14 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
     file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
 
-    s8* data = file_data;
-    s8 str[255] = {0};
+    char* data = (char*)file_data;
+    char str[255] = {0};
 
     for (u64 i = 0; i < read_bytes && *data != '\0'; i++)
     {
         u64 str_size = string_read(data, str, 255);
 
-        if (str_compare(str, (s8*)"v"))
+        if (str_compare(str, "v"))
         {
             struct v3* v = &in_vertices[num_in_vertices++];
 
@@ -805,7 +805,7 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
             v->z = f32_parse(str, NULL);
             // LOG(" %f\n", v->z);
         }
-        else if (str_compare(str, (s8*)"vt"))
+        else if (str_compare(str, "vt"))
         {
             struct v2* uv = &in_uvs[num_in_uvs++];
 
@@ -821,7 +821,7 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
             uv->y = f32_parse(str, NULL);
             // LOG(" %f\n", uv->y);
         }
-        else if (str_compare(str, (s8*)"vn"))
+        else if (str_compare(str, "vn"))
         {
             struct v3* n = &in_normals[num_in_normals++];
 
@@ -842,7 +842,7 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
             n->z = f32_parse(str, NULL);
             // LOG(" %f\n", n->z);
         }
-        else if (str_compare(str, (s8*)"f"))
+        else if (str_compare(str, "f"))
         {
             // LOG("f");
 
@@ -853,7 +853,7 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
                 data += str_size;
                 str_size = string_read(data, str, 255);
 
-                s8* s = str;
+                char* s = str;
 
                 u64 bytes_read = 0;
                 face[0] = s32_parse(s, &bytes_read); 
