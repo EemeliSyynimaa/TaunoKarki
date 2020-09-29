@@ -486,8 +486,7 @@ struct image_spec
 void tga_decode(s8* input, u64 out_size, s8* output, u32* width,
     u32* height)
 {
-    input += 5;
-
+    input += 8;
     struct image_spec* i_spec = (struct image_spec*)input;
     input += 10;
 
