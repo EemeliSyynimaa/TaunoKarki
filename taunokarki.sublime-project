@@ -22,7 +22,7 @@
             "name": "TaunoBuild",
             "linux":
             {
-                "shell_cmd": "./linux_build",
+                "shell_cmd": "./linux_build.sh",
             },
             "windows":
             {
