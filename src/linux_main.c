@@ -89,6 +89,8 @@ struct opengl_functions gl;
 
 s32 main(s32 argc, char *argv[])
 {
+    _log = linux_log;
+
     Display* display;
     Window window;
     Screen* screen;
@@ -120,60 +122,72 @@ s32 main(s32 argc, char *argv[])
     file.file_read = linux_file_read;
     file.file_size_get = linux_file_size_get;
     
-    // Todo: fill struct game_init
-    struct game_init init = { 0 };
-    init.file = &file;
-    init.gl = &gl;
-    init.log = linux_log;
-    init.screen_width = 0;
-    init.screen_height = 0;
-
     // Todo: allocate game memory
     struct game_memory memory = { 0 };
     memory.size = 1024*1024*1024;
     memory.base = mmap(0, memory.size, PROT_READ|PROT_WRITE, 
         MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
 
-    game_init(&memory, &init);
 
-    if (linux_game_lib_load())
+    b32 ready = true;
+
+    if (!linux_game_lib_load())
     {
-        printf("GAME LIB LOADED\n");
+        LOG("Library gmae not found\n");
+        ready = false;
+    }
+
+    if (!game_init)
+    {
+        LOG("Function game init not found\n");
+        ready = false;
+    }
+
+    if (!game_update)
+    {
+        LOG("Function game update not found\n");
+        ready = false;
+    }
+
+    if (ready)
+    {
+        // Todo: fill struct game_init
+        struct game_init init = { 0 };
+        init.file = &file;
+        init.gl = &gl;
+        init.log = linux_log;
+        init.screen_width = 0;
+        init.screen_height = 0;
+
+        // Todo: crashes for now
+        game_init(&memory, &init);
+
+        // struct game_input old_input = { 0 };
+        
+        while (true)
+        {
+            struct game_input new_input = { 0 };
+
+            // Todo: fill struct game_input
+            // Todo: calculate delta time
+            // Todo: read keyboard events
+            // Todo: read mouse events
+            // Todo: read other events?
+
+            // Todo: recording
+
+            // Todo: game_update
+            XNextEvent(display, &ev);
+
+            game_update(&memory, &new_input);
+        }
+
     }
     else
     {
-        printf("GAME LIB NOT LOADED\n");
+        LOG("Initialization not ready, cannot run game\n");
     }
 
-    if (game_init)
-    {
-        printf("Game init found yeees\n");
-    }
-
-    if (game_update)
-    {
-        printf("Game update found yeees\n");
-    }
-
-    // struct game_input old_input = { 0 };
-    
-    while (true)
-    {
-        struct game_input new_input = { 0 };
-
-        // Todo: fill struct game_input
-        // Todo: calculate delta time
-        // Todo: read keyboard events
-        // Todo: read mouse events
-        // Todo: read other events?
-
-        // Todo: recording
-
-        // Todo: game_update
-        XNextEvent(display, &ev);
-
-        game_update(&memory, &new_input);
-    }
 
     return 0;
 }

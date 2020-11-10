@@ -999,6 +999,8 @@ void game_init(struct game_memory* memory, struct game_init* init)
     opengl_functions_set(init->gl);
     file_functions_set(init->file);
 
+    // Todo: should we check if copied functions are valid before use?
+
     s32 version_major = 0;
     s32 version_minor = 0;
 
