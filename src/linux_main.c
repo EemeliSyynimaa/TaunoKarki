@@ -1,6 +1,11 @@
 #include <X11/Xlib.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <dlfcn.h>
+#include <fcntl.h>
+#include <assert.h>
+#include <unistd.h>
+#include <string.h>
 #include "tk_platform.h"
 
 typedef void type_game_init(struct game_memory*, struct game_init*);
@@ -55,25 +60,68 @@ b32 linux_game_lib_load()
 // - linux_elapsed_time_get
 
 // Todo: linux file io
-// - linux_file_open
-// - linux_file_close
-// - linux_file_read
 // - linux_file_size_get
 void linux_file_open(file_handle* file, char* path, b32 read)
 {
+    s32 fd;
+
+    if (read)
+    {
+        fd = open(path, O_RDONLY);
+    }
+    else
+    {
+        fd = open(path, O_WRONLY | O_CREAT | O_TRUNC, S_IRWXU);
+    }
+
+    *file = (u64)fd;
 }
 
 void linux_file_close(file_handle* file)
 {
+    s32* fd = (s32*)file;
+
+    close(*fd);
 }
 
 void linux_file_read(file_handle* file, s8* data, u64 bytes_max,
     u64* bytes_read)
 {
+    *bytes_read = 0;
+    s32* fd = (s32*)file;
+    
+    *bytes_read = read(*fd, data, bytes_max);
+
+    LOG("Read %llu/%llu bytes\n", *bytes_read, bytes_max)
+
+    // Todo: see if this is required
+    // Note: add zero to end
+    if (*bytes_read < bytes_max)
+    {
+        data += *bytes_read;
+        *data = '\0';
+        (*bytes_read)++;
+    }
+}
+
+void linux_file_write(file_handle* file, s8* data, u64 bytes)
+{
+    s32* fd = (s32*)file;
+
+    u64 num_bytes_written = write(*fd, data, bytes);
+
+    LOG("Wrote %llu/%llu bytes\n", num_bytes_written, bytes)
 }
 
 void linux_file_size_get(file_handle* file, u64* file_size)
 {
+    s32* fd = (s32*)file;
+
+    struct stat statbuf;
+
+    fstat(*fd, &statbuf);
+
+    *file_size = (u64)statbuf.st_size;
 }
 
 // Todo: linux recording
@@ -107,8 +155,11 @@ s32 main(s32 argc, char *argv[])
     screen = DefaultScreenOfDisplay(display);
     screen_id = DefaultScreen(display);
 
+    s32 screen_width = 1280;
+    s32 screen_height = 720;
+
     window = XCreateSimpleWindow(display, RootWindowOfScreen(screen), 0, 0,
-        1280, 720, 1, BlackPixel(display, screen_id), 
+        screen_width, screen_height, 1, BlackPixel(display, screen_id), 
         WhitePixel(display, screen_id));
 
     XClearWindow(display, window);
@@ -128,6 +179,45 @@ s32 main(s32 argc, char *argv[])
     memory.base = mmap(0, memory.size, PROT_READ|PROT_WRITE, 
         MAP_PRIVATE|MAP_ANONYMOUS, -1, 0);
 
+    assert(memory.base);
+
+    // Note: test file io
+    {
+        file_handle ff;
+
+        linux_file_open(&ff, "testink.txt", false);
+
+        LOG("FF IS %d\n", ff);
+
+        char* testi = "THIS IS TESTING ALRIGHT!!!";
+
+        s32 testi_size = strlen(testi);
+
+        // write(file_handle* file, s8* data, u64 bytes)
+        linux_file_write(&ff, (s8*)testi, testi_size);
+        // read(file_handle* file, s8* data, u64 bytes_max, u64* bytes_read)
+
+        linux_file_close(&ff);
+
+        char testi2[32] = { 5 };
+
+
+        // Todo: should file handle be cleared after close?
+        LOG("FF IS %d\n", ff);
+
+        linux_file_open(&ff, "testink.txt", true);
+
+        LOG("FF IS %d\n", ff);
+
+        u64 read_bytes = 0;
+
+        linux_file_read(&ff, (s8*)testi2, 32, &read_bytes);
+
+        LOG("THIS IS WHAT WE GOT: %s\n", testi2);
+
+        linux_file_close(&ff);
+        
+    }
 
     b32 ready = true;
 
@@ -156,15 +246,17 @@ s32 main(s32 argc, char *argv[])
         init.file = &file;
         init.gl = &gl;
         init.log = linux_log;
-        init.screen_width = 0;
-        init.screen_height = 0;
+        init.screen_width = screen_width;
+        init.screen_height = screen_height;
 
         // Todo: crashes for now
         game_init(&memory, &init);
 
         // struct game_input old_input = { 0 };
         
-        while (true)
+        b32 running = true;
+
+        while (running)
         {
             struct game_input new_input = { 0 };
 

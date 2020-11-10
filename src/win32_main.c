@@ -155,9 +155,9 @@ void win32_file_open(file_handle* file, char* path, b32 read)
     }
 }
 
-void win32_file_close(file_handle* handle)
+void win32_file_close(file_handle* file)
 {
-    HANDLE* win32_handle = (HANDLE*)handle;
+    HANDLE* win32_handle = (HANDLE*)file;
 
     if (INVALID_HANDLE_VALUE != *win32_handle)
     {
@@ -170,12 +170,12 @@ void win32_file_close(file_handle* handle)
     }
 }
 
-void win32_file_read(file_handle* handle, s8* data, u64 bytes_max, 
+void win32_file_read(file_handle* file, s8* data, u64 bytes_max, 
     u64* bytes_read)
 {
     *bytes_read = 0;
 
-    HANDLE* win32_handle = (HANDLE*)handle;
+    HANDLE* win32_handle = (HANDLE*)file;
 
     if (INVALID_HANDLE_VALUE != win32_handle)
     {
@@ -199,7 +199,7 @@ void win32_file_read(file_handle* handle, s8* data, u64 bytes_max,
         {
             data += num_bytes_read;
             *data = '\0';
-            *bytes_read++;
+            (*bytes_read)++;
         }
     }
     else
@@ -209,9 +209,9 @@ void win32_file_read(file_handle* handle, s8* data, u64 bytes_max,
     }
 }
 
-void win32_file_write(file_handle* handle, s8* data, u64 bytes)
+void win32_file_write(file_handle* file, s8* data, u64 bytes)
 {
-    HANDLE* win32_handle = (HANDLE*)handle;
+    HANDLE* win32_handle = (HANDLE*)file;
 
     if (INVALID_HANDLE_VALUE != win32_handle)
     {
