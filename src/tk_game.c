@@ -210,6 +210,43 @@ void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader,
     glUseProgram(0);
 }
 
+b32 collides_circle_to_rect(f32 circle_x, f32 circle_y, f32 circle_radius,
+    f32 rect_x, f32 rect_y, f32 rect_width, f32 rect_height)
+{
+    f32 result;
+
+    f32 rect_left   = rect_x - rect_width * 0.5f;
+    f32 rect_right  = rect_x + rect_width * 0.5f;
+    f32 rect_top    = rect_y + rect_height * 0.5f;
+    f32 rect_bottom = rect_y - rect_height * 0.5f;
+
+    f32 col_x = circle_x;
+
+    if (circle_x < rect_left)
+    {
+        col_x = rect_left;
+    }
+    else if (circle_x > rect_right)
+    {
+        col_x = rect_right;
+    }
+
+    f32 col_y = circle_y;
+
+    if (circle_y < rect_bottom)
+    {
+        col_y = rect_bottom;
+    }
+    else if (circle_y > rect_top)
+    {
+        col_y = rect_top;
+    }
+
+    result = f32_distance(circle_x, circle_y, col_x, col_y) < circle_radius;
+    
+    return result;
+}
+
 void map_render(struct game_state* state)
 {
     // Todo: fix map rendering glitch (a wall block randomly drawn in a 
@@ -224,71 +261,13 @@ void map_render(struct game_state* state)
             {
                 struct v4 color = color_white;
 
-                f32 distance_to_player = f32_distance(x, y, state->player.x,
-                    state->player.y);
+                b32 collides = collides_circle_to_rect(state->player.x,
+                    state->player.y, 0.5f, x, y, 1.0f, 1.0f);
 
-                f32 angle_to_player = f32_atan(f32_abs(y - state->player.y),
-                    f32_abs(x - state->player.x));
-
-                f32 distance_to_collision = 0;
-
-                if (angle_to_player < F64_PI/4)
-                {
-                    distance_to_collision = 0.5f / f32_cos(angle_to_player) + 
-                        0.25f;
-
-                }
-                else if (angle_to_player < F64_PI/2)
-                {
-                    distance_to_collision = 0.5f / f32_sin(angle_to_player) + 
-                        0.25f;
-                }
-
-                b32 collides = distance_to_player < distance_to_collision;
-
-                f32 player_left = state->player.x - 0.25f;
-                f32 player_right = state->player.x + 0.25f;
-                f32 player_top = state->player.y + 0.25f;
-                f32 player_bottom = state->player.y - 0.25f;
-                
-                f32 wall_left = x - 0.5f;
-                f32 wall_right = x + 0.5f;
-                f32 wall_top = y + 0.5f;
-                f32 wall_bottom = y - 0.5f;
-
-                f32 col_x = state->player.x;
-
-                if (player_right < wall_left)
-                {
-                    col_x = wall_left;
-                }
-                else if (player_left > wall_right)
-                {
-                    col_x = wall_right;
-                }
-
-                f32 col_y = state->player.y;
-
-                if (player_top < wall_bottom)
-                {
-                    col_y = wall_bottom;
-                }
-                else if (player_bottom > wall_top)
-                {
-                    col_y = wall_top;
-                }
-
-                f32 distance_to_collision2 = f32_distance(state->player.x,
-                    state->player.y, col_x, col_y);
-
-                b32 collides2 = distance_to_collision2 < 0.25f;
-
-
-                if (collides || collides2)
+                if (collides)
                 {
                     color = color_black;
                     color.r = collides ? 1.0f : 0.0f;
-                    color.b = collides2 ? 1.0f : 0.0f;
                 }
 
                 for (u32 i = 0; i < state->level; i++)
@@ -310,7 +289,7 @@ void map_render(struct game_state* state)
             }
             else if (tile == 2)
             {
-                struct m4 transform = m4_translate(x, y, -1.0f);
+                struct m4 transform = m4_translate(x, y, -0.5f);
                 struct m4 rotation = m4_rotate_z(0.0f);
                 struct m4 scale = m4_scale(0.5f, 0.5f, 0.5f);
 
@@ -453,7 +432,7 @@ void player_render(struct game_state* state)
 {
     struct m4 transform = m4_translate(state->player.x, state->player.y, 0.0f);
     struct m4 rotation = m4_rotate_z(state->player.angle);
-    struct m4 scale = m4_scale(0.25f, 0.25f, 0.5f);
+    struct m4 scale = m4_scale(0.5f, 0.5f, 0.25f);
 
     struct m4 model = m4_mul(scale, rotation);
     model = m4_mul(model, transform);
