@@ -243,7 +243,33 @@ b32 collides_circle_to_rect(f32 circle_x, f32 circle_y, f32 circle_radius,
     }
 
     result = f32_distance(circle_x, circle_y, col_x, col_y) < circle_radius;
-    
+
+    return result;
+}
+
+u32 collidable_walls_get(f32 x, f32 y, f32 radius, f32 wall_size, u8* walls)
+{
+    u32 result = 0;
+    u32 x_start = (u32)((x) / wall_size);
+    u32 x_end = (u32)((x + radius * 2) / wall_size);
+    u32 y_start = (u32)((y) / wall_size);
+    u32 y_end = (u32)((y + radius * 2) / wall_size);
+
+    LOG("Player: %.2f %.2f %d-%d %d-%d\n", x, y,
+     (s32)(x-radius), (s32)(x+radius), (s32)(y-radius), 
+        (s32)(y+radius));
+
+    for (u32 y = y_start; y <= y_end; y++)
+    {
+        for (u32 x = x_start; x <= x_end; x++)
+        {
+            walls[result++] = y * MAP_WIDTH + x;
+            LOG("%d %d\n", x, y);
+        }
+    }
+
+    LOG("\n");
+
     return result;
 }
 
@@ -251,24 +277,43 @@ void map_render(struct game_state* state)
 {
     // Todo: fix map rendering glitch (a wall block randomly drawn in a 
     //       wrong place)
+
+    u8 collidables[8] = { 0 };
+    u32 collidable_count = 0;
+
+    collidable_count = collidable_walls_get(state->player.x, state->player.y,
+        0.5f, 1.0f, collidables);
+
     for (u32 y = 0; y < MAP_HEIGHT; y++)
     {
         for (u32 x = 0; x < MAP_WIDTH; x++)
         {
-            u8 tile = map_data[y * MAP_WIDTH + x];
+            u32 index = y * MAP_WIDTH + x;
 
+            u8 tile = map_data[index];
+
+            struct v4 color = color_white;
+
+            for (u32 i = 0; i < collidable_count; i++)
+            {
+                if (index == collidables[i])
+                {
+                    color = color_red;
+                    break;
+                }
+            }
+            
             if (tile == 1)
             {
-                struct v4 color = color_white;
 
-                b32 collides = collides_circle_to_rect(state->player.x,
-                    state->player.y, 0.5f, x, y, 1.0f, 1.0f);
+                // b32 collides = collides_circle_to_rect(state->player.x,
+                //     state->player.y, 0.5f, x, y, 1.0f, 1.0f);
 
-                if (collides)
-                {
-                    color = color_black;
-                    color.r = collides ? 1.0f : 0.0f;
-                }
+                // if (collides)
+                // {
+                //     color = color_black;
+                //     color.r = collides ? 1.0f : 0.0f;
+                // }
 
                 for (u32 i = 0; i < state->level; i++)
                 {
@@ -300,7 +345,7 @@ void map_render(struct game_state* state)
                 mvp = m4_mul(mvp, state->perspective);
 
                 mesh_render(&state->floor, &mvp, state->texture_tileset,
-                    state->shader, color_white);
+                    state->shader, color);
             }
         }
     }
