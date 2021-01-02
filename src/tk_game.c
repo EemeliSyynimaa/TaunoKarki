@@ -112,6 +112,12 @@ struct game_state
 #define SHOTGUN_BULLET_SPREAD       0.12f
 #define SHOTGUN_NUMBER_OF_SHELLS    12
 #define PROJECTILE_SIZE             0.1f
+#define PLAYER_SIZE                 0.45f
+#define WALL_SIZE                   1.0f
+
+#define TILE_NOTHING    0
+#define TILE_WALL       1
+#define TILE_FLOOR      2
 
 struct v4 color_white = {{{ 1.0, 1.0, 1.0, 1.0 }}};
 struct v4 color_black = {{{ 0.0, 0.0, 0.0, 0.0 }}};
@@ -250,18 +256,17 @@ b32 collides_circle_to_rect(f32 circle_x, f32 circle_y, f32 circle_radius,
 u32 collidable_walls_get(f32 x, f32 y, f32 radius, f32 wall_size, u8* walls)
 {
     u32 result = 0;
-    u32 x_start = (u32)((x) / wall_size);
-    u32 x_end = (u32)((x + radius * 2) / wall_size);
-    u32 y_start = (u32)((y) / wall_size);
-    u32 y_end = (u32)((y + radius * 2) / wall_size);
+    u32 start_x = (u32)((x + 0.5f * wall_size - radius) / wall_size);
+    u32 start_y = (u32)((y + 0.5f * wall_size - radius) / wall_size);
+    u32 end_x = (u32)((x + 0.5f * wall_size + radius) / wall_size);
+    u32 end_y = (u32)((y + 0.5f * wall_size + radius) / wall_size);
 
-    LOG("Player: %.2f %.2f %d-%d %d-%d\n", x, y,
-     (s32)(x-radius), (s32)(x+radius), (s32)(y-radius), 
-        (s32)(y+radius));
+    LOG("Player: %.2f %.2f %u-%u %u-%u\n", x, y, start_x, end_x, start_y, 
+        end_y);
 
-    for (u32 y = y_start; y <= y_end; y++)
+    for (u32 y = start_y; y <= end_y; y++)
     {
-        for (u32 x = x_start; x <= x_end; x++)
+        for (u32 x = start_x; x <= end_x; x++)
         {
             walls[result++] = y * MAP_WIDTH + x;
             LOG("%d %d\n", x, y);
@@ -282,7 +287,7 @@ void map_render(struct game_state* state)
     u32 collidable_count = 0;
 
     collidable_count = collidable_walls_get(state->player.x, state->player.y,
-        0.5f, 1.0f, collidables);
+        PLAYER_SIZE, WALL_SIZE, collidables);
 
     for (u32 y = 0; y < MAP_HEIGHT; y++)
     {
@@ -303,24 +308,14 @@ void map_render(struct game_state* state)
                 }
             }
             
-            if (tile == 1)
+            if (tile == TILE_WALL)
             {
-
-                // b32 collides = collides_circle_to_rect(state->player.x,
-                //     state->player.y, 0.5f, x, y, 1.0f, 1.0f);
-
-                // if (collides)
-                // {
-                //     color = color_black;
-                //     color.r = collides ? 1.0f : 0.0f;
-                // }
-
                 for (u32 i = 0; i < state->level; i++)
                 {
                     struct m4 transform = m4_translate(x, y,
                         -1.0f * (state->level - i - 1));
                     struct m4 rotation = m4_rotate_z(0.0f);
-                    struct m4 scale = m4_scale(0.5f, 0.5f, 0.5f);
+                    struct m4 scale = m4_scale_all(WALL_SIZE * 0.5f);
 
                     struct m4 model = m4_mul(scale, rotation);
                     model = m4_mul(model, transform);
@@ -332,11 +327,11 @@ void map_render(struct game_state* state)
                         state->shader, color);
                 }
             }
-            else if (tile == 2)
+            else if (tile == TILE_FLOOR)
             {
-                struct m4 transform = m4_translate(x, y, -0.5f);
+                struct m4 transform = m4_translate(x, y, -WALL_SIZE * 0.5f);
                 struct m4 rotation = m4_rotate_z(0.0f);
-                struct m4 scale = m4_scale(0.5f, 0.5f, 0.5f);
+                struct m4 scale = m4_scale_all(WALL_SIZE * 0.5f);
 
                 struct m4 model = m4_mul(scale, rotation);
                 model = m4_mul(model, transform);
@@ -364,7 +359,7 @@ void enemies_render(struct game_state* state)
 
         struct m4 transform = m4_translate(enemy->x, enemy->y, 0.0f);
         struct m4 rotation = m4_rotate_z(enemy->angle);
-        struct m4 scale = m4_scale(0.25f, 0.25f, 0.5f);
+        struct m4 scale = m4_scale_all(PLAYER_SIZE * 0.5f);
 
         struct m4 model = m4_mul(scale, rotation);
         model = m4_mul(model, transform);
@@ -396,8 +391,7 @@ void bullets_render(struct game_state* state)
 
         struct m4 transform = m4_translate(bullet->x, bullet->y, 0.0f);
         struct m4 rotation = m4_rotate_z(bullet->angle);
-        struct m4 scale = m4_scale(PROJECTILE_SIZE, PROJECTILE_SIZE,
-            PROJECTILE_SIZE);
+        struct m4 scale = m4_scale_all(PROJECTILE_SIZE);
 
         struct m4 model = m4_mul(scale, rotation);
         model = m4_mul(model, transform);
@@ -434,6 +428,33 @@ void player_update(struct game_state* state, struct game_input* input)
     if (input->move_down.key_down)
     {
         velocity_y -= move_speed;
+    }
+
+    u8 collidables[8] = { 0 };
+    u32 collidable_count = 0;
+
+    f32 new_x = state->player.x + velocity_x;
+    f32 new_y = state->player.y + velocity_y;
+
+    collidable_count = collidable_walls_get(new_x, new_y, PLAYER_SIZE, 
+        WALL_SIZE, collidables);
+
+    for (u32 i = 0; i < collidable_count; i++)
+    {
+        if (map_data[collidables[i]] == 1)
+        {
+            f32 tile_x = collidables[i] % MAP_WIDTH;
+            f32 tile_y = collidables[i] / MAP_WIDTH;
+
+             b32 collides = collides_circle_to_rect(new_x, new_y, PLAYER_SIZE, 
+                tile_x, tile_y, WALL_SIZE, WALL_SIZE);
+
+             if (collides)
+             {
+                velocity_y = 0;
+                velocity_x = 0;
+             }            
+        }
     }
 
     state->player.x += velocity_x;
@@ -477,7 +498,7 @@ void player_render(struct game_state* state)
 {
     struct m4 transform = m4_translate(state->player.x, state->player.y, 0.0f);
     struct m4 rotation = m4_rotate_z(state->player.angle);
-    struct m4 scale = m4_scale(0.5f, 0.5f, 0.25f);
+    struct m4 scale = m4_scale_xyz(PLAYER_SIZE, PLAYER_SIZE, 0.25f);
 
     struct m4 model = m4_mul(scale, rotation);
     model = m4_mul(model, transform);
@@ -1086,7 +1107,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
     state->level = 6;
 
-    state->player.x = 1.5f;
+    state->player.x = 3.0f;
     state->player.y = 3.0f;
 
     glClearColor(0.2f, 0.65f, 0.4f, 0.0f);

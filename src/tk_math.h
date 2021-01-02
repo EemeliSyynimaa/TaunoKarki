@@ -182,7 +182,7 @@ struct m4 m4_rotate_z(f32 angle)
     return m;
 }
 
-struct m4 m4_scale(f32 x, f32 y, f32 z)
+struct m4 m4_scale_xyz(f32 x, f32 y, f32 z)
 {
     struct m4 m = 
     {{
@@ -193,6 +193,11 @@ struct m4 m4_scale(f32 x, f32 y, f32 z)
     }};
 
     return m;
+}
+
+struct m4 m4_scale_all(f32 s)
+{
+    return m4_scale_xyz(s, s, s);
 }
 
 struct m4 m4_mul(struct m4 a, struct m4 b)
