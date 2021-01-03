@@ -261,19 +261,13 @@ u32 collidable_walls_get(f32 x, f32 y, f32 radius, f32 wall_size, u8* walls)
     u32 end_x = (u32)((x + 0.5f * wall_size + radius) / wall_size);
     u32 end_y = (u32)((y + 0.5f * wall_size + radius) / wall_size);
 
-    LOG("Player: %.2f %.2f %u-%u %u-%u\n", x, y, start_x, end_x, start_y, 
-        end_y);
-
     for (u32 y = start_y; y <= end_y; y++)
     {
         for (u32 x = start_x; x <= end_x; x++)
         {
             walls[result++] = y * MAP_WIDTH + x;
-            LOG("%d %d\n", x, y);
         }
     }
-
-    LOG("\n");
 
     return result;
 }
@@ -434,29 +428,35 @@ b32 player_collides_to_wall(f32 x, f32 y)
 
 void player_update(struct game_state* state, struct game_input* input)
 {
+    struct v2 direction = { 0.0f };
     f32 velocity_x = 0.0f;
     f32 velocity_y = 0.0f;
     f32 move_speed = PLAYER_SPEED;
 
     if (input->move_left.key_down)
     {
-        velocity_x -= move_speed;
+        direction.x -= 1.0f;
     }
     
     if (input->move_right.key_down)
     {
-        velocity_x += move_speed;
-    }
-
-    if (input->move_up.key_down)
-    {
-        velocity_y += move_speed;
+        direction.x += 1.0f;
     }
     
     if (input->move_down.key_down)
     {
-        velocity_y -= move_speed;
+        direction.y -= 1.0f;
     }
+
+    if (input->move_up.key_down)
+    {
+        direction.y += 1.0f;
+    }
+
+    direction = v2_normalize(direction);
+
+    velocity_x = direction.x * move_speed;
+    velocity_y = direction.y * move_speed;
 
     if (player_collides_to_wall(state->player.x + velocity_x, state->player.y))
     {

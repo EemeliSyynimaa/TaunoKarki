@@ -250,13 +250,33 @@ struct v3 v3_cross(struct v3 a, struct v3 b)
 
 struct v3 v3_normalize(struct v3 v)
 {
-    struct v3 result;
+    struct v3 result = { 0 };
 
     f32 length = v3_length(v);
 
-    result.x = v.x / length;
-    result.y = v.y / length;
-    result.z = v.z / length;
+    if (length)
+    {
+        result.x = v.x / length;
+        result.y = v.y / length;
+        result.z = v.z / length;   
+    }
+
+    return result;
+}
+
+struct v2 v2_normalize(struct v2 v)
+{
+    struct v3 temp;
+    struct v2 result;
+
+    temp.x = v.x;
+    temp.y = v.y;
+    temp.z = 0.0f;
+
+    temp = v3_normalize(temp);
+
+    result.x = temp.x;
+    result.y = temp.y;
 
     return result;
 }
@@ -265,6 +285,8 @@ struct m4 m4_perspective(f32 fov, f32 aspect, f32 n, f32 f)
 {
     f32 t = f32_tan(f32_radians(fov) / 2.0f);
 
+    // Todo: check if n-f is not zero
+    // Todo: check if t*aspect is not zero
     struct m4 m = 
     {{
         { 1.0f / (t*aspect), 0.0f, 0.0f, 0.0f },
