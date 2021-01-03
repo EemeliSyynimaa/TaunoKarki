@@ -16,16 +16,18 @@
     [
         {
             "working_dir": "${project_path}/scripts",
-            "file_regex": "(^.*\\.(?:c|cpp|h)):(\\d+):(\\d+):\\s*(.+)",
-            "line_regex": "^.*\\.(?:c|cpp|h):(\\d+):(\\d+):\\s*(.+)",
  
             "name": "TaunoBuild",
             "linux":
             {
                 "shell_cmd": "./linux_build.sh",
+                "file_regex": "(^.*\\.(?:c|cpp|h)):(\\d+):(\\d+):\\s*(.+)",
+                "line_regex": "^.*\\.(?:c|cpp|h):(\\d+):(\\d+):\\s*(.+)",
             },
             "windows":
             {
+                "file_regex": "^(.+)\\((\\d+),(\\d+)\\): (.+$)",
+                "line_regex": "^(.+)\\((\\d+),(\\d+)\\).+$",
                 "shell_cmd": "win32_build",
             }
         }
