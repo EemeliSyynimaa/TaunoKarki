@@ -7,24 +7,21 @@
 
 struct player
 {
-    f32 x;
-    f32 y;
+    struct v2 position;
+    struct v2 velocity;
     f32 angle;
 };
 
 struct bullet
 {
-    f32 x;
-    f32 y;
-    f32 velocity_x;
-    f32 velocity_y;
+    struct v2 position;
+    struct v2 velocity;
     f32 angle;
 };
 
 struct enemy
 {
-    f32 x;
-    f32 y;
+    struct v2 position;
     f32 angle;
 };
 
@@ -84,8 +81,9 @@ struct game_state
 #define MAP_HEIGHT      15
  
 #define PLAYER_HEALTH               500.0f
-#define PLAYER_SPEED                0.01f
+#define PLAYER_SPEED                0.1f
 #define PLAYER_HEALTH_PER_PACK      100.f
+#define PLAYER_ACCELERATION         0.001f
 #define ENEMY_HEALTH                50.0
 #define ENEMY_SPEED                 0.12
 #define ENEMY_ACTIVATION_DISTANCE   20.0
@@ -280,8 +278,8 @@ void map_render(struct game_state* state)
     u8 collidables[8] = { 0 };
     u32 collidable_count = 0;
 
-    collidable_count = collidable_walls_get(state->player.x, state->player.y,
-        PLAYER_SIZE, WALL_SIZE, collidables);
+    collidable_count = collidable_walls_get(state->player.position.x, 
+        state->player.position.y, PLAYER_SIZE, WALL_SIZE, collidables);
 
     for (u32 y = 0; y < MAP_HEIGHT; y++)
     {
@@ -351,7 +349,8 @@ void enemies_render(struct game_state* state)
     {
         struct enemy* enemy = &state->enemies[i];
 
-        struct m4 transform = m4_translate(enemy->x, enemy->y, 0.0f);
+        struct m4 transform = m4_translate(enemy->position.x, enemy->position.y, 
+            0.0f);
         struct m4 rotation = m4_rotate_z(enemy->angle);
         struct m4 scale = m4_scale_all(PLAYER_SIZE * 0.5f);
 
@@ -372,8 +371,8 @@ void bullets_update(struct game_state* state, struct game_input* input)
     {
         struct bullet* bullet = &state->bullets[i];
 
-        bullet->x += bullet->velocity_x;
-        bullet->y += bullet->velocity_y;
+        bullet->position.x += bullet->velocity.x;
+        bullet->position.y += bullet->velocity.y;
     }
 }
 
@@ -383,7 +382,8 @@ void bullets_render(struct game_state* state)
     {
         struct bullet* bullet = &state->bullets[i];
 
-        struct m4 transform = m4_translate(bullet->x, bullet->y, 0.0f);
+        struct m4 transform = m4_translate(bullet->position.x, 
+            bullet->position.y, 0.0f);
         struct m4 rotation = m4_rotate_z(bullet->angle);
         struct m4 scale = m4_scale_all(PROJECTILE_SIZE);
 
@@ -429,9 +429,8 @@ b32 player_collides_to_wall(f32 x, f32 y)
 void player_update(struct game_state* state, struct game_input* input)
 {
     struct v2 direction = { 0.0f };
-    f32 velocity_x = 0.0f;
-    f32 velocity_y = 0.0f;
-    f32 move_speed = PLAYER_SPEED;
+    struct v2 acceleration = { 0.0f };
+    struct player* player = &state->player;
 
     if (input->move_left.key_down)
     {
@@ -455,26 +454,29 @@ void player_update(struct game_state* state, struct game_input* input)
 
     direction = v2_normalize(direction);
 
-    velocity_x = direction.x * move_speed;
-    velocity_y = direction.y * move_speed;
+    player->velocity.x += direction.x * PLAYER_ACCELERATION;
+    player->velocity.y += direction.y * PLAYER_ACCELERATION;
 
-    if (player_collides_to_wall(state->player.x + velocity_x, state->player.y))
+    if (player_collides_to_wall(
+        player->position.x + player->velocity.x, 
+        player->position.y))
     {
-        velocity_x = 0.0f;
+        player->velocity.x = 0.0f;
     }
 
-    if (player_collides_to_wall(state->player.x, state->player.y + velocity_y))
+    if (player_collides_to_wall(player->position.x, 
+        player->position.y + player->velocity.y))
     {
-        velocity_y = 0.0f;
+        player->velocity.y = 0.0f;
     }
 
-    state->player.x += velocity_x;
-    state->player.y += velocity_y;
+    player->position.x += player->velocity.x;
+    player->position.y += player->velocity.y;
 
     f32 mouse_x = (state->screen_width / 2.0f - input->mouse_x) * -1;
     f32 mouse_y = (state->screen_height / 2.0f - input->mouse_y);
 
-    state->player.angle = f32_atan(mouse_y, mouse_x);
+    player->angle = f32_atan(mouse_y, mouse_x);
 
     if (input->shoot.key_down)
     {
@@ -487,14 +489,14 @@ void player_update(struct game_state* state, struct game_input* input)
 
             struct bullet* bullet = &state->bullets[state->free_bullet];
 
-            f32 dir_x = f32_cos(state->player.angle);
-            f32 dir_y = f32_sin(state->player.angle);
+            f32 dir_x = f32_cos(player->angle);
+            f32 dir_y = f32_sin(player->angle);
             f32 speed = PISTOL_BULLET_SPEED;
 
-            bullet->x = state->player.x;
-            bullet->y = state->player.y;
-            bullet->velocity_x = dir_x * speed;
-            bullet->velocity_y = dir_y * speed;
+            bullet->position.x = player->position.x;
+            bullet->position.y = player->position.y;
+            bullet->velocity.x = dir_x * speed;
+            bullet->velocity.y = dir_y * speed;
 
             state->fired = true;
         }
@@ -507,7 +509,8 @@ void player_update(struct game_state* state, struct game_input* input)
 
 void player_render(struct game_state* state)
 {
-    struct m4 transform = m4_translate(state->player.x, state->player.y, 0.0f);
+    struct m4 transform = m4_translate(state->player.position.x, 
+        state->player.position.y, 0.0f);
     struct m4 rotation = m4_rotate_z(state->player.angle);
     struct m4 scale = m4_scale_xyz(PLAYER_SIZE, PLAYER_SIZE, 0.25f);
 
@@ -519,6 +522,70 @@ void player_render(struct game_state* state)
 
     mesh_render(&state->sphere, &mvp, state->texture_sphere, state->shader,
         color_white);
+
+    {
+        f32 length = state->player.velocity.x / PLAYER_SPEED * 0.5f * 
+            PLAYER_SIZE;
+        f32 pos_x = state->player.position.x + length;
+
+        if (length < 0)
+        {
+            length = f32_abs(length);
+        }
+
+        transform = m4_translate(pos_x, state->player.position.y, 1.0f);
+        rotation = m4_rotate_z(0.0f);
+        scale = m4_scale_xyz(length, 0.01f, 0.01f);
+
+        model = m4_mul(scale, rotation);
+        model = m4_mul(model, transform);
+
+        mvp = m4_mul(model, state->view);
+        mvp = m4_mul(mvp, state->perspective);
+
+        mesh_render(&state->floor, &mvp, state->texture_tileset,
+            state->shader, color_blue);
+    }
+
+    {
+        f32 length = state->player.velocity.y / PLAYER_SPEED * 0.5f * 
+            PLAYER_SIZE;
+        f32 pos_y = state->player.position.y + length;
+
+        if (length < 0)
+        {
+            length = f32_abs(length);
+        }
+
+        transform = m4_translate(state->player.position.x, pos_y, 1.0f);
+        rotation = m4_rotate_z(0.0f);
+        scale = m4_scale_xyz(0.01f, length, 0.01f);
+
+        model = m4_mul(scale, rotation);
+        model = m4_mul(model, transform);
+
+        mvp = m4_mul(model, state->view);
+        mvp = m4_mul(mvp, state->perspective);
+
+        mesh_render(&state->floor, &mvp, state->texture_tileset,
+            state->shader, color_blue);
+    }
+
+    // {
+    //     transform = m4_translate(state->player.position.x, 
+    //         state->player.position.y, 1.0f);
+    //     rotation = m4_rotate_z(0.0f);
+    //     scale = m4_scale_xyz(0.01f, PLAYER_SIZE, 0.01f);
+
+    //     model = m4_mul(scale, rotation);
+    //     model = m4_mul(model, transform);
+
+    //     mvp = m4_mul(model, state->view);
+    //     mvp = m4_mul(mvp, state->perspective);
+
+    //     mesh_render(&state->floor, &mvp, state->texture_tileset,
+    //         state->shader, color_blue);
+    // }
 }
 
 // Todo: create single struct for header (requires packing)
@@ -1112,14 +1179,14 @@ void game_init(struct game_memory* memory, struct game_init* init)
     {
         struct enemy* enemy = &state->enemies[i];
             
-        enemy->x = 1.0f + i * 1.5f;
-        enemy->y = -1.0f;
+        enemy->position.x = 1.0f + i * 1.5f;
+        enemy->position.y = -1.0f;
     }
 
     state->level = 6;
 
-    state->player.x = 3.0f;
-    state->player.y = 3.0f;
+    state->player.position.x = 3.0f;
+    state->player.position.y = 3.0f;
 
     glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
@@ -1149,7 +1216,8 @@ void game_update(struct game_memory* memory, struct game_input* input)
             bullets_update(state, input);
         }
 
-        state->view = m4_translate(-state->player.x, -state->player.y, -5.0f);
+        state->view = m4_translate(-state->player.position.x, 
+            -state->player.position.y, -5.0f);
 
         map_render(state);
         player_render(state);
