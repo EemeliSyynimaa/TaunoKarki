@@ -404,6 +404,34 @@ void bullets_render(struct game_state* state)
     }
 }
 
+b32 player_collides_to_wall(f32 x, f32 y)
+{
+    u8 collidables[8] = { 0 };
+    u32 collidable_count = 0;
+
+    collidable_count = collidable_walls_get(x, y, PLAYER_SIZE, 
+        WALL_SIZE, collidables);
+
+    for (u32 i = 0; i < collidable_count; i++)
+    {
+        if (map_data[collidables[i]] == 1)
+        {
+            f32 tile_x = collidables[i] % MAP_WIDTH;
+            f32 tile_y = collidables[i] / MAP_WIDTH;
+
+             b32 collides = collides_circle_to_rect(x, y, PLAYER_SIZE, 
+                tile_x, tile_y, WALL_SIZE, WALL_SIZE);
+
+             if (collides)
+             {
+                return true;
+             }            
+        }
+    }
+
+    return false;
+}
+
 void player_update(struct game_state* state, struct game_input* input)
 {
     f32 velocity_x = 0.0f;
@@ -430,31 +458,14 @@ void player_update(struct game_state* state, struct game_input* input)
         velocity_y -= move_speed;
     }
 
-    u8 collidables[8] = { 0 };
-    u32 collidable_count = 0;
-
-    f32 new_x = state->player.x + velocity_x;
-    f32 new_y = state->player.y + velocity_y;
-
-    collidable_count = collidable_walls_get(new_x, new_y, PLAYER_SIZE, 
-        WALL_SIZE, collidables);
-
-    for (u32 i = 0; i < collidable_count; i++)
+    if (player_collides_to_wall(state->player.x + velocity_x, state->player.y))
     {
-        if (map_data[collidables[i]] == 1)
-        {
-            f32 tile_x = collidables[i] % MAP_WIDTH;
-            f32 tile_y = collidables[i] / MAP_WIDTH;
+        velocity_x = 0.0f;
+    }
 
-             b32 collides = collides_circle_to_rect(new_x, new_y, PLAYER_SIZE, 
-                tile_x, tile_y, WALL_SIZE, WALL_SIZE);
-
-             if (collides)
-             {
-                velocity_y = 0;
-                velocity_x = 0;
-             }            
-        }
+    if (player_collides_to_wall(state->player.x, state->player.y + velocity_y))
+    {
+        velocity_y = 0.0f;
     }
 
     state->player.x += velocity_x;
