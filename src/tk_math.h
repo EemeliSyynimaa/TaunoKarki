@@ -264,6 +264,15 @@ struct v3 v3_normalize(struct v3 v)
     return result;
 }
 
+f32 v2_length(struct v2 v)
+{
+    f32 result;
+
+    result = f32_sqrt(v.x * v.x + v.y * v.y);
+
+    return result;
+}
+
 struct v2 v2_normalize(struct v2 v)
 {
     struct v3 temp;

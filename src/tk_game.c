@@ -66,6 +66,7 @@ struct game_state
     b32 fired;
     f32 accumulator;
     u32 shader;
+    u32 shader_simple;
     u32 texture_tileset;
     u32 texture_sphere;
     u32 texture_player;
@@ -81,9 +82,9 @@ struct game_state
 #define MAP_HEIGHT      15
  
 #define PLAYER_HEALTH               500.0f
-#define PLAYER_SPEED                0.1f
+#define PLAYER_SPEED                0.05f
 #define PLAYER_HEALTH_PER_PACK      100.f
-#define PLAYER_ACCELERATION         0.001f
+#define PLAYER_ACCELERATION         0.0005f
 #define ENEMY_HEALTH                50.0
 #define ENEMY_SPEED                 0.12
 #define ENEMY_ACTIVATION_DISTANCE   20.0
@@ -509,9 +510,10 @@ void player_update(struct game_state* state, struct game_input* input)
 
 void player_render(struct game_state* state)
 {
-    struct m4 transform = m4_translate(state->player.position.x, 
-        state->player.position.y, 0.0f);
-    struct m4 rotation = m4_rotate_z(state->player.angle);
+    struct player* player = &state->player;
+    struct m4 transform = m4_translate(player->position.x, player->position.y,
+     0.0f);
+    struct m4 rotation = m4_rotate_z(player->angle);
     struct m4 scale = m4_scale_xyz(PLAYER_SIZE, PLAYER_SIZE, 0.25f);
 
     struct m4 model = m4_mul(scale, rotation);
@@ -524,16 +526,15 @@ void player_render(struct game_state* state)
         color_white);
 
     {
-        f32 length = state->player.velocity.x / PLAYER_SPEED * 0.5f * 
-            PLAYER_SIZE;
-        f32 pos_x = state->player.position.x + length;
+        f32 length = player->velocity.x / PLAYER_SPEED * 0.5f * PLAYER_SIZE;
+        f32 pos_x = player->position.x + length;
 
         if (length < 0)
         {
             length = f32_abs(length);
         }
 
-        transform = m4_translate(pos_x, state->player.position.y, 1.0f);
+        transform = m4_translate(pos_x, player->position.y, 1.0f);
         rotation = m4_rotate_z(0.0f);
         scale = m4_scale_xyz(length, 0.01f, 0.01f);
 
@@ -543,21 +544,20 @@ void player_render(struct game_state* state)
         mvp = m4_mul(model, state->view);
         mvp = m4_mul(mvp, state->perspective);
 
-        mesh_render(&state->floor, &mvp, state->texture_tileset,
-            state->shader, color_blue);
+        mesh_render(&state->floor, &mvp, state->texture_tileset, 
+            state->shader_simple, color_blue);
     }
 
     {
-        f32 length = state->player.velocity.y / PLAYER_SPEED * 0.5f * 
-            PLAYER_SIZE;
-        f32 pos_y = state->player.position.y + length;
+        f32 length = player->velocity.y / PLAYER_SPEED * 0.5f * PLAYER_SIZE;
+        f32 pos_y = player->position.y + length;
 
         if (length < 0)
         {
             length = f32_abs(length);
         }
 
-        transform = m4_translate(state->player.position.x, pos_y, 1.0f);
+        transform = m4_translate(player->position.x, pos_y, 1.0f);
         rotation = m4_rotate_z(0.0f);
         scale = m4_scale_xyz(0.01f, length, 0.01f);
 
@@ -567,25 +567,32 @@ void player_render(struct game_state* state)
         mvp = m4_mul(model, state->view);
         mvp = m4_mul(mvp, state->perspective);
 
-        mesh_render(&state->floor, &mvp, state->texture_tileset,
-            state->shader, color_blue);
+        mesh_render(&state->floor, &mvp, state->texture_tileset, 
+            state->shader_simple, color_blue);
     }
 
-    // {
-    //     transform = m4_translate(state->player.position.x, 
-    //         state->player.position.y, 1.0f);
-    //     rotation = m4_rotate_z(0.0f);
-    //     scale = m4_scale_xyz(0.01f, PLAYER_SIZE, 0.01f);
+    {
+        f32 length = v2_length(player->velocity) / PLAYER_SPEED * 0.5f * 
+            PLAYER_SIZE;
+        f32 angle = f32_atan(player->velocity.x, player->velocity.y);
 
-    //     model = m4_mul(scale, rotation);
-    //     model = m4_mul(model, transform);
+        transform = m4_translate(
+            player->position.x + player->velocity.x / PLAYER_SPEED * 0.5f * 
+            PLAYER_SIZE, 
+            player->position.y + player->velocity.y / PLAYER_SPEED * 0.5f * 
+            PLAYER_SIZE, 1.1f);
+        rotation = m4_rotate_z(-angle);
+        scale = m4_scale_xyz(0.01f, length, 0.01f);
 
-    //     mvp = m4_mul(model, state->view);
-    //     mvp = m4_mul(mvp, state->perspective);
+        model = m4_mul(scale, rotation);
+        model = m4_mul(model, transform);
 
-    //     mesh_render(&state->floor, &mvp, state->texture_tileset,
-    //         state->shader, color_blue);
-    // }
+        mvp = m4_mul(model, state->view);
+        mvp = m4_mul(mvp, state->perspective);
+
+        mesh_render(&state->floor, &mvp, state->texture_tileset, 
+            state->shader_simple, color_red);
+    }
 }
 
 // Todo: create single struct for header (requires packing)
@@ -1146,6 +1153,10 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->shader = program_create(&state->temporary,
             "assets/shaders/vertex.glsl",
             "assets/shaders/fragment.glsl");
+
+        state->shader_simple = program_create(&state->temporary,
+            "assets/shaders/vertex.glsl",
+            "assets/shaders/fragment_simple.glsl");
 
         state->texture_tileset = texture_create(&state->temporary,
             "assets/textures/tileset.tga");
