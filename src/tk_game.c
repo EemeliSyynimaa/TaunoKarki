@@ -82,9 +82,9 @@ struct game_state
 #define MAP_HEIGHT      15
  
 #define PLAYER_HEALTH               500.0f
-#define PLAYER_SPEED                0.05f
+#define PLAYER_SPEED                0.045f
 #define PLAYER_HEALTH_PER_PACK      100.f
-#define PLAYER_ACCELERATION         0.0005f
+#define PLAYER_ACCELERATION         0.0075f
 #define ENEMY_HEALTH                50.0
 #define ENEMY_SPEED                 0.12
 #define ENEMY_ACTIVATION_DISTANCE   20.0
@@ -442,7 +442,7 @@ void player_update(struct game_state* state, struct game_input* input)
     {
         direction.x += 1.0f;
     }
-    
+
     if (input->move_down.key_down)
     {
         direction.y -= 1.0f;
@@ -453,26 +453,44 @@ void player_update(struct game_state* state, struct game_input* input)
         direction.y += 1.0f;
     }
 
-    direction = v2_normalize(direction);
+    if (!v2_is_zero(direction))
+    {
+        direction = v2_normalize(direction);
+    }
+    else if (v2_length(player->velocity) < PLAYER_ACCELERATION)
+    {
+        player->velocity.x = 0;
+        player->velocity.y = 0;
+    }
+    else
+    {
+        direction = v2_normalize(player->velocity);
+        direction.x *= -1;
+        direction.y *= -1;
+    }
 
     player->velocity.x += direction.x * PLAYER_ACCELERATION;
     player->velocity.y += direction.y * PLAYER_ACCELERATION;
 
-    if (player_collides_to_wall(
+    if (v2_length(player->velocity) > PLAYER_SPEED)
+    {
+        player->velocity = v2_normalize(player->velocity);
+        player->velocity.x *= PLAYER_SPEED;
+        player->velocity.y *= PLAYER_SPEED;
+    }
+
+    if (!player_collides_to_wall(
         player->position.x + player->velocity.x, 
         player->position.y))
     {
-        player->velocity.x = 0.0f;
+        player->position.x += player->velocity.x;
     }
 
-    if (player_collides_to_wall(player->position.x, 
+    if (!player_collides_to_wall(player->position.x, 
         player->position.y + player->velocity.y))
     {
-        player->velocity.y = 0.0f;
+        player->position.y += player->velocity.y;
     }
-
-    player->position.x += player->velocity.x;
-    player->position.y += player->velocity.y;
 
     f32 mouse_x = (state->screen_width / 2.0f - input->mouse_x) * -1;
     f32 mouse_y = (state->screen_height / 2.0f - input->mouse_y);

@@ -273,6 +273,15 @@ f32 v2_length(struct v2 v)
     return result;
 }
 
+b32 v2_is_zero(struct v2 v)
+{
+    f32 result;
+
+    result = v.x == 0.0f && v.y == 0.0f;
+
+    return result;
+}
+
 struct v2 v2_normalize(struct v2 v)
 {
     struct v3 temp;
