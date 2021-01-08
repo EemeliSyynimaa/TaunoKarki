@@ -78,45 +78,19 @@ struct game_state
     s32 screen_height;
 };
 
-#define MAP_WIDTH       15
-#define MAP_HEIGHT      15
+u32 MAP_WIDTH  = 15;
+u32 MAP_HEIGHT = 15;
  
-#define PLAYER_HEALTH               500.0f
-#define PLAYER_SPEED                0.045f
-#define PLAYER_HEALTH_PER_PACK      100.f
-#define PLAYER_ACCELERATION         0.0075f
-#define ENEMY_HEALTH                50.0
-#define ENEMY_SPEED                 0.12
-#define ENEMY_ACTIVATION_DISTANCE   20.0
-#define ENEMY_HEALTH_PER_LEVEL      10.0
-#define ENEMY_HIT_DAMAGE            50.0
-#define ENEMY_HIT_DAMAGE_PER_LEVEL  5.0f
-#define ENEMY_ANGLE_OF_VISION       60.0
-#define MACHINEGUN_DAMAGE           25.0
-#define MACHINEGUN_RELOAD_TIME      2.50
-#define MACHINEGUN_CLIP_SIZE        25.0
-#define MACHINEGUN_BULLET_SPEED     1.0f
-#define MACHINEGUN_FIRE_RATE        0.12f
-#define MACHINEGUN_BULLET_SPREAD    0.05
-#define PISTOL_DAMAGE               30.0
-#define PISTOL_BULLET_SPEED         1.0f
-#define PISTOL_CLIP_SIZE            8.0f
-#define PISTOL_RELOAD_TIME          1.5f
-#define PISTOL_BULLET_SPREAD        0.01
-#define SHOTGUN_DAMAGE              12.5
-#define SHOTGUN_BULLET_SPEED        1.0f
-#define SHOTGUN_CLIP_SIZE           7.0f
-#define SHOTGUN_RELOAD_TIME         3.0f
-#define SHOTGUN_FIRE_RATE           0.7f
-#define SHOTGUN_BULLET_SPREAD       0.12f
-#define SHOTGUN_NUMBER_OF_SHELLS    12
-#define PROJECTILE_SIZE             0.1f
-#define PLAYER_SIZE                 0.45f
-#define WALL_SIZE                   1.0f
+f32 PLAYER_SPEED        = 2.0f;
+f32 PLAYER_ACCELERATION = 10.0f;
+f32 PROJECTILE_SIZE     = 0.1f;
+f32 PROJECTILE_SPEED    = 10.0f;
+f32 PLAYER_SIZE         = 0.45f;
+f32 WALL_SIZE           = 1.0f;
 
-#define TILE_NOTHING    0
-#define TILE_WALL       1
-#define TILE_FLOOR      2
+u32 TILE_NOTHING = 0;
+u32 TILE_WALL    = 1;
+u32 TILE_FLOOR   = 2;
 
 struct v4 color_white = {{{ 1.0, 1.0, 1.0, 1.0 }}};
 struct v4 color_black = {{{ 0.0, 0.0, 0.0, 0.0 }}};
@@ -339,7 +313,7 @@ void map_render(struct game_state* state)
     }
 }
 
-void enemies_update(struct game_state* state, struct game_input* input)
+void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 {
 
 }
@@ -366,14 +340,14 @@ void enemies_render(struct game_state* state)
     }
 }
 
-void bullets_update(struct game_state* state, struct game_input* input)
+void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
 {
     for (u32 i = 0; i < MAX_BULLETS; i++)
     {
         struct bullet* bullet = &state->bullets[i];
 
-        bullet->position.x += bullet->velocity.x;
-        bullet->position.y += bullet->velocity.y;
+        bullet->position.x += bullet->velocity.x * dt;
+        bullet->position.y += bullet->velocity.y * dt;
     }
 }
 
@@ -427,7 +401,7 @@ b32 player_collides_to_wall(f32 x, f32 y)
     return false;
 }
 
-void player_update(struct game_state* state, struct game_input* input)
+void player_update(struct game_state* state, struct game_input* input, f32 dt)
 {
     struct v2 direction = { 0.0f };
     struct v2 acceleration = { 0.0f };
@@ -457,7 +431,7 @@ void player_update(struct game_state* state, struct game_input* input)
     {
         direction = v2_normalize(direction);
     }
-    else if (v2_length(player->velocity) < PLAYER_ACCELERATION)
+    else if (v2_length(player->velocity) < 0.01f)
     {
         player->velocity.x = 0;
         player->velocity.y = 0;
@@ -469,8 +443,8 @@ void player_update(struct game_state* state, struct game_input* input)
         direction.y *= -1;
     }
 
-    player->velocity.x += direction.x * PLAYER_ACCELERATION;
-    player->velocity.y += direction.y * PLAYER_ACCELERATION;
+    player->velocity.x += direction.x * PLAYER_ACCELERATION * dt;
+    player->velocity.y += direction.y * PLAYER_ACCELERATION * dt;
 
     if (v2_length(player->velocity) > PLAYER_SPEED)
     {
@@ -479,17 +453,16 @@ void player_update(struct game_state* state, struct game_input* input)
         player->velocity.y *= PLAYER_SPEED;
     }
 
-    if (!player_collides_to_wall(
-        player->position.x + player->velocity.x, 
+    if (!player_collides_to_wall(player->position.x + player->velocity.x * dt, 
         player->position.y))
     {
-        player->position.x += player->velocity.x;
+        player->position.x += player->velocity.x * dt;
     }
 
     if (!player_collides_to_wall(player->position.x, 
-        player->position.y + player->velocity.y))
+        player->position.y + player->velocity.y * dt))
     {
-        player->position.y += player->velocity.y;
+        player->position.y += player->velocity.y * dt;
     }
 
     f32 mouse_x = (state->screen_width / 2.0f - input->mouse_x) * -1;
@@ -510,7 +483,7 @@ void player_update(struct game_state* state, struct game_input* input)
 
             f32 dir_x = f32_cos(player->angle);
             f32 dir_y = f32_sin(player->angle);
-            f32 speed = PISTOL_BULLET_SPEED;
+            f32 speed = PROJECTILE_SPEED;
 
             bullet->position.x = player->position.x;
             bullet->position.y = player->position.y;
@@ -1240,9 +1213,9 @@ void game_update(struct game_memory* memory, struct game_input* input)
         {
             state->accumulator -= step;
 
-            player_update(state, input);
-            enemies_update(state, input);
-            bullets_update(state, input);
+            player_update(state, input, step);
+            enemies_update(state, input, step);
+            bullets_update(state, input, step);
         }
 
         state->view = m4_translate(-state->player.position.x, 
