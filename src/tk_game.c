@@ -82,7 +82,7 @@ u32 MAP_WIDTH  = 15;
 u32 MAP_HEIGHT = 15;
  
 f32 PLAYER_SPEED        = 2.0f;
-f32 PLAYER_ACCELERATION = 10.0f;
+f32 PLAYER_ACCELERATION = 20.0f;
 f32 PROJECTILE_SIZE     = 0.1f;
 f32 PROJECTILE_SPEED    = 10.0f;
 f32 PLAYER_SIZE         = 0.45f;
@@ -401,6 +401,32 @@ b32 player_collides_to_wall(f32 x, f32 y)
     return false;
 }
 
+// b32 collision_line(f32 x, f32 y, f32 dx, f32 dy, f32 x2, f32 y2, f32 dx2, 
+//     f32 dy2)
+// {
+//     return true;
+// }
+
+// b32 collision_circle(f32 x, f32 y, f32 x2, f32 y)
+// {
+//     return true;
+// }
+
+// b32 collides_circle_to_rect(f32 circle_x, f32 circle_y, f32 circle_radius,
+//     f32 circle_dx, f32 circle_dy, f32 rect_x, f32 rect_y, f32 rect_width, 
+//     f32 rect_height)
+// {
+//     collision_line();
+//     collision_line();
+//     collision_line();
+//     collision_line();
+
+//     collision_circle();
+//     collision_circle();
+//     collision_circle();
+//     collision_circle();
+// }
+
 void player_update(struct game_state* state, struct game_input* input, f32 dt)
 {
     struct v2 direction = { 0.0f };
@@ -427,24 +453,14 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         direction.y += 1.0f;
     }
 
-    if (!v2_is_zero(direction))
-    {
-        direction = v2_normalize(direction);
-    }
-    else if (v2_length(player->velocity) < 0.01f)
-    {
-        player->velocity.x = 0;
-        player->velocity.y = 0;
-    }
-    else
-    {
-        direction = v2_normalize(player->velocity);
-        direction.x *= -1;
-        direction.y *= -1;
-    }
+    acceleration.x = direction.x * PLAYER_ACCELERATION;
+    acceleration.y = direction.y * PLAYER_ACCELERATION;
 
-    player->velocity.x += direction.x * PLAYER_ACCELERATION * dt;
-    player->velocity.y += direction.y * PLAYER_ACCELERATION * dt;
+    acceleration.x += -player->velocity.x * 5.0f;
+    acceleration.y += -player->velocity.y * 5.0f;
+
+    player->velocity.x += acceleration.x * dt;
+    player->velocity.y += acceleration.y * dt;
 
     if (v2_length(player->velocity) > PLAYER_SPEED)
     {
@@ -453,6 +469,10 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         player->velocity.y *= PLAYER_SPEED;
     }
 
+    // Todo: use minkowski and rounded rectangle. We have to test all sides
+    // of the walls (N, E, S, W) and each rounded corner (NE, SE, SW, NE). If
+    // collision happens, we can get the collision position and the amount of
+    // time the player can move to current direction until the collision occurs.
     if (!player_collides_to_wall(player->position.x + player->velocity.x * dt, 
         player->position.y))
     {
@@ -604,8 +624,7 @@ struct image_spec
     s8 desc;
 };
 
-void tga_decode(s8* input, u64 out_size, s8* output, u32* width,
-    u32* height)
+void tga_decode(s8* input, u64 out_size, s8* output, u32* width, u32* height)
 {
     input += 8;
     struct image_spec* i_spec = (struct image_spec*)input;
