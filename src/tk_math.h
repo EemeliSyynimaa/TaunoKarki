@@ -103,6 +103,15 @@ f32 f32_sqrt(f32 value)
     return sqrt(value);
 }
 
+f32 f32_square(f32 value)
+{
+    f32 result;
+
+    result = value * value;
+
+    return result;
+}
+
 f32 f32_abs(f32 value)
 {
     f32 result = 0;
