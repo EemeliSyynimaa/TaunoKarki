@@ -84,7 +84,7 @@ u32 MAP_HEIGHT = 15;
 f32 PLAYER_ACCELERATION = 20.0f;
 f32 PROJECTILE_SIZE     = 0.1f;
 f32 PROJECTILE_SPEED    = 10.0f;
-f32 PLAYER_SIZE         = 0.45f;
+f32 PLAYER_RADIUS         = 0.45f;
 f32 WALL_SIZE           = 1.0f;
 
 u32 TILE_NOTHING = 0;
@@ -254,7 +254,7 @@ void enemies_render(struct game_state* state)
         struct m4 transform = m4_translate(enemy->position.x, enemy->position.y, 
             0.0f);
         struct m4 rotation = m4_rotate_z(enemy->angle);
-        struct m4 scale = m4_scale_all(PLAYER_SIZE * 0.5f);
+        struct m4 scale = m4_scale_all(PLAYER_RADIUS * 0.5f);
 
         struct m4 model = m4_mul(scale, rotation);
         model = m4_mul(model, transform);
@@ -337,57 +337,100 @@ b32 collision_point_to_rect(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y,
 {
     f32 result;
 
-    result = (x > min_x && x < max_x && y > min_y && y < max_y);
+    result = (x >= min_x && x <= max_x && y >= min_y && y <= max_y);
 
     return result;
 }
 
-b32 player_check_collision_to_wall(f32 player_x, f32 player_y)
+f32 player_check_collision_to_wall(struct v2 player_position, 
+    f32 player_move_delta_x, f32 player_move_delta_y)
 {
-    b32 result = false;
+    f32 result = 1.0f;
+    struct v2 new_position = player_position;
+    new_position.x += player_move_delta_x;
+    new_position.y += player_move_delta_y;
 
-    u32 start_x = (u32)((player_x + 0.5f * WALL_SIZE - PLAYER_SIZE) / 
-        WALL_SIZE);
-    u32 start_y = (u32)((player_y + 0.5f * WALL_SIZE - PLAYER_SIZE) / 
-        WALL_SIZE);
-    u32 end_x = (u32)((player_x + 0.5f * WALL_SIZE + PLAYER_SIZE) / WALL_SIZE);
-    u32 end_y = (u32)((player_y + 0.5f * WALL_SIZE + PLAYER_SIZE) / WALL_SIZE);
+    // Todo: check tiles around player current position too, not just the target
+    // position
+    u32 start_x = (u32)(
+        (new_position.x + 0.5f * WALL_SIZE - PLAYER_RADIUS) / WALL_SIZE);
+    u32 start_y = (u32)(
+        (new_position.y + 0.5f * WALL_SIZE - PLAYER_RADIUS) / WALL_SIZE);
+    u32 end_x = (u32)(
+        (new_position.x + 0.5f * WALL_SIZE + PLAYER_RADIUS) / WALL_SIZE);
+    u32 end_y = (u32)(
+        (new_position.y + 0.5f * WALL_SIZE + PLAYER_RADIUS) / WALL_SIZE);
 
     for (u32 y = start_y; y <= end_y; y++)
     {
         for (u32 x = start_x; x <= end_x; x++)
         {
             if (map_data[y * MAP_WIDTH + x] == 1)
-            {
-                struct v2 relative_position;
-                relative_position.x = player_x - x;
-                relative_position.y = player_y - y;
+            {   
+                struct v2 relative_position = player_position;
+                relative_position.x -= x;
+                relative_position.y -= y;
+                
+                struct v2 relative_new_position = new_position;
+                relative_new_position.x -= x;
+                relative_new_position.y -= y;
 
                 f32 wall_half_size = WALL_SIZE * 0.5f;
 
-                if (collision_point_to_rect(relative_position.x, 
-                    relative_position.y, 
-                    -wall_half_size, wall_half_size, 
-                    -wall_half_size - PLAYER_SIZE, 
-                    wall_half_size + PLAYER_SIZE))
+                f32 wall_top = wall_half_size + PLAYER_RADIUS;
+                f32 wall_bottom = -wall_half_size - PLAYER_RADIUS;
+                f32 wall_left = -wall_half_size - PLAYER_RADIUS;
+                f32 wall_right = wall_half_size + PLAYER_RADIUS;
+
+                if (collision_point_to_rect(relative_new_position.x, 
+                    relative_new_position.y, -wall_half_size, wall_half_size, 
+                    wall_bottom, wall_top))
                 {
-                    result = true;
+                    if (player_move_delta_y != 0.0f)
+                    {
+                        f32 diff = 0.0f;
+
+                        if (relative_position.y > 0)
+                        {
+                            diff = wall_top - relative_position.y;
+                        }
+                        else
+                        {
+                            diff = wall_bottom - relative_position.y;
+                        }
+
+                        result = diff / player_move_delta_y;
+                    }
+
                     break;
                 }
-                else if (collision_point_to_rect(relative_position.x, 
-                    relative_position.y, 
-                    -wall_half_size - PLAYER_SIZE, wall_half_size + PLAYER_SIZE, 
+                else if (collision_point_to_rect(relative_new_position.x, 
+                    relative_new_position.y, wall_left, wall_right, 
                     -wall_half_size, wall_half_size))
                 {
-                    result = true;
+                    if (player_move_delta_x != 0.0f)
+                    {
+                        f32 diff = 0.0f;
+
+                        if (relative_position.x > 0)
+                        {
+                            diff = wall_right - relative_position.x;
+                        }
+                        else
+                        {
+                            diff = wall_left - relative_position.x;
+                        }
+
+                        result = diff / player_move_delta_x;
+                    }
                     break;
                 }
-                else if (collision_circle_to_rect(relative_position.x, 
-                    relative_position.y, PLAYER_SIZE, 
+                else if (collision_circle_to_rect(relative_new_position.x, 
+                    relative_new_position.y, PLAYER_RADIUS, 
                     wall_half_size, -wall_half_size,
                     -wall_half_size, wall_half_size))
                 {
-                    result = true;
+                    result = 0.0f;
                     break;
                 }         
             }
@@ -401,6 +444,7 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 {
     struct v2 direction = { 0.0f };
     struct v2 acceleration = { 0.0f };
+    struct v2 move_delta = { 0.0f };
     struct player* player = &state->player;
 
     if (input->move_left.key_down)
@@ -437,26 +481,19 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
     acceleration.x += -player->velocity.x * 5.0f;
     acceleration.y += -player->velocity.y * 5.0f;
 
-    struct v2 new_position = { 0.0f };
-
-    new_position.x = 0.5f * acceleration.x * f32_square(dt) + 
-        player->velocity.x * dt + player->position.x;
-    new_position.y = 0.5f * acceleration.y * f32_square(dt) + 
-        player->velocity.y * dt + player->position.y;
+    move_delta.x = 0.5f * acceleration.x * f32_square(dt) + player->velocity.x 
+        * dt;
+    move_delta.y = 0.5f * acceleration.y * f32_square(dt) + player->velocity.y 
+        * dt;
 
     player->velocity.x = player->velocity.x + acceleration.x * dt;
     player->velocity.y = player->velocity.y + acceleration.y * dt;
 
-    if (!player_check_collision_to_wall(new_position.x, player->position.y))
-    {
-        player->position.x = new_position.x;
-    }
-
-    if (!player_check_collision_to_wall(player->position.x, new_position.y))
-    {
-        player->position.y = new_position.y;
-    }
-
+    player->position.x += move_delta.x * 
+        player_check_collision_to_wall(player->position, move_delta.x, 0.0f);
+    player->position.y += move_delta.y * 
+        player_check_collision_to_wall(player->position, 0.0f, move_delta.y);
+    
     // LOG("%f\n", v2_length(player->velocity));
 
     f32 mouse_x = (state->screen_width / 2.0f - input->mouse_x) * -1;
@@ -499,7 +536,7 @@ void player_render(struct game_state* state)
     struct m4 transform = m4_translate(player->position.x, player->position.y,
      0.0f);
     struct m4 rotation = m4_rotate_z(player->angle);
-    struct m4 scale = m4_scale_xyz(PLAYER_SIZE, PLAYER_SIZE, 0.25f);
+    struct m4 scale = m4_scale_xyz(PLAYER_RADIUS, PLAYER_RADIUS, 0.25f);
 
     struct m4 model = m4_mul(scale, rotation);
     model = m4_mul(model, transform);
@@ -513,7 +550,7 @@ void player_render(struct game_state* state)
     f32 max_speed = 5.0f;
 
     {
-        f32 length = player->velocity.x / max_speed * 0.5f * PLAYER_SIZE;
+        f32 length = player->velocity.x / max_speed * 0.5f * PLAYER_RADIUS;
         f32 pos_x = player->position.x + length;
 
         if (length < 0)
@@ -536,7 +573,7 @@ void player_render(struct game_state* state)
     }
 
     {
-        f32 length = player->velocity.y / max_speed * 0.5f * PLAYER_SIZE;
+        f32 length = player->velocity.y / max_speed * 0.5f * PLAYER_RADIUS;
         f32 pos_y = player->position.y + length;
 
         if (length < 0)
@@ -560,14 +597,14 @@ void player_render(struct game_state* state)
 
     {
         f32 length = v2_length(player->velocity) / max_speed * 0.5f * 
-            PLAYER_SIZE;
+            PLAYER_RADIUS;
         f32 angle = f32_atan(player->velocity.x, player->velocity.y);
 
         transform = m4_translate(
             player->position.x + player->velocity.x / max_speed * 0.5f * 
-            PLAYER_SIZE, 
+            PLAYER_RADIUS, 
             player->position.y + player->velocity.y / max_speed * 0.5f * 
-            PLAYER_SIZE, 1.1f);
+            PLAYER_RADIUS, 1.1f);
         rotation = m4_rotate_z(-angle);
         scale = m4_scale_xyz(0.01f, length, 0.01f);
 
