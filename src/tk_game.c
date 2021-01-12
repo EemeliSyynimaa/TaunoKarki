@@ -81,7 +81,7 @@ struct game_state
 u32 MAP_WIDTH  = 15;
 u32 MAP_HEIGHT = 15;
 
-f32 PLAYER_ACCELERATION = 20.0f;
+f32 PLAYER_ACCELERATION = 15.0f;
 f32 PROJECTILE_SIZE     = 0.1f;
 f32 PROJECTILE_SPEED    = 10.0f;
 f32 PLAYER_RADIUS         = 0.45f;
@@ -301,7 +301,8 @@ void bullets_render(struct game_state* state)
 }
 
 b32 collision_circle_to_rect(f32 circle_x, f32 circle_y, f32 circle_radius,
-    f32 rect_top, f32 rect_bottom, f32 rect_left, f32 rect_right)
+    f32 rect_top, f32 rect_bottom, f32 rect_left, f32 rect_right, 
+    f32* collision_point_x, f32* collision_point_y)
 {
     f32 result;
 
@@ -329,6 +330,12 @@ b32 collision_circle_to_rect(f32 circle_x, f32 circle_y, f32 circle_radius,
 
     result = f32_distance(circle_x, circle_y, col_x, col_y) < circle_radius;
 
+    if (result)
+    {
+        *collision_point_x = col_x;
+        *collision_point_y = col_y;
+    }
+
     return result;
 }
 
@@ -338,104 +345,6 @@ b32 collision_point_to_rect(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y,
     f32 result;
 
     result = (x >= min_x && x <= max_x && y >= min_y && y <= max_y);
-
-    return result;
-}
-
-f32 player_check_collision_to_wall(struct v2 player_position, 
-    f32 player_move_delta_x, f32 player_move_delta_y)
-{
-    f32 result = 1.0f;
-    struct v2 new_position = player_position;
-    new_position.x += player_move_delta_x;
-    new_position.y += player_move_delta_y;
-
-    // Todo: check tiles around player current position too, not just the target
-    // position
-    u32 start_x = (u32)(
-        (new_position.x + 0.5f * WALL_SIZE - PLAYER_RADIUS) / WALL_SIZE);
-    u32 start_y = (u32)(
-        (new_position.y + 0.5f * WALL_SIZE - PLAYER_RADIUS) / WALL_SIZE);
-    u32 end_x = (u32)(
-        (new_position.x + 0.5f * WALL_SIZE + PLAYER_RADIUS) / WALL_SIZE);
-    u32 end_y = (u32)(
-        (new_position.y + 0.5f * WALL_SIZE + PLAYER_RADIUS) / WALL_SIZE);
-
-    for (u32 y = start_y; y <= end_y; y++)
-    {
-        for (u32 x = start_x; x <= end_x; x++)
-        {
-            if (map_data[y * MAP_WIDTH + x] == 1)
-            {   
-                struct v2 relative_position = player_position;
-                relative_position.x -= x;
-                relative_position.y -= y;
-                
-                struct v2 relative_new_position = new_position;
-                relative_new_position.x -= x;
-                relative_new_position.y -= y;
-
-                f32 wall_half_size = WALL_SIZE * 0.5f;
-
-                f32 wall_top = wall_half_size + PLAYER_RADIUS;
-                f32 wall_bottom = -wall_half_size - PLAYER_RADIUS;
-                f32 wall_left = -wall_half_size - PLAYER_RADIUS;
-                f32 wall_right = wall_half_size + PLAYER_RADIUS;
-
-                if (collision_point_to_rect(relative_new_position.x, 
-                    relative_new_position.y, -wall_half_size, wall_half_size, 
-                    wall_bottom, wall_top))
-                {
-                    if (player_move_delta_y != 0.0f)
-                    {
-                        f32 diff = 0.0f;
-
-                        if (relative_position.y > 0)
-                        {
-                            diff = wall_top - relative_position.y;
-                        }
-                        else
-                        {
-                            diff = wall_bottom - relative_position.y;
-                        }
-
-                        result = diff / player_move_delta_y;
-                    }
-
-                    break;
-                }
-                else if (collision_point_to_rect(relative_new_position.x, 
-                    relative_new_position.y, wall_left, wall_right, 
-                    -wall_half_size, wall_half_size))
-                {
-                    if (player_move_delta_x != 0.0f)
-                    {
-                        f32 diff = 0.0f;
-
-                        if (relative_position.x > 0)
-                        {
-                            diff = wall_right - relative_position.x;
-                        }
-                        else
-                        {
-                            diff = wall_left - relative_position.x;
-                        }
-
-                        result = diff / player_move_delta_x;
-                    }
-                    break;
-                }
-                else if (collision_circle_to_rect(relative_new_position.x, 
-                    relative_new_position.y, PLAYER_RADIUS, 
-                    wall_half_size, -wall_half_size,
-                    -wall_half_size, wall_half_size))
-                {
-                    result = 0.0f;
-                    break;
-                }         
-            }
-        }
-    }
 
     return result;
 }
@@ -489,15 +398,205 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
     player->velocity.x = player->velocity.x + acceleration.x * dt;
     player->velocity.y = player->velocity.y + acceleration.y * dt;
 
-    player->position.x += move_delta.x * 
-        player_check_collision_to_wall(player->position, move_delta.x, 0.0f);
-    player->position.y += move_delta.y * 
-        player_check_collision_to_wall(player->position, 0.0f, move_delta.y);
-    
-    // LOG("%f\n", v2_length(player->velocity));
+    f32 wall_half_size = WALL_SIZE * 0.5f;
+
+    u32 start_x = (u32)(
+        (player->position.x + wall_half_size - 2 * PLAYER_RADIUS) / WALL_SIZE);
+    u32 start_y = (u32)(
+        (player->position.y + wall_half_size - 2 * PLAYER_RADIUS) / WALL_SIZE);
+    u32 end_x = (u32)(
+        (player->position.x + wall_half_size + 2 * PLAYER_RADIUS) / WALL_SIZE);
+    u32 end_y = (u32)(
+        (player->position.y + wall_half_size + 2 * PLAYER_RADIUS) / WALL_SIZE);
+
+    f32 time_remaining = 1.0f;
+
+    for (u32 i = 0; i < 4 && time_remaining > 0.0f; i++)
+    {   
+        f32 move_time = 1.0f;
+
+        struct v2 wall_normal = { 0.0f };
+
+        for (u32 y = start_y; y <= end_y; y++)
+        {
+            for (u32 x = start_x; x <= end_x; x++)
+            {
+                if (map_data[y * MAP_WIDTH + x] != 1)
+                {
+                    continue;
+                }
+
+                struct v2 relative_position = player->position;
+                relative_position.x -= x;
+                relative_position.y -= y;
+                
+                struct v2 relative_position_new = player->position;
+                relative_position_new.x += move_delta.x - x;
+                relative_position_new.y += move_delta.y - y;
+
+                f32 wall_top    = wall_half_size + PLAYER_RADIUS;
+                f32 wall_bottom = -wall_half_size - PLAYER_RADIUS;
+                f32 wall_left   = -wall_half_size - PLAYER_RADIUS;
+                f32 wall_right  = wall_half_size + PLAYER_RADIUS;
+
+                struct v2 collision_position = { 0.0f };
+
+                // Todo: clean duplicate code
+                if (collision_point_to_rect(relative_position_new.x, 
+                    relative_position_new.y, -wall_half_size, wall_half_size, 
+                    wall_bottom, wall_top))
+                {
+                    if (move_delta.y != 0.0f)
+                    {
+                        f32 col;
+
+                        if (relative_position.y > 0)
+                        {
+                            col = wall_top;
+                        }
+                        else
+                        {
+                            col = wall_bottom;
+                        }
+
+                        f32 diff = col - relative_position.y;
+
+                        f32 t = diff / move_delta.y;
+
+                        if (t < move_time)
+                        {
+                            wall_normal.x = 0.0f;
+                            wall_normal.y = relative_position.y > 0.0f ? 
+                                1.0f : -1.0f;
+                            move_time = MAX(0.0f, t - 0.001f);
+                        }
+                    }
+                }
+                else if (collision_point_to_rect(relative_position_new.x, 
+                    relative_position_new.y, wall_left, wall_right, 
+                    -wall_half_size, wall_half_size))
+                {
+                    if (move_delta.x != 0.0f)
+                    {                        
+                        f32 col;
+
+                        if (relative_position.x > 0)
+                        {
+                            col = wall_right;
+                        }
+                        else
+                        {
+                            col = wall_left;
+                        }
+
+                        f32 diff = col - relative_position.x;
+
+                        f32 t = diff / move_delta.x;
+
+                        if (t < move_time)
+                        {
+                            wall_normal.x = relative_position.x > 0.0f ? 
+                                1.0f : -1.0f;
+                            wall_normal.y = 0.0f;
+                            move_time = MAX(0.0f, t - 0.001f);
+                        }
+                    }
+                }
+                else if (collision_circle_to_rect(relative_position_new.x, 
+                    relative_position_new.y, PLAYER_RADIUS - 0.01f, 
+                    wall_half_size, -wall_half_size,
+                    -wall_half_size, wall_half_size, 
+                    &collision_position.x, &collision_position.y))
+                {
+                    // Todo: this is potentially overcomplicated
+
+                    // 1. find the closest point on the line from 
+                    //    relative position - relative_position_new
+                    struct v2 plr_to_col = 
+                    { 
+                        collision_position.x - relative_position.x,
+                        collision_position.y - relative_position.y
+                    };
+
+                    struct v2 plr_to_new = 
+                    { 
+                        relative_position_new.x - relative_position.x,
+                        relative_position_new.y - relative_position.y
+                    };
+
+                    f32 dot = v2_dot(plr_to_col, plr_to_new);
+                    f32 length_squared = v2_length_squared(plr_to_new);
+                    f32 temp = dot / length_squared;
+
+                    struct v2 closest_point =
+                    {
+                        relative_position.x + plr_to_new.x * temp,
+                        relative_position.y + plr_to_new.y * temp
+                    };
+
+                    // 2. calculate distance from closest point to the perfect
+                    //    point
+                    f32 distance_closest_to_collision = v2_distance(
+                        closest_point, collision_position);
+
+                    f32 distance_closest_to_perfect = f32_sqrt(
+                        f32_square(PLAYER_RADIUS) - 
+                        f32_square(distance_closest_to_collision));
+
+                    // 3. calculate distance from relative point to perfect
+                    // point
+                    f32 distance_closest_to_relative = v2_distance(
+                        closest_point, relative_position);
+
+                    f32 distance_relative_to_perfect = 
+                        distance_closest_to_relative - 
+                        distance_closest_to_perfect;
+
+                    struct v2 velocity_direction = v2_normalize(move_delta);
+
+                    struct v2 perfect_point = 
+                    {
+                        relative_position.x + velocity_direction.x * 
+                            distance_relative_to_perfect,
+                        relative_position.y + velocity_direction.y *
+                            distance_relative_to_perfect
+                    };
+
+                    // 4. calculate t and normal
+                    f32 t = distance_relative_to_perfect / 
+                        distance_closest_to_relative;
+
+                    if (t < move_time)
+                    {
+                        move_time = MAX(0.0f, t - 0.001f);
+
+                        wall_normal.x = perfect_point.x - collision_position.x;
+                        wall_normal.y = perfect_point.y - collision_position.y;
+
+                        wall_normal = v2_normalize(wall_normal);
+                    }
+                }     
+            }
+        }
+
+        player->position.x += move_delta.x * move_time;
+        player->position.y += move_delta.y * move_time;
+
+        player->velocity.x -= v2_dot(player->velocity, wall_normal) * 
+            wall_normal.x;
+        player->velocity.y -= v2_dot(player->velocity, wall_normal) * 
+            wall_normal.y;
+
+        move_delta.x -= v2_dot(move_delta, wall_normal) * wall_normal.x;
+        move_delta.y -= v2_dot(move_delta, wall_normal) * wall_normal.y;
+
+        time_remaining -= move_time * time_remaining;
+    }
 
     f32 mouse_x = (state->screen_width / 2.0f - input->mouse_x) * -1;
     f32 mouse_y = (state->screen_height / 2.0f - input->mouse_y);
+
+    // LOG("%.8f, %.8f\n", player->velocity.x, player->velocity.y);
 
     player->angle = f32_atan(mouse_y, mouse_x);
 
@@ -547,55 +646,8 @@ void player_render(struct game_state* state)
     mesh_render(&state->sphere, &mvp, state->texture_sphere, state->shader,
         color_white);
 
-    f32 max_speed = 5.0f;
-
     {
-        f32 length = player->velocity.x / max_speed * 0.5f * PLAYER_RADIUS;
-        f32 pos_x = player->position.x + length;
-
-        if (length < 0)
-        {
-            length = f32_abs(length);
-        }
-
-        transform = m4_translate(pos_x, player->position.y, 1.0f);
-        rotation = m4_rotate_z(0.0f);
-        scale = m4_scale_xyz(length, 0.01f, 0.01f);
-
-        model = m4_mul(scale, rotation);
-        model = m4_mul(model, transform);
-
-        mvp = m4_mul(model, state->view);
-        mvp = m4_mul(mvp, state->perspective);
-
-        mesh_render(&state->floor, &mvp, state->texture_tileset, 
-            state->shader_simple, color_blue);
-    }
-
-    {
-        f32 length = player->velocity.y / max_speed * 0.5f * PLAYER_RADIUS;
-        f32 pos_y = player->position.y + length;
-
-        if (length < 0)
-        {
-            length = f32_abs(length);
-        }
-
-        transform = m4_translate(player->position.x, pos_y, 1.0f);
-        rotation = m4_rotate_z(0.0f);
-        scale = m4_scale_xyz(0.01f, length, 0.01f);
-
-        model = m4_mul(scale, rotation);
-        model = m4_mul(model, transform);
-
-        mvp = m4_mul(model, state->view);
-        mvp = m4_mul(mvp, state->perspective);
-
-        mesh_render(&state->floor, &mvp, state->texture_tileset, 
-            state->shader_simple, color_blue);
-    }
-
-    {
+        f32 max_speed = 5.0f;
         f32 length = v2_length(player->velocity) / max_speed * 0.5f * 
             PLAYER_RADIUS;
         f32 angle = f32_atan(player->velocity.x, player->velocity.y);

@@ -2,6 +2,9 @@
 
 #define F64_PI 3.1415926535897932384626433832795028841971693993751058209749445
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
 struct v2
 {
     f32 x;
@@ -282,11 +285,38 @@ f32 v2_length(struct v2 v)
     return result;
 }
 
+f32 v2_length_squared(struct v2 v)
+{
+    f32 result;
+
+    result = v.x * v.x + v.y * v.y;
+
+    return result;
+}
+
+f32 v2_dot(struct v2 a, struct v2 b)
+{
+    f32 result;
+
+    result = a.x * b.x + a.y * b.y;
+
+    return result;
+}
+
 b32 v2_is_zero(struct v2 v)
 {
     f32 result;
 
     result = v.x == 0.0f && v.y == 0.0f;
+
+    return result;
+}
+
+f32 v2_distance(struct v2 a, struct v2 b)
+{
+    f32 result;
+
+    result = f32_distance(a.x, a.y, b.x, b.y);
 
     return result;
 }
