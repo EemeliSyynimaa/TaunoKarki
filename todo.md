@@ -7,11 +7,17 @@
  - [X] Game as a library
  - [X] Hot reload
  - [X] Recording
+ - [X] Player movement
  - [ ] Collision detection
+  - [X] Player collision
+  - [ ] Bullet collision
+  - [ ] Enemy collision
+ - [ ] Controller input
+ - [ ] Local multiplayer
  - [ ] Enemy AI
+ - [ ] Camera follow
  - [ ] Text rendering
  - [ ] Procedural level generation
  - [ ] Animations
- - [ ] Player movement
  - [ ] Sounds
  - [ ] Linux support
