@@ -17,6 +17,7 @@ struct bullet
     struct v2 position;
     struct v2 velocity;
     f32 angle;
+    b32 alive;
 };
 
 struct enemy
@@ -40,7 +41,7 @@ struct mesh
     u32 num_indices;
 };
 
-#define MAX_BULLETS 8
+#define MAX_BULLETS 64
 #define MAX_ENEMIES 8
 
 struct memory_block
@@ -82,9 +83,9 @@ u32 MAP_WIDTH  = 20;
 u32 MAP_HEIGHT = 20;
 
 f32 PLAYER_ACCELERATION = 20.0f;
-f32 PROJECTILE_SIZE     = 0.1f;
-f32 PROJECTILE_SPEED    = 10.0f;
-f32 PLAYER_RADIUS         = 0.45f;
+f32 PROJECTILE_RADIUS   = 0.2f;
+f32 PROJECTILE_SPEED    = 5.0f;
+f32 PLAYER_RADIUS       = 0.45f;
 f32 WALL_SIZE           = 1.0f;
 
 u32 TILE_NOTHING = 0;
@@ -245,6 +246,151 @@ void map_render(struct game_state* state)
     }
 }
 
+b32 collision_circle_to_rect(struct v2 circle, f32 circle_radius, f32 rect_top, 
+    f32 rect_bottom, f32 rect_left, f32 rect_right, struct v2* col)
+{
+    f32 result;
+
+    struct v2 collision_point = circle;
+
+    if (circle.x < rect_left)
+    {
+        collision_point.x = rect_left;
+    }
+    else if (circle.x > rect_right)
+    {
+        collision_point.x = rect_right;
+    }
+
+    if (circle.y < rect_bottom)
+    {
+        collision_point.y = rect_bottom;
+    }
+    else if (circle.y > rect_top)
+    {
+        collision_point.y = rect_top;
+    }
+
+    result = f32_distance(circle.x, circle.y, collision_point.x, 
+        collision_point.y) < circle_radius;
+
+    if (result)
+    {
+        col->x = circle.x > 0 ? rect_right : rect_left;
+        col->y = circle.y > 0 ? rect_top : rect_bottom;
+    }
+
+    return result;
+}
+
+b32 collision_point_to_rect(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y, 
+    f32 max_y)
+{
+    f32 result;
+
+    result = (x >= min_x && x <= max_x && y >= min_y && y <= max_y);
+
+    return result;
+}
+
+void collision_wall_resolve(f32 pos, f32 move_delta, f32 radius, f32 wall_size,
+    f32* move_time, f32* normal_x, f32* normal_y)
+{
+    if (move_delta != 0.0f)
+    {
+        f32 col = pos > 0 ? wall_size : -wall_size;
+        f32 diff = col - pos;
+        f32 t = diff / move_delta;
+
+        if (t < *move_time)
+        {
+            *normal_x = pos > 0.0f ? 1.0f : -1.0f;
+            *normal_y = 0.0f;
+            *move_time = MAX(0.0f, t);
+        }
+    }
+}
+
+void collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius, 
+    f32* move_time, struct v2* normal)
+{
+    struct v2 rel_new = 
+    {
+        rel.x + move_delta.x,
+        rel.y + move_delta.y
+    };
+
+    struct v2 col = { 0.0f };
+
+    f32 wall_half = WALL_SIZE * 0.5f;
+
+    if (collision_circle_to_rect(rel_new, radius, wall_half, -wall_half,
+        -wall_half, wall_half, &col))
+    {
+        // 1. find the closest point on the line from 
+        //    relative position - relative_position_new
+        struct v2 plr_to_col = 
+        { 
+            col.x - rel.x,
+            col.y - rel.y
+        };
+
+        struct v2 plr_to_new = 
+        { 
+            rel_new.x - rel.x,
+            rel_new.y - rel.y
+        };
+
+        f32 dot = v2_dot(plr_to_col, plr_to_new);
+        f32 length_squared = v2_length_squared(plr_to_new);
+        f32 temp = dot / length_squared;
+
+        struct v2 closest =
+        {
+            rel.x + plr_to_new.x * temp,
+            rel.y + plr_to_new.y * temp
+        };
+
+        // 2. calculate distance from closest point to the perfect
+        //    point
+        f32 distance_closest_to_collision = v2_distance(closest, col);
+
+        f32 distance_closest_to_perfect = f32_sqrt(f32_square(radius) - 
+            f32_square(distance_closest_to_collision));
+
+        // 3. calculate distance from relative point to perfect
+        // point
+        f32 distance_closest_to_relative = v2_distance(closest, rel);
+
+        f32 distance_relative_to_perfect = distance_closest_to_relative - 
+            distance_closest_to_perfect;
+
+        struct v2 velocity_direction = v2_normalize(move_delta);
+
+        struct v2 perfect = 
+        {
+            rel.x + velocity_direction.x * distance_relative_to_perfect,
+            rel.y + velocity_direction.y * distance_relative_to_perfect
+        };
+
+        // 4. calculate t and normal
+        f32 distance_relative_to_new = v2_length(plr_to_new);
+        f32 distance = v2_distance(rel, rel_new);
+
+        f32 t = distance_relative_to_perfect / distance_relative_to_new;
+
+        if (t < *move_time)
+        {
+            *move_time = MAX(0.0f, t);
+
+            normal->x = perfect.x - col.x;
+            normal->y = perfect.y - col.y;
+
+            *normal = v2_normalize(*normal);
+        }
+    }
+}
+
 void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 {
 
@@ -272,14 +418,99 @@ void enemies_render(struct game_state* state)
     }
 }
 
+void check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta, 
+    f32 radius, f32 bounce_factor)
+{
+    f32 wall_low = WALL_SIZE * 0.5f;
+    f32 wall_high = wall_low + radius;
+
+    u32 start_x = (u32)((pos->x + wall_low - 2 * radius) / WALL_SIZE);
+    u32 start_y = (u32)((pos->y + wall_low - 2 * radius) / WALL_SIZE);
+    u32 end_x = (u32)((pos->x + wall_low + 2 * radius) / WALL_SIZE);
+    u32 end_y = (u32)((pos->y + wall_low + 2 * radius) / WALL_SIZE);
+    
+    f32 time_remaining = 1.0f;
+
+    for (u32 i = 0; i < 4 && time_remaining > 0.0f; i++)
+    {
+        f32 time = 1.0f;
+        struct v2 normal = { 0.0f };
+        
+        for (u32 y = start_y; y <= end_y; y++)
+        {
+            for (u32 x = start_x; x <= end_x; x++)
+            {
+                if (map_data[y * MAP_WIDTH + x] != 1)
+                {
+                    continue;
+                }
+
+                struct v2 rel = 
+                {
+                    pos->x - x,
+                    pos->y - y
+                };
+
+                struct v2 rel_new = 
+                {
+                    rel.x + move_delta.x,
+                    rel.y + move_delta.y
+                };
+
+                if (collision_point_to_rect(rel_new.x, rel_new.y, -wall_low, 
+                    wall_low, -wall_high, wall_high))
+                {
+                    collision_wall_resolve(rel.y, move_delta.y, radius, 
+                        wall_high, &time, &normal.y, &normal.x);
+                }
+                else if (collision_point_to_rect(rel_new.x, rel_new.y, 
+                    -wall_high, wall_high, -wall_low, wall_low))
+                {
+                    collision_wall_resolve(rel.x, move_delta.x, radius, 
+                        wall_high, &time, &normal.x, &normal.y);
+                }
+                else
+                {
+                    collision_corner_resolve(rel, move_delta, radius, &time, 
+                        &normal);
+                }
+            }
+        }
+
+        pos->x += move_delta.x * time;
+        pos->y += move_delta.y * time;
+
+        f32 vel_dot = bounce_factor * v2_dot(*vel, normal);
+
+        vel->x -= vel_dot * normal.x;
+        vel->y -= vel_dot * normal.y;
+
+        f32 move_delta_dot = bounce_factor * v2_dot(move_delta, normal);
+
+        move_delta.x -= move_delta_dot * normal.x;
+        move_delta.y -= move_delta_dot * normal.y;
+
+        time_remaining -= time * time_remaining;
+    }
+}
+
 void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
 {
     for (u32 i = 0; i < MAX_BULLETS; i++)
     {
         struct bullet* bullet = &state->bullets[i];
 
-        bullet->position.x += bullet->velocity.x * dt;
-        bullet->position.y += bullet->velocity.y * dt;
+        if (bullet->alive)
+        {
+            struct v2 move_delta = 
+            {
+                bullet->velocity.x * dt, 
+                bullet->velocity.y * dt
+            };
+
+            check_tile_collisions(&bullet->position, &bullet->velocity, 
+                move_delta, PROJECTILE_RADIUS, 2);
+        }
     }
 }
 
@@ -289,10 +520,15 @@ void bullets_render(struct game_state* state)
     {
         struct bullet* bullet = &state->bullets[i];
 
-        struct m4 transform = m4_translate(bullet->position.x, 
+        if (!bullet->alive)
+        {
+            continue;
+        }
+
+        struct m4 transform = m4_translate(bullet->position.x,  
             bullet->position.y, 0.0f);
         struct m4 rotation = m4_rotate_z(bullet->angle);
-        struct m4 scale = m4_scale_all(PROJECTILE_SIZE);
+        struct m4 scale = m4_scale_all(PROJECTILE_RADIUS);
 
         struct m4 model = m4_mul(scale, rotation);
         model = m4_mul(model, transform);
@@ -303,55 +539,6 @@ void bullets_render(struct game_state* state)
         mesh_render(&state->sphere, &mvp, state->texture_sphere,
             state->shader, color_white);
     }
-}
-
-b32 collision_circle_to_rect(f32 circle_x, f32 circle_y, f32 circle_radius,
-    f32 rect_top, f32 rect_bottom, f32 rect_left, f32 rect_right, 
-    f32* collision_point_x, f32* collision_point_y)
-{
-    f32 result;
-
-    f32 col_x = circle_x;
-
-    if (circle_x < rect_left)
-    {
-        col_x = rect_left;
-    }
-    else if (circle_x > rect_right)
-    {
-        col_x = rect_right;
-    }
-
-    f32 col_y = circle_y;
-
-    if (circle_y < rect_bottom)
-    {
-        col_y = rect_bottom;
-    }
-    else if (circle_y > rect_top)
-    {
-        col_y = rect_top;
-    }
-
-    result = f32_distance(circle_x, circle_y, col_x, col_y) < circle_radius;
-
-    if (result)
-    {
-        *collision_point_x = col_x;
-        *collision_point_y = col_y;
-    }
-
-    return result;
-}
-
-b32 collision_point_to_rect(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y, 
-    f32 max_y)
-{
-    f32 result;
-
-    result = (x >= min_x && x <= max_x && y >= min_y && y <= max_y);
-
-    return result;
 }
 
 void player_update(struct game_state* state, struct game_input* input, f32 dt)
@@ -403,205 +590,11 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
     player->velocity.x = player->velocity.x + acceleration.x * dt;
     player->velocity.y = player->velocity.y + acceleration.y * dt;
 
-    f32 wall_half_size = WALL_SIZE * 0.5f;
-
-    u32 start_x = (u32)(
-        (player->position.x + wall_half_size - 2 * PLAYER_RADIUS) / WALL_SIZE);
-    u32 start_y = (u32)(
-        (player->position.y + wall_half_size - 2 * PLAYER_RADIUS) / WALL_SIZE);
-    u32 end_x = (u32)(
-        (player->position.x + wall_half_size + 2 * PLAYER_RADIUS) / WALL_SIZE);
-    u32 end_y = (u32)(
-        (player->position.y + wall_half_size + 2 * PLAYER_RADIUS) / WALL_SIZE);
-
-    f32 time_remaining = 1.0f;
-
-    for (u32 i = 0; i < 4 && time_remaining > 0.0f; i++)
-    {   
-        f32 move_time = 1.0f;
-
-        struct v2 wall_normal = { 0.0f };
-
-        for (u32 y = start_y; y <= end_y; y++)
-        {
-            for (u32 x = start_x; x <= end_x; x++)
-            {
-                if (map_data[y * MAP_WIDTH + x] != 1)
-                {
-                    continue;
-                }
-
-                struct v2 relative_position = player->position;
-                relative_position.x -= x;
-                relative_position.y -= y;
-                
-                struct v2 relative_position_new = player->position;
-                relative_position_new.x += move_delta.x - x;
-                relative_position_new.y += move_delta.y - y;
-
-                f32 wall_top    = wall_half_size + PLAYER_RADIUS;
-                f32 wall_bottom = -wall_half_size - PLAYER_RADIUS;
-                f32 wall_left   = -wall_half_size - PLAYER_RADIUS;
-                f32 wall_right  = wall_half_size + PLAYER_RADIUS;
-
-                struct v2 collision_position = { 0.0f };
-
-                // Todo: clean duplicate code
-                if (collision_point_to_rect(relative_position_new.x, 
-                    relative_position_new.y, -wall_half_size, wall_half_size, 
-                    wall_bottom, wall_top))
-                {
-                    if (move_delta.y != 0.0f)
-                    {
-                        f32 col;
-
-                        if (relative_position.y > 0)
-                        {
-                            col = wall_top;
-                        }
-                        else
-                        {
-                            col = wall_bottom;
-                        }
-
-                        f32 diff = col - relative_position.y;
-
-                        f32 t = diff / move_delta.y;
-
-                        if (t < move_time)
-                        {
-                            wall_normal.x = 0.0f;
-                            wall_normal.y = relative_position.y > 0.0f ? 
-                                1.0f : -1.0f;
-                            move_time = MAX(0.0f, t - 0.001f);
-                        }
-                    }
-                }
-                else if (collision_point_to_rect(relative_position_new.x, 
-                    relative_position_new.y, wall_left, wall_right, 
-                    -wall_half_size, wall_half_size))
-                {
-                    if (move_delta.x != 0.0f)
-                    {                        
-                        f32 col;
-
-                        if (relative_position.x > 0)
-                        {
-                            col = wall_right;
-                        }
-                        else
-                        {
-                            col = wall_left;
-                        }
-
-                        f32 diff = col - relative_position.x;
-
-                        f32 t = diff / move_delta.x;
-
-                        if (t < move_time)
-                        {
-                            wall_normal.x = relative_position.x > 0.0f ? 
-                                1.0f : -1.0f;
-                            wall_normal.y = 0.0f;
-                            move_time = MAX(0.0f, t - 0.001f);
-                        }
-                    }
-                }
-                else if (collision_circle_to_rect(relative_position_new.x, 
-                    relative_position_new.y, PLAYER_RADIUS - 0.01f, 
-                    wall_half_size, -wall_half_size,
-                    -wall_half_size, wall_half_size, 
-                    &collision_position.x, &collision_position.y))
-                {
-                    // Todo: this is potentially overcomplicated
-
-                    // 1. find the closest point on the line from 
-                    //    relative position - relative_position_new
-                    struct v2 plr_to_col = 
-                    { 
-                        collision_position.x - relative_position.x,
-                        collision_position.y - relative_position.y
-                    };
-
-                    struct v2 plr_to_new = 
-                    { 
-                        relative_position_new.x - relative_position.x,
-                        relative_position_new.y - relative_position.y
-                    };
-
-                    f32 dot = v2_dot(plr_to_col, plr_to_new);
-                    f32 length_squared = v2_length_squared(plr_to_new);
-                    f32 temp = dot / length_squared;
-
-                    struct v2 closest_point =
-                    {
-                        relative_position.x + plr_to_new.x * temp,
-                        relative_position.y + plr_to_new.y * temp
-                    };
-
-                    // 2. calculate distance from closest point to the perfect
-                    //    point
-                    f32 distance_closest_to_collision = v2_distance(
-                        closest_point, collision_position);
-
-                    f32 distance_closest_to_perfect = f32_sqrt(
-                        f32_square(PLAYER_RADIUS) - 
-                        f32_square(distance_closest_to_collision));
-
-                    // 3. calculate distance from relative point to perfect
-                    // point
-                    f32 distance_closest_to_relative = v2_distance(
-                        closest_point, relative_position);
-
-                    f32 distance_relative_to_perfect = 
-                        distance_closest_to_relative - 
-                        distance_closest_to_perfect;
-
-                    struct v2 velocity_direction = v2_normalize(move_delta);
-
-                    struct v2 perfect_point = 
-                    {
-                        relative_position.x + velocity_direction.x * 
-                            distance_relative_to_perfect,
-                        relative_position.y + velocity_direction.y *
-                            distance_relative_to_perfect
-                    };
-
-                    // 4. calculate t and normal
-                    f32 t = distance_relative_to_perfect / 
-                        distance_closest_to_relative;
-
-                    if (t < move_time)
-                    {
-                        move_time = MAX(0.0f, t - 0.001f);
-
-                        wall_normal.x = perfect_point.x - collision_position.x;
-                        wall_normal.y = perfect_point.y - collision_position.y;
-
-                        wall_normal = v2_normalize(wall_normal);
-                    }
-                }     
-            }
-        }
-
-        player->position.x += move_delta.x * move_time;
-        player->position.y += move_delta.y * move_time;
-
-        player->velocity.x -= v2_dot(player->velocity, wall_normal) * 
-            wall_normal.x;
-        player->velocity.y -= v2_dot(player->velocity, wall_normal) * 
-            wall_normal.y;
-
-        move_delta.x -= v2_dot(move_delta, wall_normal) * wall_normal.x;
-        move_delta.y -= v2_dot(move_delta, wall_normal) * wall_normal.y;
-
-        time_remaining -= move_time * time_remaining;
-    }
-
+    check_tile_collisions(&player->position, &player->velocity, move_delta,
+        PLAYER_RADIUS, 1);
+    
     f32 mouse_x = (state->screen_width / 2.0f - input->mouse_x) * -1;
     f32 mouse_y = (state->screen_height / 2.0f - input->mouse_y);
-
-    // LOG("%.8f, %.8f\n", player->velocity.x, player->velocity.y);
 
     player->angle = f32_atan(mouse_y, mouse_x);
 
@@ -616,14 +609,15 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 
             struct bullet* bullet = &state->bullets[state->free_bullet];
 
-            f32 dir_x = f32_cos(player->angle);
-            f32 dir_y = f32_sin(player->angle);
+            struct v2 dir = { f32_cos(player->angle), f32_sin(player->angle) };
+
             f32 speed = PROJECTILE_SPEED;
 
             bullet->position.x = player->position.x;
             bullet->position.y = player->position.y;
-            bullet->velocity.x = dir_x * speed;
-            bullet->velocity.y = dir_y * speed;
+            bullet->velocity.x = dir.x * speed;
+            bullet->velocity.y = dir.y * speed;
+            bullet->alive = true;
 
             state->fired = true;
         }
