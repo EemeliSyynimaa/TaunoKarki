@@ -83,8 +83,8 @@ u32 MAP_WIDTH  = 20;
 u32 MAP_HEIGHT = 20;
 
 f32 PLAYER_ACCELERATION = 20.0f;
-f32 PROJECTILE_RADIUS   = 0.2f;
-f32 PROJECTILE_SPEED    = 5.0f;
+f32 PROJECTILE_RADIUS   = 0.05f;
+f32 PROJECTILE_SPEED    = 20.0f;
 f32 PLAYER_RADIUS       = 0.45f;
 f32 WALL_SIZE           = 1.0f;
 
@@ -293,20 +293,24 @@ b32 collision_point_to_rect(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y,
     return result;
 }
 
-void collision_wall_resolve(f32 pos, f32 move_delta, f32 radius, f32 wall_size,
-    f32* move_time, f32* normal_x, f32* normal_y)
+void collision_wall_resolve(f32 wall_x, f32 pos_x, f32 pos_y, f32 move_delta_x, 
+    f32 move_delta_y, f32 wall_size, f32* move_time, f32* normal_x, 
+    f32* normal_y)
 {
-    if (move_delta != 0.0f)
+    if (move_delta_x != 0.0f)
     {
-        f32 col = pos > 0 ? wall_size : -wall_size;
-        f32 diff = col - pos;
-        f32 t = diff / move_delta;
+        f32 diff = wall_x - pos_x;
+        f32 t = diff / move_delta_x;
+        f32 y = pos_y + move_delta_y * t;
 
-        if (t < *move_time)
+        if (y >= -wall_size && y <= wall_size)
         {
-            *normal_x = pos > 0.0f ? 1.0f : -1.0f;
-            *normal_y = 0.0f;
-            *move_time = MAX(0.0f, t);
+            if (t < *move_time && t >= 0.0f)
+            {
+                *normal_x = wall_x > 0.0f ? -1.0f : 1.0f;
+                *normal_y = 0.0f;
+                *move_time = MAX(0.0f, t - 0.001f);
+            }
         }
     }
 }
@@ -351,15 +355,13 @@ void collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius,
             rel.y + plr_to_new.y * temp
         };
 
-        // 2. calculate distance from closest point to the perfect
-        //    point
+        // 2. calculate distance from closest point to the perfect point
         f32 distance_closest_to_collision = v2_distance(closest, col);
 
         f32 distance_closest_to_perfect = f32_sqrt(f32_square(radius) - 
             f32_square(distance_closest_to_collision));
 
-        // 3. calculate distance from relative point to perfect
-        // point
+        // 3. calculate distance from relative point to perfect point
         f32 distance_closest_to_relative = v2_distance(closest, rel);
 
         f32 distance_relative_to_perfect = distance_closest_to_relative - 
@@ -381,7 +383,7 @@ void collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius,
 
         if (t < *move_time)
         {
-            *move_time = MAX(0.0f, t);
+            *move_time = MAX(0.0f, t - 0.001f);
 
             normal->x = perfect.x - col.x;
             normal->y = perfect.y - col.y;
@@ -424,10 +426,16 @@ void check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta,
     f32 wall_low = WALL_SIZE * 0.5f;
     f32 wall_high = wall_low + radius;
 
-    u32 start_x = (u32)((pos->x + wall_low - 2 * radius) / WALL_SIZE);
-    u32 start_y = (u32)((pos->y + wall_low - 2 * radius) / WALL_SIZE);
-    u32 end_x = (u32)((pos->x + wall_low + 2 * radius) / WALL_SIZE);
-    u32 end_y = (u32)((pos->y + wall_low + 2 * radius) / WALL_SIZE);
+    f32 margin_x = move_delta.x + radius;
+    f32 margin_y = move_delta.y + radius;
+
+    f32 min_x = pos->x + wall_low - margin_x - WALL_SIZE;
+    f32 min_y = pos->y + wall_low - margin_y - WALL_SIZE;
+
+    u32 start_x = min_x < 0.0f ? 0 : (u32)min_x / WALL_SIZE;
+    u32 start_y = min_y < 0.0f ? 0 : (u32)min_y / WALL_SIZE;
+    u32 end_x = (u32)((pos->x + wall_low + margin_x) / WALL_SIZE) + 1;
+    u32 end_y = (u32)((pos->y + wall_low + margin_y) / WALL_SIZE) + 1;
     
     f32 time_remaining = 1.0f;
 
@@ -457,22 +465,19 @@ void check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta,
                     rel.y + move_delta.y
                 };
 
-                if (collision_point_to_rect(rel_new.x, rel_new.y, -wall_low, 
-                    wall_low, -wall_high, wall_high))
-                {
-                    collision_wall_resolve(rel.y, move_delta.y, radius, 
-                        wall_high, &time, &normal.y, &normal.x);
-                }
-                else if (collision_point_to_rect(rel_new.x, rel_new.y, 
-                    -wall_high, wall_high, -wall_low, wall_low))
-                {
-                    collision_wall_resolve(rel.x, move_delta.x, radius, 
-                        wall_high, &time, &normal.x, &normal.y);
-                }
-                else
+                collision_wall_resolve(-wall_high, rel.y, rel.x, move_delta.y, 
+                    move_delta.x, wall_low, &time, &normal.y, &normal.x);
+                collision_wall_resolve(-wall_high, rel.x, rel.y, move_delta.x, 
+                    move_delta.y, wall_low, &time, &normal.x, &normal.y);
+                collision_wall_resolve(wall_high, rel.y, rel.x, move_delta.y, 
+                    move_delta.x, wall_low, &time, &normal.y, &normal.x);
+                collision_wall_resolve(wall_high, rel.x, rel.y, move_delta.x, 
+                    move_delta.y, wall_low, &time, &normal.x, &normal.y);
+
+                if (v2_length(normal) == 0.0f)
                 {
                     collision_corner_resolve(rel, move_delta, radius, &time, 
-                        &normal);
+                    &normal);
                 }
             }
         }
@@ -508,6 +513,7 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                 bullet->velocity.y * dt
             };
 
+            // Todo: projectiles sometimes get stuck in the wall
             check_tile_collisions(&bullet->position, &bullet->velocity, 
                 move_delta, PROJECTILE_RADIUS, 2);
         }
@@ -592,7 +598,7 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 
     check_tile_collisions(&player->position, &player->velocity, move_delta,
         PLAYER_RADIUS, 1);
-    
+
     f32 mouse_x = (state->screen_width / 2.0f - input->mouse_x) * -1;
     f32 mouse_y = (state->screen_height / 2.0f - input->mouse_y);
 
@@ -1308,8 +1314,6 @@ void game_update(struct game_memory* memory, struct game_input* input)
         player_render(state);
         enemies_render(state);
         bullets_render(state);
-
-        // LOG("Player x=%2.3f y=%2.3f\n", state->player.x, state->player.y);
     }
     else
     {
