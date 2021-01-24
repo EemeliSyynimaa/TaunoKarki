@@ -293,10 +293,11 @@ b32 collision_point_to_rect(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y,
     return result;
 }
 
-void collision_wall_resolve(f32 wall_x, f32 pos_x, f32 pos_y, f32 move_delta_x, 
-    f32 move_delta_y, f32 wall_size, f32* move_time, f32* normal_x, 
-    f32* normal_y)
+b32 collision_wall_resolve(f32 wall_x, f32 pos_x, f32 pos_y, f32 move_delta_x, 
+    f32 move_delta_y, f32 wall_size, f32* move_time)
 {
+    b32 result = false;
+
     if (move_delta_x != 0.0f)
     {
         f32 diff = wall_x - pos_x;
@@ -307,17 +308,21 @@ void collision_wall_resolve(f32 wall_x, f32 pos_x, f32 pos_y, f32 move_delta_x,
         {
             if (t < *move_time && t >= 0.0f)
             {
-                *normal_x = wall_x > 0.0f ? -1.0f : 1.0f;
-                *normal_y = 0.0f;
                 *move_time = MAX(0.0f, t - 0.001f);
+
+                result = true;
             }
         }
     }
+
+    return result;
 }
 
-void collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius, 
+b32 collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius, 
     f32* move_time, struct v2* normal)
 {
+    b32 result = false;
+
     struct v2 rel_new = 
     {
         rel.x + move_delta.x,
@@ -389,8 +394,12 @@ void collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius,
             normal->y = perfect.y - col.y;
 
             *normal = v2_normalize(*normal);
+
+            result = true;
         }
     }
+
+    return result;
 }
 
 void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
@@ -420,9 +429,11 @@ void enemies_render(struct game_state* state)
     }
 }
 
-void check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta, 
+b32 check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta, 
     f32 radius, f32 bounce_factor)
 {
+    b32 result = false;
+
     f32 wall_low = WALL_SIZE * 0.5f;
     f32 wall_high = wall_low + radius;
 
@@ -465,19 +476,42 @@ void check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta,
                     rel.y + move_delta.y
                 };
 
-                collision_wall_resolve(-wall_high, rel.y, rel.x, move_delta.y, 
-                    move_delta.x, wall_low, &time, &normal.y, &normal.x);
-                collision_wall_resolve(-wall_high, rel.x, rel.y, move_delta.x, 
-                    move_delta.y, wall_low, &time, &normal.x, &normal.y);
-                collision_wall_resolve(wall_high, rel.y, rel.x, move_delta.y, 
-                    move_delta.x, wall_low, &time, &normal.y, &normal.x);
-                collision_wall_resolve(wall_high, rel.x, rel.y, move_delta.x, 
-                    move_delta.y, wall_low, &time, &normal.x, &normal.y);
+                if (collision_wall_resolve(-wall_high, rel.y, rel.x, 
+                    move_delta.y, move_delta.x, wall_low, &time))
+                {
+                    normal.x = 0.0f;
+                    normal.y = -1.0f;
+                    result = true;
+                }
+                if (collision_wall_resolve(-wall_high, rel.x, rel.y, 
+                    move_delta.x, move_delta.y, wall_low, &time))
+                {
+                    normal.x = -1.0f;
+                    normal.y = 0.0f;
+                    result = true;
+                }
+                if (collision_wall_resolve(wall_high, rel.y, rel.x, 
+                    move_delta.y, move_delta.x, wall_low, &time))
+                {
+                    normal.x = 0.0f;
+                    normal.y = 1.0f;
+                    result = true;
+                }
+                if (collision_wall_resolve(wall_high, rel.x, rel.y, 
+                    move_delta.x, move_delta.y, wall_low, &time))
+                {
+                    normal.x = 1.0f;
+                    normal.y = 0.0f;
+                    result = true;
+                }
 
                 if (v2_length(normal) == 0.0f)
                 {
-                    collision_corner_resolve(rel, move_delta, radius, &time, 
-                    &normal);
+                    if (collision_corner_resolve(rel, move_delta, radius, &time, 
+                        &normal))
+                    {
+                        result = true;
+                    }
                 }
             }
         }
@@ -497,6 +531,8 @@ void check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta,
 
         time_remaining -= time * time_remaining;
     }
+
+    return result;
 }
 
 void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
@@ -513,9 +549,13 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                 bullet->velocity.y * dt
             };
 
-            // Todo: projectiles sometimes get stuck in the wall
-            check_tile_collisions(&bullet->position, &bullet->velocity, 
-                move_delta, PROJECTILE_RADIUS, 2);
+            // Todo: projectiles sometimes get stuck in the wall instead of
+            // bouncing
+            if (check_tile_collisions(&bullet->position, &bullet->velocity, 
+                    move_delta, PROJECTILE_RADIUS, 2))
+            {
+                bullet->alive = false;
+            }
         }
     }
 }
