@@ -444,6 +444,22 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         WS_VISIBLE | WS_OVERLAPPEDWINDOW, 0, 0, 
         screen_width, screen_height, 0, 0, hInstance, 0);
 
+    RECT client_area = { 0 };
+    s32 client_width = screen_width;
+    s32 client_height = screen_height;
+
+    if (GetClientRect(hwnd, &client_area))
+    {
+        LOG("Read client area: %dx%d\n", client_area.right, client_area.bottom);
+        client_width = client_area.right;
+        client_height = client_area.bottom;
+    }
+    else
+    {
+        LOG("Reading client area failed, using %dx%d\n", screen_width, 
+            screen_height);
+    }
+
     hdc = GetDC(hwnd);
 
     s32 pixel_format_attribs[] = {
@@ -536,8 +552,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     init.file = &file;
     init.gl = &gl;
     init.log = win32_log;
-    init.screen_width = screen_width;
-    init.screen_height = screen_height;
+    init.screen_width = client_width;
+    init.screen_height = client_height;
 
     LARGE_INTEGER query_performance_frequency;
     QueryPerformanceFrequency(&query_performance_frequency);
@@ -704,31 +720,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         if (!playing)
         {
             POINT mouse;
-            RECT window_rect;
-
-            GetWindowRect(hwnd, &window_rect);
             GetCursorPos(&mouse);
-
-            mouse.x -= window_rect.left;
-            mouse.y -= window_rect.top;
-
-            if (mouse.x < 0)
-            {
-                mouse.x = 0;
-            }
-            else if (mouse.x > screen_width)
-            {
-                mouse.x = screen_width;
-            }
-
-            if (mouse.y < 0)
-            {
-                mouse.y = 0;
-            }
-            else if (mouse.y > screen_height)
-            {
-                mouse.y = screen_height;
-            }
+            ScreenToClient(hwnd, &mouse);
 
             new_input.mouse_x = mouse.x;
             new_input.mouse_y = mouse.y;
@@ -748,7 +741,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             new_input = record.inputs[record.current++];
         }
         
-        new_input.delta_time = delta_time; 
+        new_input.delta_time = delta_time;
         
         if (recording)
         {
