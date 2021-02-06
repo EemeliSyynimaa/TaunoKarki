@@ -53,6 +53,16 @@ struct v4
     };
 };
 
+struct m2
+{
+    f32 m[2][2];
+};
+
+struct m3
+{
+    f32 m[3][3];
+};
+
 struct m4
 {
     f32 m[4][4];
@@ -60,18 +70,14 @@ struct m4
 
 f32 f32_radians(f32 degrees)
 {
-    f32 result;
-
-    result = degrees * F64_PI / 180.0;
+    f32 result = degrees * F64_PI / 180.0;
 
     return result;
 }
 
 f32 f32_degrees(f32 radians)
 {
-    f32 result;
-
-    result = radians * 180.0 / F64_PI;
+    f32 result = radians * 180.0 / F64_PI;
 
     return result;
 }
@@ -80,6 +86,12 @@ f32 f32_atan(f32 y, f32 x)
 {
     // Todo: implement own atan(2) function
     return atan2(y, x);
+}
+
+f32 f32_acos(f32 value)
+{
+    // Todo: implement own acos function
+    return acos(value);
 }
 
 f32 f32_sin(f32 angle)
@@ -108,34 +120,277 @@ f32 f32_sqrt(f32 value)
 
 f32 f32_square(f32 value)
 {
-    f32 result;
-
-    result = value * value;
+    f32 result = value * value;
 
     return result;
 }
 
 f32 f32_abs(f32 value)
 {
-    f32 result = 0;
-
-    result = value < 0 ? value * -1 : value;
+    f32 result  = value < 0 ? value * -1 : value;
     
     return result;
 }
 
 f32 f32_distance(f32 ax, f32 ay, f32 bx, f32 by)
 {
-    f32 result;
+    f32 result = f32_sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
 
-    result = f32_sqrt((bx - ax) * (bx - ax) + (by - ay) * (by - ay));
+    return result;
+}
 
+void f32_swap(f32* a, f32* b)
+{
+    f32 t = *a;
+    *a = *b;
+    *b = t;
+}
+
+f32 determinant(f32* values, u32 size)
+{
+    // Todo: supports only matrices of size from 1 to 4
+    f32 result = 0.0f;
+
+    if (size == 2)
+    {
+        result = values[0] * values[3] - values[1] * values[2];
+    }
+    else if (size > 2 && size < 5)
+    {
+        for (u32 i = 0; i < size; i++)
+        {
+            // Todo: fixed size! 
+            f32 temp[16] = { 0 };
+
+            u32 x1 = 0;
+
+            for (u32 x = 0; x < size; x++)
+            {
+                if (x == i)
+                {
+                    continue;
+                }
+
+                for (u32 y = 0; y < size-1; y++)
+                {
+                    temp[y * (size-1) + x1] = values[(y+1) * size + x];
+                }
+
+                x1++;
+            }
+
+            f32 sign = i % 2 ? -1.0f : 1.0f;
+            f32 det = determinant(temp, size-1);
+            f32 multiplier = values[i];
+
+            result += sign * det * multiplier;
+        }
+    }
+    else if (size == 1)
+    {
+        result = values[0];
+    }
+
+    return result;
+}
+
+f32 m2_determinant(struct m2 a)
+{
+    f32 result = determinant(&a.m[0][0], 2);
+
+    return result;
+}
+
+f32 m3_determinant(struct m3 a)
+{
+    f32 result = determinant(&a.m[0][0], 3);
+
+    return result;
+}
+
+f32 m4_determinant(struct m4 a)
+{
+    f32 result = determinant(&a.m[0][0], 4);
+
+    return result;
+}
+
+struct m3 m3_matrix_of_minors(struct m3 a)
+{
+    struct m3 result = { 0 };
+
+    for (u32 j = 0; j < 3; j++)
+    {
+        for (u32 k = 0; k < 3; k++)
+        {
+            u32 y1 = 0;
+
+            struct m2 t;
+
+            for (u32 y = 0; y < 3; y++)
+            {
+                if (y == j)
+                {
+                    continue;
+                }
+
+                u32 x1 = 0;
+
+                for (u32 x = 0; x < 3; x++)
+                {
+                    if (x == k)
+                    {
+                        continue;
+                    }
+
+                    t.m[y1][x1] = a.m[y][x];
+
+                    x1++;
+                }
+
+                y1++;
+            }
+
+            f32 determinant = m2_determinant(t);
+
+            result.m[j][k] = determinant;
+        }
+    }
+    
+    return result;
+}
+
+struct m3 m3_matrix_of_cofactors(struct m3 a)
+{
+    struct m3 result = { 0 };
+
+    for (u32 y = 0; y < 3; y++)
+    {
+        f32 sign = y % 2 ? -1.0f : 1.0f;
+
+        for (u32 x = 0; x < 3; x++)
+        {
+            result.m[y][x] = a.m[y][x] * sign;
+
+            sign *= -1.0f;
+        }
+    }
+
+    return result;
+}
+
+struct m3 m3_transpose(struct m3 a)
+{
+    struct m3 result = { 0 };
+
+    for (u32 y = 0; y < 3; y++)
+    {
+        for (u32 x = 0; x < 3; x++)
+        {
+            result.m[x][y] = a.m[y][x];
+        }
+    }
+
+    return result;
+}
+
+struct m3 m3_mul_f32(struct m3 a, f32 b)
+{
+    struct m3 result = { 0 };
+
+    for (u32 i = 0; i < 3; i++)
+    {
+        for (u32 j = 0; j < 3; j++)
+        {
+            result.m[i][j] = a.m[i][j] * b;
+        }
+    }
+
+    return result;
+}
+
+struct m4 m4_matrix_of_cofactors(struct m4 a)
+{
+    struct m4 result = { 0 };
+
+    for (u32 y = 0; y < 4; y++)
+    {
+        f32 sign = y % 2 ? -1.0f : 1.0f;
+
+        for (u32 x = 0; x < 4; x++)
+        {
+            result.m[y][x] = a.m[y][x] * sign;
+
+            sign *= -1.0f;
+        }
+    }
+
+    return result;
+}
+
+struct m4 m4_transpose(struct m4 a)
+{
+    struct m4 result = { 0 };
+
+    for (u32 y = 0; y < 4; y++)
+    {
+        for (u32 x = 0; x < 4; x++)
+        {
+            result.m[x][y] = a.m[y][x];
+        }
+    }
+
+    return result;
+}
+
+struct m4 m4_matrix_of_minors(struct m4 a)
+{
+    struct m4 result = { 0 };
+
+    for (u32 j = 0; j < 4; j++)
+    {
+        for (u32 k = 0; k < 4; k++)
+        {
+            u32 y1 = 0;
+
+            struct m3 t;
+
+            for (u32 y = 0; y < 4; y++)
+            {
+                if (y == j)
+                {
+                    continue;
+                }
+
+                u32 x1 = 0;
+
+                for (u32 x = 0; x < 4; x++)
+                {
+                    if (x == k)
+                    {
+                        continue;
+                    }
+
+                    t.m[y1][x1] = a.m[y][x];
+
+                    x1++;
+                }
+
+                y1++;
+            }
+
+            f32 determinant = m3_determinant(t);
+
+            result.m[j][k] = determinant;
+        }
+    }
+    
     return result;
 }
 
 struct m4 m4_translate(f32 x, f32 y, f32 z)
 {
-    struct m4 m = 
+    struct m4 result = 
     {{
         { 1.0f, 0.0f, 0.0f, 0.0f },
         { 0.0f, 1.0f, 0.0f, 0.0f },
@@ -143,7 +398,7 @@ struct m4 m4_translate(f32 x, f32 y, f32 z)
         {    x,    y,    z, 1.0f }
     }};
 
-    return m;
+    return result;
 }
 
 struct m4 m4_rotate_x(f32 angle)
@@ -151,7 +406,7 @@ struct m4 m4_rotate_x(f32 angle)
     f32 c = f32_cos(angle);
     f32 s = f32_sin(angle);
 
-    struct m4 m = 
+    struct m4 result = 
     {{
         { 1.0f, 0.0f, 0.0f, 0.0f },
         { 0.0f,    c,    s, 0.0f },
@@ -159,7 +414,7 @@ struct m4 m4_rotate_x(f32 angle)
         { 0.0f, 0.0f, 0.0f, 1.0f }
     }};
 
-    return m;
+    return result;
 }
 
 struct m4 m4_rotate_y(f32 angle)
@@ -167,7 +422,7 @@ struct m4 m4_rotate_y(f32 angle)
     f32 c = f32_cos(angle);
     f32 s = f32_sin(angle);
 
-    struct m4 m = 
+    struct m4 result = 
     {{
         { c,    0.0f,   -s, 0.0f },
         { 0.0f, 1.0f, 0.0f, 0.0f },
@@ -175,7 +430,7 @@ struct m4 m4_rotate_y(f32 angle)
         { 0.0f, 0.0f, 0.0f, 1.0f }
     }};
 
-    return m;
+    return result;
 }
 
 struct m4 m4_rotate_z(f32 angle)
@@ -183,7 +438,7 @@ struct m4 m4_rotate_z(f32 angle)
     f32 c = f32_cos(angle);
     f32 s = f32_sin(angle);
 
-    struct m4 m = 
+    struct m4 result = 
     {{
         {    c,    s, 0.0f, 0.0f },
         {   -s,    c, 0.0f, 0.0f },
@@ -191,12 +446,12 @@ struct m4 m4_rotate_z(f32 angle)
         { 0.0f, 0.0f, 0.0f, 1.0f }
     }};
 
-    return m;
+    return result;
 }
 
 struct m4 m4_scale_xyz(f32 x, f32 y, f32 z)
 {
-    struct m4 m = 
+    struct m4 result = 
     {{
         {    x, 0.0f, 0.0f, 0.0f },
         { 0.0f,    y, 0.0f, 0.0f },
@@ -204,7 +459,7 @@ struct m4 m4_scale_xyz(f32 x, f32 y, f32 z)
         { 0.0f, 0.0f, 0.0f, 1.0f }
     }};
 
-    return m;
+    return result;
 }
 
 struct m4 m4_scale_all(f32 s)
@@ -212,15 +467,15 @@ struct m4 m4_scale_all(f32 s)
     return m4_scale_xyz(s, s, s);
 }
 
-struct m4 m4_mul(struct m4 a, struct m4 b)
+struct m4 m4_mul_m4(struct m4 a, struct m4 b)
 {
-    struct m4 m;
+    struct m4 result = { 0 };
 
     for (u32 i = 0; i < 4; i++)
     {
         for (u32 j = 0; j < 4; j++)
         {
-            m.m[i][j] =
+            result.m[i][j] =
                 a.m[i][0] * b.m[0][j] +
                 a.m[i][1] * b.m[1][j] + 
                 a.m[i][2] * b.m[2][j] + 
@@ -228,23 +483,78 @@ struct m4 m4_mul(struct m4 a, struct m4 b)
         }
     }
 
-    return m;
+    return result;
+}
+
+struct m4 m4_mul_f32(struct m4 a, f32 b)
+{
+    struct m4 result = { 0 };
+
+    for (u32 i = 0; i < 4; i++)
+    {
+        for (u32 j = 0; j < 4; j++)
+        {
+            result.m[i][j] = a.m[i][j] * b;
+        }
+    }
+
+    return result;
+}
+
+struct v4 m4_mul_v4(struct m4 a, struct v4 b)
+{
+    struct v4 result = { 0 };
+
+    result.x = a.m[0][0] * b.x + a.m[1][0] * b.y + a.m[2][0] * b.z + a.m[3][0] 
+        * b.w;
+    result.y = a.m[0][1] * b.x + a.m[1][1] * b.y + a.m[2][1] * b.z + a.m[3][1] 
+        * b.w;
+    result.z = a.m[0][2] * b.x + a.m[1][2] * b.y + a.m[2][2] * b.z + a.m[3][2] 
+        * b.w;
+    result.w = a.m[0][3] * b.x + a.m[1][3] * b.y + a.m[2][3] * b.z + a.m[3][3] 
+        * b.w;
+
+    return result;
+}
+
+struct m4 m4_inverse(struct m4 a)
+{
+    struct m4 result = { 0 };
+
+    // Calculate matrix of minors
+    result = m4_matrix_of_minors(a);
+
+    // Calculate matrix of cofactors
+    result = m4_matrix_of_cofactors(result);
+
+    // Calculate adjugate
+    result = m4_transpose(result);
+
+    // Multiply by 1 / determinant
+    f32 det = m4_determinant(a);
+
+    if (det)
+    {
+        result = m4_mul_f32(result, 1.0f / det);
+    }
+    else
+    {
+        // Todo: error case
+    }
+
+    return result;
 }
 
 f32 v3_length(struct v3 v)
 {
-    f32 result;
-
-    result = f32_sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+    f32 result = f32_sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
 
     return result;
 }
 
 f32 v3_dot(struct v3 a, struct v3 b)
 {
-    f32 result;
-
-    result = a.x * b.x + a.y * b.y + a.z * b.z;
+    f32 result = a.x * b.x + a.y * b.y + a.z * b.z;
 
     return result;
 }
@@ -278,45 +588,54 @@ struct v3 v3_normalize(struct v3 v)
 
 f32 v2_length(struct v2 v)
 {
-    f32 result;
-
-    result = f32_sqrt(v.x * v.x + v.y * v.y);
+    f32 result = f32_sqrt(v.x * v.x + v.y * v.y);
 
     return result;
 }
 
 f32 v2_length_squared(struct v2 v)
 {
-    f32 result;
-
-    result = v.x * v.x + v.y * v.y;
+    f32 result = v.x * v.x + v.y * v.y;
 
     return result;
 }
 
 f32 v2_dot(struct v2 a, struct v2 b)
 {
-    f32 result;
-
-    result = a.x * b.x + a.y * b.y;
+    f32 result = a.x * b.x + a.y * b.y;
 
     return result;
 }
 
 b32 v2_is_zero(struct v2 v)
 {
-    f32 result;
-
-    result = v.x == 0.0f && v.y == 0.0f;
+    f32 result = v.x == 0.0f && v.y == 0.0f;
 
     return result;
 }
 
 f32 v2_distance(struct v2 a, struct v2 b)
 {
+    f32 result = f32_distance(a.x, a.y, b.x, b.y);
+
+    return result;
+}
+
+f32 v2_angle(struct v2 a, struct v2 b)
+{
+    f32 result = f32_acos(v2_dot(a, b) / (v2_length(a) * v2_length(b)));
+
+    return result;
+}
+
+f32 f32_angle(f32 ax, f32 ay, f32 bx, f32 by)
+{
     f32 result;
 
-    result = f32_distance(a.x, a.y, b.x, b.y);
+    struct v2 a = { ax, ay };
+    struct v2 b = { bx, by };
+
+    result = v2_angle(a, b);
 
     return result;
 }
@@ -344,7 +663,7 @@ struct m4 m4_perspective(f32 fov, f32 aspect, f32 n, f32 f)
 
     // Todo: check if n-f is not zero
     // Todo: check if t*aspect is not zero
-    struct m4 m = 
+    struct m4 result = 
     {{
         { 1.0f / (t*aspect), 0.0f, 0.0f, 0.0f },
         { 0.0f, 1.0f/t, 0.0f, 0.0f },
@@ -352,7 +671,7 @@ struct m4 m4_perspective(f32 fov, f32 aspect, f32 n, f32 f)
         { 0.0f, 0.0f, (2.0f*f*n)/(n-f), 0.0f }
     }};
 
-    return m;
+    return result;
 }
 
 struct v4 v4_mul(struct v4 a, struct v4 b)
