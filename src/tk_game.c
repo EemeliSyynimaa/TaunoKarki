@@ -26,6 +26,23 @@ struct enemy
     f32 angle;
 };
 
+struct camera
+{
+    struct m4 perspective;
+    struct m4 view;
+    struct m4 perspective_inverse;
+    struct m4 view_inverse;
+    struct v3 position;
+    f32 screen_width;
+    f32 screen_height;
+};
+
+struct mouse
+{
+    struct v2 world;
+    struct v2 screen;
+};
+
 struct vertex
 {
     struct v3 position;
@@ -57,16 +74,13 @@ struct game_state
     struct player player;
     struct bullet bullets[MAX_BULLETS];
     struct enemy enemies[MAX_ENEMIES];
+    struct camera camera;
+    struct mouse mouse;
     struct mesh cube;
     struct mesh sphere;
     struct mesh wall;
     struct mesh floor;
-    struct m4 perspective;
-    struct m4 view;
-    struct m4 perspective_inverse;
-    struct m4 view_inverse;
     struct memory_block temporary;
-    struct v2 mouse_world;
     b32 fired;
     f32 accumulator;
     u32 shader;
@@ -78,8 +92,6 @@ struct game_state
     u32 free_bullet;
     u32 num_enemies;
     u32 level;
-    s32 screen_width;
-    s32 screen_height;
 };
 
 u32 MAP_WIDTH  = 20;
@@ -226,8 +238,8 @@ void map_render(struct game_state* state)
             f32 left = x - TILE_WALL * 0.5f;
             f32 right = x + TILE_WALL * 0.5f;
 
-            if (collision_point_to_rect(state->mouse_world.x, 
-                state->mouse_world.y, left, right, bottom, top))
+            if (collision_point_to_rect(state->mouse.world.x, 
+                state->mouse.world.y, left, right, bottom, top))
             {
                 color = color_red;
             }
@@ -244,8 +256,8 @@ void map_render(struct game_state* state)
                     struct m4 model = m4_mul_m4(scale, rotation);
                     model = m4_mul_m4(model, transform);
 
-                    struct m4 mvp = m4_mul_m4(model, state->view);
-                    mvp = m4_mul_m4(mvp, state->perspective);
+                    struct m4 mvp = m4_mul_m4(model, state->camera.view);
+                    mvp = m4_mul_m4(mvp, state->camera.perspective);
 
                     mesh_render(&state->wall, &mvp, state->texture_tileset, 
                         state->shader, color);
@@ -260,8 +272,8 @@ void map_render(struct game_state* state)
                 struct m4 model = m4_mul_m4(scale, rotation);
                 model = m4_mul_m4(model, transform);
 
-                struct m4 mvp = m4_mul_m4(model, state->view);
-                mvp = m4_mul_m4(mvp, state->perspective);
+                struct m4 mvp = m4_mul_m4(model, state->camera.view);
+                mvp = m4_mul_m4(mvp, state->camera.perspective);
 
                 mesh_render(&state->floor, &mvp, state->texture_tileset,
                     state->shader, color);
@@ -435,8 +447,8 @@ void enemies_render(struct game_state* state)
         struct m4 model = m4_mul_m4(scale, rotation);
         model = m4_mul_m4(model, transform);
 
-        struct m4 mvp = m4_mul_m4(model, state->view);
-        mvp = m4_mul_m4(mvp, state->perspective);
+        struct m4 mvp = m4_mul_m4(model, state->camera.view);
+        mvp = m4_mul_m4(mvp, state->camera.perspective);
 
         mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader,
             color_white);
@@ -593,8 +605,8 @@ void bullets_render(struct game_state* state)
         struct m4 model = m4_mul_m4(scale, rotation);
         model = m4_mul_m4(model, transform);
 
-        struct m4 mvp = m4_mul_m4(model, state->view);
-        mvp = m4_mul_m4(mvp, state->perspective);
+        struct m4 mvp = m4_mul_m4(model, state->camera.view);
+        mvp = m4_mul_m4(mvp, state->camera.perspective);
 
         mesh_render(&state->sphere, &mvp, state->texture_sphere,
             state->shader, color_white);
@@ -653,8 +665,8 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
     check_tile_collisions(&player->position, &player->velocity, move_delta,
         PLAYER_RADIUS, 1);
 
-    struct v2 dir = { state->mouse_world.x - player->position.x, 
-        state->mouse_world.y - player->position.y };
+    struct v2 dir = { state->mouse.world.x - player->position.x, 
+        state->mouse.world.y - player->position.y };
     dir = v2_normalize(dir);
 
     player->angle = f32_atan(dir.y, dir.x);
@@ -698,8 +710,8 @@ void player_render(struct game_state* state)
     struct m4 model = m4_mul_m4(scale, rotation);
     model = m4_mul_m4(model, transform);
 
-    struct m4 mvp = m4_mul_m4(model, state->view);
-    mvp = m4_mul_m4(mvp, state->perspective);
+    struct m4 mvp = m4_mul_m4(model, state->camera.view);
+    mvp = m4_mul_m4(mvp, state->camera.perspective);
 
     mesh_render(&state->cube, &mvp, state->texture_player, state->shader,
         color_white);
@@ -722,8 +734,8 @@ void player_render(struct game_state* state)
         model = m4_mul_m4(scale, rotation);
         model = m4_mul_m4(model, transform);
 
-        mvp = m4_mul_m4(model, state->view);
-        mvp = m4_mul_m4(mvp, state->perspective);
+        mvp = m4_mul_m4(model, state->camera.view);
+        mvp = m4_mul_m4(mvp, state->camera.perspective);
 
         mesh_render(&state->floor, &mvp, state->texture_tileset, 
             state->shader_simple, color_red);
@@ -733,8 +745,8 @@ void player_render(struct game_state* state)
     {
         struct v2 vec = 
         { 
-            state->mouse_world.x - player->position.x,
-            state->mouse_world.y - player->position.y
+            state->mouse.world.x - player->position.x,
+            state->mouse.world.y - player->position.y
         };
 
         f32 length = v2_length(vec) * 0.5f;
@@ -751,8 +763,8 @@ void player_render(struct game_state* state)
         model = m4_mul_m4(scale, rotation);
         model = m4_mul_m4(model, transform);
 
-        mvp = m4_mul_m4(model, state->view);
-        mvp = m4_mul_m4(mvp, state->perspective);
+        mvp = m4_mul_m4(model, state->camera.view);
+        mvp = m4_mul_m4(mvp, state->camera.perspective);
 
         mesh_render(&state->floor, &mvp, state->texture_tileset, 
             state->shader_simple, color_red);
@@ -1342,11 +1354,12 @@ void game_init(struct game_memory* memory, struct game_init* init)
         memory->initialized = true;
     }
 
-    state->screen_width = init->screen_width;
-    state->screen_height = init->screen_height;
-    state->perspective = m4_perspective(60.0f, 
-        (f32)state->screen_width/(f32)state->screen_height, 0.1f, 100.0f);
-    state->perspective_inverse = m4_inverse(state->perspective);
+    state->camera.screen_width = init->screen_width;
+    state->camera.screen_height = init->screen_height;
+    state->camera.perspective = m4_perspective(60.0f, 
+        (f32)state->camera.screen_width/(f32)state->camera.screen_height, 
+        0.1f, 100.0f);
+    state->camera.perspective_inverse = m4_inverse(state->camera.perspective);
 
     state->num_enemies = MAX_ENEMIES;
 
@@ -1365,135 +1378,51 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
     glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
-    struct m2 temp = 
-    {{
-        { 4, 6 },
-        { 3, 8 }
-    }};
-
-    struct m3 temp2 = 
-    {{
-        { 6, 1, 1 },
-        { 4, -2, 5 },
-        { 2, 8, 7 }
-    }};
-
-    struct m4 temp3 = 
-    {{
-        { 4, 3, 2, 2 },
-        { 0, 1, -3, 3 },
-        { 0, -1, 3, 3 },
-        { 0, 3, 1, 1 }
-    }};
-
-    f32 det = m2_determinant(temp);     // 14
-    f32 det2 = m3_determinant(temp2);   // -306
-    f32 det3 = m4_determinant(temp3);   // -240
-
-    f32 t = determinant(&temp.m[0][0], 2);
-    f32 t2 = determinant(&temp2.m[0][0], 3);
-    f32 t3 = determinant(&temp3.m[0][0], 4);
-
-    struct m3 temp4 = 
-    {{
-        { 3, 0, 2 },
-        { 2, 0, -2 },
-        { 0, 1, 1 }
-    }};
-
-    f32 d = m3_determinant(temp4);
-    temp4 = m3_matrix_of_minors(temp4);
-    temp4 = m3_matrix_of_cofactors(temp4);
-    temp4 = m3_transpose(temp4);
-
-    temp4 = m3_mul_f32(temp4, 1.0f / d);
-
-    struct m4 temp3_inverse = m4_inverse(temp3);
-
-    struct m4 temp5 = m4_mul_m4(temp3, temp3_inverse);
-
-    struct m4 wat =
-    {{
-        { 2, -1, 3, 5 },
-        { 1, 3, 0, 4 },
-        { 3, 0, -1, -2 },
-        { 0, 0, 0, 1 }
-    }};
-
-    struct v4 wet = { 2, 0, -1, 1 };
-
-    struct v4 tit = m4_mul_v4(wat, wet);
-
-    f32 jaa = f32_degrees(f32_angle(1, 0, 1, 0));
-    jaa = f32_degrees(f32_angle(1, 0, 0, 1));
-    jaa = f32_degrees(f32_angle(1, 0, 1, 1));
-    jaa = f32_degrees(f32_angle(1, 0, -1, 0));
-    jaa = f32_degrees(f32_angle(1, 0, 0, -1));
-
     if (!memory->initialized)
     {
         LOG("game_init: end of init, memory not initalized!\n");
     }
 }
 
-struct v2 calculate_world_pos(f32 pos_x, f32 pos_y, f32 camera_depth, 
-    struct game_state* state)
+struct v2 calculate_world_pos(f32 pos_x, f32 pos_y, struct camera* camera)
 {
     struct v2 result = { 0.0f };
-    struct v2 ndc = { 0.0f };
-    struct v4 clip = { 0.0f };
-    struct v4 view = { 0.0f };
-    struct v4 world = { 0.0f };
 
-    // 1. Transform viewport coordinates to NDC coordinates (between -1:1)
-    ndc.x = pos_x / (state->screen_width * 0.5f) - 1.0f;
-    ndc.y = (pos_y / (state->screen_height * 0.5f) - 1.0f) * -1.0f;
+    struct v4 ndc = 
+    {
+        pos_x / (camera->screen_width * 0.5f) - 1.0f,
+        (pos_y / (camera->screen_height * 0.5f) - 1.0f) * -1.0f
+    };
 
-    // 2. Transform NDC coordinates to homogenous clip space (multiply by w)
-    clip.x = ndc.x;
-    clip.y = ndc.y ;
-    clip.z = -1.0f;
-    clip.w = 1.0f;
-
-    // 3. Use inverse projection matrix (perspective_inverse)
-    view = m4_mul_v4(state->perspective_inverse, clip);
+    struct v4 clip = { ndc.x, ndc.y, -1.0f, 1.0f };
+    struct v4 view = m4_mul_v4(camera->perspective_inverse, clip);
     view.z = -1.0f;
     view.w = 0.0f;
 
-    // 4. Use inverse view matrix (view_inverse)
-    world = m4_mul_v4(state->view_inverse, view);
+    struct v4 world = m4_mul_v4(camera->view_inverse, view);
 
-    // 5. That should do it for now
     struct v3 temp = { world.x, world.y, world.z };
     temp = v3_normalize(temp);
 
-    f32 xy = f32_sqrt(temp.x * temp.x + temp.y * temp.y);
+    f32 c = f32_abs(camera->position.z / temp.z);
 
-    struct v2 jo = { xy, temp.z };
-
-    f32 len = v2_length(jo);
-
-    f32 t = f32_sqrt(1.0f - temp.z * temp.z);
-
-    f32 c = camera_depth / f32_abs(temp.z);
-
-    result.x = temp.x * c + state->player.position.x;
-    result.y = temp.y * c + state->player.position.y;
+    result.x = temp.x * c + camera->position.x;
+    result.y = temp.y * c + camera->position.y;
 
     return result;
 }
 
-struct v2 calculate_screen_pos(f32 pos_x, f32 pos_y, struct game_state* state)
+struct v2 calculate_screen_pos(f32 pos_x, f32 pos_y, struct camera* camera)
 {
     struct v2 result = { 0.0f };
     struct v4 world = { pos_x, pos_y, 0.0f, 1.0f };
 
-    struct v4 camera = m4_mul_v4(state->view, world);
-    struct v4 clip = m4_mul_v4(state->perspective, camera);
+    struct v4 view = m4_mul_v4(camera->view, world);
+    struct v4 clip = m4_mul_v4(camera->perspective, view);
     struct v2 ndc = { clip.x / clip.z, clip.y / clip.z };
 
-    result.x = (ndc.x + 1.0f) * (state->screen_width * 0.5f);
-    result.y = (ndc.y * -1.0f + 1.0f) * (state->screen_height * 0.5f);
+    result.x = (ndc.x + 1.0f) * (camera->screen_width * 0.5f);
+    result.y = (ndc.y * -1.0f + 1.0f) * (camera->screen_height * 0.5f);
 
     return result;
 }
@@ -1503,15 +1432,10 @@ void game_update(struct game_memory* memory, struct game_input* input)
     if (memory->initialized)
     {
         struct game_state* state = (struct game_state*)memory->base;
+        struct camera* camera = &state->camera;
 
-        state->mouse_world = calculate_world_pos(input->mouse_x, input->mouse_y, 
-            15.0f, state);
-        struct v2 ok = calculate_screen_pos(11.0f, 10.0f, state);
-        struct v2 aha = calculate_world_pos(ok.x, ok.y, 15.0f, state);
-
-        LOG("%.3f %.3f & %.3f %.3f\n", state->mouse_world.x, 
-            state->mouse_world.y, state->player.position.x, 
-            state->player.position.y);
+        state->mouse.world = calculate_world_pos(input->mouse_x, input->mouse_y, 
+            camera);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
@@ -1527,26 +1451,30 @@ void game_update(struct game_memory* memory, struct game_input* input)
             bullets_update(state, input, step);
         }
 
-        state->view = m4_translate(-state->player.position.x, 
-            -state->player.position.y, -15.0f);
+        camera->position.x = state->player.position.x;
+        camera->position.y = state->player.position.y;
+        camera->position.z = 15.0f;
 
-        state->view_inverse = m4_inverse(state->view);
+        camera->view = m4_translate(-camera->position.x, -camera->position.y,
+            -camera->position.z);
+
+        camera->view_inverse = m4_inverse(state->camera.view);
 
         // Todo: what is the best place to check the coords?
-        state->mouse_world = calculate_world_pos(input->mouse_x, input->mouse_y, 
-            15.0f, state);
+        state->mouse.world = calculate_world_pos(input->mouse_x, input->mouse_y, 
+            &state->camera);
 
         {
-            struct m4 transform = m4_translate(state->mouse_world.x, 
-                state->mouse_world.y, 0.0f);
+            struct m4 transform = m4_translate(state->mouse.world.x, 
+                state->mouse.world.y, 0.0f);
             struct m4 rotation = m4_rotate_z(0.0f);
             struct m4 scale = m4_scale_all(WALL_SIZE * 0.125f);
 
             struct m4 model = m4_mul_m4(scale, rotation);
             model = m4_mul_m4(model, transform);
 
-            struct m4 mvp = m4_mul_m4(model, state->view);
-            mvp = m4_mul_m4(mvp, state->perspective);
+            struct m4 mvp = m4_mul_m4(model, camera->view);
+            mvp = m4_mul_m4(mvp, camera->perspective);
 
             mesh_render(&state->sphere, &mvp, state->texture_sphere,
                 state->shader, color_white);

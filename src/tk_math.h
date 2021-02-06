@@ -146,6 +146,9 @@ void f32_swap(f32* a, f32* b)
     *b = t;
 }
 
+// Todo: clean matrix and vector functions to use more generic approach like
+// below, lots of duplicate code now
+
 f32 determinant(f32* values, u32 size)
 {
     // Todo: supports only matrices of size from 1 to 4
