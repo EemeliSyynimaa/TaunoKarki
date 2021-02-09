@@ -620,6 +620,12 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
     struct v2 move_delta = { 0.0f };
     struct player* player = &state->player;
 
+    struct v2 dir = { state->mouse.world.x - player->position.x, 
+        state->mouse.world.y - player->position.y };
+    dir = v2_normalize(dir);
+
+    player->angle = f32_atan(dir.y, dir.x);
+
     if (input->move_left.key_down)
     {
         direction.x -= 1.0f;
@@ -664,12 +670,6 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 
     check_tile_collisions(&player->position, &player->velocity, move_delta,
         PLAYER_RADIUS, 1);
-
-    struct v2 dir = { state->mouse.world.x - player->position.x, 
-        state->mouse.world.y - player->position.y };
-    dir = v2_normalize(dir);
-
-    player->angle = f32_atan(dir.y, dir.x);
 
     if (input->shoot.key_down)
     {
@@ -1376,6 +1376,23 @@ void game_init(struct game_memory* memory, struct game_init* init)
     state->player.position.x = 3.0f;
     state->player.position.y = 3.0f;
 
+    state->mouse.world = state->player.position;
+
+    struct v2 temp = 
+    {
+        state->mouse.world.x - state->player.position.x,
+        state->mouse.world.y - state->player.position.y
+    };
+
+    state->camera.position.x = state->player.position.x + temp.x * 0.5f;
+    state->camera.position.y = state->player.position.y + temp.y * 0.5f;
+    state->camera.position.z = 10.0f;
+
+    state->camera.view = m4_translate(-state->camera.position.x, -state->camera.position.y,
+        -state->camera.position.z);
+
+    state->camera.view_inverse = m4_inverse(state->camera.view);
+
     glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
     if (!memory->initialized)
@@ -1434,9 +1451,6 @@ void game_update(struct game_memory* memory, struct game_input* input)
         struct game_state* state = (struct game_state*)memory->base;
         struct camera* camera = &state->camera;
 
-        state->mouse.world = calculate_world_pos(input->mouse_x, input->mouse_y, 
-            camera);
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         f32 step = 1.0f / 120.0f;
@@ -1446,38 +1460,26 @@ void game_update(struct game_memory* memory, struct game_input* input)
         {
             state->accumulator -= step;
 
+            state->mouse.world = calculate_world_pos(input->mouse_x, 
+                input->mouse_y, camera);
+            
+            struct v2 camera_target = 
+            {
+                (state->mouse.world.x - state->player.position.x) * 0.5f,
+                (state->mouse.world.y - state->player.position.y) * 0.5f
+            };
+
             player_update(state, input, step);
             enemies_update(state, input, step);
             bullets_update(state, input, step);
-        }
 
-        camera->position.x = state->player.position.x;
-        camera->position.y = state->player.position.y;
-        camera->position.z = 15.0f;
+            camera->position.x = state->player.position.x + camera_target.x;
+            camera->position.y = state->player.position.y + camera_target.y;
+            camera->position.z = 15.0f;
 
-        camera->view = m4_translate(-camera->position.x, -camera->position.y,
-            -camera->position.z);
-
-        camera->view_inverse = m4_inverse(state->camera.view);
-
-        // Todo: what is the best place to check the coords?
-        state->mouse.world = calculate_world_pos(input->mouse_x, input->mouse_y, 
-            &state->camera);
-
-        {
-            struct m4 transform = m4_translate(state->mouse.world.x, 
-                state->mouse.world.y, 0.0f);
-            struct m4 rotation = m4_rotate_z(0.0f);
-            struct m4 scale = m4_scale_all(WALL_SIZE * 0.125f);
-
-            struct m4 model = m4_mul_m4(scale, rotation);
-            model = m4_mul_m4(model, transform);
-
-            struct m4 mvp = m4_mul_m4(model, camera->view);
-            mvp = m4_mul_m4(mvp, camera->perspective);
-
-            mesh_render(&state->sphere, &mvp, state->texture_sphere,
-                state->shader, color_white);
+            camera->view = m4_translate(-camera->position.x,
+                -camera->position.y, -camera->position.z);
+            camera->view_inverse = m4_inverse(camera->view);
         }
 
         map_render(state);
