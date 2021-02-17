@@ -1386,10 +1386,10 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
     state->camera.position.x = state->player.position.x + temp.x * 0.5f;
     state->camera.position.y = state->player.position.y + temp.y * 0.5f;
-    state->camera.position.z = 10.0f;
+    state->camera.position.z = 15.0f;
 
-    state->camera.view = m4_translate(-state->camera.position.x, -state->camera.position.y,
-        -state->camera.position.z);
+    state->camera.view = m4_translate(-state->camera.position.x, 
+        -state->camera.position.y, -state->camera.position.z);
 
     state->camera.view_inverse = m4_inverse(state->camera.view);
 
@@ -1456,17 +1456,21 @@ void game_update(struct game_memory* memory, struct game_input* input)
         f32 step = 1.0f / 120.0f;
         state->accumulator += input->delta_time;
 
+        state->mouse.world = calculate_world_pos(input->mouse_x, 
+            input->mouse_y, camera);
+            
         while (state->accumulator >= step)
         {
             state->accumulator -= step;
 
-            state->mouse.world = calculate_world_pos(input->mouse_x, 
-                input->mouse_y, camera);
-            
+            f32 view_multiplier = 0.0f;
+
             struct v2 camera_target = 
             {
-                (state->mouse.world.x - state->player.position.x) * 0.5f,
-                (state->mouse.world.y - state->player.position.y) * 0.5f
+                (state->mouse.world.x - state->player.position.x) * 
+                    view_multiplier,
+                (state->mouse.world.y - state->player.position.y) * 
+                    view_multiplier
             };
 
             player_update(state, input, step);
@@ -1475,8 +1479,10 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
             camera->position.x = state->player.position.x + camera_target.x;
             camera->position.y = state->player.position.y + camera_target.y;
-            camera->position.z = 15.0f;
 
+            state->mouse.world = calculate_world_pos(input->mouse_x, 
+                input->mouse_y, camera);
+            
             camera->view = m4_translate(-camera->position.x,
                 -camera->position.y, -camera->position.z);
             camera->view_inverse = m4_inverse(camera->view);
