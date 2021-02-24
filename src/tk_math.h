@@ -548,6 +548,18 @@ struct m4 m4_inverse(struct m4 a)
     return result;
 }
 
+struct m4 m4_identity()
+{
+    struct m4 result = { 0.0f };
+
+    for (s32 i = 0; i < 4; i++)
+    {
+        result.m[i][i] = 1.0f;
+    }
+
+    return result;
+}
+
 f32 v3_length(struct v3 v)
 {
     f32 result = f32_sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
@@ -567,7 +579,7 @@ struct v3 v3_cross(struct v3 a, struct v3 b)
     struct v3 result;
 
     result.x = a.y * b.z - a.z * b.y;
-    result.y = a.x * b.z - a.z * b.x;
+    result.y = a.z * b.x - a.x * b.z;
     result.z = a.x * b.y - a.y * b.x;
 
     return result;
@@ -673,6 +685,38 @@ struct m4 m4_perspective(f32 fov, f32 aspect, f32 n, f32 f)
         { 0.0f, 0.0f, (f+n)/(n-f), -1.0f },
         { 0.0f, 0.0f, (2.0f*f*n)/(n-f), 0.0f }
     }};
+
+    return result;
+}
+
+struct m4 m4_look_at(struct v3 position, struct v3 target, struct v3 up)
+{
+    struct v3 forward =
+    {
+        position.x - target.x,
+        position.y - target.y,
+        position.z - target.z
+    };
+
+    forward = v3_normalize(forward);
+    up = v3_normalize(up);
+
+    struct v3 right = v3_cross(up, forward);
+    up = v3_cross(forward, right);
+
+    struct m4 result = m4_identity();
+    result.m[0][0] = right.x;
+    result.m[1][0] = right.y;
+    result.m[2][0] = right.z;
+    result.m[0][1] = up.x;
+    result.m[1][1] = up.y;
+    result.m[2][1] = up.z;
+    result.m[0][2] = forward.x;
+    result.m[1][2] = forward.y;
+    result.m[2][2] = forward.z;
+    result.m[3][0] = -v3_dot(right, position);
+    result.m[3][1] = -v3_dot(up, position);
+    result.m[3][2] = -v3_dot(forward, position);
 
     return result;
 }

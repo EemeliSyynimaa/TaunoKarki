@@ -334,7 +334,9 @@ b32 collision_wall_resolve(f32 wall_x, f32 pos_x, f32 pos_y, f32 move_delta_x,
         {
             if (t < *move_time && t >= 0.0f)
             {
-                *move_time = MAX(0.0f, t - 0.001f);
+                // Todo: what is the best amount for the epsilon?
+                f32 epsilon = 0.01f;
+                *move_time = MAX(0.0f, t - epsilon);
 
                 result = true;
             }
@@ -414,7 +416,9 @@ b32 collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius,
 
         if (t < *move_time)
         {
-            *move_time = MAX(0.0f, t - 0.001f);
+            // Todo: what is the best amount for the epsilon?
+            f32 epsilon = 0.01f;
+            *move_time = MAX(0.0f, t - epsilon);
 
             normal->x = perfect.x - col.x;
             normal->y = perfect.y - col.y;
@@ -1386,7 +1390,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
     state->camera.position.x = state->player.position.x + temp.x * 0.5f;
     state->camera.position.y = state->player.position.y + temp.y * 0.5f;
-    state->camera.position.z = 15.0f;
+    state->camera.position.z = 20.0f;
 
     state->camera.view = m4_translate(-state->camera.position.x, 
         -state->camera.position.y, -state->camera.position.z);
@@ -1463,29 +1467,27 @@ void game_update(struct game_memory* memory, struct game_input* input)
         {
             state->accumulator -= step;
 
-            f32 view_multiplier = 0.0f;
-
-            struct v2 camera_target = 
-            {
-                (state->mouse.world.x - state->player.position.x) * 
-                    view_multiplier,
-                (state->mouse.world.y - state->player.position.y) * 
-                    view_multiplier
-            };
-
             player_update(state, input, step);
             enemies_update(state, input, step);
             bullets_update(state, input, step);
 
-            camera->position.x = state->player.position.x + camera_target.x;
-            camera->position.y = state->player.position.y + camera_target.y;
+            camera->position.x = state->player.position.x;
+            camera->position.y = state->player.position.y - 5.0f;
+
+            struct v3 target = 
+            {
+                state->player.position.x,
+                state->player.position.y,
+                0.0f
+            };
+
+            struct v3 up = { 0.0f, 1.0f, 0.0f };
+
+            camera->view = m4_look_at(camera->position, target, up);
+            camera->view_inverse = m4_inverse(camera->view);
 
             state->mouse.world = calculate_world_pos(input->mouse_x, 
                 input->mouse_y, camera);
-            
-            camera->view = m4_translate(-camera->position.x,
-                -camera->position.y, -camera->position.z);
-            camera->view_inverse = m4_inverse(camera->view);
         }
 
         map_render(state);
