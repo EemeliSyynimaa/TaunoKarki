@@ -10,7 +10,7 @@
  - [X] Player movement
  - [ ] Collision detection
   - [X] Player collision
-  - [ ] Bullet collision
+  - [X] Bullet collision
   - [ ] Enemy collision
  - [ ] Controller input
  - [ ] Local multiplayer

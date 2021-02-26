@@ -98,9 +98,9 @@ u32 MAP_WIDTH  = 20;
 u32 MAP_HEIGHT = 20;
 
 f32 PLAYER_ACCELERATION = 20.0f;
-f32 PROJECTILE_RADIUS   = 0.05f;
-f32 PROJECTILE_SPEED    = 20.0f;
-f32 PLAYER_RADIUS       = 0.45f;
+f32 PROJECTILE_RADIUS   = 0.035f;
+f32 PROJECTILE_SPEED    = 25.0f;
+f32 PLAYER_RADIUS       = 0.25f;
 f32 WALL_SIZE           = 1.0f;
 
 u32 TILE_NOTHING = 0;
@@ -111,6 +111,7 @@ struct v4 color_white = {{{ 1.0, 1.0, 1.0, 1.0 }}};
 struct v4 color_black = {{{ 0.0, 0.0, 0.0, 0.0 }}};
 struct v4 color_red   = {{{ 1.0, 0.0, 0.0, 0.0 }}}; 
 struct v4 color_blue  = {{{ 0.0, 0.0, 1.0, 0.0 }}};
+struct v4 color_grey  = {{{ 0.5, 0.5, 0.5, 0.0 }}};
 
 u8 map_data[] =
 {
@@ -446,7 +447,7 @@ void enemies_render(struct game_state* state)
         struct m4 transform = m4_translate(enemy->position.x, enemy->position.y, 
             0.0f);
         struct m4 rotation = m4_rotate_z(enemy->angle);
-        struct m4 scale = m4_scale_all(PLAYER_RADIUS * 0.5f);
+        struct m4 scale = m4_scale_xyz(PLAYER_RADIUS, PLAYER_RADIUS, 0.25f);
 
         struct m4 model = m4_mul_m4(scale, rotation);
         model = m4_mul_m4(model, transform);
@@ -722,18 +723,16 @@ void player_render(struct game_state* state)
 
     // Render velocity vector
     {
-        f32 max_speed = 5.0f;
-        f32 length = v2_length(player->velocity) / max_speed * 0.5f * 
-            PLAYER_RADIUS;
+        f32 max_speed = 7.0f;
+        f32 length = v2_length(player->velocity) / max_speed;
         f32 angle = f32_atan(player->velocity.x, player->velocity.y);
 
         transform = m4_translate(
-            player->position.x + player->velocity.x / max_speed * 0.5f * 
-            PLAYER_RADIUS, 
-            player->position.y + player->velocity.y / max_speed * 0.5f * 
-            PLAYER_RADIUS, 1.1f);
+            player->position.x + player->velocity.x / max_speed, 
+            player->position.y + player->velocity.y / max_speed, 0.0f);
+
         rotation = m4_rotate_z(-angle);
-        scale = m4_scale_xyz(0.01f, length, 0.01f);
+        scale = m4_scale_xyz(0.05f, length, 0.01f);
 
         model = m4_mul_m4(scale, rotation);
         model = m4_mul_m4(model, transform);
@@ -742,7 +741,7 @@ void player_render(struct game_state* state)
         mvp = m4_mul_m4(mvp, state->camera.perspective);
 
         mesh_render(&state->floor, &mvp, state->texture_tileset, 
-            state->shader_simple, color_red);
+            state->shader_simple, color_grey);
     }
 
     // // Render aim vector
@@ -1390,7 +1389,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
     state->camera.position.x = state->player.position.x + temp.x * 0.5f;
     state->camera.position.y = state->player.position.y + temp.y * 0.5f;
-    state->camera.position.z = 20.0f;
+    state->camera.position.z = 10.0f;
 
     state->camera.view = m4_translate(-state->camera.position.x, 
         -state->camera.position.y, -state->camera.position.z);
