@@ -266,7 +266,7 @@ void map_render(struct game_state* state)
             }
             else if (tile == TILE_FLOOR)
             {
-                struct m4 transform = m4_translate(x, y, -WALL_SIZE * 0.5f);
+                struct m4 transform = m4_translate(x, y, -WALL_SIZE);
                 struct m4 rotation = m4_rotate_z(0.0f);
                 struct m4 scale = m4_scale_all(WALL_SIZE * 0.5f);
 
@@ -729,7 +729,7 @@ void player_render(struct game_state* state)
 
         transform = m4_translate(
             player->position.x + player->velocity.x / max_speed, 
-            player->position.y + player->velocity.y / max_speed, 0.0f);
+            player->position.y + player->velocity.y / max_speed, -0.5f);
 
         rotation = m4_rotate_z(-angle);
         scale = m4_scale_xyz(0.05f, length, 0.01f);
@@ -1472,6 +1472,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
             camera->position.x = state->player.position.x;
             camera->position.y = state->player.position.y - 5.0f;
+            camera->position.z = 7.5f;
 
             struct v3 target = 
             {
