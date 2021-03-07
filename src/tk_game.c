@@ -17,6 +17,7 @@ struct bullet
     struct v2 position;
     struct v2 velocity;
     f32 angle;
+    f32 damage;
     b32 alive;
 };
 
@@ -24,6 +25,7 @@ struct enemy
 {
     struct v2 position;
     f32 angle;
+    f32 health;
     b32 alive;
 };
 
@@ -444,7 +446,18 @@ b32 collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius,
 
 void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 {
+    for (u32 i = 0; i < MAX_ENEMIES; i++)
+    {
+        struct enemy* enemy = &state->enemies[i];
 
+        if (enemy->alive)
+        {
+            if (enemy->health <= 0.0f)
+            {
+                enemy->alive = false;
+            }
+        }
+    }
 }
 
 void enemies_render(struct game_state* state)
@@ -609,7 +622,7 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                     PLAYER_RADIUS))
                 {
                     bullet->alive = false;
-                    enemy->alive = false;
+                    enemy->health -= bullet->damage;
                 }
             }
         }
@@ -717,6 +730,7 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
             bullet->velocity.x = dir.x * speed;
             bullet->velocity.y = dir.y * speed;
             bullet->alive = true;
+            bullet->damage = 25.0f;
 
             state->fired = true;
         }
@@ -1396,6 +1410,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         enemy->position.x = 2.0f + i * 2.0f;
         enemy->position.y = 8.0f;
         enemy->alive = true;
+        enemy->health = 100.0f;
     }
 
     state->level = 6;
