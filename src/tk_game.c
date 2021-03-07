@@ -24,6 +24,7 @@ struct enemy
 {
     struct v2 position;
     f32 angle;
+    b32 alive;
 };
 
 struct camera
@@ -59,7 +60,7 @@ struct mesh
 };
 
 #define MAX_BULLETS 64
-#define MAX_ENEMIES 8
+#define MAX_ENEMIES 4
 
 struct memory_block
 {
@@ -283,6 +284,14 @@ void map_render(struct game_state* state)
     }
 }
 
+b32 collision_circle_to_circle(struct v2 position_a, f32 radius_a,
+    struct v2 position_b, f32 radius_b)
+{
+    f32 result = v2_distance(position_a, position_b) < (radius_a + radius_b);
+
+    return result;
+}
+
 b32 collision_circle_to_rect(struct v2 circle, f32 circle_radius, f32 rect_top, 
     f32 rect_bottom, f32 rect_left, f32 rect_right, struct v2* col)
 {
@@ -308,10 +317,10 @@ b32 collision_circle_to_rect(struct v2 circle, f32 circle_radius, f32 rect_top,
         collision_point.y = rect_top;
     }
 
-    result = f32_distance(circle.x, circle.y, collision_point.x, 
-        collision_point.y) < circle_radius;
+    result = collision_circle_to_circle(circle, circle_radius, collision_point,
+         0.0f);
 
-    if (result)
+    if (result && col)
     {
         col->x = circle.x > 0 ? rect_right : rect_left;
         col->y = circle.y > 0 ? rect_top : rect_bottom;
@@ -444,19 +453,22 @@ void enemies_render(struct game_state* state)
     {
         struct enemy* enemy = &state->enemies[i];
 
-        struct m4 transform = m4_translate(enemy->position.x, enemy->position.y, 
-            0.0f);
-        struct m4 rotation = m4_rotate_z(enemy->angle);
-        struct m4 scale = m4_scale_xyz(PLAYER_RADIUS, PLAYER_RADIUS, 0.25f);
+        if (enemy->alive)
+        {
+            struct m4 transform = m4_translate(enemy->position.x, 
+                enemy->position.y, 0.0f);
+            struct m4 rotation = m4_rotate_z(enemy->angle);
+            struct m4 scale = m4_scale_xyz(PLAYER_RADIUS, PLAYER_RADIUS, 0.25f);
 
-        struct m4 model = m4_mul_m4(scale, rotation);
-        model = m4_mul_m4(model, transform);
+            struct m4 model = m4_mul_m4(scale, rotation);
+            model = m4_mul_m4(model, transform);
 
-        struct m4 mvp = m4_mul_m4(model, state->camera.view);
-        mvp = m4_mul_m4(mvp, state->camera.perspective);
+            struct m4 mvp = m4_mul_m4(model, state->camera.view);
+            mvp = m4_mul_m4(mvp, state->camera.perspective);
 
-        mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader,
-            color_white);
+            mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader,
+                color_white);
+        }
     }
 }
 
@@ -587,6 +599,19 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
             {
                 bullet->alive = false;
             }
+
+            for (u32 j = 0; j < state->num_enemies; j++)
+            {
+                struct enemy* enemy = &state->enemies[j];
+
+                if (enemy->alive && collision_circle_to_circle(bullet->position, 
+                    PROJECTILE_RADIUS, state->enemies[j].position,
+                    PLAYER_RADIUS))
+                {
+                    bullet->alive = false;
+                    enemy->alive = false;
+                }
+            }
         }
     }
 }
@@ -597,24 +622,22 @@ void bullets_render(struct game_state* state)
     {
         struct bullet* bullet = &state->bullets[i];
 
-        if (!bullet->alive)
+        if (bullet->alive)
         {
-            continue;
+            struct m4 transform = m4_translate(bullet->position.x,  
+                bullet->position.y, 0.0f);
+            struct m4 rotation = m4_rotate_z(bullet->angle);
+            struct m4 scale = m4_scale_all(PROJECTILE_RADIUS);
+
+            struct m4 model = m4_mul_m4(scale, rotation);
+            model = m4_mul_m4(model, transform);
+
+            struct m4 mvp = m4_mul_m4(model, state->camera.view);
+            mvp = m4_mul_m4(mvp, state->camera.perspective);
+
+            mesh_render(&state->sphere, &mvp, state->texture_sphere,
+                state->shader, color_white);
         }
-
-        struct m4 transform = m4_translate(bullet->position.x,  
-            bullet->position.y, 0.0f);
-        struct m4 rotation = m4_rotate_z(bullet->angle);
-        struct m4 scale = m4_scale_all(PROJECTILE_RADIUS);
-
-        struct m4 model = m4_mul_m4(scale, rotation);
-        model = m4_mul_m4(model, transform);
-
-        struct m4 mvp = m4_mul_m4(model, state->camera.view);
-        mvp = m4_mul_m4(mvp, state->camera.perspective);
-
-        mesh_render(&state->sphere, &mvp, state->texture_sphere,
-            state->shader, color_white);
     }
 }
 
@@ -1370,8 +1393,9 @@ void game_init(struct game_memory* memory, struct game_init* init)
     {
         struct enemy* enemy = &state->enemies[i];
             
-        enemy->position.x = 1.0f + i * 1.5f;
-        enemy->position.y = -1.0f;
+        enemy->position.x = 2.0f + i * 2.0f;
+        enemy->position.y = 8.0f;
+        enemy->alive = true;
     }
 
     state->level = 6;
