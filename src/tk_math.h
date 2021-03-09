@@ -672,7 +672,7 @@ struct v2 v2_normalize(struct v2 v)
     return result;
 }
 
-struct m4 m4_perspective(f32 fov, f32 aspect, f32 n, f32 f)
+struct m4 m4_perspective(f32 fov, f32 aspect, f32 near, f32 far)
 {
     f32 t = f32_tan(f32_radians(fov) / 2.0f);
 
@@ -680,10 +680,28 @@ struct m4 m4_perspective(f32 fov, f32 aspect, f32 n, f32 f)
     // Todo: check if t*aspect is not zero
     struct m4 result = 
     {{
-        { 1.0f / (t*aspect), 0.0f, 0.0f, 0.0f },
-        { 0.0f, 1.0f/t, 0.0f, 0.0f },
-        { 0.0f, 0.0f, (f+n)/(n-f), -1.0f },
-        { 0.0f, 0.0f, (2.0f*f*n)/(n-f), 0.0f }
+        { 1.0f / (t * aspect), 0.0f, 0.0f, 0.0f },
+        { 0.0f, 1.0f / t, 0.0f, 0.0f },
+        { 0.0f, 0.0f, (far + near) / (near - far), -1.0f },
+        { 0.0f, 0.0f, (2.0f * far * near) / (near - far), 0.0f }
+    }};
+
+    return result;
+}
+
+struct m4 m4_orthographic(f32 left, f32 right, f32 bottom, f32 top, f32 near, 
+    f32 far)
+{
+    f32 tx = -(right + left) / (right - left);
+    f32 ty = -(top + bottom) / (top - bottom);
+    f32 tz = -(far + near) / (far - near);
+
+    struct m4 result = 
+    {{
+        { 2.0f / (right - left), 0.0f, 0.0f, 0 },
+        { 0.0f, 2.0f / (top - bottom), 0.0f, 0 },
+        { 0.0f, 0.0f, -2.0f / (far - near), 0 },
+        { tx, ty, tz, 1.0f }
     }};
 
     return result;
