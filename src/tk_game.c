@@ -165,6 +165,51 @@ void memory_free(struct memory_block* block)
     block->current = block->last;
 }
 
+
+struct v2 calculate_world_pos(f32 pos_x, f32 pos_y, struct camera* camera)
+{
+    // Todo: doesn't work with orthographic projection
+    struct v2 result = { 0.0f };
+
+    struct v4 ndc = 
+    {
+        pos_x / (camera->screen_width * 0.5f) - 1.0f,
+        (pos_y / (camera->screen_height * 0.5f) - 1.0f) * -1.0f
+    };
+
+    struct v4 clip = { ndc.x, ndc.y, -1.0f, 1.0f };
+    struct v4 view = m4_mul_v4(camera->projection_inverse, clip);
+    view.z = -1.0f;
+    view.w = 0.0f;
+
+    struct v4 world = m4_mul_v4(camera->view_inverse, view);
+
+    struct v3 temp = { world.x, world.y, world.z };
+    temp = v3_normalize(temp);
+
+    f32 c = f32_abs(camera->position.z / temp.z);
+
+    result.x = temp.x * c + camera->position.x;
+    result.y = temp.y * c + camera->position.y;
+
+    return result;
+}
+
+struct v2 calculate_screen_pos(f32 pos_x, f32 pos_y, struct camera* camera)
+{
+    struct v2 result = { 0.0f };
+    struct v4 world = { pos_x, pos_y, 0.0f, 1.0f };
+
+    struct v4 view = m4_mul_v4(camera->view, world);
+    struct v4 clip = m4_mul_v4(camera->projection, view);
+    struct v2 ndc = { clip.x / clip.z, clip.y / clip.z };
+
+    result.x = (ndc.x + 1.0f) * (camera->screen_width * 0.5f);
+    result.y = (ndc.y * -1.0f + 1.0f) * (camera->screen_height * 0.5f);
+
+    return result;
+}
+
 void generate_vertex_array(struct mesh* mesh, struct vertex* vertices, 
     u32 num_vertices, u32* indices)
 {
@@ -220,22 +265,28 @@ void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader,
 void health_bar_render(struct game_state* state, struct v2 position, 
     f32 health, f32 health_max)
 {
-    // Todo: continue this, size is a bit weird
-    struct m4 transform = m4_translate(position.x, position.y + 1.25f, 0.0f);
+    f32 bar_length_max = 35.0f;
+    f32 bar_length = health / health_max * bar_length_max;
+
+    struct v2 screen_pos = calculate_screen_pos(position.x, position.y, 
+        &state->camera);
+
+    struct m4 transform = m4_translate(
+        screen_pos.x - bar_length_max + bar_length, 
+        screen_pos.y + 55.0, 
+        0.0f);
     struct m4 rotation = m4_identity();
-    struct m4 scale = m4_scale_xyz(0.75f, 0.125f, 1.0f);
+    struct m4 scale = m4_scale_xyz(bar_length, 5.0f, 1.0f);
 
     struct m4 model = m4_mul_m4(scale, rotation);
     model = m4_mul_m4(model, transform);
 
-    struct m4 mvp = m4_mul_m4(model, state->camera.view);
+    struct m4 projection = m4_orthographic(0.0f, state->camera.screen_width,
+        0.0f, state->camera.screen_height, 0.0f, 1.0f);
 
-    struct m4 projection = m4_orthographic(-10.0f, 10.0f, -10.0f, 10.0f, 
-        0.1f, 100.0f);
+    struct m4 mp = m4_mul_m4(model, projection);
 
-    mvp = m4_mul_m4(mvp, projection);
-
-    mesh_render(&state->floor, &mvp, state->texture_tileset, 
+    mesh_render(&state->floor, &mp, state->texture_tileset, 
         state->shader_simple, color_red);
 }
 
@@ -534,6 +585,9 @@ void enemies_render(struct game_state* state)
 
             mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader,
                 color_white);
+
+            // Todo: enemies' health bars are drawn in a wrong place
+            health_bar_render(state, enemy->position, enemy->health, 100.0f);
         }
     }
 }
@@ -888,10 +942,7 @@ void player_render(struct game_state* state)
                 state->shader_simple, color_red);
         }
 
-        // Render health bar
-        struct v2 position = { player->position.x, player->position.y };
-
-        health_bar_render(state, position, 100.0f, 100.0f);
+        health_bar_render(state, player->position, player->health, 100.0f);
     }
 }
 
@@ -1530,50 +1581,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
     {
         LOG("game_init: end of init, memory not initalized!\n");
     }
-}
-
-struct v2 calculate_world_pos(f32 pos_x, f32 pos_y, struct camera* camera)
-{
-    // Todo: doesn't work with orthographic projection
-    struct v2 result = { 0.0f };
-
-    struct v4 ndc = 
-    {
-        pos_x / (camera->screen_width * 0.5f) - 1.0f,
-        (pos_y / (camera->screen_height * 0.5f) - 1.0f) * -1.0f
-    };
-
-    struct v4 clip = { ndc.x, ndc.y, -1.0f, 1.0f };
-    struct v4 view = m4_mul_v4(camera->projection_inverse, clip);
-    view.z = -1.0f;
-    view.w = 0.0f;
-
-    struct v4 world = m4_mul_v4(camera->view_inverse, view);
-
-    struct v3 temp = { world.x, world.y, world.z };
-    temp = v3_normalize(temp);
-
-    f32 c = f32_abs(camera->position.z / temp.z);
-
-    result.x = temp.x * c + camera->position.x;
-    result.y = temp.y * c + camera->position.y;
-
-    return result;
-}
-
-struct v2 calculate_screen_pos(f32 pos_x, f32 pos_y, struct camera* camera)
-{
-    struct v2 result = { 0.0f };
-    struct v4 world = { pos_x, pos_y, 0.0f, 1.0f };
-
-    struct v4 view = m4_mul_v4(camera->view, world);
-    struct v4 clip = m4_mul_v4(camera->projection, view);
-    struct v2 ndc = { clip.x / clip.z, clip.y / clip.z };
-
-    result.x = (ndc.x + 1.0f) * (camera->screen_width * 0.5f);
-    result.y = (ndc.y * -1.0f + 1.0f) * (camera->screen_height * 0.5f);
-
-    return result;
 }
 
 void game_update(struct game_memory* memory, struct game_input* input)
