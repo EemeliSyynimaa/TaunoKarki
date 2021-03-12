@@ -204,8 +204,8 @@ struct v2 calculate_screen_pos(f32 pos_x, f32 pos_y, struct camera* camera)
     struct v4 clip = m4_mul_v4(camera->projection, view);
     struct v2 ndc = { clip.x / clip.z, clip.y / clip.z };
 
-    result.x = (ndc.x + 1.0f) * (camera->screen_width * 0.5f);
-    result.y = (ndc.y * -1.0f + 1.0f) * (camera->screen_height * 0.5f);
+    result.x = (ndc.x + 1.0f) * camera->screen_width * 0.5f;
+    result.y = (ndc.y + 1.0f) * camera->screen_height * 0.5f;
 
     return result;
 }
@@ -273,7 +273,7 @@ void health_bar_render(struct game_state* state, struct v2 position,
 
     struct m4 transform = m4_translate(
         screen_pos.x - bar_length_max + bar_length, 
-        screen_pos.y + 55.0, 
+        screen_pos.y + 55.0f, 
         0.0f);
     struct m4 rotation = m4_identity();
     struct m4 scale = m4_scale_xyz(bar_length, 5.0f, 1.0f);
@@ -586,7 +586,6 @@ void enemies_render(struct game_state* state)
             mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader,
                 color_white);
 
-            // Todo: enemies' health bars are drawn in a wrong place
             health_bar_render(state, enemy->position, enemy->health, 100.0f);
         }
     }
