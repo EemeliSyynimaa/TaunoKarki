@@ -273,7 +273,7 @@ void health_bar_render(struct game_state* state, struct v2 position,
 
     struct m4 transform = m4_translate(
         screen_pos.x - bar_length_max + bar_length, 
-        screen_pos.y + 55.0f, 
+        screen_pos.y + 65.0f, 
         0.0f);
     struct m4 rotation = m4_identity();
     struct m4 scale = m4_scale_xyz(bar_length, 5.0f, 1.0f);
@@ -288,6 +288,27 @@ void health_bar_render(struct game_state* state, struct v2 position,
 
     mesh_render(&state->floor, &mp, state->texture_tileset, 
         state->shader_simple, color_red);
+}
+
+void cursor_render(struct game_state* state)
+{
+    struct m4 transform = m4_translate(
+        state->mouse.screen.x, 
+        state->camera.screen_height - state->mouse.screen.y, 
+        0.0f);
+    struct m4 rotation = m4_identity();
+    struct m4 scale = m4_scale_xyz(2.0f, 2.0f, 1.0f);
+
+    struct m4 model = m4_mul_m4(scale, rotation);
+    model = m4_mul_m4(model, transform);
+
+    struct m4 projection = m4_orthographic(0.0f, state->camera.screen_width,
+        0.0f, state->camera.screen_height, 0.0f, 1.0f);
+
+    struct m4 mp = m4_mul_m4(model, projection);
+
+    mesh_render(&state->floor, &mp, state->texture_tileset, 
+        state->shader_simple, color_white);
 }
 
 b32 collision_point_to_rect(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y, 
@@ -330,7 +351,7 @@ void map_render(struct game_state* state)
                 for (u32 i = 0; i < state->level; i++)
                 {
                     struct m4 transform = m4_translate(x, y,
-                        -1.0f * (state->level - i - 1));
+                        0.5f - state->level + i + 1);
                     struct m4 rotation = m4_rotate_z(0.0f);
                     struct m4 scale = m4_scale_all(WALL_SIZE * 0.5f);
 
@@ -346,7 +367,7 @@ void map_render(struct game_state* state)
             }
             else if (tile == TILE_FLOOR)
             {
-                struct m4 transform = m4_translate(x, y, -WALL_SIZE * 0.5f);
+                struct m4 transform = m4_translate(x, y, 0.0f);
                 struct m4 rotation = m4_rotate_z(0.0f);
                 struct m4 scale = m4_scale_all(WALL_SIZE * 0.5f);
 
@@ -573,7 +594,7 @@ void enemies_render(struct game_state* state)
         if (enemy->alive)
         {
             struct m4 transform = m4_translate(enemy->position.x, 
-                enemy->position.y, 0.0f);
+                enemy->position.y, PLAYER_RADIUS);
             struct m4 rotation = m4_rotate_z(enemy->angle);
             struct m4 scale = m4_scale_xyz(PLAYER_RADIUS, PLAYER_RADIUS, 0.25f);
 
@@ -759,7 +780,7 @@ void bullets_render(struct game_state* state)
         if (bullet->alive)
         {
             struct m4 transform = m4_translate(bullet->position.x,  
-                bullet->position.y, 0.0f);
+                bullet->position.y, PLAYER_RADIUS);
             struct m4 rotation = m4_rotate_z(bullet->angle);
             struct m4 scale = m4_scale_all(PROJECTILE_RADIUS);
 
@@ -788,7 +809,7 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         struct v2 move_delta = { 0.0f };
 
         struct v2 dir = { state->mouse.world.x - player->position.x, 
-            state->mouse.world.y - player->position.y };
+            (state->mouse.world.y - PLAYER_RADIUS) - player->position.y };
         dir = v2_normalize(dir);
 
         player->angle = f32_atan(dir.y, dir.x);
@@ -876,7 +897,7 @@ void player_render(struct game_state* state)
     if (player->alive)
     {
         struct m4 transform = m4_translate(player->position.x, 
-            player->position.y, 0.0f);
+            player->position.y, PLAYER_RADIUS);
         struct m4 rotation = m4_rotate_z(player->angle);
         struct m4 scale = m4_scale_xyz(PLAYER_RADIUS, PLAYER_RADIUS, 0.25f);
 
@@ -917,7 +938,7 @@ void player_render(struct game_state* state)
             struct v2 vec = 
             { 
                 state->mouse.world.x - player->position.x,
-                state->mouse.world.y - player->position.y
+                (state->mouse.world.y - PLAYER_RADIUS) - player->position.y
             };
 
             f32 length = v2_length(vec) * 0.5f;
@@ -927,7 +948,7 @@ void player_render(struct game_state* state)
 
             transform = m4_translate(
                 player->position.x + direction.x * length, 
-                player->position.y + direction.y * length, 0.0f);
+                player->position.y + direction.y * length, PLAYER_RADIUS);
             rotation = m4_rotate_z(-angle);
             scale = m4_scale_xyz(0.01f, length, 0.01f);
 
@@ -1550,7 +1571,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         enemy->angle = f32_radians(270 - i * 15.0f);
     }
 
-    state->level = 6;
+    state->level = 2;
 
     state->player.position.x = 3.0f;
     state->player.position.y = 3.0f;
@@ -1594,6 +1615,9 @@ void game_update(struct game_memory* memory, struct game_input* input)
         f32 step = 1.0f / 120.0f;
         state->accumulator += input->delta_time;
 
+        state->mouse.screen.x = input->mouse_x;
+        state->mouse.screen.y = input->mouse_y;
+
         state->mouse.world = calculate_world_pos(input->mouse_x, 
             input->mouse_y, camera);
             
@@ -1629,6 +1653,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
         player_render(state);
         enemies_render(state);
         bullets_render(state);
+        // cursor_render(state);
     }
     else
     {
