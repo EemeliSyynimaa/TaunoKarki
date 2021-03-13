@@ -672,6 +672,11 @@ struct v2 v2_normalize(struct v2 v)
     return result;
 }
 
+b32 v2_equals(struct v2 a, struct v2 b)
+{
+    return a.x == b.x && a.y == b.y;
+}
+
 struct m4 m4_perspective(f32 fov, f32 aspect, f32 near, f32 far)
 {
     f32 t = f32_tan(f32_radians(fov) / 2.0f);
