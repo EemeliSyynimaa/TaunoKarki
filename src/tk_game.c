@@ -144,6 +144,82 @@ u8 map_data[] =
     1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
 };
 
+struct node
+{
+    struct v2 position;
+    struct node* parent;
+    f32 g;
+    f32 h;
+    f32 f;
+    b32 in_use;
+};
+
+#define MAX_NODES 256
+
+struct node* node_insert(struct node* node, struct node nodes[], u32 num_nodes)
+{
+    struct node* result = NULL;
+
+    for (u32 i = 0; i < num_nodes; i++)
+    {
+        if (!nodes[i].in_use)
+        {
+            nodes[i] = *node;
+            result = &nodes[i];
+            break;
+        }
+    }
+
+    return result;
+}
+
+struct node* lowest_rank_find(struct node nodes[], u32 num_nodes)
+{
+    struct node* result = NULL;
+
+    for (u32 i = 0; i < num_nodes; i++)
+    {
+        struct node* node = &nodes[i];
+
+        if (node->in_use && (!result || node->f < result->f))
+        {
+            result = node;
+        }
+    }
+
+    return result;
+}
+
+b32 nodes_equal(struct node* a, struct node* b)
+{
+    return v2_equals(a->position, b->position);
+}
+
+b32 path_find(struct v2 start, struct v2 goal, struct v2 path[], u32 path_size)
+{
+    f32 result = false;
+
+    struct node open[MAX_NODES] = { 0 };
+    struct node closed[MAX_NODES] = { 0 };
+    
+    struct node node_start = { start, NULL, 0.0f, 0.0f, 0.0f, true };
+    struct node node_goal =  { goal, NULL, 0.0f, 0.0f, 0.0f, true };
+
+    node_insert(&node_start, open, MAX_NODES);
+
+    struct node* lowest = NULL;
+
+    while ((lowest = lowest_rank_find(open, MAX_NODES)) &&
+        !nodes_equal(lowest, &node_goal))
+    {
+        struct node* current = node_insert(lowest, closed, MAX_NODES);
+        lowest->in_use = false;
+        LOG("lol ok\n");
+    }
+
+    return result;
+}
+
 void* memory_get(struct memory_block* block, u64 size)
 {
     if (block->current + size > block->base + block->size)
@@ -1594,6 +1670,13 @@ void game_init(struct game_memory* memory, struct game_init* init)
         -state->camera.position.y, -state->camera.position.z);
 
     state->camera.view_inverse = m4_inverse(state->camera.view);
+
+    struct v2 start = { 0.0f, 0.0f };
+    struct v2 goal = { 10.0f, 0.0f };
+
+    struct v2 path[256] = { 0 };
+
+    path_find(start, goal, path, 256);
 
     glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
