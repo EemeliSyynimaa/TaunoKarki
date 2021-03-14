@@ -101,8 +101,8 @@ struct game_state
     u32 level;
 };
 
-u32 MAP_WIDTH  = 20;
-u32 MAP_HEIGHT = 20;
+#define MAP_WIDTH  20
+#define MAP_HEIGHT 20
 
 f32 PLAYER_ACCELERATION = 20.0f;
 f32 PROJECTILE_RADIUS   = 0.035f;
@@ -114,11 +114,13 @@ u32 TILE_NOTHING = 0;
 u32 TILE_WALL    = 1;
 u32 TILE_FLOOR   = 2;
 
-struct v4 color_white = {{{ 1.0, 1.0, 1.0, 1.0 }}};
-struct v4 color_black = {{{ 0.0, 0.0, 0.0, 0.0 }}};
-struct v4 color_red   = {{{ 1.0, 0.0, 0.0, 0.0 }}}; 
-struct v4 color_blue  = {{{ 0.0, 0.0, 1.0, 0.0 }}};
-struct v4 color_grey  = {{{ 0.5, 0.5, 0.5, 0.0 }}};
+struct v4 color_white  = {{{ 1.0, 1.0, 1.0, 1.0 }}};
+struct v4 color_black  = {{{ 0.0, 0.0, 0.0, 0.0 }}};
+struct v4 color_red    = {{{ 1.0, 0.0, 0.0, 0.0 }}}; 
+struct v4 color_blue   = {{{ 0.0, 0.0, 1.0, 0.0 }}};
+struct v4 color_grey   = {{{ 0.5, 0.5, 0.5, 0.0 }}};
+struct v4 color_green  = {{{ 0.0, 1.0, 0.0, 0.0 }}};
+struct v4 color_yellow = {{{ 1.0, 1.0, 0.0, 0.0 }}};
 
 u8 map_data[] =
 {
@@ -144,8 +146,19 @@ u8 map_data[] =
     1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
 };
 
+u8 map_data_ext[MAP_WIDTH * MAP_HEIGHT] = { 0 };
+
+b32 tile_free(struct v2 position)
+{
+    s32 x = f32_round(position.x);
+    s32 y = f32_round(position.y);
+
+    return map_data[y * MAP_WIDTH + x] == TILE_FLOOR;
+}
+
 struct node
 {
+    // Todo: use integers instead?
     struct v2 position;
     struct node* parent;
     f32 g;
@@ -154,7 +167,7 @@ struct node
     b32 in_use;
 };
 
-#define MAX_NODES 256
+#define MAX_NODES 512
 
 struct node* node_insert(struct node* node, struct node nodes[], u32 num_nodes)
 {
@@ -181,9 +194,9 @@ struct node* lowest_rank_find(struct node nodes[], u32 num_nodes)
     {
         struct node* node = &nodes[i];
 
-        if (node->in_use && (!result || node->f < result->f))
+        if (nodes[i].in_use && (!result || nodes[i].f < result->f))
         {
-            result = node;
+            result = &nodes[i];
         }
     }
 
@@ -195,13 +208,117 @@ b32 nodes_equal(struct node* a, struct node* b)
     return v2_equals(a->position, b->position);
 }
 
+struct node* node_find(struct v2* node, struct node nodes[], u32 num_nodes)
+{
+    struct node* result = NULL;
+
+    for (u32 i = 0; i < num_nodes; i++)
+    {
+        if (nodes[i].in_use && v2_equals(*node, nodes[i].position))
+        {
+            result = &nodes[i];
+            break;
+        }
+    }
+
+    return result;
+}
+
+u32 neighbors_get(struct node* node, struct v2 neighbors[], u32 num_neighbors)  
+{
+    u32 result = 0;
+
+    for (u32 y = 0; y < 3; y++)
+    {
+        for (u32 x = 0; x < 3; x++)
+        {
+            struct v2 neighbor = 
+            { 
+                node->position.x - 1.0f + x,
+                node->position.y - 1.0f + y 
+            };
+
+            if (v2_equals(neighbor, node->position))
+            {
+                continue;
+            }
+
+            if (map_data[(s32)neighbor.y * MAP_WIDTH + (s32)neighbor.x] != 
+                TILE_FLOOR)
+            {
+                continue;
+            }
+
+            neighbors[result++] = neighbor;
+        }
+    }
+
+    return result;
+}
+
+f32 cost_calculate(struct v2 a, struct v2 b)
+{
+    f32 result = 0.0f;
+
+    if (a.x != b.x && a.y != b.y)
+    {
+        result = f32_sqrt(2.0f);
+    }
+    else
+    {
+        result = 1.0f;
+    }
+
+    return result;
+}
+
+f32 heuristic_calculate(struct v2 a, struct v2 b)
+{
+    f32 result = 0.0f;
+
+    f32 dx = f32_abs(a.x - b.x);
+    f32 dy = f32_abs(a.y - b.y);
+    f32 cost = 1.0f;
+    f32 cost_diagonal = f32_sqrt(2);
+
+    result = cost * (dx + dy) + (cost_diagonal - 2 * cost) * MIN(dx, dy);
+
+    return result;
+}
+
+void node_add_to_path(struct node* node, struct v2 path[], u32* index)
+{
+    if (!node->parent)
+    {
+        return;
+    }
+
+    node_add_to_path(node->parent, path, index);
+
+    s32 x = node->position.x;
+    s32 y = node->position.y;
+    map_data_ext[y * MAP_WIDTH + x] = 1;
+
+    path[(*index)++] = node->position;
+}
+
 b32 path_find(struct v2 start, struct v2 goal, struct v2 path[], u32 path_size)
 {
     f32 result = false;
 
+    if (!tile_free(start) || !tile_free(goal))
+    {
+        return result;
+    }
+
     struct node open[MAX_NODES] = { 0 };
     struct node closed[MAX_NODES] = { 0 };
-    
+
+    start.x = f32_round(start.x);
+    start.y = f32_round(start.y);
+    goal.x  = f32_round(goal.x);
+    goal.y  = f32_round(goal.y);
+
     struct node node_start = { start, NULL, 0.0f, 0.0f, 0.0f, true };
     struct node node_goal =  { goal, NULL, 0.0f, 0.0f, 0.0f, true };
 
@@ -213,8 +330,70 @@ b32 path_find(struct v2 start, struct v2 goal, struct v2 path[], u32 path_size)
         !nodes_equal(lowest, &node_goal))
     {
         struct node* current = node_insert(lowest, closed, MAX_NODES);
+
+        if (!current)
+        {
+            // Todo: assert here?
+            LOG("CLOSED SET FULL!\n");
+            break;
+        }
+
         lowest->in_use = false;
-        LOG("lol ok\n");
+
+        struct v2 neighbors[8];
+
+        u32 num_neighbors = neighbors_get(current, neighbors, 8);
+        
+        for (u32 i = 0; i < num_neighbors; i++)
+        {
+            struct v2* neighbor = &neighbors[i];
+            struct node* neighbor_node = NULL;
+            f32 cost = current->g + cost_calculate(current->position, 
+                *neighbor);
+            f32 heuristic = heuristic_calculate(*neighbor, goal);
+
+            if ((neighbor_node = node_find(neighbor, open, MAX_NODES)) && 
+                cost < neighbor_node->g)
+            {
+                neighbor_node->in_use = false;
+            }
+            
+            if ((neighbor_node = node_find(neighbor, closed, MAX_NODES)) && 
+                cost < neighbor_node->g)
+            {
+                neighbor_node->in_use = false;
+            }
+
+            if (!node_find(neighbor, open, MAX_NODES) &&
+                !node_find(neighbor, closed, MAX_NODES))
+            {
+                struct node new = 
+                { 
+                    *neighbor, current, cost, heuristic, cost + heuristic, true 
+                };
+
+                // Todo: assert here?
+                if (!node_insert(&new, open, MAX_NODES))
+                {
+                    LOG("OPEN SET FULL!\n");
+                    break;
+                }
+            }
+        }
+    }
+
+    if (lowest)
+    {
+        LOG("Path from %.0f x %.0f to %.0f x %.0f length: %.2f\n", 
+            start.x, start.y, goal.x, goal.y, lowest->g);
+
+        u32 index = 0;
+
+        node_add_to_path(lowest, path, &index);
+
+        LOG("Index: %u\n", index);
+
+        result = true;
     }
 
     return result;
@@ -415,6 +594,11 @@ void map_render(struct game_state* state)
             f32 bottom = y - TILE_WALL * 0.5f;
             f32 left = x - TILE_WALL * 0.5f;
             f32 right = x + TILE_WALL * 0.5f;
+
+            if (map_data_ext[index])
+            {
+                color = color_green;
+            }
 
             if (collision_point_to_rect(state->mouse.world.x, 
                 state->mouse.world.y, left, right, bottom, top))
@@ -620,6 +804,8 @@ b32 collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius,
 
 void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 {
+    memset(map_data_ext, 0, MAP_WIDTH * MAP_HEIGHT);
+
     for (u32 i = 0; i < MAX_ENEMIES; i++)
     {
         struct enemy* enemy = &state->enemies[i];
@@ -657,6 +843,10 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
                 enemy->last_shot = 0.0f;
             }
+
+            struct v2 path[256] = { 0 };
+
+            path_find(enemy->position, state->mouse.world, path, 256);
         }
     }
 }
@@ -1670,13 +1860,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
         -state->camera.position.y, -state->camera.position.z);
 
     state->camera.view_inverse = m4_inverse(state->camera.view);
-
-    struct v2 start = { 0.0f, 0.0f };
-    struct v2 goal = { 10.0f, 0.0f };
-
-    struct v2 path[256] = { 0 };
-
-    path_find(start, goal, path, 256);
 
     glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 

@@ -146,6 +146,13 @@ void f32_swap(f32* a, f32* b)
     *b = t;
 }
 
+f32 f32_round(f32 value)
+{
+    f32 result = (s32)(value + (value < 0 ? -0.5f : 0.5f));
+
+    return result;
+}
+
 // Todo: clean matrix and vector functions to use more generic approach like
 // below, lots of duplicate code now
 
