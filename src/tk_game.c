@@ -27,6 +27,10 @@ struct bullet
 struct enemy
 {
     struct v2 position;
+    struct v2 velocity;
+    struct v2 path[256];
+    u32 path_index;
+    u32 path_length;
     f32 angle;
     f32 health;
     f32 last_shot;
@@ -114,13 +118,22 @@ u32 TILE_NOTHING = 0;
 u32 TILE_WALL    = 1;
 u32 TILE_FLOOR   = 2;
 
-struct v4 color_white  = {{{ 1.0, 1.0, 1.0, 1.0 }}};
-struct v4 color_black  = {{{ 0.0, 0.0, 0.0, 0.0 }}};
-struct v4 color_red    = {{{ 1.0, 0.0, 0.0, 0.0 }}}; 
-struct v4 color_blue   = {{{ 0.0, 0.0, 1.0, 0.0 }}};
-struct v4 color_grey   = {{{ 0.5, 0.5, 0.5, 0.0 }}};
-struct v4 color_green  = {{{ 0.0, 1.0, 0.0, 0.0 }}};
-struct v4 color_yellow = {{{ 1.0, 1.0, 0.0, 0.0 }}};
+struct v4 color_black   = {{{ 0.0,  0.0,  0.0,  1.0 }}};
+struct v4 color_navy    = {{{ 0.0,  0.0,  0.5,  1.0 }}};
+struct v4 color_blue    = {{{ 0.0,  0.0,  1.0,  1.0 }}};
+struct v4 color_green   = {{{ 0.0,  0.5,  0.0,  1.0 }}};
+struct v4 color_teal    = {{{ 0.0,  0.5,  0.5,  1.0 }}};
+struct v4 color_lime    = {{{ 0.0,  1.0,  0.0,  1.0 }}};
+struct v4 color_aqua    = {{{ 0.0,  1.0,  1.0,  1.0 }}};
+struct v4 color_maroon  = {{{ 0.5,  0.0,  0.0,  1.0 }}};
+struct v4 color_purple  = {{{ 0.5,  0.0,  0.5,  1.0 }}};
+struct v4 color_olive   = {{{ 0.5,  0.5,  0.0,  1.0 }}};
+struct v4 color_grey    = {{{ 0.5,  0.5,  0.5,  1.0 }}};
+struct v4 color_silver  = {{{ 0.75, 0.75, 0.75, 1.0 }}};
+struct v4 color_red     = {{{ 1.0,  0.0,  0.0,  1.0 }}};
+struct v4 color_fuchsia = {{{ 1.0,  0.0,  1.0,  1.0 }}};
+struct v4 color_yellow  = {{{ 1.0,  1.0,  0.0,  1.0 }}};
+struct v4 color_white   = {{{ 1.0,  1.0,  1.0,  1.0 }}};
 
 u8 map_data[] =
 {
@@ -297,14 +310,13 @@ void node_add_to_path(struct node* node, struct v2 path[], u32* index)
 
     s32 x = node->position.x;
     s32 y = node->position.y;
-    map_data_ext[y * MAP_WIDTH + x] = 1;
 
     path[(*index)++] = node->position;
 }
 
-b32 path_find(struct v2 start, struct v2 goal, struct v2 path[], u32 path_size)
+u32 path_find(struct v2 start, struct v2 goal, struct v2 path[], u32 path_size)
 {
-    f32 result = false;
+    u32 result = 0;
 
     if (!tile_free(start) || !tile_free(goal))
     {
@@ -384,16 +396,7 @@ b32 path_find(struct v2 start, struct v2 goal, struct v2 path[], u32 path_size)
 
     if (lowest)
     {
-        LOG("Path from %.0f x %.0f to %.0f x %.0f length: %.2f\n", 
-            start.x, start.y, goal.x, goal.y, lowest->g);
-
-        u32 index = 0;
-
-        node_add_to_path(lowest, path, &index);
-
-        LOG("Index: %u\n", index);
-
-        result = true;
+        node_add_to_path(lowest, path, &result);
     }
 
     return result;
@@ -578,6 +581,15 @@ b32 collision_point_to_rect(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y,
 
 void map_render(struct game_state* state)
 {
+    struct v4 colors[] = 
+    {
+        color_white,
+        color_green,
+        color_lime,
+        color_fuchsia,
+        color_olive
+    };
+
     // Todo: fix map rendering glitch (a wall block randomly drawn in a 
     //       wrong place)
     for (u32 y = 0; y < MAP_HEIGHT; y++)
@@ -595,10 +607,7 @@ void map_render(struct game_state* state)
             f32 left = x - TILE_WALL * 0.5f;
             f32 right = x + TILE_WALL * 0.5f;
 
-            if (map_data_ext[index])
-            {
-                color = color_green;
-            }
+            color = colors[map_data_ext[index]];
 
             if (collision_point_to_rect(state->mouse.world.x, 
                 state->mouse.world.y, left, right, bottom, top))
@@ -802,82 +811,6 @@ b32 collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius,
     return result;
 }
 
-void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
-{
-    memset(map_data_ext, 0, MAP_WIDTH * MAP_HEIGHT);
-
-    for (u32 i = 0; i < MAX_ENEMIES; i++)
-    {
-        struct enemy* enemy = &state->enemies[i];
-
-        enemy->alive = enemy->health > 0.0f;
-
-        if (enemy->alive)
-        {
-            enemy->last_shot += dt;
-
-            if (enemy->last_shot > 1.0f)
-            {
-                if (++state->free_bullet == MAX_BULLETS)
-                {
-                    state->free_bullet = 0;
-                }
-
-                struct bullet* bullet = &state->bullets[state->free_bullet];
-
-                struct v2 dir = 
-                { 
-                    f32_cos(enemy->angle),
-                    f32_sin(enemy->angle) 
-                };
-
-                f32 speed = PROJECTILE_SPEED;
-
-                bullet->position.x = enemy->position.x;
-                bullet->position.y = enemy->position.y;
-                bullet->velocity.x = dir.x * speed;
-                bullet->velocity.y = dir.y * speed;
-                bullet->alive = true;
-                bullet->damage = 25.0f;
-                bullet->player_owned = false;
-
-                enemy->last_shot = 0.0f;
-            }
-
-            struct v2 path[256] = { 0 };
-
-            path_find(enemy->position, state->mouse.world, path, 256);
-        }
-    }
-}
-
-void enemies_render(struct game_state* state)
-{
-    for (u32 i = 0; i < MAX_ENEMIES; i++)
-    {
-        struct enemy* enemy = &state->enemies[i];
-
-        if (enemy->alive)
-        {
-            struct m4 transform = m4_translate(enemy->position.x, 
-                enemy->position.y, PLAYER_RADIUS);
-            struct m4 rotation = m4_rotate_z(enemy->angle);
-            struct m4 scale = m4_scale_xyz(PLAYER_RADIUS, PLAYER_RADIUS, 0.25f);
-
-            struct m4 model = m4_mul_m4(scale, rotation);
-            model = m4_mul_m4(model, transform);
-
-            struct m4 mvp = m4_mul_m4(model, state->camera.view);
-            mvp = m4_mul_m4(mvp, state->camera.projection);
-
-            mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader,
-                color_white);
-
-            health_bar_render(state, enemy->position, enemy->health, 100.0f);
-        }
-    }
-}
-
 b32 check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta, 
     f32 radius, f32 bounce_factor)
 {
@@ -982,6 +915,127 @@ b32 check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta,
     }
 
     return result;
+}
+
+void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
+{
+    for (u32 i = 0; i < MAX_ENEMIES; i++)
+    {
+        struct enemy* enemy = &state->enemies[i];
+
+        enemy->alive = enemy->health > 0.0f;
+
+        if (enemy->alive)
+        {
+            if (enemy->path_index < enemy->path_length)
+            {
+                struct v2 target = enemy->path[enemy->path_index];
+                struct v2 dir = 
+                { 
+                    target.x - enemy->position.x, 
+                    target.y - enemy->position.y
+                };
+
+                dir = v2_normalize(dir);
+
+                enemy->angle = f32_atan(dir.y, dir.x);
+
+                f32 speed = 1.0f;
+
+                enemy->velocity.x = dir.x * speed;
+                enemy->velocity.y = dir.y * speed;
+
+                struct v2 move_delta = 
+                {
+                    enemy->velocity.x * dt, 
+                    enemy->velocity.y * dt
+                };
+
+                check_tile_collisions(&enemy->position, &enemy->velocity, 
+                        move_delta, PLAYER_RADIUS, 1);
+
+                f32 epsilon = 0.1f;
+
+                if (v2_distance(enemy->position, target) <= 0.1f)
+                {
+                    enemy->path_index++;
+                }
+            }
+            else
+            {
+                // Todo: pick a random path?
+                enemy->path_length = path_find(enemy->position, 
+                    state->mouse.world, enemy->path, 256);
+
+                enemy->path_index = 0;
+            }
+
+            enemy->last_shot += dt;
+
+            if (enemy->last_shot > 1.0f)
+            {
+                if (++state->free_bullet == MAX_BULLETS)
+                {
+                    state->free_bullet = 0;
+                }
+
+                struct bullet* bullet = &state->bullets[state->free_bullet];
+
+                struct v2 dir = 
+                { 
+                    f32_cos(enemy->angle),
+                    f32_sin(enemy->angle) 
+                };
+
+                f32 speed = PROJECTILE_SPEED;
+
+                bullet->position.x = enemy->position.x;
+                bullet->position.y = enemy->position.y;
+                bullet->velocity.x = dir.x * speed;
+                bullet->velocity.y = dir.y * speed;
+                bullet->alive = true;
+                bullet->damage = 25.0f;
+                bullet->player_owned = false;
+
+                enemy->last_shot = 0.0f;
+            }
+        }
+    }
+}
+
+void enemies_render(struct game_state* state)
+{
+    memset(map_data_ext, 0, MAP_WIDTH * MAP_HEIGHT);
+
+    for (u32 i = 0; i < MAX_ENEMIES; i++)
+    {
+        struct enemy* enemy = &state->enemies[i];
+
+        if (enemy->alive)
+        {
+            struct m4 transform = m4_translate(enemy->position.x, 
+                enemy->position.y, PLAYER_RADIUS);
+            struct m4 rotation = m4_rotate_z(enemy->angle);
+            struct m4 scale = m4_scale_xyz(PLAYER_RADIUS, PLAYER_RADIUS, 0.25f);
+
+            struct m4 model = m4_mul_m4(scale, rotation);
+            model = m4_mul_m4(model, transform);
+
+            struct m4 mvp = m4_mul_m4(model, state->camera.view);
+            mvp = m4_mul_m4(mvp, state->camera.projection);
+
+            mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader,
+                color_white);
+
+            health_bar_render(state, enemy->position, enemy->health, 100.0f);
+
+            for (u32 j = 0; j < enemy->path_length; j++)
+            {
+                struct v2 node = enemy->path[j];
+                map_data_ext[(s32)node.y * MAP_WIDTH + (s32)node.x] = i + 1;
+            }
+        }
+    }
 }
 
 void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
