@@ -249,30 +249,51 @@ struct node* node_find(struct v2* node, struct node nodes[], u32 num_nodes)
     return result;
 }
 
-u32 neighbors_get(struct node* node, struct v2 neighbors[], u32 num_neighbors)  
+b32 neighbor_check(f32 x, f32 y, struct v2 neighbors[], u32* index)
+{
+    b32 result = false;
+    
+    struct v2 neighbor = { x, y };
+
+    if (tile_is_free(neighbor))
+    {
+        neighbors[(*index)++] = neighbor;
+        result = true;
+    }
+
+    return result;
+}
+
+u32 neighbors_get(struct node* node, struct v2 neighbors[])  
 {
     u32 result = 0;
 
-    for (u32 y = 0; y < 3; y++)
+    f32 x = node->position.x;
+    f32 y = node->position.y;
+
+    b32 left  = neighbor_check(x - 1.0f, y, neighbors, &result);
+    b32 right = neighbor_check(x + 1.0f, y, neighbors, &result);
+    b32 up    = neighbor_check(x, y + 1.0f, neighbors, &result);
+    b32 down  = neighbor_check(x, y - 1.0f, neighbors, &result);
+
+    if (left && up)
     {
-        for (u32 x = 0; x < 3; x++)
-        {
-            struct v2 neighbor = 
-            { 
-                node->position.x - 1.0f + x,
-                node->position.y - 1.0f + y 
-            };
+        neighbor_check(x - 1.0f, y + 1.0f, neighbors, &result);
+    }
 
-            if (v2_equals(neighbor, node->position))
-            {
-                continue;
-            }
+    if (left && down)
+    {
+        neighbor_check(x - 1.0f, y - 1.0f, neighbors, &result);
+    }
 
-            if (tile_is_free(neighbor))
-            {
-                neighbors[result++] = neighbor;
-            }
-        }
+    if (right && up)
+    {
+        neighbor_check(x + 1.0f, y + 1.0f, neighbors, &result);
+    }
+
+    if (left && down)
+    {
+        neighbor_check(x + 1.0f, y - 1.0f, neighbors, &result);
     }
 
     return result;
@@ -360,7 +381,7 @@ u32 path_find(struct v2 start, struct v2 goal, struct v2 path[], u32 path_size)
 
         struct v2 neighbors[8];
 
-        u32 num_neighbors = neighbors_get(current, neighbors, 8);
+        u32 num_neighbors = neighbors_get(current, neighbors);
         
         for (u32 i = 0; i < num_neighbors; i++)
         {
