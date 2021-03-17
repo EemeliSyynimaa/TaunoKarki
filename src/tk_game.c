@@ -108,7 +108,9 @@ struct game_state
 #define MAP_WIDTH  20
 #define MAP_HEIGHT 20
 
-f32 PLAYER_ACCELERATION = 20.0f;
+f32 PLAYER_ACCELERATION = 40.0f;
+f32 ENEMY_ACCELERATION  = 35.0f;
+f32 FRICTION            = 10.0f;
 f32 PROJECTILE_RADIUS   = 0.035f;
 f32 PROJECTILE_SPEED    = 25.0f;
 f32 PLAYER_RADIUS       = 0.25f;
@@ -291,7 +293,7 @@ u32 neighbors_get(struct node* node, struct v2 neighbors[])
         neighbor_check(x + 1.0f, y + 1.0f, neighbors, &result);
     }
 
-    if (left && down)
+    if (right && down)
     {
         neighbor_check(x + 1.0f, y - 1.0f, neighbors, &result);
     }
@@ -971,7 +973,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     f32 distance_to_next = v2_distance(enemy->position, next);
                     f32 distance_to_current = v2_distance(enemy->position, 
                         current);
-                    f32 epsilon = 0.5f;
+                    f32 epsilon = 0.25f;
 
                     if (distance_to_current > distance_to_next)
                     {
@@ -1022,11 +1024,11 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 enemy->path_index = 0;
             }
 
-            acceleration.x = direction.x * PLAYER_ACCELERATION;
-            acceleration.y = direction.y * PLAYER_ACCELERATION;
+            acceleration.x = direction.x * ENEMY_ACCELERATION;
+            acceleration.y = direction.y * ENEMY_ACCELERATION;
 
-            acceleration.x += -enemy->velocity.x * 5.0f;
-            acceleration.y += -enemy->velocity.y * 5.0f;
+            acceleration.x += -enemy->velocity.x * FRICTION;
+            acceleration.y += -enemy->velocity.y * FRICTION;
 
             move_delta.x = 0.5f * acceleration.x * f32_square(dt) + 
                 enemy->velocity.x * dt;
@@ -1234,8 +1236,8 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         acceleration.x = direction.x * PLAYER_ACCELERATION;
         acceleration.y = direction.y * PLAYER_ACCELERATION;
 
-        acceleration.x += -player->velocity.x * 5.0f;
-        acceleration.y += -player->velocity.y * 5.0f;
+        acceleration.x += -player->velocity.x * FRICTION;
+        acceleration.y += -player->velocity.y * FRICTION;
 
         move_delta.x = 0.5f * acceleration.x * f32_square(dt) + 
             player->velocity.x * dt;

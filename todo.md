@@ -17,8 +17,9 @@
  - [ ] Enemy AI
   - [X] Path finding (A*)
   - [ ] Proper movement logic
-   - [ ] Acceleration
+   - [X] Acceleration
    - [ ] Smooth turns towards next object
+   - [ ] Stop at the object
   - [ ] Finite state machine
    - [ ] Wander state
    - [ ] Pursue state
