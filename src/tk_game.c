@@ -161,12 +161,24 @@ u8 map_data[] =
 
 u8 map_data_ext[MAP_WIDTH * MAP_HEIGHT] = { 0 };
 
-b32 tile_free(struct v2 position)
+b32 tile_is_of_type(struct v2 position, u32 type)
 {
+    b32 result = false;
+    
     s32 x = f32_round(position.x);
     s32 y = f32_round(position.y);
 
-    return map_data[y * MAP_WIDTH + x] == TILE_FLOOR;
+    if (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT)
+    {
+        result = map_data[y * MAP_WIDTH + x] == type;
+    }
+
+    return result;
+}
+
+b32 tile_is_free(struct v2 position)
+{
+    return tile_is_of_type(position, TILE_FLOOR);
 }
 
 struct node
@@ -256,13 +268,10 @@ u32 neighbors_get(struct node* node, struct v2 neighbors[], u32 num_neighbors)
                 continue;
             }
 
-            if (map_data[(s32)neighbor.y * MAP_WIDTH + (s32)neighbor.x] != 
-                TILE_FLOOR)
+            if (tile_is_free(neighbor))
             {
-                continue;
+                neighbors[result++] = neighbor;
             }
-
-            neighbors[result++] = neighbor;
         }
     }
 
@@ -292,9 +301,9 @@ f32 heuristic_calculate(struct v2 a, struct v2 b)
     f32 dx = f32_abs(a.x - b.x);
     f32 dy = f32_abs(a.y - b.y);
     f32 cost = 1.0f;
-    f32 cost_diagonal = f32_sqrt(2);
+    f32 cost_diagonal = f32_sqrt(2.0f);
 
-    result = cost * (dx + dy) + (cost_diagonal - 2 * cost) * MIN(dx, dy);
+    result = cost * (dx + dy) + (cost_diagonal - 2.0f * cost) * MIN(dx, dy);
 
     return result;
 }
@@ -308,9 +317,6 @@ void node_add_to_path(struct node* node, struct v2 path[], u32* index)
 
     node_add_to_path(node->parent, path, index);
 
-    s32 x = node->position.x;
-    s32 y = node->position.y;
-
     path[(*index)++] = node->position;
 }
 
@@ -318,7 +324,7 @@ u32 path_find(struct v2 start, struct v2 goal, struct v2 path[], u32 path_size)
 {
     u32 result = 0;
 
-    if (!tile_free(start) || !tile_free(goal))
+    if (!tile_is_free(start) || !tile_is_free(goal))
     {
         return result;
     }
@@ -927,38 +933,63 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
         if (enemy->alive)
         {
+            struct v2 acceleration = { 0.0f };
+            struct v2 move_delta = { 0.0f };
+            struct v2 direction = { 0.0f };
+
             if (enemy->path_index < enemy->path_length)
             {
-                struct v2 target = enemy->path[enemy->path_index];
-                struct v2 dir = 
-                { 
-                    target.x - enemy->position.x, 
-                    target.y - enemy->position.y
-                };
-
-                dir = v2_normalize(dir);
-
-                enemy->angle = f32_atan(dir.y, dir.x);
-
-                f32 speed = 1.0f;
-
-                enemy->velocity.x = dir.x * speed;
-                enemy->velocity.y = dir.y * speed;
-
-                struct v2 move_delta = 
+                while (true)
                 {
-                    enemy->velocity.x * dt, 
-                    enemy->velocity.y * dt
-                };
+                    u32 next_index = enemy->path_index + 1;
 
-                check_tile_collisions(&enemy->position, &enemy->velocity, 
-                        move_delta, PLAYER_RADIUS, 1);
+                    struct v2 current = enemy->path[enemy->path_index];
+                    struct v2 next = next_index < enemy->path_length ? 
+                        enemy->path[next_index] : current;
 
-                f32 epsilon = 0.1f;
+                    f32 distance_to_next = v2_distance(enemy->position, next);
+                    f32 distance_to_current = v2_distance(enemy->position, 
+                        current);
+                    f32 epsilon = 0.5f;
 
-                if (v2_distance(enemy->position, target) <= 0.1f)
-                {
-                    enemy->path_index++;
+                    if (distance_to_current > distance_to_next)
+                    {
+                        enemy->path_index = next_index;
+                        continue;
+                    }
+                    else if (distance_to_current < epsilon)
+                    {
+                        enemy->path_index = next_index;
+                        
+                        if (next_index < enemy->path_length)
+                        {
+                            continue;
+                        }
+                    }
+                    else
+                    {
+                        struct v2 target = 
+                        {
+                            (current.x + next.x) / 2.0f,
+                            (current.y + next.y) / 2.0f
+                        };
+
+                        direction.x = target.x - enemy->position.x;
+                        direction.y = target.y - enemy->position.y;
+                     
+                        direction = v2_normalize(direction);
+
+                        f32 length = v2_length(direction);
+
+                        if (length > 1.0f)
+                        {
+                            direction.x /= length;
+                            direction.y /= length;
+                        }
+                    
+                        enemy->angle = f32_atan(direction.y, direction.x);
+                    }
+                    break;
                 }
             }
             else
@@ -969,6 +1000,23 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
                 enemy->path_index = 0;
             }
+
+            acceleration.x = direction.x * PLAYER_ACCELERATION;
+            acceleration.y = direction.y * PLAYER_ACCELERATION;
+
+            acceleration.x += -enemy->velocity.x * 5.0f;
+            acceleration.y += -enemy->velocity.y * 5.0f;
+
+            move_delta.x = 0.5f * acceleration.x * f32_square(dt) + 
+                enemy->velocity.x * dt;
+            move_delta.y = 0.5f * acceleration.y * f32_square(dt) + 
+                enemy->velocity.y * dt;
+
+            enemy->velocity.x = enemy->velocity.x + acceleration.x * dt;
+            enemy->velocity.y = enemy->velocity.y + acceleration.y * dt;
+
+            check_tile_collisions(&enemy->position, &enemy->velocity, 
+                move_delta, PLAYER_RADIUS, 1);
 
             enemy->last_shot += dt;
 
