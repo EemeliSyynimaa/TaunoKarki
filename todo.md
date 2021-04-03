@@ -18,13 +18,19 @@
   - [X] Path finding (A*)
   - [ ] Proper movement logic
    - [X] Acceleration
-   - [ ] Smooth turns towards next object
-   - [ ] Stop at the object
+   - [ ] Random number generation
+   - [ ] Raycast (against walls)
+   - [ ] Move towards the farthest visible step
+   - [ ] Stop at the goal
   - [ ] Finite state machine
    - [ ] Wander state
    - [ ] Pursue state
    - [ ] Attack state
    - [ ] Escape state
+ - [ ] Physics
+  - [ ] Use forces for movement
+  - [ ] Add friction
+  - [ ] Rotate smoothly
  - [ ] Controller input
  - [ ] Local multiplayer
  - [ ] Camera follow
