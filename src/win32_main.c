@@ -568,6 +568,9 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     struct game_input old_input = { 0 };
 
     LARGE_INTEGER old_time = win32_current_time_get();
+
+    init.init_time = old_time.QuadPart;
+
     running = true;
 
     b32 recording = false;

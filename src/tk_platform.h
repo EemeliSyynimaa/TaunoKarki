@@ -63,6 +63,7 @@ struct game_init
     type_log* log;
     s32 screen_width;
     s32 screen_height;
+    u64 init_time;
 };
 
 struct game_memory

@@ -4,7 +4,6 @@
 #include "tk_file.h"
 
 #include <string.h>
-#include <time.h>
 
 struct rigid_body
 {
@@ -2066,7 +2065,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
     state->camera.view_inverse = m4_inverse(state->camera.view);
 
-    random_seed_set(time(NULL));
+    random_seed_set(init->init_time);
 
     LOG("%d\n", random_number_generate());
     LOG("%d\n", random_number_generate());
