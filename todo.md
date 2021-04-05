@@ -18,7 +18,7 @@
   - [X] Path finding (A*)
   - [ ] Proper movement logic
    - [X] Acceleration
-   - [ ] Random number generation
+   - [X] Random number generation
    - [ ] Raycast (against walls)
    - [ ] Move towards the farthest visible step
    - [ ] Stop at the goal

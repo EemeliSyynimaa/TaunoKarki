@@ -4,6 +4,7 @@
 #include "tk_file.h"
 
 #include <string.h>
+#include <time.h>
 
 struct rigid_body
 {
@@ -105,6 +106,27 @@ struct game_state
     u32 num_enemies;
     u32 level;
 };
+
+u32 random_seed = 0;
+
+void random_seed_set(u32 seed)
+{
+    random_seed = seed;
+}
+
+u32 random_number_generate()
+{  
+    u32 result = random_seed = (u64)random_seed * 48271 % 0x7fffffff;
+
+    return result;
+}
+
+u32 random_number_generate_and_distribute(u32 min, u32 max)
+{
+    u32 result = random_number_generate() % max + min;
+
+    return result;
+}
 
 #define MAP_WIDTH  20
 #define MAP_HEIGHT 20
@@ -2017,6 +2039,21 @@ void game_init(struct game_memory* memory, struct game_init* init)
         -state->camera.position.y, -state->camera.position.z);
 
     state->camera.view_inverse = m4_inverse(state->camera.view);
+
+    random_seed_set(time(NULL));
+
+    LOG("%d\n", random_number_generate());
+    LOG("%d\n", random_number_generate());
+    LOG("%d\n", random_number_generate());
+    LOG("%d\n", random_number_generate());
+    LOG("%d\n", random_number_generate());
+    LOG("%d\n", random_number_generate());
+
+    LOG("%d\n", random_number_generate_and_distribute(1, 10));
+    LOG("%d\n", random_number_generate_and_distribute(1, 10));
+    LOG("%d\n", random_number_generate_and_distribute(1, 10));
+    LOG("%d\n", random_number_generate_and_distribute(1, 10));
+    LOG("%d\n", random_number_generate_and_distribute(1, 10));
 
     glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
