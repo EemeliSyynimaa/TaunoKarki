@@ -206,6 +206,31 @@ b32 tile_is_free(struct v2 position)
     return tile_is_of_type(position, TILE_FLOOR);
 }
 
+struct v2 tile_random_get(u32 type)
+{
+    struct v2 result = { 0 };
+
+    u32 max_iterations = 1000;
+
+    while (max_iterations)
+    {
+        struct v2 position = 
+        {
+            random_number_generate_and_distribute(0, MAP_WIDTH),
+            random_number_generate_and_distribute(0, MAP_HEIGHT)
+        };
+
+        if (tile_is_of_type(position, type))
+        {
+            result = position;
+
+            break;
+        }
+    };
+
+    return result;
+}
+
 struct node
 {
     // Todo: use integers instead?
@@ -1041,9 +1066,10 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             }
             else
             {
-                // Todo: pick a random path?
+                struct v2 target = tile_random_get(TILE_FLOOR);
+
                 enemy->path_length = path_find(enemy->body.position, 
-                    state->mouse.world, enemy->path, 256);
+                    target, enemy->path, 256);
 
                 enemy->path_index = 0;
             }

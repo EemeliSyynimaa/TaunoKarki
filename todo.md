@@ -19,6 +19,7 @@
   - [ ] Proper movement logic
    - [X] Acceleration
    - [X] Random number generation
+   - [ ] Get current time
    - [ ] Raycast (against walls)
    - [ ] Move towards the farthest visible step
    - [ ] Stop at the goal
@@ -27,6 +28,7 @@
    - [ ] Pursue state
    - [ ] Attack state
    - [ ] Escape state
+ - [ ] Reserve the first element of array as null or default 
  - [ ] Physics
   - [ ] Use forces for movement
   - [ ] Add friction
