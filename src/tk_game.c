@@ -624,6 +624,36 @@ void health_bar_render(struct game_state* state, struct v2 position,
         state->shader_simple, color_red);
 }
 
+void line_render(struct game_state* state, struct v2 start, struct v2 end,
+    struct v4 color, f32 depth, f32 thickness)
+{
+    struct v2 direction = 
+    {
+        end.x - start.x,
+        end.y - start.y
+    };
+
+    f32 length = v2_length(direction) * 0.5f;
+    f32 angle = f32_atan(direction.x, direction.y);
+
+    struct m4 transform = m4_translate(
+        start.x + direction.x * 0.5f, 
+        start.y + direction.y * 0.5f, 
+        depth);
+
+    struct m4 rotation = m4_rotate_z(-angle);
+    struct m4 scale = m4_scale_xyz(thickness, length, 0.01f);
+
+    struct m4 model = m4_mul_m4(scale, rotation);
+    model = m4_mul_m4(model, transform);
+
+    struct m4 mvp = m4_mul_m4(model, state->camera.view);
+    mvp = m4_mul_m4(mvp, state->camera.projection);
+
+    mesh_render(&state->floor, &mvp, state->texture_tileset, 
+        state->shader_simple, color);
+}
+
 void cursor_render(struct game_state* state)
 {
     struct m4 transform = m4_translate(
@@ -1433,6 +1463,10 @@ void player_render(struct game_state* state)
         }
 
         health_bar_render(state, player->body.position, player->health, 100.0f);
+
+        line_render(state, player->body.position, 
+            state->enemies[0].body.position,
+            color_fuchsia, 0.02f, 0.25f);
     }
 }
 
