@@ -142,22 +142,46 @@ u32 TILE_NOTHING = 0;
 u32 TILE_WALL    = 1;
 u32 TILE_FLOOR   = 2;
 
-struct v4 color_black   = {{{ 0.0,  0.0,  0.0,  1.0 }}};
-struct v4 color_navy    = {{{ 0.0,  0.0,  0.5,  1.0 }}};
-struct v4 color_blue    = {{{ 0.0,  0.0,  1.0,  1.0 }}};
-struct v4 color_green   = {{{ 0.0,  0.5,  0.0,  1.0 }}};
-struct v4 color_teal    = {{{ 0.0,  0.5,  0.5,  1.0 }}};
-struct v4 color_lime    = {{{ 0.0,  1.0,  0.0,  1.0 }}};
-struct v4 color_aqua    = {{{ 0.0,  1.0,  1.0,  1.0 }}};
-struct v4 color_maroon  = {{{ 0.5,  0.0,  0.0,  1.0 }}};
-struct v4 color_purple  = {{{ 0.5,  0.0,  0.5,  1.0 }}};
-struct v4 color_olive   = {{{ 0.5,  0.5,  0.0,  1.0 }}};
-struct v4 color_grey    = {{{ 0.5,  0.5,  0.5,  1.0 }}};
-struct v4 color_silver  = {{{ 0.75, 0.75, 0.75, 1.0 }}};
-struct v4 color_red     = {{{ 1.0,  0.0,  0.0,  1.0 }}};
-struct v4 color_fuchsia = {{{ 1.0,  0.0,  1.0,  1.0 }}};
-struct v4 color_yellow  = {{{ 1.0,  1.0,  0.0,  1.0 }}};
-struct v4 color_white   = {{{ 1.0,  1.0,  1.0,  1.0 }}};
+// Todo: clean this, not very nice
+struct v4 colors[] = 
+{
+    {{{ 0.0,  0.0,  0.0,  1.0 }}},
+    {{{ 0.0,  0.0,  0.5,  1.0 }}},
+    {{{ 0.0,  0.0,  1.0,  1.0 }}},
+    {{{ 0.0,  0.5,  0.0,  1.0 }}},
+    {{{ 0.0,  0.5,  0.5,  1.0 }}},
+    {{{ 0.0,  1.0,  0.0,  1.0 }}},
+    {{{ 0.0,  1.0,  1.0,  1.0 }}},
+    {{{ 0.5,  0.0,  0.0,  1.0 }}},
+    {{{ 0.5,  0.0,  0.5,  1.0 }}},
+    {{{ 0.5,  0.5,  0.0,  1.0 }}},
+    {{{ 0.5,  0.5,  0.5,  1.0 }}},
+    {{{ 0.75, 0.75, 0.75, 1.0 }}},
+    {{{ 1.0,  0.0,  0.0,  1.0 }}},
+    {{{ 1.0,  0.0,  1.0,  1.0 }}},
+    {{{ 1.0,  1.0,  0.0,  1.0 }}},
+    {{{ 1.0,  1.0,  1.0,  1.0 }}}
+};
+
+enum
+{
+    BLACK,
+    NAVY,
+    BLUE,
+    GREEN,
+    TEAL,
+    LIME,
+    AQUA,
+    MAROON,
+    PURPLE,
+    OLIVE,
+    GREY,
+    SILVER,
+    RED,
+    FUCHSIA,
+    YELLOW,
+    WHITE
+};
 
 u8 map_data[] =
 {
@@ -182,8 +206,6 @@ u8 map_data[] =
     1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 1, 
     1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
 };
-
-u8 map_data_ext[MAP_WIDTH * MAP_HEIGHT] = { 0 };
 
 b32 tile_is_of_type(struct v2 position, u32 type)
 {
@@ -621,7 +643,7 @@ void health_bar_render(struct game_state* state, struct v2 position,
     struct m4 mp = m4_mul_m4(model, projection);
 
     mesh_render(&state->floor, &mp, state->texture_tileset, 
-        state->shader_simple, color_red);
+        state->shader_simple, colors[RED]);
 }
 
 void line_render(struct game_state* state, struct v2 start, struct v2 end,
@@ -672,7 +694,7 @@ void cursor_render(struct game_state* state)
     struct m4 mp = m4_mul_m4(model, projection);
 
     mesh_render(&state->floor, &mp, state->texture_tileset, 
-        state->shader_simple, color_white);
+        state->shader_simple, colors[WHITE]);
 }
 
 b32 collision_point_to_rect(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y, 
@@ -687,15 +709,6 @@ b32 collision_point_to_rect(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y,
 
 void map_render(struct game_state* state)
 {
-    struct v4 colors[] = 
-    {
-        color_white,
-        color_green,
-        color_lime,
-        color_fuchsia,
-        color_olive
-    };
-
     // Todo: fix map rendering glitch (a wall block randomly drawn in a 
     //       wrong place)
     for (u32 y = 0; y < MAP_HEIGHT; y++)
@@ -706,19 +719,17 @@ void map_render(struct game_state* state)
 
             u8 tile = map_data[index];
 
-            struct v4 color = color_white;
+            struct v4 color = colors[WHITE];
 
             f32 top = y + TILE_WALL * 0.5f;
             f32 bottom = y - TILE_WALL * 0.5f;
             f32 left = x - TILE_WALL * 0.5f;
             f32 right = x + TILE_WALL * 0.5f;
 
-            color = colors[map_data_ext[index]];
-
             if (collision_point_to_rect(state->mouse.world.x, 
                 state->mouse.world.y, left, right, bottom, top))
             {
-                color = color_red;
+                color = colors[RED];
             }
 
             if (tile == TILE_WALL)
@@ -1157,8 +1168,6 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
 void enemies_render(struct game_state* state)
 {
-    memset(map_data_ext, 0, MAP_WIDTH * MAP_HEIGHT);
-
     for (u32 i = 0; i < MAX_ENEMIES; i++)
     {
         struct enemy* enemy = &state->enemies[i];
@@ -1177,16 +1186,10 @@ void enemies_render(struct game_state* state)
             mvp = m4_mul_m4(mvp, state->camera.projection);
 
             mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader,
-                color_white);
+                colors[WHITE]);
 
             health_bar_render(state, enemy->body.position, enemy->health, 
                 100.0f);
-
-            for (u32 j = 0; j < enemy->path_length; j++)
-            {
-                struct v2 node = enemy->path[j];
-                map_data_ext[(s32)node.y * MAP_WIDTH + (s32)node.x] = i + 1;
-            }
 
             // Render velocity vector
             {
@@ -1210,7 +1213,18 @@ void enemies_render(struct game_state* state)
                 mvp = m4_mul_m4(mvp, state->camera.projection);
 
                 mesh_render(&state->floor, &mvp, state->texture_tileset, 
-                    state->shader_simple, color_grey);
+                    state->shader_simple, colors[GREY]);
+            }
+
+            if (enemy->path_length)
+            {
+                for (u32 j = enemy->path_index; j < enemy->path_length - 1; j++)
+                {
+                    struct v2 current = enemy->path[j];
+                    struct v2 next = enemy->path[j+1];
+
+                    line_render(state, current, next, colors[i], 0.005f, 0.02f);
+                }
             }
         }
     }
@@ -1289,7 +1303,7 @@ void bullets_render(struct game_state* state)
             mvp = m4_mul_m4(mvp, state->camera.projection);
 
             mesh_render(&state->sphere, &mvp, state->texture_sphere,
-                state->shader, color_white);
+                state->shader, colors[WHITE]);
         }
     }
 }
@@ -1406,7 +1420,7 @@ void player_render(struct game_state* state)
         mvp = m4_mul_m4(mvp, state->camera.projection);
 
         mesh_render(&state->cube, &mvp, state->texture_player, state->shader,
-            color_white);
+            colors[WHITE]);
 
         // Render velocity vector
         {
@@ -1430,7 +1444,7 @@ void player_render(struct game_state* state)
             mvp = m4_mul_m4(mvp, state->camera.projection);
 
             mesh_render(&state->floor, &mvp, state->texture_tileset, 
-                state->shader_simple, color_grey);
+                state->shader_simple, colors[GREY]);
         }
 
         // Render aim vector
@@ -1459,14 +1473,10 @@ void player_render(struct game_state* state)
             mvp = m4_mul_m4(mvp, state->camera.projection);
 
             mesh_render(&state->floor, &mvp, state->texture_tileset, 
-                state->shader_simple, color_red);
+                state->shader_simple, colors[RED]);
         }
 
         health_bar_render(state, player->body.position, player->health, 100.0f);
-
-        line_render(state, player->body.position, 
-            state->enemies[0].body.position,
-            color_fuchsia, 0.02f, 0.25f);
     }
 }
 
