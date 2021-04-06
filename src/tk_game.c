@@ -649,11 +649,7 @@ void health_bar_render(struct game_state* state, struct v2 position,
 void line_render(struct game_state* state, struct v2 start, struct v2 end,
     struct v4 color, f32 depth, f32 thickness)
 {
-    struct v2 direction = 
-    {
-        end.x - start.x,
-        end.y - start.y
-    };
+    struct v2 direction = v2_direction(start, end);
 
     f32 length = v2_length(direction) * 0.5f;
     f32 angle = f32_atan(direction.x, direction.y);
@@ -695,6 +691,125 @@ void cursor_render(struct game_state* state)
 
     mesh_render(&state->floor, &mp, state->texture_tileset, 
         state->shader_simple, colors[WHITE]);
+}
+
+f32 tile_ray_cast(struct game_state* state, struct v2 start, struct v2 end, 
+    struct v2* collision)
+{
+    f32 result = 0.0f;
+    f32 tile_size = TILE_WALL;
+    u32 iteration = 0;
+
+    struct v2 direction = v2_normalize(v2_direction(start, end));
+    struct v2 current = start;
+    struct v2 step = 
+    {
+        (direction.x > 0 ? tile_size : -tile_size), 
+        (direction.y > 0 ? tile_size : -tile_size)
+    };
+    struct v2 wall = 
+    {
+        direction.x ? (f32_round(current.x) + step.x * 0.5f) : current.x,
+        direction.y ? (f32_round(current.y) + step.y * 0.5f) : current.y
+    };
+
+    // LOG("Ray cast from %.2fx%.2f to %.2fx%.2f ", start.x, start.y, end.x, 
+    //     end.y);
+
+    while (true)
+    {
+        struct v2 distance_to_wall = { wall.x - current.x, wall.y - current.y };
+        struct v2 previous = current;
+        struct v2 cut_x = wall;
+        struct v2 cut_y = wall;
+
+        if (direction.x)
+        {
+            cut_x.y = current.y + direction.y * (distance_to_wall.x / 
+                direction.x);
+        }
+
+        if (direction.y)
+        {
+            cut_y.x = current.x + direction.x * (distance_to_wall.y / 
+                direction.y);
+        }
+
+        if (direction.y && direction.x)
+        {
+            if (v2_distance(current, cut_x) < v2_distance(current, cut_y))
+            {
+                current.x = wall.x;
+                current.y = cut_x.y;
+
+                wall.x += step.x;
+            }
+            else if (v2_distance(current, cut_x) > v2_distance(current, cut_y))
+            {
+                current.x = cut_y.x; 
+                current.y = wall.y;
+
+                wall.y += step.y;
+            }
+            else
+            {
+                current = wall;
+
+                wall.x += step.x;
+                wall.y += step.y;
+            }
+
+        }
+        else if (direction.x)
+        {
+            current.x = wall.x;
+            current.y = cut_x.y;
+
+            wall.x += step.x;
+        }
+        else
+        {
+            current.x = cut_y.x; 
+            current.y = wall.y;
+
+            wall.y += step.y;
+        }
+
+        line_render(state, previous, current, colors[4 + iteration++ % 2], 
+            0.025f, 0.0125f);
+
+        f32 epsilon = 0.001f;
+     
+        if (direction.x)
+        {
+            struct v2 tile_left = { current.x - epsilon, current.y };
+            struct v2 tile_right = { current.x + epsilon, current.y };
+
+            if (!tile_is_free(tile_left) || !tile_is_free(tile_right))
+            {
+                break;
+            }
+        }
+
+        if (direction.y)
+        {
+            struct v2 tile_top = { current.x, current.y + epsilon };
+            struct v2 tile_bottom = { current.x, current.y - epsilon };
+
+            if (!tile_is_free(tile_top) || !tile_is_free(tile_bottom))
+            {
+                break;
+            } 
+        }
+    }
+
+    result = v2_distance(start, current);
+
+    *collision = current;
+
+    // LOG("length: %.2f\n", result);
+
+    return result;
 }
 
 b32 collision_point_to_rect(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y, 
@@ -1086,10 +1201,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                             (current.y + next.y) / 2.0f
                         };
 
-                        direction.x = target.x - enemy->body.position.x;
-                        direction.y = target.y - enemy->body.position.y;
-                     
-                        direction = v2_normalize(direction);
+                        direction = v2_normalize(v2_direction(
+                            enemy->body.position, target));
 
                         f32 length = v2_length(direction);
 
@@ -1475,6 +1588,17 @@ void player_render(struct game_state* state)
             mesh_render(&state->floor, &mvp, state->texture_tileset, 
                 state->shader_simple, colors[RED]);
         }
+
+
+        struct v2 contact;
+        struct v2 start = player->body.position;
+        struct v2 end = 
+        { 
+            state->mouse.world.x, 
+            state->mouse.world.y - PLAYER_RADIUS 
+            };
+
+        tile_ray_cast(state, start, end, &contact);
 
         health_bar_render(state, player->body.position, player->health, 100.0f);
     }

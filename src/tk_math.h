@@ -679,6 +679,16 @@ struct v2 v2_normalize(struct v2 v)
     return result;
 }
 
+struct v2 v2_direction(struct v2 start, struct v2 end)
+{
+    struct v2 result;
+
+    result.x = end.x - start.x;
+    result.y = end.y - start.y;
+
+    return result;
+}
+
 b32 v2_equals(struct v2 a, struct v2 b)
 {
     return a.x == b.x && a.y == b.y;
