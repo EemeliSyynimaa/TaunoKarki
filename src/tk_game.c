@@ -1265,10 +1265,10 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
                 f32 speed = PROJECTILE_SPEED;
 
-                bullet->body.position.x = enemy->body.position.x;
-                bullet->body.position.y = enemy->body.position.y;
-                bullet->body.velocity.x = dir.x * speed;
-                bullet->body.velocity.y = dir.y * speed;
+                bullet->body.position = enemy->body.position;
+                bullet->body.velocity = enemy->body.velocity;
+                bullet->body.velocity.x += dir.x * speed;
+                bullet->body.velocity.y += dir.y * speed;
                 bullet->alive = true;
                 bullet->damage = 25.0f;
                 bullet->player_owned = false;
@@ -1497,10 +1497,10 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 
                 f32 speed = PROJECTILE_SPEED;
 
-                bullet->body.position.x = player->body.position.x;
-                bullet->body.position.y = player->body.position.y;
-                bullet->body.velocity.x = dir.x * speed;
-                bullet->body.velocity.y = dir.y * speed;
+                bullet->body.position = player->body.position;
+                bullet->body.velocity = player->body.velocity;
+                bullet->body.velocity.x += dir.x * speed;
+                bullet->body.velocity.y += dir.y * speed;
                 bullet->alive = true;
                 bullet->damage = 25.0f;
                 bullet->player_owned = true;
@@ -1589,16 +1589,15 @@ void player_render(struct game_state* state)
                 state->shader_simple, colors[RED]);
         }
 
+        // struct v2 contact;
+        // struct v2 start = player->body.position;
+        // struct v2 end = 
+        // { 
+        //     state->mouse.world.x, 
+        //     state->mouse.world.y - PLAYER_RADIUS 
+        // };
 
-        struct v2 contact;
-        struct v2 start = player->body.position;
-        struct v2 end = 
-        { 
-            state->mouse.world.x, 
-            state->mouse.world.y - PLAYER_RADIUS 
-            };
-
-        tile_ray_cast(state, start, end, &contact);
+        // tile_ray_cast(state, start, end, &contact);
 
         health_bar_render(state, player->body.position, player->health, 100.0f);
     }

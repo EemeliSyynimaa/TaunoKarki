@@ -19,8 +19,8 @@
   - [ ] Proper movement logic
    - [X] Acceleration
    - [X] Random number generation
+   - [X] Raycast (against walls)
    - [ ] Get current time
-   - [ ] Raycast (against walls)
    - [ ] Move towards the farthest visible step
    - [ ] Stop at the goal
   - [ ] Finite state machine
