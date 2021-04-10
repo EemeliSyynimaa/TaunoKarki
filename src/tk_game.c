@@ -712,6 +712,7 @@ f32 tile_ray_cast(struct game_state* state, struct v2 start, struct v2 end,
         direction.x ? (f32_round(current.x) + step.x * 0.5f) : current.x,
         direction.y ? (f32_round(current.y) + step.y * 0.5f) : current.y
     };
+    f32 goal_length = v2_distance(end, start);
 
     // LOG("Ray cast from %.2fx%.2f to %.2fx%.2f ", start.x, start.y, end.x, 
     //     end.y);
@@ -773,6 +774,15 @@ f32 tile_ray_cast(struct game_state* state, struct v2 start, struct v2 end,
             current.y = wall.y;
 
             wall.y += step.y;
+        }
+
+        f32 ray_length = v2_distance(current, start);
+
+        if (ray_length > goal_length)
+        {
+            line_render(state, previous, end, colors[4 + iteration++ % 2],
+                0.025f, 0.0125f);
+            break;
         }
 
         line_render(state, previous, current, colors[4 + iteration++ % 2], 
@@ -1589,15 +1599,11 @@ void player_render(struct game_state* state)
                 state->shader_simple, colors[RED]);
         }
 
-        // struct v2 contact;
-        // struct v2 start = player->body.position;
-        // struct v2 end = 
-        // { 
-        //     state->mouse.world.x, 
-        //     state->mouse.world.y - PLAYER_RADIUS 
-        // };
+        struct v2 contact;
+        struct v2 start = player->body.position;
+        struct v2 end = state->enemies[0].body.position;
 
-        // tile_ray_cast(state, start, end, &contact);
+        tile_ray_cast(state, start, end, &contact);
 
         health_bar_render(state, player->body.position, player->health, 100.0f);
     }
