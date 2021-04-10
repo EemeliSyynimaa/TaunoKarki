@@ -694,7 +694,7 @@ void cursor_render(struct game_state* state)
 }
 
 f32 tile_ray_cast(struct game_state* state, struct v2 start, struct v2 end, 
-    struct v2* collision)
+    struct v2* collision, b32 render)
 {
     f32 result = 0.0f;
     f32 tile_size = TILE_WALL;
@@ -780,13 +780,21 @@ f32 tile_ray_cast(struct game_state* state, struct v2 start, struct v2 end,
 
         if (ray_length > goal_length)
         {
-            line_render(state, previous, end, colors[4 + iteration++ % 2],
-                0.025f, 0.0125f);
+            if (render)
+            {
+                line_render(state, previous, end, colors[4 + iteration++ % 2],
+                    0.025f, 0.0125f);   
+            }
+
+            result = goal_length;
             break;
         }
 
-        line_render(state, previous, current, colors[4 + iteration++ % 2], 
-            0.025f, 0.0125f);
+        if (render)
+        {
+            line_render(state, previous, current, colors[4 + iteration++ % 2], 
+                0.025f, 0.0125f);
+        }
 
         f32 epsilon = 0.001f;
      
@@ -797,6 +805,7 @@ f32 tile_ray_cast(struct game_state* state, struct v2 start, struct v2 end,
 
             if (!tile_is_free(tile_left) || !tile_is_free(tile_right))
             {
+                result = ray_length;
                 break;
             }
         }
@@ -808,12 +817,11 @@ f32 tile_ray_cast(struct game_state* state, struct v2 start, struct v2 end,
 
             if (!tile_is_free(tile_top) || !tile_is_free(tile_bottom))
             {
+                result = ray_length;
                 break;
             } 
         }
     }
-
-    result = v2_distance(start, current);
 
     *collision = current;
 
@@ -1177,42 +1185,43 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             {
                 while (true)
                 {
-                    u32 next_index = enemy->path_index + 1;
-
                     struct v2 current = enemy->path[enemy->path_index];
-                    struct v2 next = next_index < enemy->path_length ? 
-                        enemy->path[next_index] : current;
 
-                    f32 distance_to_next = v2_distance(enemy->body.position, 
-                        next);
                     f32 distance_to_current = v2_distance(enemy->body.position, 
                         current);
                     f32 epsilon = 0.25f;
 
-                    if (distance_to_current > distance_to_next)
+                    if (distance_to_current < epsilon)
                     {
-                        enemy->path_index = next_index;
-                        continue;
-                    }
-                    else if (distance_to_current < epsilon)
-                    {
-                        enemy->path_index = next_index;
+                        enemy->path_index += 1;
                         
-                        if (next_index < enemy->path_length)
+                        for (u32 j = enemy->path_index; 
+                            j < enemy->path_length; 
+                            j++)
+                        {
+                            struct v2 contact;
+                            struct v2 start = enemy->body.position;
+                            struct v2 end = enemy->path[j];
+                            f32 length = v2_distance(end, start);
+
+                            if (tile_ray_cast(state, start, end, &contact, 
+                                false) != length)
+                            {
+                                break;
+                            }
+
+                            enemy->path_index = j;
+                        }
+                        
+                        if (enemy->path_index < enemy->path_length)
                         {
                             continue;
                         }
                     }
                     else
                     {
-                        struct v2 target = 
-                        {
-                            (current.x + next.x) / 2.0f,
-                            (current.y + next.y) / 2.0f
-                        };
-
                         direction = v2_normalize(v2_direction(
-                            enemy->body.position, target));
+                            enemy->body.position, current));
 
                         f32 length = v2_length(direction);
 
@@ -1234,7 +1243,21 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 enemy->path_length = path_find(enemy->body.position, 
                     target, enemy->path, 256);
 
-                enemy->path_index = 0;
+                for (u32 j = 0; j < enemy->path_length; j++)
+                {
+                    struct v2 contact;
+                    struct v2 start = enemy->body.position;
+                    struct v2 end = enemy->path[j];
+                    f32 length = v2_distance(end, start);
+
+                    if (tile_ray_cast(state, start, end, &contact, 
+                        false) != length)
+                    {
+                        break;
+                    }
+
+                    enemy->path_index = j;
+                }
             }
 
             acceleration.x = direction.x * ENEMY_ACCELERATION;
@@ -1341,12 +1364,15 @@ void enemies_render(struct game_state* state)
 
             if (enemy->path_length)
             {
-                for (u32 j = enemy->path_index; j < enemy->path_length - 1; j++)
+                struct v2 current = enemy->body.position;
+
+                for (u32 j = enemy->path_index; j < enemy->path_length; j++)
                 {
-                    struct v2 current = enemy->path[j];
-                    struct v2 next = enemy->path[j+1];
+                    struct v2 next = enemy->path[j];
 
                     line_render(state, current, next, colors[i], 0.005f, 0.02f);
+
+                    current = next;
                 }
             }
         }
@@ -1603,7 +1629,7 @@ void player_render(struct game_state* state)
         struct v2 start = player->body.position;
         struct v2 end = state->enemies[0].body.position;
 
-        tile_ray_cast(state, start, end, &contact);
+        tile_ray_cast(state, start, end, &contact, true);
 
         health_bar_render(state, player->body.position, player->health, 100.0f);
     }
