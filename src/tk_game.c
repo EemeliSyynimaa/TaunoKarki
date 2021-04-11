@@ -1230,8 +1230,27 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                             direction.x /= length;
                             direction.y /= length;
                         }
+
+                        struct v2 contact;
+                        struct v2 start = enemy->body.position;
+                        struct v2 end = state->player.body.position;
+                        length = v2_distance(end, start);
                     
-                        enemy->body.angle = f32_atan(direction.y, direction.x);
+
+                        if (tile_ray_cast(state, start, end, &contact, false) 
+                            == length)
+                        {
+                            struct v2 direction = v2_normalize(v2_direction(
+                                enemy->body.position, end));
+                            enemy->body.angle = f32_atan(direction.y, 
+                                direction.x);
+                        }
+                        else
+                        {
+                            enemy->body.angle = f32_atan(direction.y, 
+                                direction.x);
+                        }
+
                     }
                     break;
                 }
