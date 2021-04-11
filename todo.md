@@ -20,8 +20,8 @@
    - [X] Acceleration
    - [X] Random number generation
    - [X] Raycast (against walls)
+   - [X] Move towards the farthest visible step
    - [ ] Get current time
-   - [ ] Move towards the farthest visible step
    - [ ] Stop at the goal
   - [ ] Finite state machine
    - [ ] Wander state
