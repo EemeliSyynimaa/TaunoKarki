@@ -23,6 +23,9 @@
    - [X] Move towards the farthest visible step
    - [ ] Get current time
    - [ ] Stop at the goal
+  - [ ] Aim logic
+   - [X] Take shooter's velocity into account
+   - [ ] Take target's velocity into account
   - [ ] Finite state machine
    - [ ] Wander state
    - [ ] Pursue state

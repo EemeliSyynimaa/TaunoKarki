@@ -1286,94 +1286,70 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             if (tile_ray_cast(state, start, end, &contact, false)
                 == length)
             {
-                // Calculate target coordinate system (y axis pointing forward,
-                // x axis to the right
                 struct v2 target_forward = v2_normalize(v2_direction(
                     enemy->body.position, end));
 
-                // Calculate the aim direction
-                struct v2 aim_direction = { 0.0f };
-
-                // Calculate initial velocity in the target coordinate system
                 if (v2_length(enemy->body.velocity))
                 {
                     f32 angle = F64_PI*1.5f;
                     f32 tsin = f32_sin(angle);
                     f32 tcos = f32_cos(angle);
 
+                    // Todo: can this be done more smartly?
                     struct v2 target_right =
                     {
                         target_forward.x * tcos - target_forward.y * tsin,
                         target_forward.x * tsin + target_forward.y * tcos
                     };
 
-                    struct v2 initial_velocity =
-                    {
-                        v2_dot(enemy->body.velocity, target_right),
-                        v2_dot(enemy->body.velocity, target_forward)
-                    };
+                    f32 initial_velocity = v2_dot(enemy->body.velocity,
+                        target_right);
 
+                    struct v2 desired_velocity = { 0.0f };
 
-                    if (PROJECTILE_SPEED > initial_velocity.x)
+                    if (PROJECTILE_SPEED > initial_velocity)
                     {
-                        aim_direction.x = -initial_velocity.x;
+                        desired_velocity.x = -initial_velocity;
+
                     }
                     else
                     {
-                        aim_direction.x = PROJECTILE_SPEED;
+                        desired_velocity.x = PROJECTILE_SPEED;
                     }
 
-                    if (aim_direction.x)
+                    if (desired_velocity.x)
                     {
-                        aim_direction.y = f32_sqrt(
+                        desired_velocity.y = f32_sqrt(
                             (PROJECTILE_SPEED * PROJECTILE_SPEED) -
-                            (aim_direction.x * aim_direction.x));
+                            (desired_velocity.x * desired_velocity.x));
                     }
                     else
                     {
-                        aim_direction.y = -PROJECTILE_SPEED;
+                        desired_velocity.y = -PROJECTILE_SPEED;
                     }
 
-                    struct v2 target_left =
+                    struct v2 target_right_rotate_back =
                     {
                         target_right.x, -target_right.y
                     };
 
-                    struct v2 target_back =
+                    struct v2 target_forward_rotate_back =
                     {
                         -target_forward.x, target_forward.y
                     };
 
-                    // Rotate bullet velocity back to real world coords
-                    // THIS IS BULLSHIT, FIX ROTATION
                     struct v2 final_direction =
                     {
-                        v2_dot(aim_direction, target_left),
-                        v2_dot(aim_direction, target_back)
+                        v2_dot(desired_velocity, target_right_rotate_back),
+                        v2_dot(desired_velocity, target_forward_rotate_back)
                     };
 
-                    struct v2 velocity_rotated =
-                    {
-                        v2_dot(initial_velocity, target_left),
-                        v2_dot(initial_velocity, target_back)
-                    };
-
-                    if (!v2_equals(velocity_rotated, enemy->body.velocity))
-                    {
-                        LOG("PERKELE: (%.3f, %.3f), (%.3f, %.3f)\n",
-                            velocity_rotated.x, velocity_rotated.y,
-                            enemy->body.velocity.x, enemy->body.velocity.y);
-                    }
-
-                    aim_direction = final_direction;
+                    look_direction = v2_normalize(final_direction);
                 }
                 else
                 {
-                    aim_direction = target_forward;
+                    look_direction = v2_normalize(target_forward);
                 }
-
-                // Look towards the bullet velocity
-                look_direction = v2_normalize(aim_direction);
             }
             else
             {
@@ -1401,7 +1377,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 bullet->body.velocity.x += look_direction.x * speed;
                 bullet->body.velocity.y += look_direction.y * speed;
                 bullet->alive = true;
-                bullet->damage = 25.0f;
+                bullet->damage = 5.0f;
                 bullet->player_owned = false;
 
                 enemy->last_shot = 0.0f;
@@ -2363,19 +2339,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
     state->camera.view_inverse = m4_inverse(state->camera.view);
 
     random_seed_set(init->init_time);
-
-    LOG("%d\n", random_number_generate());
-    LOG("%d\n", random_number_generate());
-    LOG("%d\n", random_number_generate());
-    LOG("%d\n", random_number_generate());
-    LOG("%d\n", random_number_generate());
-    LOG("%d\n", random_number_generate());
-
-    LOG("%d\n", random_number_generate_and_distribute(1, 10));
-    LOG("%d\n", random_number_generate_and_distribute(1, 10));
-    LOG("%d\n", random_number_generate_and_distribute(1, 10));
-    LOG("%d\n", random_number_generate_and_distribute(1, 10));
-    LOG("%d\n", random_number_generate_and_distribute(1, 10));
 
     glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
