@@ -36,6 +36,7 @@
   - [ ] Use forces for movement
   - [ ] Add friction
   - [ ] Rotate smoothly
+  - [ ] Proper bullet physics
  - [ ] Controller input
  - [ ] Local multiplayer
  - [ ] Camera follow
