@@ -1179,7 +1179,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
         {
             struct v2 acceleration = { 0.0f };
             struct v2 move_delta = { 0.0f };
-            struct v2 direction = { 0.0f };
+            struct v2 move_direction = { 0.0f };
+            struct v2 look_direction = { 0.0f };
 
             if (enemy->path_index < enemy->path_length)
             {
@@ -1220,34 +1221,15 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     }
                     else
                     {
-                        direction = v2_normalize(v2_direction(
+                        move_direction = v2_normalize(v2_direction(
                             enemy->body.position, current));
 
-                        f32 length = v2_length(direction);
+                        f32 length = v2_length(move_direction);
 
                         if (length > 1.0f)
                         {
-                            direction.x /= length;
-                            direction.y /= length;
-                        }
-
-                        struct v2 contact;
-                        struct v2 start = enemy->body.position;
-                        struct v2 end = state->player.body.position;
-                        length = v2_distance(end, start);
-
-                        if (tile_ray_cast(state, start, end, &contact, false) 
-                            == length)
-                        {
-                            struct v2 direction_to_player = v2_direction(
-                                enemy->body.position, end);
-                            enemy->body.angle = f32_atan(direction_to_player.y, 
-                                direction_to_player.x);
-                        }
-                        else
-                        {
-                            enemy->body.angle = f32_atan(direction.y, 
-                                direction.x);
+                            move_direction.x /= length;
+                            move_direction.y /= length;
                         }
                     }
                     break;
@@ -1277,8 +1259,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 }
             }
 
-            acceleration.x = direction.x * ENEMY_ACCELERATION;
-            acceleration.y = direction.y * ENEMY_ACCELERATION;
+            acceleration.x = move_direction.x * ENEMY_ACCELERATION;
+            acceleration.y = move_direction.y * ENEMY_ACCELERATION;
 
             acceleration.x += -enemy->body.velocity.x * FRICTION;
             acceleration.y += -enemy->body.velocity.y * FRICTION;
@@ -1296,6 +1278,111 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             check_tile_collisions(&enemy->body.position, &enemy->body.velocity, 
                 move_delta, PLAYER_RADIUS, 1);
 
+            struct v2 contact;
+            struct v2 start = enemy->body.position;
+            struct v2 end = state->player.body.position;
+            f32 length = v2_distance(end, start);
+
+            if (tile_ray_cast(state, start, end, &contact, false)
+                == length)
+            {
+                // Calculate target coordinate system (y axis pointing forward,
+                // x axis to the right
+                struct v2 target_forward = v2_normalize(v2_direction(
+                    enemy->body.position, end));
+
+                // Calculate the aim direction
+                struct v2 aim_direction = { 0.0f };
+
+                // Calculate initial velocity in the target coordinate system
+                if (v2_length(enemy->body.velocity))
+                {
+                    f32 angle = F64_PI*1.5f;
+                    f32 tsin = f32_sin(angle);
+                    f32 tcos = f32_cos(angle);
+
+                    struct v2 target_right =
+                    {
+                        target_forward.x * tcos - target_forward.y * tsin,
+                        target_forward.x * tsin + target_forward.y * tcos
+                    };
+
+                    struct v2 initial_velocity =
+                    {
+                        v2_dot(enemy->body.velocity, target_right),
+                        v2_dot(enemy->body.velocity, target_forward)
+                    };
+
+
+                    if (PROJECTILE_SPEED > initial_velocity.x)
+                    {
+                        aim_direction.x = -initial_velocity.x;
+                    }
+                    else
+                    {
+                        aim_direction.x = PROJECTILE_SPEED;
+                    }
+
+                    if (aim_direction.x)
+                    {
+                        aim_direction.y = f32_sqrt(
+                            (PROJECTILE_SPEED * PROJECTILE_SPEED) -
+                            (aim_direction.x * aim_direction.x));
+                    }
+                    else
+                    {
+                        aim_direction.y = -PROJECTILE_SPEED;
+                    }
+
+                    struct v2 target_left =
+                    {
+                        target_right.x, -target_right.y
+                    };
+
+                    struct v2 target_back =
+                    {
+                        -target_forward.x, target_forward.y
+                    };
+
+                    // Rotate bullet velocity back to real world coords
+                    // THIS IS BULLSHIT, FIX ROTATION
+                    struct v2 final_direction =
+                    {
+                        v2_dot(aim_direction, target_left),
+                        v2_dot(aim_direction, target_back)
+                    };
+
+                    struct v2 velocity_rotated =
+                    {
+                        v2_dot(initial_velocity, target_left),
+                        v2_dot(initial_velocity, target_back)
+                    };
+
+                    if (!v2_equals(velocity_rotated, enemy->body.velocity))
+                    {
+                        LOG("PERKELE: (%.3f, %.3f), (%.3f, %.3f)\n",
+                            velocity_rotated.x, velocity_rotated.y,
+                            enemy->body.velocity.x, enemy->body.velocity.y);
+                    }
+
+                    aim_direction = final_direction;
+                }
+                else
+                {
+                    aim_direction = target_forward;
+                }
+
+                // Look towards the bullet velocity
+                look_direction = v2_normalize(aim_direction);
+            }
+            else
+            {
+                look_direction = move_direction;
+            }
+
+            enemy->body.angle = f32_atan(look_direction.y,
+                look_direction.x);
+
             enemy->last_shot += dt;
 
             if (enemy->last_shot > 1.0f)
@@ -1307,18 +1394,12 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
                 struct bullet* bullet = &state->bullets[state->free_bullet];
 
-                struct v2 dir = 
-                { 
-                    f32_cos(enemy->body.angle),
-                    f32_sin(enemy->body.angle) 
-                };
-
                 f32 speed = PROJECTILE_SPEED;
 
                 bullet->body.position = enemy->body.position;
                 bullet->body.velocity = enemy->body.velocity;
-                bullet->body.velocity.x += dir.x * speed;
-                bullet->body.velocity.y += dir.y * speed;
+                bullet->body.velocity.x += look_direction.x * speed;
+                bullet->body.velocity.y += look_direction.y * speed;
                 bullet->alive = true;
                 bullet->damage = 25.0f;
                 bullet->player_owned = false;
@@ -2251,7 +2332,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         struct enemy* enemy = &state->enemies[i];
             
         enemy->body.position.x = 2.0f + i * 2.0f;
-        enemy->body.position.y = 8.0f;
+        enemy->body.position.y = 5.0f;
         enemy->alive = true;
         enemy->health = 100.0f;
         enemy->body.angle = f32_radians(270 - i * 15.0f);
