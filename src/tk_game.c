@@ -35,6 +35,8 @@ struct enemy
     u32 path_length;
     f32 health;
     f32 last_shot;
+    f32 target_angle;
+    b32 turning;
     b32 alive;
 };
 
@@ -71,7 +73,7 @@ struct mesh
 };
 
 #define MAX_BULLETS 64
-#define MAX_ENEMIES 4
+#define MAX_ENEMIES 5
 
 struct memory_block
 {
@@ -1169,6 +1171,7 @@ b32 check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta,
 
 void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 {
+    // Todo: clean this function...
     for (u32 i = 0; i < MAX_ENEMIES; i++)
     {
         struct enemy* enemy = &state->enemies[i];
@@ -1205,6 +1208,9 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                             struct v2 end = enemy->path[j];
                             f32 length = v2_distance(end, start);
 
+                            // Todo: this doesn't take the enemy's size into
+                            // account and it might stumble on the walls (but
+                            // should not get stuck)
                             if (tile_ray_cast(state, start, end, &contact, 
                                 false) != length)
                             {
@@ -1270,12 +1276,12 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             move_delta.y = 0.5f * acceleration.y * f32_square(dt) + 
                 enemy->body.velocity.y * dt;
 
-            enemy->body.velocity.x = enemy->body.velocity.x + acceleration.x * 
+            enemy->body.velocity.x = enemy->body.velocity.x + acceleration.x *
                 dt;
-            enemy->body.velocity.y = enemy->body.velocity.y + acceleration.y * 
+            enemy->body.velocity.y = enemy->body.velocity.y + acceleration.y *
                 dt;
 
-            check_tile_collisions(&enemy->body.position, &enemy->body.velocity, 
+            check_tile_collisions(&enemy->body.position, &enemy->body.velocity,
                 move_delta, PLAYER_RADIUS, 1);
 
             struct v2 contact;
@@ -1348,7 +1354,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 }
                 else
                 {
-                    look_direction = v2_normalize(target_forward);
+                    look_direction = target_forward;
                 }
             }
             else
@@ -1356,8 +1362,53 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 look_direction = move_direction;
             }
 
-            enemy->body.angle = f32_atan(look_direction.y,
-                look_direction.x);
+            {
+                enemy->target_angle = f32_atan(look_direction.y,
+                    look_direction.x);
+
+                f32 circle = F64_PI * 2.0f;
+
+                if (enemy->target_angle < 0.0f)
+                {
+                    enemy->target_angle += circle;
+                }
+
+                f32 target_in_degs = f32_degrees(enemy->target_angle);
+                f32 angle_in_degs = f32_degrees(enemy->body.angle);
+
+                f32 diff_clockwise = 0.0f;
+                f32 diff_counter_clockwise = 0.0f;
+
+                if (enemy->target_angle < enemy->body.angle)
+                {
+                    diff_clockwise = enemy->target_angle + circle -
+                        enemy->body.angle;
+                    diff_counter_clockwise = enemy->body.angle -
+                        enemy->target_angle;
+                }
+                else
+                {
+                    diff_clockwise = enemy->target_angle - enemy->body.angle;
+                    diff_counter_clockwise = enemy->body.angle + circle -
+                        enemy->target_angle;
+                }
+
+                f32 speed = F64_PI * 2.0f * dt;
+
+                if (f32_abs(MIN(diff_clockwise, diff_counter_clockwise))
+                    < (speed + 0.1f))
+                {
+                    enemy->body.angle = enemy->target_angle;
+                }
+                else if (diff_clockwise > diff_counter_clockwise)
+                {
+                    enemy->body.angle -= speed;
+                }
+                else
+                {
+                    enemy->body.angle += speed;
+                }
+            }
 
             enemy->last_shot += dt;
 
@@ -1374,6 +1425,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
                 bullet->body.position = enemy->body.position;
                 bullet->body.velocity = enemy->body.velocity;
+                // Todo: use proper look direction, this is currently the target
                 bullet->body.velocity.x += look_direction.x * speed;
                 bullet->body.velocity.y += look_direction.y * speed;
                 bullet->alive = true;

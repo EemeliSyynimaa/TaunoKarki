@@ -35,7 +35,7 @@
  - [ ] Physics
   - [ ] Use forces for movement
   - [ ] Add friction
-  - [ ] Rotate smoothly
+  - [X] Rotate smoothly
   - [ ] Proper bullet physics
  - [ ] Controller input
  - [ ] Local multiplayer
