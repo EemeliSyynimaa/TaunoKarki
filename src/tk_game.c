@@ -35,8 +35,6 @@ struct enemy
     u32 path_length;
     f32 health;
     f32 last_shot;
-    f32 target_angle;
-    b32 turning;
     b32 alive;
 };
 
@@ -1289,8 +1287,26 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             struct v2 end = state->player.body.position;
             f32 length = v2_distance(end, start);
 
-            if (tile_ray_cast(state, start, end, &contact, false)
-                == length)
+            struct v2 direction_to_player =
+            {
+                state->player.body.position.x - enemy->body.position.x,
+                state->player.body.position.y - enemy->body.position.y
+            };
+
+            direction_to_player = v2_normalize(direction_to_player);
+
+            struct v2 direction_current =
+            {
+                f32_cos(enemy->body.angle),
+                f32_sin(enemy->body.angle)
+            };
+
+            f32 angle_max = 22.5f;
+            f32 angle_player = f32_degrees(v2_angle(direction_to_player,
+                direction_current));
+
+            if (angle_player < angle_max &&
+                tile_ray_cast(state, start, end, &contact, false) == length)
             {
                 struct v2 target_forward = v2_normalize(v2_direction(
                     enemy->body.position, end));
@@ -1363,34 +1379,31 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             }
 
             {
-                enemy->target_angle = f32_atan(look_direction.y,
+                f32 target_angle = f32_atan(look_direction.y,
                     look_direction.x);
 
                 f32 circle = F64_PI * 2.0f;
 
-                if (enemy->target_angle < 0.0f)
+                if (target_angle < 0.0f)
                 {
-                    enemy->target_angle += circle;
+                    target_angle += circle;
                 }
-
-                f32 target_in_degs = f32_degrees(enemy->target_angle);
-                f32 angle_in_degs = f32_degrees(enemy->body.angle);
 
                 f32 diff_clockwise = 0.0f;
                 f32 diff_counter_clockwise = 0.0f;
 
-                if (enemy->target_angle < enemy->body.angle)
+                if (target_angle < enemy->body.angle)
                 {
-                    diff_clockwise = enemy->target_angle + circle -
+                    diff_clockwise = target_angle + circle -
                         enemy->body.angle;
                     diff_counter_clockwise = enemy->body.angle -
-                        enemy->target_angle;
+                        target_angle;
                 }
                 else
                 {
-                    diff_clockwise = enemy->target_angle - enemy->body.angle;
+                    diff_clockwise = target_angle - enemy->body.angle;
                     diff_counter_clockwise = enemy->body.angle + circle -
-                        enemy->target_angle;
+                        target_angle;
                 }
 
                 f32 speed = F64_PI * 2.0f * dt;
@@ -1398,7 +1411,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 if (f32_abs(MIN(diff_clockwise, diff_counter_clockwise))
                     < (speed + 0.1f))
                 {
-                    enemy->body.angle = enemy->target_angle;
+                    enemy->body.angle = target_angle;
                 }
                 else if (diff_clockwise > diff_counter_clockwise)
                 {
