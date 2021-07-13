@@ -26,6 +26,7 @@
   - [ ] Aim logic
    - [X] Take shooter's velocity into account
    - [ ] Take target's velocity into account
+   - [ ] Render line of sight
   - [ ] Finite state machine
    - [ ] Wander state
    - [ ] Pursue state
