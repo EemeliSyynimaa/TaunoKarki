@@ -689,6 +689,16 @@ struct v2 v2_direction(struct v2 start, struct v2 end)
     return result;
 }
 
+struct v2 v2_direction_from_angle(f32 angle)
+{
+    struct v2 result;
+
+    result.x = f32_cos(angle);
+    result.y = f32_sin(angle);
+
+    return result;
+}
+
 b32 v2_equals(struct v2 a, struct v2 b)
 {
     return a.x == b.x && a.y == b.y;

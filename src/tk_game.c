@@ -130,20 +130,21 @@ u32 random_number_generate_and_distribute(u32 min, u32 max)
 #define MAP_WIDTH  20
 #define MAP_HEIGHT 20
 
-f32 PLAYER_ACCELERATION = 40.0f;
-f32 ENEMY_ACCELERATION  = 35.0f;
-f32 FRICTION            = 10.0f;
-f32 PROJECTILE_RADIUS   = 0.035f;
-f32 PROJECTILE_SPEED    = 25.0f;
-f32 PLAYER_RADIUS       = 0.25f;
-f32 WALL_SIZE           = 1.0f;
+f32 PLAYER_ACCELERATION      = 40.0f;
+f32 ENEMY_ACCELERATION       = 35.0f;
+f32 ENEMY_LINE_OF_SIGHT_HALF = F64_PI * 0.125f; // 22.5 degrees
+f32 FRICTION                 = 10.0f;
+f32 PROJECTILE_RADIUS        = 0.035f;
+f32 PROJECTILE_SPEED         = 25.0f;
+f32 PLAYER_RADIUS            = 0.25f;
+f32 WALL_SIZE                = 1.0f;
 
 u32 TILE_NOTHING = 0;
 u32 TILE_WALL    = 1;
 u32 TILE_FLOOR   = 2;
 
 // Todo: clean this, not very nice
-struct v4 colors[] = 
+struct v4 colors[] =
 {
     {{{ 0.0,  0.0,  0.0,  1.0 }}},
     {{{ 0.0,  0.0,  0.5,  1.0 }}},
@@ -185,32 +186,32 @@ enum
 
 u8 map_data[] =
 {
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 
-    1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 0, 
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1, 0, 
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 0, 
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1, 0, 
-    1, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 1, 0, 
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1, 0, 
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 0, 
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1, 0, 
-    1, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 0, 
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0, 
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 
-    1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 1, 
-    1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 1, 
-    1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 1, 
-    1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0,
+    1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 0,
+    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1, 0,
+    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 0,
+    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1, 0,
+    1, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 1, 0,
+    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1, 0,
+    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 0,
+    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1, 0,
+    1, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 0,
+    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0,
+    1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1,
+    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1,
+    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1,
+    1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 1,
+    1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 1,
+    1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 1,
+    1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 };
 
 b32 tile_is_of_type(struct v2 position, u32 type)
 {
     b32 result = false;
-    
+
     s32 x = f32_round(position.x);
     s32 y = f32_round(position.y);
 
@@ -235,7 +236,7 @@ struct v2 tile_random_get(u32 type)
 
     while (max_iterations)
     {
-        struct v2 position = 
+        struct v2 position =
         {
             random_number_generate_and_distribute(0, MAP_WIDTH),
             random_number_generate_and_distribute(0, MAP_HEIGHT)
@@ -323,7 +324,7 @@ struct node* node_find(struct v2* node, struct node nodes[], u32 num_nodes)
 b32 neighbor_check(f32 x, f32 y, struct v2 neighbors[], u32* index)
 {
     b32 result = false;
-    
+
     struct v2 neighbor = { x, y };
 
     if (tile_is_free(neighbor))
@@ -335,7 +336,7 @@ b32 neighbor_check(f32 x, f32 y, struct v2 neighbors[], u32* index)
     return result;
 }
 
-u32 neighbors_get(struct node* node, struct v2 neighbors[])  
+u32 neighbors_get(struct node* node, struct v2 neighbors[])
 {
     u32 result = 0;
 
@@ -453,22 +454,22 @@ u32 path_find(struct v2 start, struct v2 goal, struct v2 path[], u32 path_size)
         struct v2 neighbors[8];
 
         u32 num_neighbors = neighbors_get(current, neighbors);
-        
+
         for (u32 i = 0; i < num_neighbors; i++)
         {
             struct v2* neighbor = &neighbors[i];
             struct node* neighbor_node = NULL;
-            f32 cost = current->g + cost_calculate(current->position, 
+            f32 cost = current->g + cost_calculate(current->position,
                 *neighbor);
             f32 heuristic = heuristic_calculate(*neighbor, goal);
 
-            if ((neighbor_node = node_find(neighbor, open, MAX_NODES)) && 
+            if ((neighbor_node = node_find(neighbor, open, MAX_NODES)) &&
                 cost < neighbor_node->g)
             {
                 neighbor_node->in_use = false;
             }
-            
-            if ((neighbor_node = node_find(neighbor, closed, MAX_NODES)) && 
+
+            if ((neighbor_node = node_find(neighbor, closed, MAX_NODES)) &&
                 cost < neighbor_node->g)
             {
                 neighbor_node->in_use = false;
@@ -477,9 +478,9 @@ u32 path_find(struct v2 start, struct v2 goal, struct v2 path[], u32 path_size)
             if (!node_find(neighbor, open, MAX_NODES) &&
                 !node_find(neighbor, closed, MAX_NODES))
             {
-                struct node new = 
-                { 
-                    *neighbor, current, cost, heuristic, cost + heuristic, true 
+                struct node new =
+                {
+                    *neighbor, current, cost, heuristic, cost + heuristic, true
                 };
 
                 // Todo: assert here?
@@ -527,7 +528,7 @@ struct v2 calculate_world_pos(f32 pos_x, f32 pos_y, struct camera* camera)
     // Todo: doesn't work with orthographic projection
     struct v2 result = { 0.0f };
 
-    struct v4 ndc = 
+    struct v4 ndc =
     {
         pos_x / (camera->screen_width * 0.5f) - 1.0f,
         (pos_y / (camera->screen_height * 0.5f) - 1.0f) * -1.0f
@@ -566,7 +567,7 @@ struct v2 calculate_screen_pos(f32 pos_x, f32 pos_y, struct camera* camera)
     return result;
 }
 
-void generate_vertex_array(struct mesh* mesh, struct vertex* vertices, 
+void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
     u32 num_vertices, u32* indices)
 {
     glGenVertexArrays(1, &mesh->vao);
@@ -574,12 +575,12 @@ void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
 
     glGenBuffers(1, &mesh->vbo);
     glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-    glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct vertex), 
+    glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct vertex),
         vertices, GL_DYNAMIC_DRAW);
 
     glGenBuffers(1, &mesh->ibo);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->num_indices * sizeof(u32), 
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->num_indices * sizeof(u32),
         indices, GL_DYNAMIC_DRAW);
 
     glEnableVertexAttribArray(0);
@@ -587,7 +588,7 @@ void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
     glEnableVertexAttribArray(2);
 
     // Todo: implement offsetof
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex), 
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
         (void*)0);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
         (void*)12);
@@ -595,7 +596,7 @@ void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
         (void*)20);
 }
 
-void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader, 
+void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader,
     struct v4 color)
 {
     glBindVertexArray(mesh->vao);
@@ -618,18 +619,18 @@ void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader,
     glUseProgram(0);
 }
 
-void health_bar_render(struct game_state* state, struct v2 position, 
+void health_bar_render(struct game_state* state, struct v2 position,
     f32 health, f32 health_max)
 {
     f32 bar_length_max = 35.0f;
     f32 bar_length = health / health_max * bar_length_max;
 
-    struct v2 screen_pos = calculate_screen_pos(position.x, position.y, 
+    struct v2 screen_pos = calculate_screen_pos(position.x, position.y,
         &state->camera);
 
     struct m4 transform = m4_translate(
-        screen_pos.x - bar_length_max + bar_length, 
-        screen_pos.y + 65.0f, 
+        screen_pos.x - bar_length_max + bar_length,
+        screen_pos.y + 65.0f,
         0.0f);
     struct m4 rotation = m4_identity();
     struct m4 scale = m4_scale_xyz(bar_length, 5.0f, 1.0f);
@@ -642,7 +643,7 @@ void health_bar_render(struct game_state* state, struct v2 position,
 
     struct m4 mp = m4_mul_m4(model, projection);
 
-    mesh_render(&state->floor, &mp, state->texture_tileset, 
+    mesh_render(&state->floor, &mp, state->texture_tileset,
         state->shader_simple, colors[RED]);
 }
 
@@ -655,8 +656,8 @@ void line_render(struct game_state* state, struct v2 start, struct v2 end,
     f32 angle = f32_atan(direction.x, direction.y);
 
     struct m4 transform = m4_translate(
-        start.x + direction.x * 0.5f, 
-        start.y + direction.y * 0.5f, 
+        start.x + direction.x * 0.5f,
+        start.y + direction.y * 0.5f,
         depth);
 
     struct m4 rotation = m4_rotate_z(-angle);
@@ -668,15 +669,15 @@ void line_render(struct game_state* state, struct v2 start, struct v2 end,
     struct m4 mvp = m4_mul_m4(model, state->camera.view);
     mvp = m4_mul_m4(mvp, state->camera.projection);
 
-    mesh_render(&state->floor, &mvp, state->texture_tileset, 
+    mesh_render(&state->floor, &mvp, state->texture_tileset,
         state->shader_simple, color);
 }
 
 void cursor_render(struct game_state* state)
 {
     struct m4 transform = m4_translate(
-        state->mouse.screen.x, 
-        state->camera.screen_height - state->mouse.screen.y, 
+        state->mouse.screen.x,
+        state->camera.screen_height - state->mouse.screen.y,
         0.0f);
     struct m4 rotation = m4_identity();
     struct m4 scale = m4_scale_xyz(2.0f, 2.0f, 1.0f);
@@ -689,7 +690,7 @@ void cursor_render(struct game_state* state)
 
     struct m4 mp = m4_mul_m4(model, projection);
 
-    mesh_render(&state->floor, &mp, state->texture_tileset, 
+    mesh_render(&state->floor, &mp, state->texture_tileset,
         state->shader_simple, colors[WHITE]);
 }
 
@@ -880,7 +881,7 @@ b32 tile_ray_cast_to_position(struct game_state* state, struct v2 start,
     return result;
 }
 
-b32 collision_point_to_rect(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y, 
+b32 collision_point_to_rect(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y,
     f32 max_y)
 {
     f32 result;
@@ -892,7 +893,7 @@ b32 collision_point_to_rect(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y,
 
 void map_render(struct game_state* state)
 {
-    // Todo: fix map rendering glitch (a wall block randomly drawn in a 
+    // Todo: fix map rendering glitch (a wall block randomly drawn in a
     //       wrong place)
     for (u32 y = 0; y < MAP_HEIGHT; y++)
     {
@@ -909,7 +910,7 @@ void map_render(struct game_state* state)
             f32 left = x - TILE_WALL * 0.5f;
             f32 right = x + TILE_WALL * 0.5f;
 
-            if (collision_point_to_rect(state->mouse.world.x, 
+            if (collision_point_to_rect(state->mouse.world.x,
                 state->mouse.world.y, left, right, bottom, top))
             {
                 color = colors[RED];
@@ -930,7 +931,7 @@ void map_render(struct game_state* state)
                     struct m4 mvp = m4_mul_m4(model, state->camera.view);
                     mvp = m4_mul_m4(mvp, state->camera.projection);
 
-                    mesh_render(&state->wall, &mvp, state->texture_tileset, 
+                    mesh_render(&state->wall, &mvp, state->texture_tileset,
                         state->shader, color);
                 }
             }
@@ -961,7 +962,7 @@ b32 collision_circle_to_circle(struct v2 position_a, f32 radius_a,
     return result;
 }
 
-b32 collision_circle_to_rect(struct v2 circle, f32 circle_radius, f32 rect_top, 
+b32 collision_circle_to_rect(struct v2 circle, f32 circle_radius, f32 rect_top,
     f32 rect_bottom, f32 rect_left, f32 rect_right, struct v2* col)
 {
     f32 result;
@@ -998,7 +999,7 @@ b32 collision_circle_to_rect(struct v2 circle, f32 circle_radius, f32 rect_top,
     return result;
 }
 
-b32 collision_wall_resolve(f32 wall_x, f32 pos_x, f32 pos_y, f32 move_delta_x, 
+b32 collision_wall_resolve(f32 wall_x, f32 pos_x, f32 pos_y, f32 move_delta_x,
     f32 move_delta_y, f32 wall_size, f32* move_time)
 {
     b32 result = false;
@@ -1025,12 +1026,12 @@ b32 collision_wall_resolve(f32 wall_x, f32 pos_x, f32 pos_y, f32 move_delta_x,
     return result;
 }
 
-b32 collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius, 
+b32 collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius,
     f32* move_time, struct v2* normal)
 {
     b32 result = false;
 
-    struct v2 rel_new = 
+    struct v2 rel_new =
     {
         rel.x + move_delta.x,
         rel.y + move_delta.y
@@ -1043,16 +1044,16 @@ b32 collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius,
     if (collision_circle_to_rect(rel_new, radius, wall_half, -wall_half,
         -wall_half, wall_half, &col))
     {
-        // 1. find the closest point on the line from 
+        // 1. find the closest point on the line from
         //    relative position - relative_position_new
-        struct v2 plr_to_col = 
-        { 
+        struct v2 plr_to_col =
+        {
             col.x - rel.x,
             col.y - rel.y
         };
 
-        struct v2 plr_to_new = 
-        { 
+        struct v2 plr_to_new =
+        {
             rel_new.x - rel.x,
             rel_new.y - rel.y
         };
@@ -1070,18 +1071,18 @@ b32 collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius,
         // 2. calculate distance from closest point to the perfect point
         f32 distance_closest_to_collision = v2_distance(closest, col);
 
-        f32 distance_closest_to_perfect = f32_sqrt(f32_square(radius) - 
+        f32 distance_closest_to_perfect = f32_sqrt(f32_square(radius) -
             f32_square(distance_closest_to_collision));
 
         // 3. calculate distance from relative point to perfect point
         f32 distance_closest_to_relative = v2_distance(closest, rel);
 
-        f32 distance_relative_to_perfect = distance_closest_to_relative - 
+        f32 distance_relative_to_perfect = distance_closest_to_relative -
             distance_closest_to_perfect;
 
         struct v2 velocity_direction = v2_normalize(move_delta);
 
-        struct v2 perfect = 
+        struct v2 perfect =
         {
             rel.x + velocity_direction.x * distance_relative_to_perfect,
             rel.y + velocity_direction.y * distance_relative_to_perfect
@@ -1111,7 +1112,7 @@ b32 collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius,
     return result;
 }
 
-b32 check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta, 
+b32 check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta,
     f32 radius, f32 bounce_factor)
 {
     b32 result = false;
@@ -1129,14 +1130,14 @@ b32 check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta,
     u32 start_y = min_y < 0.0f ? 0 : (u32)min_y / WALL_SIZE;
     u32 end_x = (u32)((pos->x + wall_low + margin_x) / WALL_SIZE) + 1;
     u32 end_y = (u32)((pos->y + wall_low + margin_y) / WALL_SIZE) + 1;
-    
+
     f32 time_remaining = 1.0f;
 
     for (u32 i = 0; i < 4 && time_remaining > 0.0f; i++)
     {
         f32 time = 1.0f;
         struct v2 normal = { 0.0f };
-        
+
         for (u32 y = start_y; y <= end_y; y++)
         {
             for (u32 x = start_x; x <= end_x; x++)
@@ -1146,40 +1147,40 @@ b32 check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta,
                     continue;
                 }
 
-                struct v2 rel = 
+                struct v2 rel =
                 {
                     pos->x - x,
                     pos->y - y
                 };
 
-                struct v2 rel_new = 
+                struct v2 rel_new =
                 {
                     rel.x + move_delta.x,
                     rel.y + move_delta.y
                 };
 
-                if (collision_wall_resolve(-wall_high, rel.y, rel.x, 
+                if (collision_wall_resolve(-wall_high, rel.y, rel.x,
                     move_delta.y, move_delta.x, wall_low, &time))
                 {
                     normal.x = 0.0f;
                     normal.y = -1.0f;
                     result = true;
                 }
-                if (collision_wall_resolve(-wall_high, rel.x, rel.y, 
+                if (collision_wall_resolve(-wall_high, rel.x, rel.y,
                     move_delta.x, move_delta.y, wall_low, &time))
                 {
                     normal.x = -1.0f;
                     normal.y = 0.0f;
                     result = true;
                 }
-                if (collision_wall_resolve(wall_high, rel.y, rel.x, 
+                if (collision_wall_resolve(wall_high, rel.y, rel.x,
                     move_delta.y, move_delta.x, wall_low, &time))
                 {
                     normal.x = 0.0f;
                     normal.y = 1.0f;
                     result = true;
                 }
-                if (collision_wall_resolve(wall_high, rel.x, rel.y, 
+                if (collision_wall_resolve(wall_high, rel.x, rel.y,
                     move_delta.x, move_delta.y, wall_low, &time))
                 {
                     normal.x = 1.0f;
@@ -1189,7 +1190,7 @@ b32 check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta,
 
                 if (v2_length(normal) == 0.0f)
                 {
-                    if (collision_corner_resolve(rel, move_delta, radius, &time, 
+                    if (collision_corner_resolve(rel, move_delta, radius, &time,
                         &normal))
                     {
                         result = true;
@@ -1239,16 +1240,16 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 {
                     struct v2 current = enemy->path[enemy->path_index];
 
-                    f32 distance_to_current = v2_distance(enemy->body.position, 
+                    f32 distance_to_current = v2_distance(enemy->body.position,
                         current);
                     f32 epsilon = 0.25f;
 
                     if (distance_to_current < epsilon)
                     {
                         enemy->path_index += 1;
-                        
-                        for (u32 j = enemy->path_index; 
-                            j < enemy->path_length; 
+
+                        for (u32 j = enemy->path_index;
+                            j < enemy->path_length;
                             j++)
                         {
 
@@ -1264,7 +1265,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
                             enemy->path_index = j;
                         }
-                        
+
                         if (enemy->path_index < enemy->path_length)
                         {
                             continue;
@@ -1290,7 +1291,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             {
                 struct v2 target = tile_random_get(TILE_FLOOR);
 
-                enemy->path_length = path_find(enemy->body.position, 
+                enemy->path_length = path_find(enemy->body.position,
                     target, enemy->path, 256);
 
                 for (u32 j = 0; j < enemy->path_length; j++)
@@ -1311,9 +1312,9 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             acceleration.x += -enemy->body.velocity.x * FRICTION;
             acceleration.y += -enemy->body.velocity.y * FRICTION;
 
-            move_delta.x = 0.5f * acceleration.x * f32_square(dt) + 
+            move_delta.x = 0.5f * acceleration.x * f32_square(dt) +
                 enemy->body.velocity.x * dt;
-            move_delta.y = 0.5f * acceleration.y * f32_square(dt) + 
+            move_delta.y = 0.5f * acceleration.y * f32_square(dt) +
                 enemy->body.velocity.y * dt;
 
             enemy->body.velocity.x = enemy->body.velocity.x + acceleration.x *
@@ -1330,17 +1331,13 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             struct v2 direction_to_player = v2_normalize(v2_direction(
                 enemy->body.position, state->player.body.position));
 
-            struct v2 direction_current =
-            {
-                f32_cos(enemy->body.angle),
-                f32_sin(enemy->body.angle)
-            };
+            struct v2 direction_current = v2_direction_from_angle(
+                enemy->body.angle);
 
-            f32 angle_max = 22.5f;
-            f32 angle_player = f32_degrees(v2_angle(direction_to_player,
-                direction_current));
+            f32 angle_player = v2_angle(direction_to_player,
+                direction_current);
 
-            if (angle_player < angle_max &&
+            if (angle_player < ENEMY_LINE_OF_SIGHT_HALF &&
                 tile_ray_cast_to_position(state, enemy->body.position,
                     state->player.body.position, NULL, false))
             {
@@ -1494,7 +1491,7 @@ void enemies_render(struct game_state* state)
 
         if (enemy->alive)
         {
-            struct m4 transform = m4_translate(enemy->body.position.x, 
+            struct m4 transform = m4_translate(enemy->body.position.x,
                 enemy->body.position.y, PLAYER_RADIUS);
             struct m4 rotation = m4_rotate_z(enemy->body.angle);
             struct m4 scale = m4_scale_xyz(PLAYER_RADIUS, PLAYER_RADIUS, 0.25f);
@@ -1507,6 +1504,29 @@ void enemies_render(struct game_state* state)
 
             mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader,
                 colors[WHITE]);
+
+            // Render line of sight
+            {
+                struct v2 line_of_sight_left = v2_direction_from_angle(
+                    enemy->body.angle - ENEMY_LINE_OF_SIGHT_HALF);
+
+                struct v2 line_of_sight_right = v2_direction_from_angle(
+                    enemy->body.angle + ENEMY_LINE_OF_SIGHT_HALF);
+
+                struct ray_cast_collision collision = { 0 };
+
+                tile_ray_cast_to_direction(state, enemy->body.position,
+                    line_of_sight_left, 10.0f, &collision, false);
+
+                line_render(state, enemy->body.position, collision.position,
+                    colors[i], 0.005f, 0.01f);
+
+                tile_ray_cast_to_direction(state, enemy->body.position,
+                    line_of_sight_right, 10.0f, &collision, false);
+
+                line_render(state, enemy->body.position, collision.position,
+                    colors[i], 0.005f, 0.01f);
+            }
 
             health_bar_render(state, enemy->body.position, enemy->health, 
                 100.0f);
@@ -1536,17 +1556,21 @@ void enemies_render(struct game_state* state)
                     state->shader_simple, colors[GREY]);
             }
 
-            if (enemy->path_length)
+            // Render path
             {
-                struct v2 current = enemy->body.position;
-
-                for (u32 j = enemy->path_index; j < enemy->path_length; j++)
+                if (enemy->path_length)
                 {
-                    struct v2 next = enemy->path[j];
+                    struct v2 current = enemy->body.position;
 
-                    line_render(state, current, next, colors[i], 0.005f, 0.02f);
+                    for (u32 j = enemy->path_index; j < enemy->path_length; j++)
+                    {
+                        struct v2 next = enemy->path[j];
 
-                    current = next;
+                        line_render(state, current, next, colors[i],
+                            0.005f, 0.02f);
+
+                        current = next;
+                    }
                 }
             }
         }
