@@ -8,6 +8,7 @@
  - [X] Hot reload
  - [X] Recording
  - [X] Player movement
+ - [X] Camera follow
  - [ ] Collision detection
   - [X] Player collision
   - [X] Bullet collision
@@ -40,7 +41,6 @@
   - [ ] Proper bullet physics
  - [ ] Controller input
  - [ ] Local multiplayer
- - [ ] Camera follow
  - [ ] Text rendering
  - [ ] Procedural level generation
  - [ ] Animations
