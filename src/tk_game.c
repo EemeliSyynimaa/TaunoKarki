@@ -92,6 +92,7 @@ struct game_state
     struct mesh sphere;
     struct mesh wall;
     struct mesh floor;
+    struct mesh triangle;
     struct memory_block temporary;
     b32 fired;
     f32 accumulator;
@@ -2417,6 +2418,8 @@ void game_init(struct game_memory* memory, struct game_init* init)
             &state->wall);
         mesh_create(&state->temporary, "assets/meshes/floor.mesh",
             &state->floor);
+        mesh_create(&state->temporary, "assets/meshes/triangle.mesh",
+            &state->triangle);
 
         memory->initialized = true;
     }
