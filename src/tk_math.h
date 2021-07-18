@@ -694,6 +694,16 @@ b32 v2_equals(struct v2 a, struct v2 b)
     return a.x == b.x && a.y == b.y;
 }
 
+struct v2 v2_mul_f32(struct v2 a, f32 b)
+{
+    struct v2 result;
+
+    result.x = a.x * b;
+    result.y = a.y * b;
+
+    return result;
+}
+
 struct m4 m4_perspective(f32 fov, f32 aspect, f32 near, f32 far)
 {
     f32 t = f32_tan(f32_radians(fov) / 2.0f);
