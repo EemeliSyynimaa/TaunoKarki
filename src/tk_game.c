@@ -1507,25 +1507,33 @@ void enemies_render(struct game_state* state)
 
             // Render line of sight
             {
-                struct v2 line_of_sight_left = v2_direction_from_angle(
-                    enemy->body.angle - ENEMY_LINE_OF_SIGHT_HALF);
+                u32 length_max = 20.0f;
+                u32 num_swipes = 15;
+                f32 angle_increment = ENEMY_LINE_OF_SIGHT_HALF / num_swipes;
+                f32 angle = 0.0f;
 
-                struct v2 line_of_sight_right = v2_direction_from_angle(
-                    enemy->body.angle + ENEMY_LINE_OF_SIGHT_HALF);
+                for (u32 j = 0; j < num_swipes; j++, angle += angle_increment)
+                {
+                    struct v2 line_of_sight_left = v2_direction_from_angle(
+                        enemy->body.angle - angle);
 
-                struct ray_cast_collision collision = { 0 };
+                    struct v2 line_of_sight_right = v2_direction_from_angle(
+                        enemy->body.angle + angle);
 
-                tile_ray_cast_to_direction(state, enemy->body.position,
-                    line_of_sight_left, 10.0f, &collision, false);
+                    struct ray_cast_collision collision = { 0 };
 
-                line_render(state, enemy->body.position, collision.position,
-                    colors[i], 0.005f, 0.01f);
+                    tile_ray_cast_to_direction(state, enemy->body.position,
+                        line_of_sight_left, length_max, &collision, false);
 
-                tile_ray_cast_to_direction(state, enemy->body.position,
-                    line_of_sight_right, 10.0f, &collision, false);
+                    line_render(state, enemy->body.position, collision.position,
+                        colors[i], 0.005f, 0.01f);
 
-                line_render(state, enemy->body.position, collision.position,
-                    colors[i], 0.005f, 0.01f);
+                    tile_ray_cast_to_direction(state, enemy->body.position,
+                        line_of_sight_right, length_max, &collision, false);
+
+                    line_render(state, enemy->body.position, collision.position,
+                        colors[i], 0.005f, 0.01f);
+                }
             }
 
             health_bar_render(state, enemy->body.position, enemy->health, 
