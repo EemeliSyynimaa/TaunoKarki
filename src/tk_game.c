@@ -55,6 +55,7 @@ struct mouse
     struct v2 screen;
 };
 
+// Todo: support vertices with a color property?
 struct vertex
 {
     struct v3 position;
@@ -409,6 +410,7 @@ void node_add_to_path(struct node* node, struct v2 path[], u32* index)
         return;
     }
 
+    // Todo: this overflows stack sometimes
     node_add_to_path(node->parent, path, index);
 
     path[(*index)++] = node->position;
@@ -672,6 +674,70 @@ void line_render(struct game_state* state, struct v2 start, struct v2 end,
 
     mesh_render(&state->floor, &mvp, state->texture_tileset,
         state->shader_simple, color);
+}
+
+void triangle_render(struct game_state* state, struct v2 a, struct v2 b,
+    struct v2 c, struct v4 color, f32 depth)
+{
+    // Todo: clean
+    u32 vao;
+    u32 vbo;
+    u32 ibo;
+    u32 num_vertices = 3;
+    u32 num_indices = 3;
+    u32 indices[] = { 0, 1, 2 };
+    u32 texture = 0;
+    struct vertex vertices[] =
+    {
+        {{ a.x, a.y, depth }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }},
+        {{ b.x, b.y, depth }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }},
+        {{ c.x, c.y, depth }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }}
+    };
+
+    glGenVertexArrays(1, &vao);
+    glBindVertexArray(vao);
+
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct vertex),
+        vertices, GL_DYNAMIC_DRAW);
+
+    glGenBuffers(1, &ibo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, num_indices * sizeof(u32),
+        indices, GL_DYNAMIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+
+    // Todo: implement offsetof
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
+        (void*)0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
+        (void*)12);
+    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
+        (void*)20);
+
+    glUseProgram(state->shader_simple);
+
+    u32 uniform_mvp = glGetUniformLocation(state->shader_simple, "MVP");
+    u32 uniform_texture = glGetUniformLocation(state->shader_simple, "texture");
+    u32 uniform_color = glGetUniformLocation(state->shader_simple, "color");
+
+    struct m4 mvp = state->camera.view;
+    mvp = m4_mul_m4(mvp, state->camera.projection);
+
+    glUniform1i(uniform_texture, 0);
+    glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, (GLfloat*)&mvp);
+    glUniform4fv(uniform_color, 1, (GLfloat*)&color);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, NULL);
+
+    glUseProgram(0);
 }
 
 void cursor_render(struct game_state* state)
@@ -1338,6 +1404,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             f32 angle_player = v2_angle(direction_to_player,
                 direction_current);
 
+            // Todo: sometimes rotation goes crazy
             if (angle_player < ENEMY_LINE_OF_SIGHT_HALF &&
                 tile_ray_cast_to_position(state, enemy->body.position,
                     state->player.body.position, NULL, false))
@@ -1442,7 +1509,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 f32 speed = F64_PI * 2.0f * dt;
 
                 if (f32_abs(MIN(diff_clockwise, diff_counter_clockwise))
-                    < (speed + 0.1f))
+                    < (speed + 0.2f))
                 {
                     enemy->body.angle = target_angle;
                 }
@@ -1831,6 +1898,14 @@ void player_render(struct game_state* state)
             mesh_render(&state->floor, &mvp, state->texture_tileset, 
                 state->shader_simple, colors[RED]);
         }
+
+        struct v2 center = player->body.position;
+
+        struct v2 a = { center.x - 1.0f, center.y - 1.0f };
+        struct v2 b = { center.x + 1.0f, center.y - 1.0f };
+        struct v2 c = { center.x, center.y + 1.0f };
+
+        triangle_render(state, a, b, c, colors[BLACK], 0.1f);
 
         tile_ray_cast_to_position(state, player->body.position,
             state->enemies[0].body.position, NULL, true);
