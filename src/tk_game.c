@@ -1646,12 +1646,12 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
         tile_ray_cast_to_direction(state, position, line_of_sight_left,
             length_max, &collision, false);
 
-        line_render(state, position, collision.position, color, 0.005f, 0.005f);
+        line_of_sight_render_wall(state, position, angle_start - angle, color);
 
         tile_ray_cast_to_direction(state, position, line_of_sight_right,
             length_max, &collision, false);
 
-        line_render(state, position, collision.position, color, 0.005f, 0.005f);
+        line_of_sight_render_wall(state, position, angle_start + angle, color);
     }
 }
 
@@ -1975,8 +1975,8 @@ void player_render(struct game_state* state)
                 state->shader_simple, colors[RED]);
         }
 
-        line_of_sight_render_wall(state, player->body.position,
-            player->body.angle, colors[AQUA]);
+        line_of_sight_render(state, player->body.position, player->body.angle,
+            ENEMY_LINE_OF_SIGHT_HALF, colors[YELLOW]);
 
         // tile_ray_cast_to_position(state, player->body.position,
         //     state->enemies[0].body.position, NULL, true);
