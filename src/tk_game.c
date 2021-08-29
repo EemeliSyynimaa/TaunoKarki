@@ -599,6 +599,35 @@ void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
         (void*)20);
 }
 
+void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
+{
+    struct v2 temp_b = { b->x - a.x, b->y - a.y };
+    struct v2 temp_c = { c->x - a.x, c->y - a.y };
+    struct v2 forward =
+    {
+        (temp_b.x + temp_c.x) * 0.5f,
+        (temp_b.y + temp_c.y) * 0.5f
+    };
+
+    f32 angle = F64_PI*1.5f;
+    f32 tsin = f32_sin(angle);
+    f32 tcos = f32_cos(angle);
+
+    struct v2 right =
+    {
+        forward.x * tcos - forward.y * tsin,
+        forward.x * tsin + forward.y * tcos
+    };
+
+    f32 diff_b = v2_dot(right, temp_b);
+    f32 diff_c = v2_dot(right, temp_c);
+
+    if (diff_c > diff_b)
+    {
+        v2_swap(b, c);
+    }
+}
+
 void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader,
     struct v4 color)
 {
@@ -764,6 +793,9 @@ void cursor_render(struct game_state* state)
 struct ray_cast_collision
 {
     struct v2 position;
+    struct v2 wall_start;
+    struct v2 wall_end;
+    // Todo: add wall normal? Could be nice
     f32 ray_length;
 };
 
@@ -773,7 +805,7 @@ b32 tile_ray_cast_to_direction(struct game_state* state, struct v2 start,
 {
     // Returns true if the ray collides before length_max
     b32 result = false;
-    f32 tile_size = TILE_WALL;
+    f32 tile_size = WALL_SIZE;
     u32 iteration = 0;
 
     struct v2 current = start;
@@ -810,6 +842,9 @@ b32 tile_ray_cast_to_direction(struct game_state* state, struct v2 start,
                 direction.y);
         }
 
+        b32 check_x = false;
+        b32 check_y = false;
+
         if (direction.y && direction.x)
         {
             if (v2_distance(current, cut_x) < v2_distance(current, cut_y))
@@ -818,6 +853,8 @@ b32 tile_ray_cast_to_direction(struct game_state* state, struct v2 start,
                 current.y = cut_x.y;
 
                 wall.x += step.x;
+
+                check_x = true;
             }
             else if (v2_distance(current, cut_x) > v2_distance(current, cut_y))
             {
@@ -825,6 +862,8 @@ b32 tile_ray_cast_to_direction(struct game_state* state, struct v2 start,
                 current.y = wall.y;
 
                 wall.y += step.y;
+
+                check_y = true;
             }
             else
             {
@@ -841,6 +880,8 @@ b32 tile_ray_cast_to_direction(struct game_state* state, struct v2 start,
             current.y = cut_x.y;
 
             wall.x += step.x;
+
+            check_x = true;
         }
         else
         {
@@ -848,6 +889,8 @@ b32 tile_ray_cast_to_direction(struct game_state* state, struct v2 start,
             current.y = wall.y;
 
             wall.y += step.y;
+
+            check_y = true;
         }
 
         f32 ray_length = v2_distance(current, start);
@@ -880,7 +923,8 @@ b32 tile_ray_cast_to_direction(struct game_state* state, struct v2 start,
 
         f32 epsilon = 0.001f;
 
-        if (direction.x)
+        // Todo: these both cases can possibly be merged
+        if (check_x)
         {
             struct v2 tile_left = { current.x - epsilon, current.y };
             struct v2 tile_right = { current.x + epsilon, current.y };
@@ -890,6 +934,10 @@ b32 tile_ray_cast_to_direction(struct game_state* state, struct v2 start,
                 if (collision)
                 {
                     collision->ray_length = ray_length;
+                    collision->wall_start.x = current.x;
+                    collision->wall_end.x = current.x;
+                    collision->wall_start.y = wall.y - step.y;
+                    collision->wall_end.y = wall.y;
                 }
 
                 result = true;
@@ -897,7 +945,7 @@ b32 tile_ray_cast_to_direction(struct game_state* state, struct v2 start,
             }
         }
 
-        if (direction.y)
+        if (check_y)
         {
             struct v2 tile_top = { current.x, current.y + epsilon };
             struct v2 tile_bottom = { current.x, current.y - epsilon };
@@ -907,6 +955,10 @@ b32 tile_ray_cast_to_direction(struct game_state* state, struct v2 start,
                 if (collision)
                 {
                     collision->ray_length = ray_length;
+                    collision->wall_start.y = current.y;
+                    collision->wall_end.y = current.y;
+                    collision->wall_start.x = wall.x - step.x;
+                    collision->wall_end.x = wall.x;
                 }
 
                 result = true;
@@ -1551,6 +1603,58 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
     }
 }
 
+void line_of_sight_render_wall(struct game_state* state, struct v2 position,
+    f32 angle, struct v4 color)
+{
+    u32 length_max = 20.0f;
+    struct ray_cast_collision collision = { 0 };
+    struct v2 direction = v2_direction_from_angle(angle);
+
+    tile_ray_cast_to_direction(state, position, direction,
+        length_max, &collision, false);
+
+    triangle_reorder_vertices_ccw(position, &collision.wall_start,
+        &collision.wall_end);
+
+    triangle_render(state, position, collision.wall_start, collision.wall_end,
+        colors[YELLOW], 0.002f);
+
+    line_render(state, collision.wall_start, collision.wall_end, colors[RED],
+        1.01f, 0.1f);
+
+    line_render(state, position, collision.position, color, 0.005f, 0.025f);
+}
+
+void line_of_sight_render(struct game_state* state, struct v2 position,
+    f32 angle_start, f32 angle_max, struct v4 color)
+{
+    u32 length_max = 20.0f;
+    u32 num_swipes = 15;
+    f32 angle_increment = angle_max / num_swipes;
+    f32 angle = 0.0f;
+
+    for (u32 j = 0; j < num_swipes; j++, angle += angle_increment)
+    {
+        struct v2 line_of_sight_left = v2_direction_from_angle(
+            angle_start - angle);
+
+        struct v2 line_of_sight_right = v2_direction_from_angle(
+            angle_start + angle);
+
+        struct ray_cast_collision collision = { 0 };
+
+        tile_ray_cast_to_direction(state, position, line_of_sight_left,
+            length_max, &collision, false);
+
+        line_render(state, position, collision.position, color, 0.005f, 0.005f);
+
+        tile_ray_cast_to_direction(state, position, line_of_sight_right,
+            length_max, &collision, false);
+
+        line_render(state, position, collision.position, color, 0.005f, 0.005f);
+    }
+}
+
 void enemies_render(struct game_state* state)
 {
     for (u32 i = 0; i < MAX_ENEMIES; i++)
@@ -1573,36 +1677,8 @@ void enemies_render(struct game_state* state)
             mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader,
                 colors[WHITE]);
 
-            // Render line of sight
-            {
-                u32 length_max = 20.0f;
-                u32 num_swipes = 15;
-                f32 angle_increment = ENEMY_LINE_OF_SIGHT_HALF / num_swipes;
-                f32 angle = 0.0f;
-
-                for (u32 j = 0; j < num_swipes; j++, angle += angle_increment)
-                {
-                    struct v2 line_of_sight_left = v2_direction_from_angle(
-                        enemy->body.angle - angle);
-
-                    struct v2 line_of_sight_right = v2_direction_from_angle(
-                        enemy->body.angle + angle);
-
-                    struct ray_cast_collision collision = { 0 };
-
-                    tile_ray_cast_to_direction(state, enemy->body.position,
-                        line_of_sight_left, length_max, &collision, false);
-
-                    line_render(state, enemy->body.position, collision.position,
-                        colors[i], 0.005f, 0.01f);
-
-                    tile_ray_cast_to_direction(state, enemy->body.position,
-                        line_of_sight_right, length_max, &collision, false);
-
-                    line_render(state, enemy->body.position, collision.position,
-                        colors[i], 0.005f, 0.01f);
-                }
-            }
+            // line_of_sight_render(state, enemy->body.position, enemy->body.angle,
+            //     ENEMY_LINE_OF_SIGHT_HALF, colors[YELLOW]);
 
             health_bar_render(state, enemy->body.position, enemy->health, 
                 100.0f);
@@ -1899,16 +1975,11 @@ void player_render(struct game_state* state)
                 state->shader_simple, colors[RED]);
         }
 
-        struct v2 center = player->body.position;
+        line_of_sight_render_wall(state, player->body.position,
+            player->body.angle, colors[AQUA]);
 
-        struct v2 a = { center.x - 1.0f, center.y - 1.0f };
-        struct v2 b = { center.x + 1.0f, center.y - 1.0f };
-        struct v2 c = { center.x, center.y + 1.0f };
-
-        triangle_render(state, a, b, c, colors[BLACK], 0.1f);
-
-        tile_ray_cast_to_position(state, player->body.position,
-            state->enemies[0].body.position, NULL, true);
+        // tile_ray_cast_to_position(state, player->body.position,
+        //     state->enemies[0].body.position, NULL, true);
 
         health_bar_render(state, player->body.position, player->health, 100.0f);
     }
