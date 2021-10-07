@@ -609,6 +609,7 @@ void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
         (temp_b.y + temp_c.y) * 0.5f
     };
 
+    // Todo: calculate right with cross product
     f32 angle = F64_PI*1.5f;
     f32 tsin = f32_sin(angle);
     f32 tcos = f32_cos(angle);
@@ -973,6 +974,21 @@ b32 tile_ray_cast_to_direction(struct game_state* state, struct v2 start,
     }
 
     // LOG("length: %.2f\n", result);
+
+    return result;
+}
+
+b32 tile_ray_cast_to_angle(struct game_state* state, struct v2 start,
+     f32 angle, f32 length_max, struct ray_cast_collision* collision,
+     b32 render)
+{
+    // Returns true if the ray collides before length_max
+    b32 result = false;
+
+    struct v2 direction = v2_direction_from_angle(angle);
+
+    result = tile_ray_cast_to_direction(state, start, direction, length_max,
+        collision, render);
 
     return result;
 }
@@ -1465,11 +1481,11 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
                 if (v2_length(enemy->body.velocity))
                 {
+                    // Todo: calculate right with cross product
                     f32 angle = F64_PI*1.5f;
                     f32 tsin = f32_sin(angle);
                     f32 tcos = f32_cos(angle);
 
-                    // Todo: can this be done more smartly?
                     struct v2 target_right =
                     {
                         target_forward.x * tcos - target_forward.y * tsin,
@@ -1603,26 +1619,65 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
     }
 }
 
+b32 is_angle_over_max(f32 angle, f32 min, f32 max)
+{
+    f32 circle = 360.0f;
+    angle += angle < 0.0f ? circle : 0.0f;
+    min += min < 0.0f ? circle : 0.0f;
+    max += max < 0.0f ? circle : 0.0f;
+
+    return true;
+}
+
 void line_of_sight_render_wall(struct game_state* state, struct v2 position,
-    f32 angle, struct v4 color)
+    f32 angle, f32 angle_origin, f32 angle_max, struct v4 color)
 {
     u32 length_max = 20.0f;
     struct ray_cast_collision collision = { 0 };
-    struct v2 direction = v2_direction_from_angle(angle);
 
-    tile_ray_cast_to_direction(state, position, direction,
-        length_max, &collision, false);
+    tile_ray_cast_to_angle(state, position, angle_origin + angle, length_max,
+        &collision, false);
 
-    triangle_reorder_vertices_ccw(position, &collision.wall_start,
-        &collision.wall_end);
+    struct v2 start = collision.wall_start;
+    struct v2 end = collision.wall_end;
 
-    triangle_render(state, position, collision.wall_start, collision.wall_end,
-        colors[YELLOW], 0.002f);
+    struct v2 dir_angle = v2_direction_from_angle(angle_origin);
+    struct v2 dir_start = v2_direction(position, start);
+    struct v2 dir_end = v2_direction(position, end);
+    f32 angle_start = v2_angle(dir_angle, dir_start);
+    f32 angle_end = v2_angle(dir_angle, dir_end);
+
+    struct v3 temp_start = { start.x, start.y, 0.0f };
+    struct v3 temp_end = { end.x, end.y, 0.0f };
+    struct v3 temp_cross = v3_cross(temp_start, temp_end);
+
+    f32 inverse = temp_cross.z > 0.0f ? 1.0f : -1.0f;
+
+    if (angle_start > angle_max)
+    {
+        struct ray_cast_collision temp = { 0 };
+        tile_ray_cast_to_angle(state, position,
+            angle_origin - (angle_max * inverse), length_max, &temp, false);
+        start = temp.position;
+    }
+
+    if (angle_end > angle_max)
+    {
+        struct ray_cast_collision temp = { 0 };
+        tile_ray_cast_to_angle(state, position,
+            angle_origin + (angle_max * inverse), length_max, &temp, false);
+        end = temp.position;
+    }
+
+    triangle_reorder_vertices_ccw(position, &start, &end);
+
+    triangle_render(state, position, start, end, colors[YELLOW], 0.002f);
 
     line_render(state, collision.wall_start, collision.wall_end, colors[RED],
         1.01f, 0.1f);
 
-    line_render(state, position, collision.position, color, 0.005f, 0.025f);
+    line_render(state, position, collision.position, colors[RED], 0.005f,
+        0.005f);
 }
 
 void line_of_sight_render(struct game_state* state, struct v2 position,
@@ -1633,25 +1688,13 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
     f32 angle_increment = angle_max / num_swipes;
     f32 angle = 0.0f;
 
-    for (u32 j = 0; j < num_swipes; j++, angle += angle_increment)
+    for (u32 j = 0; j < num_swipes + 1; j++, angle += angle_increment)
     {
-        struct v2 line_of_sight_left = v2_direction_from_angle(
-            angle_start - angle);
+        line_of_sight_render_wall(state, position, angle, angle_start,
+            angle_max, color);
 
-        struct v2 line_of_sight_right = v2_direction_from_angle(
-            angle_start + angle);
-
-        struct ray_cast_collision collision = { 0 };
-
-        tile_ray_cast_to_direction(state, position, line_of_sight_left,
-            length_max, &collision, false);
-
-        line_of_sight_render_wall(state, position, angle_start - angle, color);
-
-        tile_ray_cast_to_direction(state, position, line_of_sight_right,
-            length_max, &collision, false);
-
-        line_of_sight_render_wall(state, position, angle_start + angle, color);
+        line_of_sight_render_wall(state, position, -angle, angle_start,
+            angle_max, color);
     }
 }
 
@@ -1824,6 +1867,7 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         dir = v2_normalize(dir);
 
         player->body.angle = f32_atan(dir.y, dir.x);
+        // player->body.angle = f32_radians(-90);
 
         if (input->move_left.key_down)
         {
