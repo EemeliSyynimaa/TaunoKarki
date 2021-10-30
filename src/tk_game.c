@@ -1006,7 +1006,7 @@ b32 tile_ray_cast_to_position(struct game_state* state, struct v2 start,
     tile_ray_cast_to_direction(state, start, direction, length,
         &temp, render);
 
-    result = temp.ray_length >= length;
+    result = temp.ray_length >= (length - 0.0001f);
 
     if (collision)
     {
@@ -1619,57 +1619,34 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
     }
 }
 
-b32 is_angle_over_max(f32 angle, f32 min, f32 max)
+void cast_ray_to_tile_corner(struct game_state* state, struct v2 position,
+    f32 corner_x, f32 corner_y)
 {
-    f32 circle = 360.0f;
-    angle += angle < 0.0f ? circle : 0.0f;
-    min += min < 0.0f ? circle : 0.0f;
-    max += max < 0.0f ? circle : 0.0f;
-
-    return true;
-}
-
-void line_of_sight_render_wall(struct game_state* state, struct v2 position,
-    f32 angle, f32 angle_origin, f32 angle_max, struct v4 color,
-    f32* angle_left, f32* angle_right)
-{
-    u32 length_max = 20.0f;
+    struct v2 target = { corner_x, corner_y };
     struct ray_cast_collision collision = { 0 };
+    struct v2 direction = v2_direction(position, target);
+    f32 angle = f32_atan(direction.y, direction.x);
+    f32 length_max = 20.0f;
+    f32 t = 0.00001f;
 
-    tile_ray_cast_to_angle(state, position, angle_origin + angle, length_max,
-        &collision, false);
-
-    struct v2 start = collision.wall_start;
-    struct v2 end = collision.wall_end;
-
-    triangle_reorder_vertices_ccw(position, &start, &end);
-
-    triangle_render(state, position, start, end, colors[YELLOW], 0.002f);
-
-    line_render(state, collision.wall_start, collision.wall_end, colors[RED],
-        1.01f, 0.1f);
-
-    line_render(state, position, collision.position, colors[RED], 0.005f,
-        0.005f);
+    if (tile_ray_cast_to_position(state, position, target, &collision, false))
+    {
+        line_render(state, position, collision.position,
+            colors[RED], 0.005f, 0.005f);
+        tile_ray_cast_to_angle(state, position, angle + t,
+            length_max, &collision, false);
+        line_render(state, position, collision.position,
+            colors[RED], 0.005f, 0.005f);
+        tile_ray_cast_to_angle(state, position, angle - t,
+            length_max, &collision, false);
+        line_render(state, position, collision.position,
+            colors[RED], 0.005f, 0.005f);
+    }
 }
 
 void line_of_sight_render(struct game_state* state, struct v2 position,
     f32 angle_start, f32 angle_max, struct v4 color)
 {
-    u32 length_max = 20.0f;
-    // u32 num_swipes = 15;
-    // f32 angle_increment = angle_max / num_swipes;
-    // f32 angle = 0.0f;
-
-    // for (u32 j = 0; j < num_swipes + 1; j++, angle += angle_increment)
-    // {
-    //     line_of_sight_render_wall(state, position, angle, angle_start,
-    //         angle_max, color);
-
-    //     line_of_sight_render_wall(state, position, -angle, angle_start,
-    //         angle_max, color);
-    // }
-
     for (u32 y = 0; y < MAP_HEIGHT; y++)
     {
         for (u32 x = 0; x < MAP_WIDTH; x++)
@@ -1678,160 +1655,19 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
 
             if (tile_is_of_type(tile, TILE_WALL))
             {
-                struct ray_cast_collision collision = { 0 };
-                struct v2 target = { 0 };
-                struct v2 direction = { 0 };
-                f32 angle = 0.0f;
-                f32 t = 0.0001f;
+                f32 diff = WALL_SIZE * 0.5f;
 
-                target.x = tile.x - WALL_SIZE * 0.5f;
-                target.y = tile.y + WALL_SIZE * 0.5f;
-                direction = v2_direction(position, target);
-                angle = f32_atan(direction.y, direction.x);
-
-                tile_ray_cast_to_angle(state, position, angle, length_max,
-                    &collision, false);
-                line_render(state, position, collision.position, colors[RED],
-                    0.005f, 0.005f);
-                tile_ray_cast_to_angle(state, position, angle + t, length_max,
-                    &collision, false);
-                line_render(state, position, collision.position, colors[RED],
-                    0.005f, 0.005f);
-                tile_ray_cast_to_angle(state, position, angle - t, length_max,
-                    &collision, false);
-                line_render(state, position, collision.position, colors[RED],
-                    0.005f, 0.005f);
-
-                target.x = tile.x + WALL_SIZE * 0.5f;
-                target.y = tile.y + WALL_SIZE * 0.5f;
-                direction = v2_direction(position, target);
-                angle = f32_atan(direction.y, direction.x);
-
-                tile_ray_cast_to_angle(state, position, angle, length_max,
-                    &collision, false);
-                line_render(state, position, collision.position, colors[RED],
-                    0.005f, 0.005f);
-                tile_ray_cast_to_angle(state, position, angle + t, length_max,
-                    &collision, false);
-                line_render(state, position, collision.position, colors[RED],
-                    0.005f, 0.005f);
-                tile_ray_cast_to_angle(state, position, angle - t, length_max,
-                    &collision, false);
-                line_render(state, position, collision.position, colors[RED],
-                    0.005f, 0.005f);
-
-                target.x = tile.x + WALL_SIZE * 0.5f;
-                target.y = tile.y - WALL_SIZE * 0.5f;
-                direction = v2_direction(position, target);
-                angle = f32_atan(direction.y, direction.x);
-
-                tile_ray_cast_to_angle(state, position, angle, length_max,
-                    &collision, false);
-                line_render(state, position, collision.position, colors[RED],
-                    0.005f, 0.005f);
-                tile_ray_cast_to_angle(state, position, angle + t, length_max,
-                    &collision, false);
-                line_render(state, position, collision.position, colors[RED],
-                    0.005f, 0.005f);
-                tile_ray_cast_to_angle(state, position, angle - t, length_max,
-                    &collision, false);
-                line_render(state, position, collision.position, colors[RED],
-                    0.005f, 0.005f);
-
-                target.x = tile.x - WALL_SIZE * 0.5f;
-                target.y = tile.y - WALL_SIZE * 0.5f;
-                direction = v2_direction(position, target);
-                angle = f32_atan(direction.y, direction.x);
-
-                tile_ray_cast_to_angle(state, position, angle, length_max,
-                    &collision, false);
-                line_render(state, position, collision.position, colors[RED],
-                    0.005f, 0.005f);
-                tile_ray_cast_to_angle(state, position, angle + t, length_max,
-                    &collision, false);
-                line_render(state, position, collision.position, colors[RED],
-                    0.005f, 0.005f);
-                tile_ray_cast_to_angle(state, position, angle - t, length_max,
-                    &collision, false);
-                line_render(state, position, collision.position, colors[RED],
-                    0.005f, 0.005f);
+                cast_ray_to_tile_corner(state, position, tile.x + diff,
+                    tile.y + diff);
+                cast_ray_to_tile_corner(state, position, tile.x + diff,
+                    tile.y - diff);
+                cast_ray_to_tile_corner(state, position, tile.x - diff,
+                    tile.y + diff);
+                cast_ray_to_tile_corner(state, position, tile.x - diff,
+                    tile.y - diff);
             }
         }
     }
-
-    // struct v2 look_direction = v2_direction_from_angle(angle_start);
-
-    // u32 length_max = 50.0f;
-    // struct ray_cast_collision collision = { 0 };
-
-    // tile_ray_cast_to_angle(state, position, angle_start, length_max,
-    //     &collision, false);
-
-    // struct v2 start = collision.wall_start;
-    // struct v2 end = collision.wall_end;
-
-    // triangle_reorder_vertices_ccw(position, &start, &end);
-
-    // triangle_render(state, position, start, end, colors[YELLOW], 0.002f);
-
-    // line_render(state, collision.wall_start, collision.wall_end, colors[RED],
-    //     1.01f, 0.1f);
-
-    // line_render(state, position, collision.position, colors[RED], 0.005f,
-    //     0.005f);
-
-    // f32 temp = 0.00001f;
-    // f32 left_angle = 0.0f;
-
-    // struct v2 left_start = { 0 };
-    // struct v2 left_direction = { 0 };
-    // struct v2 left_ray = { 0 };
-    // struct v2 left_ray_direction = { 0 };
-    // struct ray_cast_collision left_collision = { 0 };
-
-    // // End should be either the left most or the up most point of the wall
-    // for (u32 i = 0; i < 1; i++)
-    // {
-    //     left_start = end;
-    //     left_direction = v2_direction(start, end);
-
-    //     left_ray = left_start;
-    //     left_ray.x += temp * left_direction.x;
-    //     left_ray.y += temp * left_direction.y;
-
-    //     left_ray_direction = v2_direction(position, left_ray);
-
-    //     tile_ray_cast_to_direction(state, position, left_ray_direction, length_max,
-    //         &left_collision, false);
-
-    //     start = left_collision.wall_start;
-    //     end = left_collision.wall_end;
-
-    //     triangle_reorder_vertices_ccw(position, &start, &end);
-
-    //     // left_angle = v2_angle(look_direction, end);
-
-    //     // if (left_angle > angle_max)
-    //     // {
-    //     //     LOG("LEFT ANGLE: %.2f > %.2f\n", left_angle, angle_max)
-
-    //     //     struct ray_cast_collision max_collision = { 0 };
-
-    //     //     tile_ray_cast_to_angle(state, position, angle_start + angle_max,
-    //     //         length_max, &max_collision, false);
-    //     //     end = max_collision.position;
-    //     // }
-
-    //     start = left_collision.position;
-
-    //     triangle_render(state, position, start, end, colors[YELLOW], 0.002f);
-
-    //     line_render(state, left_collision.wall_start, left_collision.wall_end, colors[RED],
-    //         1.01f, 0.1f);
-
-    //     line_render(state, position, left_collision.position, colors[RED], 0.005f,
-    //         0.005f);
-    // }
 }
 
 void enemies_render(struct game_state* state)
