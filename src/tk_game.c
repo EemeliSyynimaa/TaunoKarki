@@ -1647,6 +1647,34 @@ void cast_ray_to_tile_corner(struct game_state* state, struct v2 position,
     }
 }
 
+b32 insert_corner(struct v2 corner, struct v2 corners[], u32 max, u32* count)
+{
+    b32 result = false;
+
+    if (*count < max)
+    {
+        b32 found = false;
+
+        for (u32 i = 0; i < *count; i++)
+        {
+            if (v2_equals(corner, corners[i]))
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            corners[(*count)++] = corner;
+        }
+
+        result = true;
+    }
+
+    return result;
+}
+
 void get_wall_corners(struct v2 corners[], u32 max, u32* count)
 {
     for (u32 y = 0; y < MAP_HEIGHT; y++)
@@ -1657,36 +1685,28 @@ void get_wall_corners(struct v2 corners[], u32 max, u32* count)
 
             if (tile_is_of_type(tile, TILE_WALL))
             {
-                f32 wall_size_half = WALL_SIZE * 0.5f;
+                f32 t = WALL_SIZE * 0.5f;
 
-                corners[*count].x = tile.x - wall_size_half;
-                corners[*count].y = tile.y + wall_size_half;
-
-                if (++(*count) >= max)
+                if (!insert_corner((struct v2){ tile.x + t, tile.y + t},
+                    corners, max, count))
                 {
                     return;
                 }
 
-                corners[*count].x = tile.x - wall_size_half;
-                corners[*count].y = tile.y - wall_size_half;
-
-                if (++(*count) >= max)
+                if (!insert_corner((struct v2){ tile.x - t, tile.y - t},
+                    corners, max, count))
                 {
                     return;
                 }
 
-                corners[*count].x = tile.x + wall_size_half;
-                corners[*count].y = tile.y + wall_size_half;
-
-                if (++(*count) >= max)
+                if (!insert_corner((struct v2){ tile.x + t, tile.y - t},
+                    corners, max, count))
                 {
                     return;
                 }
 
-                corners[*count].x = tile.x + wall_size_half;
-                corners[*count].y = tile.y - wall_size_half;
-
-                if (++(*count) >= max)
+                if (!insert_corner((struct v2){ tile.x - t, tile.y + t},
+                    corners, max, count))
                 {
                     return;
                 }
@@ -1698,34 +1718,15 @@ void get_wall_corners(struct v2 corners[], u32 max, u32* count)
 void exclude_corners_not_in_view(struct game_state* state, struct v2 position,
     f32 angle_start, f32 angle_max, struct v2 corners[], u32 max, u32* count)
 {
-    struct v3 dir_forward =
-    {
-        v2_direction_from_angle(angle_start).x,
-        v2_direction_from_angle(angle_start).y,
-        0
-    };
-    struct v3 dir_left =
-    {
-        v2_direction_from_angle(angle_start + angle_max).x,
-        v2_direction_from_angle(angle_start + angle_max).y,
-        0
-    };
-    struct v3 dir_right =
-    {
-        v2_direction_from_angle(angle_start - angle_max).x,
-        v2_direction_from_angle(angle_start - angle_max).y,
-        0
-    };
+    struct v3 dir_left = v3_from_v2(v2_direction_from_angle(
+        angle_start + angle_max), 0.0f);
+    struct v3 dir_right = v3_from_v2(v2_direction_from_angle(
+        angle_start - angle_max), 0.0f);
 
     for (u32 i = 0; i < state->num_wall_corners; i++)
     {
-        struct v3 dir_corner =
-        {
-            v2_direction(position, state->wall_corners[i]).x,
-            v2_direction(position, state->wall_corners[i]).y,
-            0
-        };
-
+        struct v3 dir_corner = v3_from_v2(v2_direction(position,
+            state->wall_corners[i]), 0.0f);
         struct v3 left = v3_cross(dir_left, dir_corner);
         struct v3 right = v3_cross(dir_right, dir_corner);
 
@@ -1737,7 +1738,23 @@ void exclude_corners_not_in_view(struct game_state* state, struct v2 position,
             {
                 return;
             }
+        }
+    }
+}
 
+void reorder_corners_ccw(struct v2* corners, u32 count, struct v2 position)
+{
+    for (u32 i = 0; i < count - 1; i++)
+    {
+        for (u32 j = i + 1; j < count; j++)
+        {
+            struct v3 a = v3_from_v2(v2_direction(position, corners[i]), 0.0f);
+            struct v3 b = v3_from_v2(v2_direction(position, corners[j]), 0.0f);
+
+            if (v3_cross(a, b).z < 0)
+            {
+                v2_swap(&corners[i], &corners[j]);
+            }
         }
     }
 }
@@ -1762,6 +1779,9 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
     exclude_corners_not_in_view(state, position, angle_start, angle_max,
         corners, MAX_WALL_CORNERS, &num_corners);
 
+    struct v2 finals[MAX_WALL_CORNERS] = { 0 };
+    u32 num_finals = 0;
+
     for (u32 i = 0; i < num_corners; i++)
     {
         struct v2 direction = v2_direction(position, corners[i]);
@@ -1771,17 +1791,41 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
         if (tile_ray_cast_to_position(state, position, corners[i], &collision,
             false))
         {
-            line_render(state, position, collision.position,
-                colors[RED], 0.005f, 0.005f);
-            tile_ray_cast_to_angle(state, position, angle + t,
-                length_max, &collision, false);
-            line_render(state, position, collision.position,
-                colors[RED], 0.005f, 0.005f);
-            tile_ray_cast_to_angle(state, position, angle - t,
-                length_max, &collision, false);
-            line_render(state, position, collision.position,
-                colors[RED], 0.005f, 0.005f);
+            struct ray_cast_collision collision_temp = { 0 };
+            finals[num_finals++] = collision.position;
+            line_render(state, position, collision.position, colors[RED],
+                0.005f, 0.005f);
+
+            tile_ray_cast_to_angle(state, position, angle + t, length_max,
+                &collision_temp, false);
+
+            if (v2_distance(collision_temp.position, collision.position) >
+                0.0001f)
+            {
+                line_render(state, position, collision_temp.position,
+                    colors[RED], 0.005f, 0.005f);
+                finals[num_finals++] = collision_temp.position;
+            }
+
+            tile_ray_cast_to_angle(state, position, angle - t, length_max,
+                &collision_temp, false);
+
+            if (v2_distance(collision_temp.position, collision.position) >
+                0.0001f)
+            {
+                line_render(state, position, collision_temp.position,
+                    colors[RED], 0.005f, 0.005f);
+                finals[num_finals++] = collision_temp.position;
+            }
         }
+    }
+
+    reorder_corners_ccw(finals, num_finals, position);
+
+    for (u32 i = 0; i < num_finals-1; i++)
+    {
+        triangle_render(state, position, finals[i], finals[i+1], colors[YELLOW],
+            0.0025f);
     }
 }
 

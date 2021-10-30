@@ -608,6 +608,17 @@ struct v3 v3_normalize(struct v3 v)
     return result;
 }
 
+struct v3 v3_from_v2(struct v2 v, f32 z)
+{
+    struct v3 result = { 0 };
+
+    result.x = v.x;
+    result.y = v.y;
+    result.z = z;
+
+    return result;
+}
+
 f32 v2_length(struct v2 v)
 {
     f32 result = f32_sqrt(v.x * v.x + v.y * v.y);
