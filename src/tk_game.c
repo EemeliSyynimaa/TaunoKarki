@@ -73,6 +73,7 @@ struct mesh
 
 #define MAX_BULLETS 64
 #define MAX_ENEMIES 5
+#define MAX_WALL_CORNERS 1024
 
 struct memory_block
 {
@@ -95,6 +96,7 @@ struct game_state
     struct mesh floor;
     struct mesh triangle;
     struct memory_block temporary;
+    struct v2 wall_corners[MAX_WALL_CORNERS];
     b32 fired;
     f32 accumulator;
     u32 shader;
@@ -105,6 +107,7 @@ struct game_state
     u32 texture_enemy;
     u32 free_bullet;
     u32 num_enemies;
+    u32 num_wall_corners;
     u32 level;
 };
 
@@ -1644,8 +1647,7 @@ void cast_ray_to_tile_corner(struct game_state* state, struct v2 position,
     }
 }
 
-void line_of_sight_render(struct game_state* state, struct v2 position,
-    f32 angle_start, f32 angle_max, struct v4 color)
+void get_wall_corners(struct v2* corners, u32 max, u32* count)
 {
     for (u32 y = 0; y < MAP_HEIGHT; y++)
     {
@@ -1655,17 +1657,69 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
 
             if (tile_is_of_type(tile, TILE_WALL))
             {
-                f32 diff = WALL_SIZE * 0.5f;
+                f32 wall_size_half = WALL_SIZE * 0.5f;
 
-                cast_ray_to_tile_corner(state, position, tile.x + diff,
-                    tile.y + diff);
-                cast_ray_to_tile_corner(state, position, tile.x + diff,
-                    tile.y - diff);
-                cast_ray_to_tile_corner(state, position, tile.x - diff,
-                    tile.y + diff);
-                cast_ray_to_tile_corner(state, position, tile.x - diff,
-                    tile.y - diff);
+                corners[*count].x = tile.x - wall_size_half;
+                corners[*count].y = tile.y + wall_size_half;
+
+                if (++(*count) >= max)
+                {
+                    return;
+                }
+
+                corners[*count].x = tile.x - wall_size_half;
+                corners[*count].y = tile.y - wall_size_half;
+
+                if (++(*count) >= max)
+                {
+                    return;
+                }
+
+                corners[*count].x = tile.x + wall_size_half;
+                corners[*count].y = tile.y + wall_size_half;
+
+                if (++(*count) >= max)
+                {
+                    return;
+                }
+
+                corners[*count].x = tile.x + wall_size_half;
+                corners[*count].y = tile.y - wall_size_half;
+
+                if (++(*count) >= max)
+                {
+                    return;
+                }
             }
+        }
+    }
+}
+
+void line_of_sight_render(struct game_state* state, struct v2 position,
+    f32 angle_start, f32 angle_max, struct v4 color)
+{
+    for (u32 i = 0; i < state->num_wall_corners; i++)
+    {
+        struct v2 target = state->wall_corners[i];
+        struct ray_cast_collision collision = { 0 };
+        struct v2 direction = v2_direction(position, target);
+        f32 angle = f32_atan(direction.y, direction.x);
+        f32 length_max = 20.0f;
+        f32 t = 0.00001f;
+
+        if (tile_ray_cast_to_position(state, position, target, &collision,
+            false))
+        {
+            line_render(state, position, collision.position,
+                colors[RED], 0.005f, 0.005f);
+            tile_ray_cast_to_angle(state, position, angle + t,
+                length_max, &collision, false);
+            line_render(state, position, collision.position,
+                colors[RED], 0.005f, 0.005f);
+            tile_ray_cast_to_angle(state, position, angle - t,
+                length_max, &collision, false);
+            line_render(state, position, collision.position,
+                colors[RED], 0.005f, 0.005f);
         }
     }
 }
@@ -2633,6 +2687,9 @@ void game_init(struct game_memory* memory, struct game_init* init)
     state->camera.view_inverse = m4_inverse(state->camera.view);
 
     random_seed_set(init->init_time);
+
+    get_wall_corners(state->wall_corners, MAX_WALL_CORNERS,
+        &state->num_wall_corners);
 
     glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
