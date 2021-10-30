@@ -1647,7 +1647,7 @@ void cast_ray_to_tile_corner(struct game_state* state, struct v2 position,
     }
 }
 
-void get_wall_corners(struct v2* corners, u32 max, u32* count)
+void get_wall_corners(struct v2 corners[], u32 max, u32* count)
 {
     for (u32 y = 0; y < MAP_HEIGHT; y++)
     {
@@ -1695,19 +1695,80 @@ void get_wall_corners(struct v2* corners, u32 max, u32* count)
     }
 }
 
+void exclude_corners_not_in_view(struct game_state* state, struct v2 position,
+    f32 angle_start, f32 angle_max, struct v2 corners[], u32 max, u32* count)
+{
+    struct v3 dir_forward =
+    {
+        v2_direction_from_angle(angle_start).x,
+        v2_direction_from_angle(angle_start).y,
+        0
+    };
+    struct v3 dir_left =
+    {
+        v2_direction_from_angle(angle_start + angle_max).x,
+        v2_direction_from_angle(angle_start + angle_max).y,
+        0
+    };
+    struct v3 dir_right =
+    {
+        v2_direction_from_angle(angle_start - angle_max).x,
+        v2_direction_from_angle(angle_start - angle_max).y,
+        0
+    };
+
+    for (u32 i = 0; i < state->num_wall_corners; i++)
+    {
+        struct v3 dir_corner =
+        {
+            v2_direction(position, state->wall_corners[i]).x,
+            v2_direction(position, state->wall_corners[i]).y,
+            0
+        };
+
+        struct v3 left = v3_cross(dir_left, dir_corner);
+        struct v3 right = v3_cross(dir_right, dir_corner);
+
+        if (left.z < 0 && right.z > 0)
+        {
+            corners[*count] = state->wall_corners[i];
+
+            if (++(*count) >= max)
+            {
+                return;
+            }
+
+        }
+    }
+}
+
 void line_of_sight_render(struct game_state* state, struct v2 position,
     f32 angle_start, f32 angle_max, struct v4 color)
 {
-    for (u32 i = 0; i < state->num_wall_corners; i++)
+    struct v2 corners[MAX_WALL_CORNERS] = { 0 };
+    u32 num_corners = 0;
+
+    f32 length_max = 20.0f;
+    struct ray_cast_collision collision = { 0 };
+
+    tile_ray_cast_to_angle(state, position, angle_start + angle_max,
+        length_max, &collision, false);
+    corners[num_corners++] = collision.position;
+
+    tile_ray_cast_to_angle(state, position, angle_start - angle_max,
+        length_max, &collision, false);
+    corners[num_corners++] = collision.position;
+
+    exclude_corners_not_in_view(state, position, angle_start, angle_max,
+        corners, MAX_WALL_CORNERS, &num_corners);
+
+    for (u32 i = 0; i < num_corners; i++)
     {
-        struct v2 target = state->wall_corners[i];
-        struct ray_cast_collision collision = { 0 };
-        struct v2 direction = v2_direction(position, target);
+        struct v2 direction = v2_direction(position, corners[i]);
         f32 angle = f32_atan(direction.y, direction.x);
-        f32 length_max = 20.0f;
         f32 t = 0.00001f;
 
-        if (tile_ray_cast_to_position(state, position, target, &collision,
+        if (tile_ray_cast_to_position(state, position, corners[i], &collision,
             false))
         {
             line_render(state, position, collision.position,
