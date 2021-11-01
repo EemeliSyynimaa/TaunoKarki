@@ -1009,7 +1009,7 @@ b32 tile_ray_cast_to_position(struct game_state* state, struct v2 start,
     tile_ray_cast_to_direction(state, start, direction, length,
         &temp, render);
 
-    result = temp.ray_length >= (length - 0.0001f);
+    result = f32_abs(temp.ray_length - length) < 0.01f;
 
     if (collision)
     {
@@ -1800,7 +1800,7 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
                 &collision_temp, false);
 
             if (v2_distance(collision_temp.position, collision.position) >
-                0.0001f)
+                0.00001f)
             {
                 line_render(state, position, collision_temp.position,
                     colors[RED], 0.005f, 0.005f);
@@ -1811,7 +1811,7 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
                 &collision_temp, false);
 
             if (v2_distance(collision_temp.position, collision.position) >
-                0.0001f)
+                0.00001f)
             {
                 line_render(state, position, collision_temp.position,
                     colors[RED], 0.005f, 0.005f);
