@@ -35,6 +35,8 @@ struct enemy
     u32 path_length;
     f32 health;
     f32 last_shot;
+    f32 vision_cone_size;
+    f32 vision_cone_angle;
     b32 alive;
 };
 
@@ -1470,10 +1472,16 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 enemy->body.position, state->player.body.position));
 
             struct v2 direction_current = v2_direction_from_angle(
-                enemy->body.angle);
+                enemy->vision_cone_angle);
 
             f32 angle_player = v2_angle(direction_to_player,
                 direction_current);
+
+            f32 active_line_of_sight = enemy->vision_cone_size *
+                ENEMY_LINE_OF_SIGHT_HALF;
+            f32 vision_cone_update_speed = 3.0f;
+            f32 vision_cone_size_min = 0.05f;
+            f32 vision_cone_size_max = 1.0f;
 
             // Todo: sometimes rotation goes crazy
             if (angle_player < ENEMY_LINE_OF_SIGHT_HALF &&
@@ -1543,9 +1551,20 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 {
                     look_direction = target_forward;
                 }
+
+                enemy->vision_cone_size -= dt * vision_cone_update_speed;
+                enemy->vision_cone_size = MAX(enemy->vision_cone_size,
+                    vision_cone_size_min);
+                enemy->vision_cone_angle = f32_atan(direction_to_player.y,
+                    direction_to_player.x);
             }
             else
             {
+                enemy->vision_cone_size += dt * vision_cone_update_speed;
+                enemy->vision_cone_size = MIN(enemy->vision_cone_size,
+                    vision_cone_size_max);
+                enemy->vision_cone_angle = enemy->body.angle;
+
                 look_direction = move_direction;
             }
 
@@ -1863,8 +1882,9 @@ void enemies_render(struct game_state* state)
             mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader,
                 colors[WHITE]);
 
-            // line_of_sight_render(state, enemy->body.position, enemy->body.angle,
-            //     ENEMY_LINE_OF_SIGHT_HALF, colors[YELLOW]);
+            line_of_sight_render(state, enemy->body.position,
+                enemy->vision_cone_angle, enemy->vision_cone_size *
+                ENEMY_LINE_OF_SIGHT_HALF, colors[i], false);
 
             health_bar_render(state, enemy->body.position, enemy->health, 
                 100.0f);
@@ -1911,9 +1931,6 @@ void enemies_render(struct game_state* state)
                     }
                 }
             }
-
-            line_of_sight_render(state, enemy->body.position, enemy->body.angle,
-                ENEMY_LINE_OF_SIGHT_HALF, colors[i], false);
         }
     }
 }
@@ -2774,6 +2791,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         enemy->alive = true;
         enemy->health = 100.0f;
         enemy->body.angle = f32_radians(270 - i * 15.0f);
+        enemy->vision_cone_size = 0.2f * i;
     }
 
     state->level = 2;
