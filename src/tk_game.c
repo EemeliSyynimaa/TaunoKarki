@@ -1760,7 +1760,7 @@ void reorder_corners_ccw(struct v2* corners, u32 count, struct v2 position)
 }
 
 void line_of_sight_render(struct game_state* state, struct v2 position,
-    f32 angle_start, f32 angle_max, struct v4 color)
+    f32 angle_start, f32 angle_max, struct v4 color, b32 render_lines)
 {
     struct v2 corners[MAX_WALL_CORNERS] = { 0 };
     u32 num_corners = 0;
@@ -1793,8 +1793,12 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
         {
             struct ray_cast_collision collision_temp = { 0 };
             finals[num_finals++] = collision.position;
-            line_render(state, position, collision.position, colors[RED],
-                0.005f, 0.005f);
+
+            if (render_lines)
+            {
+                line_render(state, position, collision.position, colors[RED],
+                    0.005f, 0.005f);
+            }
 
             tile_ray_cast_to_angle(state, position, angle + t, length_max,
                 &collision_temp, false);
@@ -1802,8 +1806,12 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
             if (v2_distance(collision_temp.position, collision.position) >
                 0.00001f)
             {
-                line_render(state, position, collision_temp.position,
-                    colors[RED], 0.005f, 0.005f);
+                if (render_lines)
+                {
+                    line_render(state, position, collision_temp.position,
+                        colors[RED], 0.005f, 0.005f);
+                }
+
                 finals[num_finals++] = collision_temp.position;
             }
 
@@ -1813,8 +1821,12 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
             if (v2_distance(collision_temp.position, collision.position) >
                 0.00001f)
             {
-                line_render(state, position, collision_temp.position,
-                    colors[RED], 0.005f, 0.005f);
+                if (render_lines)
+                {
+                    line_render(state, position, collision_temp.position,
+                        colors[RED], 0.005f, 0.005f);
+                }
+
                 finals[num_finals++] = collision_temp.position;
             }
         }
@@ -1824,7 +1836,7 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
 
     for (u32 i = 0; i < num_finals-1; i++)
     {
-        triangle_render(state, position, finals[i], finals[i+1], colors[YELLOW],
+        triangle_render(state, position, finals[i], finals[i+1], colors[TEAL],
             0.0025f);
     }
 }
@@ -1899,6 +1911,9 @@ void enemies_render(struct game_state* state)
                     }
                 }
             }
+
+            line_of_sight_render(state, enemy->body.position, enemy->body.angle,
+                ENEMY_LINE_OF_SIGHT_HALF, colors[i], false);
         }
     }
 }
@@ -2149,12 +2164,6 @@ void player_render(struct game_state* state)
             mesh_render(&state->floor, &mvp, state->texture_tileset, 
                 state->shader_simple, colors[RED]);
         }
-
-        line_of_sight_render(state, player->body.position, player->body.angle,
-            ENEMY_LINE_OF_SIGHT_HALF, colors[YELLOW]);
-
-        // tile_ray_cast_to_position(state, player->body.position,
-        //     state->enemies[0].body.position, NULL, true);
 
         health_bar_render(state, player->body.position, player->health, 100.0f);
     }
