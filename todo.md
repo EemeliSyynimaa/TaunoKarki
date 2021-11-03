@@ -25,10 +25,13 @@
    - [ ] Get current time
    - [ ] Stop at the goal
   - [ ] Aim logic
+   - [ ] Separate aim angle from look direction
+   - [ ] Render aim direction
+   - [ ] Render look direction
    - [X] Take shooter's velocity into account
    - [ ] Take target's velocity into account
    - [ ] Render line of sight
-    - [ ] Render line of sight as triangles
+    - [X] Render line of sight as triangles
     - [ ] Render line of sight as polygon (generate triangles)
   - [ ] Finite state machine
    - [ ] Wander state
