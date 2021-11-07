@@ -31,12 +31,13 @@ struct enemy
 {
     struct rigid_body body;
     struct v2 path[256];
+    struct v2 direction_aim;
+    struct v2 direction_look;
     u32 path_index;
     u32 path_length;
     f32 health;
     f32 last_shot;
     f32 vision_cone_size;
-    f32 vision_cone_angle;
     b32 alive;
 };
 
@@ -1371,8 +1372,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
         {
             struct v2 acceleration = { 0.0f };
             struct v2 move_delta = { 0.0f };
-            struct v2 move_direction = { 0.0f };
-            struct v2 look_direction = { 0.0f };
+            struct v2 direction_move = { 0.0f };
 
             if (enemy->path_index < enemy->path_length)
             {
@@ -1413,15 +1413,15 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     }
                     else
                     {
-                        move_direction = v2_normalize(v2_direction(
+                        direction_move = v2_normalize(v2_direction(
                             enemy->body.position, current));
 
-                        f32 length = v2_length(move_direction);
+                        f32 length = v2_length(direction_move);
 
                         if (length > 1.0f)
                         {
-                            move_direction.x /= length;
-                            move_direction.y /= length;
+                            direction_move.x /= length;
+                            direction_move.y /= length;
                         }
                     }
                     break;
@@ -1446,8 +1446,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 }
             }
 
-            acceleration.x = move_direction.x * ENEMY_ACCELERATION;
-            acceleration.y = move_direction.y * ENEMY_ACCELERATION;
+            acceleration.x = direction_move.x * ENEMY_ACCELERATION;
+            acceleration.y = direction_move.y * ENEMY_ACCELERATION;
 
             acceleration.x += -enemy->body.velocity.x * FRICTION;
             acceleration.y += -enemy->body.velocity.y * FRICTION;
@@ -1465,20 +1465,14 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             check_tile_collisions(&enemy->body.position, &enemy->body.velocity,
                 move_delta, PLAYER_RADIUS, 1);
 
-            struct v2 start = enemy->body.position;
-            struct v2 end = state->player.body.position;
-
-            struct v2 direction_to_player = v2_normalize(v2_direction(
+            struct v2 direction_player = v2_normalize(v2_direction(
                 enemy->body.position, state->player.body.position));
-
             struct v2 direction_current = v2_direction_from_angle(
-                enemy->vision_cone_angle);
+                enemy->body.angle);
 
-            f32 angle_player = v2_angle(direction_to_player,
+            f32 angle_player = v2_angle(direction_player,
                 direction_current);
 
-            f32 active_line_of_sight = enemy->vision_cone_size *
-                ENEMY_LINE_OF_SIGHT_HALF;
             f32 vision_cone_update_speed = 3.0f;
             f32 vision_cone_size_min = 0.05f;
             f32 vision_cone_size_max = 1.0f;
@@ -1488,7 +1482,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 tile_ray_cast_to_position(state, enemy->body.position,
                     state->player.body.position, NULL, false))
             {
-                struct v2 target_forward = direction_to_player;
+                struct v2 target_forward = direction_player;
 
                 if (v2_length(enemy->body.velocity))
                 {
@@ -1545,32 +1539,26 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                         v2_dot(desired_velocity, target_forward_rotate_back)
                     };
 
-                    look_direction = v2_normalize(final_direction);
-                }
-                else
-                {
-                    look_direction = target_forward;
+                    enemy->direction_aim = v2_normalize(final_direction);
                 }
 
                 enemy->vision_cone_size -= dt * vision_cone_update_speed;
                 enemy->vision_cone_size = MAX(enemy->vision_cone_size,
                     vision_cone_size_min);
-                enemy->vision_cone_angle = f32_atan(direction_to_player.y,
-                    direction_to_player.x);
+                enemy->direction_look = direction_player;
             }
             else
             {
                 enemy->vision_cone_size += dt * vision_cone_update_speed;
                 enemy->vision_cone_size = MIN(enemy->vision_cone_size,
                     vision_cone_size_max);
-                enemy->vision_cone_angle = enemy->body.angle;
-
-                look_direction = move_direction;
+                enemy->direction_look = direction_move;
+                enemy->direction_aim = direction_move;
             }
 
             {
-                f32 target_angle = f32_atan(look_direction.y,
-                    look_direction.x);
+                f32 target_angle = f32_atan(enemy->direction_look.y,
+                    enemy->direction_look.x);
 
                 f32 circle = F64_PI * 2.0f;
 
@@ -1629,8 +1617,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 bullet->body.position = enemy->body.position;
                 bullet->body.velocity = enemy->body.velocity;
                 // Todo: use proper look direction, this is currently the target
-                bullet->body.velocity.x += look_direction.x * speed;
-                bullet->body.velocity.y += look_direction.y * speed;
+                bullet->body.velocity.x += enemy->direction_aim.x * speed;
+                bullet->body.velocity.y += enemy->direction_aim.y * speed;
                 bullet->alive = true;
                 bullet->damage = 5.0f;
                 bullet->player_owned = false;
@@ -1883,7 +1871,7 @@ void enemies_render(struct game_state* state)
                 colors[WHITE]);
 
             line_of_sight_render(state, enemy->body.position,
-                enemy->vision_cone_angle, enemy->vision_cone_size *
+                enemy->body.angle, enemy->vision_cone_size *
                 ENEMY_LINE_OF_SIGHT_HALF, colors[i], false);
 
             health_bar_render(state, enemy->body.position, enemy->health, 
@@ -1899,7 +1887,7 @@ void enemies_render(struct game_state* state)
                 transform = m4_translate(
                     enemy->body.position.x + enemy->body.velocity.x / max_speed, 
                     enemy->body.position.y + enemy->body.velocity.y / max_speed, 
-                    0.01f);
+                    0.012f);
 
                 rotation = m4_rotate_z(-angle);
                 scale = m4_scale_xyz(0.05f, length, 0.01f);
@@ -1912,6 +1900,54 @@ void enemies_render(struct game_state* state)
 
                 mesh_render(&state->floor, &mvp, state->texture_tileset, 
                     state->shader_simple, colors[GREY]);
+            }
+
+            // Render aim vector
+            {
+                f32 length = 1.0f;
+                f32 angle = f32_atan(enemy->direction_aim.x,
+                    enemy->direction_aim.y);
+
+                transform = m4_translate(
+                    enemy->body.position.x + enemy->direction_aim.x / length,
+                    enemy->body.position.y + enemy->direction_aim.y / length,
+                    0.011f);
+
+                rotation = m4_rotate_z(-angle);
+                scale = m4_scale_xyz(0.025f, length, 0.01f);
+
+                model = m4_mul_m4(scale, rotation);
+                model = m4_mul_m4(model, transform);
+
+                mvp = m4_mul_m4(model, state->camera.view);
+                mvp = m4_mul_m4(mvp, state->camera.projection);
+
+                mesh_render(&state->floor, &mvp, state->texture_tileset,
+                    state->shader_simple, colors[YELLOW]);
+            }
+
+            // Render aim vector
+            {
+                f32 length = 1.0f;
+                f32 angle = f32_atan(enemy->direction_look.x,
+                    enemy->direction_look.y);
+
+                transform = m4_translate(
+                    enemy->body.position.x + enemy->direction_look.x / length,
+                    enemy->body.position.y + enemy->direction_look.y / length,
+                    0.010f);
+
+                rotation = m4_rotate_z(-angle);
+                scale = m4_scale_xyz(0.025f, length, 0.01f);
+
+                model = m4_mul_m4(scale, rotation);
+                model = m4_mul_m4(model, transform);
+
+                mvp = m4_mul_m4(model, state->camera.view);
+                mvp = m4_mul_m4(mvp, state->camera.projection);
+
+                mesh_render(&state->floor, &mvp, state->texture_tileset,
+                    state->shader_simple, colors[BLUE]);
             }
 
             // Render path
