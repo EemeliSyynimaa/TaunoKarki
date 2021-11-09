@@ -36,6 +36,9 @@
 #define GL_NEAREST                        0x2600
 #define GL_LINEAR                         0x2601
 #define GL_RGBA                           0x1908
+#define GL_BLEND                          0x0BE2
+#define GL_SRC_ALPHA                      0x0302
+#define GL_ONE_MINUS_SRC_ALPHA            0x0303
 
 typedef u64 GLsizeiptr;
 typedef u32 GLenum;
@@ -97,6 +100,7 @@ typedef void type_glTexParameteri(GLenum target, GLenum pname, GLint param);
 typedef void type_glTexImage2D(GLenum target, GLint level,
     GLint internalformat, GLsizei width, GLsizei height, GLint border, 
     GLenum format, GLenum type, const void* data);
+typedef void type_glBlendFunc(GLenum sfactor, GLenum dfactor);
 
 struct opengl_functions
 {
@@ -136,4 +140,5 @@ struct opengl_functions
     OPEN_GL_FUNCTION(glGenTextures);
     OPEN_GL_FUNCTION(glTexParameteri);
     OPEN_GL_FUNCTION(glTexImage2D);
+    OPEN_GL_FUNCTION(glBlendFunc);
 };

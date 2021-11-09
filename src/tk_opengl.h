@@ -34,6 +34,7 @@ OPEN_GL_FUNCTION(glDrawElements);
 OPEN_GL_FUNCTION(glGenTextures);
 OPEN_GL_FUNCTION(glTexParameteri);
 OPEN_GL_FUNCTION(glTexImage2D);
+OPEN_GL_FUNCTION(glBlendFunc);
 
 #define OPEN_GL_FUNCTION_COPY(name) name = gl->name
 
@@ -76,5 +77,6 @@ void opengl_functions_set(struct opengl_functions* gl)
     OPEN_GL_FUNCTION_COPY(glGenTextures);
     OPEN_GL_FUNCTION_COPY(glTexParameteri);
     OPEN_GL_FUNCTION_COPY(glTexImage2D);
+    OPEN_GL_FUNCTION_COPY(glBlendFunc);
     LOG("done\n");
 }

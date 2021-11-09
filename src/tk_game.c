@@ -1843,7 +1843,7 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
 
     for (u32 i = 0; i < num_finals-1; i++)
     {
-        triangle_render(state, position, finals[i], finals[i+1], colors[TEAL],
+        triangle_render(state, position, finals[i], finals[i+1], color,
             0.0025f);
     }
 }
@@ -1870,9 +1870,12 @@ void enemies_render(struct game_state* state)
             mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader,
                 colors[WHITE]);
 
+            struct v4 color = colors[TEAL];
+            color.a = 0.25f;
+
             line_of_sight_render(state, enemy->body.position,
                 enemy->body.angle, enemy->vision_cone_size *
-                ENEMY_LINE_OF_SIGHT_HALF, colors[i], false);
+                ENEMY_LINE_OF_SIGHT_HALF, color, false);
 
             health_bar_render(state, enemy->body.position, enemy->health, 
                 100.0f);
@@ -2764,8 +2767,10 @@ void game_init(struct game_memory* memory, struct game_init* init)
     glGetIntegerv(GL_MINOR_VERSION, &version_minor);
 
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+    glEnable(GL_BLEND);
     glEnable(GL_CULL_FACE);
+    glDepthFunc(GL_LESS);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     LOG("OpenGL %i.%i\n", version_major, version_minor);
 

@@ -531,6 +531,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     OPEN_GL_FUNCTION_COPY(glGenTextures);
     OPEN_GL_FUNCTION_COPY(glTexParameteri);
     OPEN_GL_FUNCTION_COPY(glTexImage2D);
+    OPEN_GL_FUNCTION_COPY(glBlendFunc);
 
     wglMakeCurrent(dummy_dc, 0);
     wglDeleteContext(dummy_context);
