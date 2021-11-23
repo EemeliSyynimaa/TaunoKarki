@@ -76,8 +76,9 @@ struct mesh
 
 #define MAX_BULLETS 64
 #define MAX_ENEMIES 1
-#define MAX_WALL_CORNERS 2048
-#define MAX_WALL_FACES 2048
+#define MAX_WALL_CORNERS 512
+#define MAX_WALL_FACES 512
+#define MAX_COLLISION_SEGMENTS 1024
 
 struct memory_block
 {
@@ -108,6 +109,7 @@ struct game_state
     struct memory_block temporary;
     struct v2 wall_corners[MAX_WALL_CORNERS];
     struct line_segment wall_faces[MAX_WALL_FACES];
+    struct line_segment collision_segments[MAX_COLLISION_SEGMENTS];
     b32 fired;
     f32 accumulator;
     u32 shader;
@@ -120,6 +122,7 @@ struct game_state
     u32 num_enemies;
     u32 num_wall_corners;
     u32 num_wall_faces;
+    u32 num_collision_segments;
     u32 level;
 };
 
@@ -1175,10 +1178,11 @@ void map_render(struct game_state* state)
 
 void collision_map_render(struct game_state* state)
 {
-    for (u32 i = 0; i < state->num_wall_corners; i++)
+    for (u32 i = 0; i < state->num_collision_segments; i++)
     {
-        line_render(state, state->wall_faces[i].start, state->wall_faces[i].end,
-            i % 2 ? colors[RED] : colors[BLUE], WALL_SIZE + 0.01f, 0.025f);
+        line_render(state, state->collision_segments[i].start,
+            state->collision_segments[i].end, colors[RED], WALL_SIZE + 0.01f,
+            0.025f);
     }
 }
 
@@ -1998,6 +2002,45 @@ void get_wall_corners_from_faces(struct v2 corners[], u32 max, u32* count,
     }
 }
 
+void collision_segments_update(struct game_state* state)
+{
+    for (u32 i = 0; i < state->num_wall_faces; i++)
+    {
+        state->collision_segments[i] = state->wall_faces[i];
+    }
+
+    state->num_collision_segments = state->num_wall_faces;
+
+    struct v2 plr_rect[4] =
+    {
+        { -PLAYER_RADIUS,  PLAYER_RADIUS },
+        {  PLAYER_RADIUS,  PLAYER_RADIUS },
+        {  PLAYER_RADIUS, -PLAYER_RADIUS },
+        { -PLAYER_RADIUS, -PLAYER_RADIUS }
+    };
+
+    for (u32 i = 0; i < 4; i++)
+    {
+        plr_rect[i] = v2_rotate(plr_rect[i], state->player.body.angle);
+        plr_rect[i].x += state->player.body.position.x;
+        plr_rect[i].y += state->player.body.position.y;
+    }
+
+    struct line_segment segments[] =
+    {
+        { plr_rect[0], plr_rect[1] },
+        { plr_rect[1], plr_rect[2] },
+        { plr_rect[2], plr_rect[3] },
+        { plr_rect[3], plr_rect[0] }
+    };
+
+    for (u32 i = 0; i < 4; i++)
+    {
+        state->collision_segments[state->num_collision_segments++] =
+            segments[i];
+    }
+}
+
 b32 direction_in_range(struct v2 dir, struct v2 left, struct v2 right)
 {
     b32 result = v2_cross(left, dir) < 0.0f && v2_cross(right, dir) > 0.0f;
@@ -2092,8 +2135,8 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
         f32 angle = f32_atan(direction.y, direction.x);
         f32 t = 0.00001f;
 
-        ray_cast_to_direction(position, direction,
-            state->wall_faces, state->num_wall_faces, &collision);
+        ray_cast_to_direction(position, direction, state->collision_segments,
+            state->num_collision_segments, &collision);
 
         struct v2 collision_temp = { 0 };
         finals[num_finals++] = collision;
@@ -2105,7 +2148,8 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
         }
 
         ray_cast_to_direction(position, v2_direction_from_angle(angle + t),
-            state->wall_faces, state->num_wall_faces, &collision_temp);
+            state->collision_segments, state->num_collision_segments,
+            &collision_temp);
 
         if (v2_distance(collision_temp, collision) > 0.001f)
         {
@@ -2119,7 +2163,8 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
         }
 
         ray_cast_to_direction(position, v2_direction_from_angle(angle - t),
-            state->wall_faces, state->num_wall_faces, &collision_temp);
+            state->collision_segments, state->num_collision_segments,
+            &collision_temp);
 
         if (v2_distance(collision_temp, collision) > 0.001f)
         {
@@ -3217,6 +3262,8 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
             state->mouse.world = calculate_world_pos(input->mouse_x, 
                 input->mouse_y, camera);
+
+            collision_segments_update(state);
         }
 
         map_render(state);
