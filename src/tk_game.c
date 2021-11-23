@@ -1175,10 +1175,10 @@ void map_render(struct game_state* state)
 
 void collision_map_render(struct game_state* state)
 {
-    for (u32 i = 0; i < state->num_wall_faces; i++)
+    for (u32 i = 0; i < state->num_wall_corners; i++)
     {
         line_render(state, state->wall_faces[i].start, state->wall_faces[i].end,
-            colors[RED], WALL_SIZE + 0.01f, 0.025f);
+            i % 2 ? colors[RED] : colors[BLUE], WALL_SIZE + 0.01f, 0.025f);
     }
 }
 
@@ -1816,18 +1816,30 @@ b32 line_segment_equals(struct line_segment a, struct line_segment b)
     return result;
 }
 
-b32 insert_face(struct line_segment face, struct line_segment faces[], u32 max,
+b32 line_segment_empty(struct line_segment a)
+{
+    b32 result = a.start.x == 0.0f && a.start.y == 0.0f && a.end.x == 0.0f &&
+        a.end.y == 0.0f;
+
+    return result;
+}
+
+b32 insert_face(struct line_segment* face, struct line_segment faces[], u32 max,
     u32* count)
 {
     b32 result = false;
 
-    if (*count < max)
+    if (line_segment_empty(*face))
+    {
+        result = true;
+    }
+    else if (*count < max)
     {
         b32 found = false;
 
         for (u32 i = 0; i < *count; i++)
         {
-            if (line_segment_equals(face, faces[i]))
+            if (line_segment_equals(*face, faces[i]))
             {
                 found = true;
                 break;
@@ -1836,7 +1848,8 @@ b32 insert_face(struct line_segment face, struct line_segment faces[], u32 max,
 
         if (!found)
         {
-            faces[(*count)++] = face;
+            faces[(*count)++] = *face;
+            *face = (struct line_segment) { 0.0f };
         }
 
         result = true;
@@ -1849,7 +1862,10 @@ void get_wall_faces(struct line_segment faces[], u32 max, u32* count)
 {
     for (u32 y = 0; y < MAP_HEIGHT; y++)
     {
-        for (u32 x = 0; x < MAP_WIDTH; x++)
+        struct line_segment face_top    = { 0.0f };
+        struct line_segment face_bottom = { 0.0f };
+
+        for (u32 x = 0; x <= MAP_WIDTH; x++)
         {
             struct v2 tile = { x, y };
 
@@ -1857,53 +1873,127 @@ void get_wall_faces(struct line_segment faces[], u32 max, u32* count)
             {
                 f32 t = WALL_SIZE * 0.5f;
 
-                struct v2 tile_left   = { tile.x - WALL_SIZE, tile.y };
-                struct v2 tile_right  = { tile.x + WALL_SIZE, tile.y };
                 struct v2 tile_top    = { tile.x, tile.y + WALL_SIZE };
                 struct v2 tile_bottom = { tile.x, tile.y - WALL_SIZE };
 
-                struct line_segment face;
-
                 if (tile_inside_map(tile_bottom) && tile_is_free(tile_bottom))
                 {
-                    face.start = (struct v2){ tile.x - t, tile.y - t };
-                    face.end   = (struct v2){ tile.x + t, tile.y - t };
-                    if (!insert_face(face, faces, max, count))
+                    if (line_segment_empty(face_bottom))
                     {
-                        return;
+                        face_bottom.start =
+                            (struct v2){ tile.x - t, tile.y - t };
                     }
+
+                    face_bottom.end = (struct v2){ tile.x + t, tile.y - t };
+                }
+                else if (!insert_face(&face_bottom, faces, max, count))
+                {
+                    return;
                 }
 
                 if (tile_inside_map(tile_top) && tile_is_free(tile_top))
                 {
-                    face.start = (struct v2){ tile.x - t, tile.y + t };
-                    face.end   = (struct v2){ tile.x + t, tile.y + t };
-                    if (!insert_face(face, faces, max, count))
+                    if (line_segment_empty(face_top))
                     {
-                        return;
+                        face_top.start = (struct v2){ tile.x - t, tile.y + t };
                     }
+
+                    face_top.end = (struct v2){ tile.x + t, tile.y + t };
+                }
+                else if (!insert_face(&face_top, faces, max, count))
+                {
+                    return;
+                }
+            }
+            else
+            {
+                if (!insert_face(&face_top, faces, max, count))
+                {
+                    return;
+                }
+
+                if (!insert_face(&face_bottom, faces, max, count))
+                {
+                    return;
+                }
+            }
+        }
+    }
+
+    for (u32 x = 0; x < MAP_WIDTH; x++)
+    {
+        struct line_segment face_left  = { 0.0f };
+        struct line_segment face_right = { 0.0f };
+
+        for (u32 y = 0; y < MAP_HEIGHT; y++)
+        {
+            struct v2 tile = { x, y };
+
+            if (tile_is_of_type(tile, TILE_WALL))
+            {
+                f32 t = WALL_SIZE * 0.5f;
+
+                struct v2 tile_left  = { tile.x - WALL_SIZE, tile.y };
+                struct v2 tile_right = { tile.x + WALL_SIZE, tile.y };
+
+                if (tile_inside_map(tile_left) && tile_is_free(tile_left))
+                {
+                    if (line_segment_empty(face_left))
+                    {
+                        face_left.start =
+                            (struct v2){ tile.x - t, tile.y - t };
+                    }
+
+                    face_left.end = (struct v2){ tile.x - t, tile.y + t };
+                }
+                else if (!insert_face(&face_left, faces, max, count))
+                {
+                    return;
                 }
 
                 if (tile_inside_map(tile_right) && tile_is_free(tile_right))
                 {
-                    face.start = (struct v2){ tile.x + t, tile.y - t };
-                    face.end   = (struct v2){ tile.x + t, tile.y + t };
-                    if (!insert_face(face, faces, max, count))
+                    if (line_segment_empty(face_right))
                     {
-                        return;
+                        face_right.start = (struct v2){ tile.x + t, tile.y - t };
                     }
-                }
 
-                if (tile_inside_map(tile_left) && tile_is_free(tile_left))
+                    face_right.end = (struct v2){ tile.x + t, tile.y + t };
+                }
+                else if (!insert_face(&face_right, faces, max, count))
                 {
-                    face.start = (struct v2){ tile.x - t, tile.y - t };
-                    face.end   = (struct v2){ tile.x - t, tile.y + t };
-                    if (!insert_face(face, faces, max, count))
-                    {
-                        return;
-                    }
+                    return;
                 }
             }
+            else
+            {
+                if (!insert_face(&face_right, faces, max, count))
+                {
+                    return;
+                }
+
+                if (!insert_face(&face_left, faces, max, count))
+                {
+                    return;
+                }
+            }
+        }
+    }
+}
+
+void get_wall_corners_from_faces(struct v2 corners[], u32 max, u32* count,
+    struct line_segment faces[], u32 num_faces)
+{
+    for (u32 i = 0; i < num_faces; i++)
+    {
+        if (!insert_corner(faces[i].start, corners, max, count))
+        {
+            return;
+        }
+
+        if (!insert_corner(faces[i].end, corners, max, count))
+        {
+            return;
         }
     }
 }
@@ -1979,47 +2069,45 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
         struct v2 direction = v2_direction(position, corners[i]);
         f32 angle = f32_atan(direction.y, direction.x);
         f32 t = 0.00001f;
-        f32 epsilon = 0.00001f;
 
-        if (ray_cast_to_direction(position, v2_direction(position, corners[i]),
-            state->wall_faces, state->num_wall_faces, &collision))
+        ray_cast_to_direction(position, direction,
+            state->wall_faces, state->num_wall_faces, &collision);
+
+        struct v2 collision_temp = { 0 };
+        finals[num_finals++] = collision;
+
+        if (render_lines)
         {
-            struct v2 collision_temp = { 0 };
-            finals[num_finals++] = collision;
+            line_render(state, position, collision, colors[RED],
+                0.005f, 0.005f);
+        }
 
+        ray_cast_to_direction(position, v2_direction_from_angle(angle + t),
+            state->wall_faces, state->num_wall_faces, &collision_temp);
+
+        if (v2_distance(collision_temp, collision) > 0.001f)
+        {
             if (render_lines)
             {
-                line_render(state, position, collision, colors[RED],
-                    0.005f, 0.005f);
+                line_render(state, position, collision_temp,
+                    colors[RED], 0.005f, 0.005f);
             }
 
-            ray_cast_to_direction(position, v2_direction_from_angle(angle + t),
-                state->wall_faces, state->num_wall_faces, &collision_temp);
+            finals[num_finals++] = collision_temp;
+        }
 
-            if (v2_distance(collision_temp, collision) > epsilon)
+        ray_cast_to_direction(position, v2_direction_from_angle(angle - t),
+            state->wall_faces, state->num_wall_faces, &collision_temp);
+
+        if (v2_distance(collision_temp, collision) > 0.001f)
+        {
+            if (render_lines)
             {
-                if (render_lines)
-                {
-                    line_render(state, position, collision_temp,
-                        colors[RED], 0.005f, 0.005f);
-                }
-
-                finals[num_finals++] = collision_temp;
+                line_render(state, position, collision_temp,
+                    colors[RED], 0.005f, 0.005f);
             }
 
-            ray_cast_to_direction(position, v2_direction_from_angle(angle - t),
-                state->wall_faces, state->num_wall_faces, &collision_temp);
-
-            if (v2_distance(collision_temp, collision) > epsilon)
-            {
-                if (render_lines)
-                {
-                    line_render(state, position, collision_temp,
-                        colors[RED], 0.005f, 0.005f);
-                }
-
-                finals[num_finals++] = collision_temp;
-            }
+            finals[num_finals++] = collision_temp;
         }
     }
 
@@ -2347,6 +2435,10 @@ void player_render(struct game_state* state)
 
         mesh_render(&state->cube, &mvp, state->texture_player, state->shader,
             colors[WHITE]);
+
+        // line_of_sight_render(state, player->body.position,
+        //     player->body.angle, ENEMY_LINE_OF_SIGHT_HALF, colors[YELLOW],
+        //     true);
 
         // Render velocity vector
         {
@@ -3042,14 +3134,14 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
     random_seed_set(init->init_time);
 
-    get_wall_corners(state->wall_corners, MAX_WALL_CORNERS,
-        &state->num_wall_corners);
-
-    LOG("Wall corners: %d/%d\n", state->num_wall_corners, MAX_WALL_CORNERS);
-
     get_wall_faces(state->wall_faces, MAX_WALL_FACES, &state->num_wall_faces);
 
     LOG("Wall faces: %d/%d\n", state->num_wall_faces, MAX_WALL_FACES);
+
+    get_wall_corners_from_faces(state->wall_corners, MAX_WALL_CORNERS,
+        &state->num_wall_corners, state->wall_faces, state->num_wall_faces);
+
+    LOG("Wall corners: %d/%d\n", state->num_wall_corners, MAX_WALL_CORNERS);
 
     glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
