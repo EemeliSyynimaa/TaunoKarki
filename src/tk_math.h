@@ -772,6 +772,21 @@ struct v2 v2_mul(struct v2 a, struct v2 b)
     return result;
 }
 
+struct v2 v2_rotate(struct v2 a, f32 angle)
+{
+    struct v2 result;
+
+    struct m4 rotate = m4_rotate_z(angle);
+    struct v4 temp = { a.x, a.y, 0.0f, 1.0f };
+
+    temp = m4_mul_v4(rotate, temp);
+
+    result.x = temp.x;
+    result.y = temp.y;
+
+    return result;
+}
+
 struct m4 m4_perspective(f32 fov, f32 aspect, f32 near, f32 far)
 {
     f32 t = f32_tan(f32_radians(fov) / 2.0f);
@@ -855,10 +870,9 @@ f32 f32_triangle_area_signed(struct v2 a, struct v2 b, struct v2 c)
 {
     f32 result;
 
-    struct v3 b2 = { b.x - a.x, b.y - a.y, 0.0f };
-    struct v3 c2 = { c.x - a.x, c.y - a.y, 0.0f };
-
-    result = v3_cross(b2, c2).z;
+    result = v2_cross(
+        (struct v2){ b.x - a.x, b.y - a.y },
+        (struct v2){ c.x - a.x, c.y - a.y });
 
     return result;
 }

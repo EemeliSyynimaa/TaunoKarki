@@ -75,7 +75,7 @@ struct mesh
 };
 
 #define MAX_BULLETS 64
-#define MAX_ENEMIES 5
+#define MAX_ENEMIES 1
 #define MAX_WALL_CORNERS 2048
 #define MAX_WALL_FACES 2048
 
@@ -1561,7 +1561,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 direction_current);
 
             f32 vision_cone_update_speed = 3.0f;
-            f32 vision_cone_size_min = 0.05f;
+            f32 vision_cone_size_min = 1.0f;
             f32 vision_cone_size_max = 1.0f;
 
             // Todo: sometimes rotation goes crazy
@@ -1998,28 +1998,28 @@ void get_wall_corners_from_faces(struct v2 corners[], u32 max, u32* count,
     }
 }
 
-void exclude_corners_not_in_view(struct game_state* state, struct v2 position,
-    f32 angle_start, f32 angle_max, struct v2 corners[], u32 max, u32* count)
+b32 direction_in_range(struct v2 dir, struct v2 left, struct v2 right)
 {
-    struct v3 dir_left = v3_from_v2(v2_direction_from_angle(
-        angle_start + angle_max), 0.0f);
-    struct v3 dir_right = v3_from_v2(v2_direction_from_angle(
-        angle_start - angle_max), 0.0f);
+    b32 result = v2_cross(left, dir) < 0.0f && v2_cross(right, dir) > 0.0f;
 
+    return result;
+}
+
+void exclude_corners_not_in_view(struct game_state* state, struct v2 position,
+    struct v2 left, struct v2 right, struct v2 corners[], u32 max,
+    u32* count)
+{
     for (u32 i = 0; i < state->num_wall_corners; i++)
     {
-        struct v3 dir_corner = v3_from_v2(v2_direction(position,
-            state->wall_corners[i]), 0.0f);
-        struct v3 left = v3_cross(dir_left, dir_corner);
-        struct v3 right = v3_cross(dir_right, dir_corner);
+        struct v2 dir = v2_direction(position, state->wall_corners[i]);
 
-        if (left.z < 0 && right.z > 0)
+        if (direction_in_range(dir, left, right))
         {
             corners[*count] = state->wall_corners[i];
 
             if (++(*count) >= max)
             {
-                return;
+                break;
             }
         }
     }
@@ -2047,18 +2047,40 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
 
     f32 length_max = 20.0f;
     struct v2 collision = { 0 };
+    struct v2 dir_left = v2_direction_from_angle(angle_start + angle_max);
+    struct v2 dir_right = v2_direction_from_angle(angle_start - angle_max);
 
-    ray_cast_to_direction(position,
-            v2_direction_from_angle(angle_start + angle_max), state->wall_faces,
+    ray_cast_to_direction(position, dir_right, state->wall_faces,
             state->num_wall_faces, &collision);
     corners[num_corners++] = collision;
 
-    ray_cast_to_direction(position,
-            v2_direction_from_angle(angle_start - angle_max), state->wall_faces,
-            state->num_wall_faces, &collision);
+    ray_cast_to_direction(position, dir_left, state->wall_faces,
+        state->num_wall_faces, &collision);
     corners[num_corners++] = collision;
 
-    exclude_corners_not_in_view(state, position, angle_start, angle_max,
+    struct v2 plr_pos = state->player.body.position;
+    struct v2 plr_rect[4] =
+    {
+        { -PLAYER_RADIUS,  PLAYER_RADIUS },
+        {  PLAYER_RADIUS,  PLAYER_RADIUS },
+        {  PLAYER_RADIUS, -PLAYER_RADIUS },
+        { -PLAYER_RADIUS, -PLAYER_RADIUS }
+    };
+
+    for (u32 i = 0; i < 4 && num_corners < MAX_WALL_CORNERS; i++)
+    {
+        plr_rect[i] = v2_rotate(plr_rect[i], state->player.body.angle);
+        plr_rect[i].x += plr_pos.x;
+        plr_rect[i].y += plr_pos.y;
+
+        if (direction_in_range(v2_direction(position, plr_rect[i]),
+            dir_left, dir_right))
+        {
+            corners[num_corners++] = plr_rect[i];
+        }
+    }
+
+    exclude_corners_not_in_view(state, position, dir_left, dir_right,
         corners, MAX_WALL_CORNERS, &num_corners);
 
     struct v2 finals[MAX_WALL_CORNERS] = { 0 };
