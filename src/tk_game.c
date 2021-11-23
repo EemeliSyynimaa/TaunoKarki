@@ -225,15 +225,27 @@ u8 map_data[] =
     1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 };
 
-b32 tile_is_of_type(struct v2 position, u32 type)
+b32 tile_inside_map(struct v2 position)
 {
     b32 result = false;
 
     s32 x = f32_round(position.x);
     s32 y = f32_round(position.y);
 
-    if (x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT)
+    result = x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT;
+
+    return result;
+}
+
+b32 tile_is_of_type(struct v2 position, u32 type)
+{
+    b32 result = false;
+
+    if (tile_inside_map(position))
     {
+        s32 x = f32_round(position.x);
+        s32 y = f32_round(position.y);
+
         result = map_data[y * MAP_WIDTH + x] == type;
     }
 
@@ -1843,43 +1855,58 @@ void get_wall_faces(struct line_segment faces[], u32 max, u32* count)
 
             if (tile_is_of_type(tile, TILE_WALL))
             {
-                // Todo: don't add faces between two walls
                 f32 t = WALL_SIZE * 0.5f;
+
+                struct v2 tile_left   = { tile.x - WALL_SIZE, tile.y };
+                struct v2 tile_right  = { tile.x + WALL_SIZE, tile.y };
+                struct v2 tile_top    = { tile.x, tile.y + WALL_SIZE };
+                struct v2 tile_bottom = { tile.x, tile.y - WALL_SIZE };
 
                 struct line_segment face;
 
-                face.start = (struct v2){ tile.x - t, tile.y - t };
-                face.end   = (struct v2){ tile.x + t, tile.y - t };
-                if (!insert_face(face, faces, max, count))
+                if (tile_inside_map(tile_bottom) && tile_is_free(tile_bottom))
                 {
-                    return;
+                    face.start = (struct v2){ tile.x - t, tile.y - t };
+                    face.end   = (struct v2){ tile.x + t, tile.y - t };
+                    if (!insert_face(face, faces, max, count))
+                    {
+                        return;
+                    }
                 }
 
-                face.start = (struct v2){ tile.x - t, tile.y + t };
-                face.end   = (struct v2){ tile.x + t, tile.y + t };
-                if (!insert_face(face, faces, max, count))
+                if (tile_inside_map(tile_top) && tile_is_free(tile_top))
                 {
-                    return;
+                    face.start = (struct v2){ tile.x - t, tile.y + t };
+                    face.end   = (struct v2){ tile.x + t, tile.y + t };
+                    if (!insert_face(face, faces, max, count))
+                    {
+                        return;
+                    }
                 }
 
-                face.start = (struct v2){ tile.x + t, tile.y - t };
-                face.end   = (struct v2){ tile.x + t, tile.y + t };
-                if (!insert_face(face, faces, max, count))
+                if (tile_inside_map(tile_right) && tile_is_free(tile_right))
                 {
-                    return;
+                    face.start = (struct v2){ tile.x + t, tile.y - t };
+                    face.end   = (struct v2){ tile.x + t, tile.y + t };
+                    if (!insert_face(face, faces, max, count))
+                    {
+                        return;
+                    }
                 }
 
-                face.start = (struct v2){ tile.x - t, tile.y - t };
-                face.end   = (struct v2){ tile.x - t, tile.y + t };
-                if (!insert_face(face, faces, max, count))
+                if (tile_inside_map(tile_left) && tile_is_free(tile_left))
                 {
-                    return;
+                    face.start = (struct v2){ tile.x - t, tile.y - t };
+                    face.end   = (struct v2){ tile.x - t, tile.y + t };
+                    if (!insert_face(face, faces, max, count))
+                    {
+                        return;
+                    }
                 }
             }
         }
     }
 }
-
 
 void exclude_corners_not_in_view(struct game_state* state, struct v2 position,
     f32 angle_start, f32 angle_max, struct v2 corners[], u32 max, u32* count)
