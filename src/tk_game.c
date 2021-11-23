@@ -77,6 +77,7 @@ struct mesh
 #define MAX_BULLETS 64
 #define MAX_ENEMIES 5
 #define MAX_WALL_CORNERS 1024
+#define MAX_WALL_FACES 4096
 
 struct memory_block
 {
@@ -84,6 +85,12 @@ struct memory_block
     s8* current;
     s8* last;
     u64 size;
+};
+
+struct line_segment
+{
+    struct v2 start;
+    struct v2 end;
 };
 
 struct game_state
@@ -100,6 +107,7 @@ struct game_state
     struct mesh triangle;
     struct memory_block temporary;
     struct v2 wall_corners[MAX_WALL_CORNERS];
+    struct line_segment wall_faces[MAX_WALL_FACES];
     b32 fired;
     f32 accumulator;
     u32 shader;
@@ -111,6 +119,7 @@ struct game_state
     u32 free_bullet;
     u32 num_enemies;
     u32 num_wall_corners;
+    u32 num_wall_faces;
     u32 level;
 };
 
@@ -1022,6 +1031,63 @@ b32 tile_ray_cast_to_position(struct game_state* state, struct v2 start,
     return result;
 }
 
+b32 intersect_ray_to_line_segment(struct v2 start, struct v2 direction,
+    struct line_segment line_segment, struct v2* collision_position)
+{
+    b32 result = false;
+    struct v2 p = start;
+    struct v2 r = direction;
+    struct v2 q = line_segment.start;
+    struct v2 s = v2_direction(line_segment.start, line_segment.end);
+    struct v2 qp = { q.x - p.x, q.y - p.y };
+    f32 r_x_s = v2_cross(r, s);
+
+    if (r_x_s == 0.0f)
+    {
+
+    }
+    else
+    {
+        f32 qp_x_s = v2_cross(qp, s);
+        f32 qp_x_r = v2_cross(qp, r);
+
+        f32 t = qp_x_s / r_x_s;
+        f32 u = qp_x_r / r_x_s;
+
+        if (t > 0.0f && u > 0.0f && u < 1.0f)
+        {
+            collision_position->x = p.x + t * r.x;
+            collision_position->y = p.y + t * r.y;
+            result = true;
+        }
+    }
+
+    return result;
+}
+
+b32 ray_cast_to_direction(struct v2 start, struct v2 direction,
+    struct line_segment segments[], u32 segments_num,
+    struct v2* collision_position)
+{
+    b32 result = false;
+    f32 distance_min = F32_MAX;
+
+    for (u32 i = 0; i < segments_num; i++)
+    {
+        struct v2 position = { 0.0f, 0.0f };
+
+        if (intersect_ray_to_line_segment(start, direction, segments[i],
+            &position) && v2_distance(start, position) < distance_min)
+        {
+            *collision_position = position;
+            distance_min = v2_distance(start, position);
+            result = true;
+        }
+    }
+
+    return result;
+}
+
 b32 collision_point_to_rect(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y,
     f32 max_y)
 {
@@ -1722,6 +1788,42 @@ void get_wall_corners(struct v2 corners[], u32 max, u32* count)
     }
 }
 
+void get_wall_faces(struct line_segment faces[], u32 max, u32* count)
+{
+    for (u32 y = 0; y < MAP_HEIGHT; y++)
+    {
+        for (u32 x = 0; x < MAP_WIDTH; x++)
+        {
+            struct v2 tile = { x, y };
+
+            if (tile_is_of_type(tile, TILE_WALL))
+            {
+                // Todo: skip duplicates
+                // Todo: don't add faces between two walls
+                f32 t = WALL_SIZE * 0.5f;
+
+                struct line_segment face;
+
+                face.start = (struct v2){ tile.x - t, tile.y - t };
+                face.end   = (struct v2){ tile.x + t, tile.y - t };
+                faces[(*count)++] = face;
+
+                face.start = (struct v2){ tile.x - t, tile.y + t };
+                face.end   = (struct v2){ tile.x + t, tile.y + t };
+                faces[(*count)++] = face;
+
+                face.start = (struct v2){ tile.x + t, tile.y - t };
+                face.end   = (struct v2){ tile.x + t, tile.y + t };
+                faces[(*count)++] = face;
+
+                face.start = (struct v2){ tile.x - t, tile.y - t };
+                face.end   = (struct v2){ tile.x - t, tile.y + t };
+                faces[(*count)++] = face;
+            }
+        }
+    }
+}
+
 void exclude_corners_not_in_view(struct game_state* state, struct v2 position,
     f32 angle_start, f32 angle_max, struct v2 corners[], u32 max, u32* count)
 {
@@ -1755,10 +1857,7 @@ void reorder_corners_ccw(struct v2* corners, u32 count, struct v2 position)
     {
         for (u32 j = i + 1; j < count; j++)
         {
-            struct v3 a = v3_from_v2(v2_direction(position, corners[i]), 0.0f);
-            struct v3 b = v3_from_v2(v2_direction(position, corners[j]), 0.0f);
-
-            if (v3_cross(a, b).z < 0)
+            if (f32_triangle_area_signed(position, corners[i], corners[j]) < 0)
             {
                 v2_swap(&corners[i], &corners[j]);
             }
@@ -1773,15 +1872,17 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
     u32 num_corners = 0;
 
     f32 length_max = 20.0f;
-    struct ray_cast_collision collision = { 0 };
+    struct v2 collision = { 0 };
 
-    tile_ray_cast_to_angle(state, position, angle_start + angle_max,
-        length_max, &collision, false);
-    corners[num_corners++] = collision.position;
+    ray_cast_to_direction(position,
+            v2_direction_from_angle(angle_start + angle_max), state->wall_faces,
+            state->num_wall_faces, &collision);
+    corners[num_corners++] = collision;
 
-    tile_ray_cast_to_angle(state, position, angle_start - angle_max,
-        length_max, &collision, false);
-    corners[num_corners++] = collision.position;
+    ray_cast_to_direction(position,
+            v2_direction_from_angle(angle_start - angle_max), state->wall_faces,
+            state->num_wall_faces, &collision);
+    corners[num_corners++] = collision;
 
     exclude_corners_not_in_view(state, position, angle_start, angle_max,
         corners, MAX_WALL_CORNERS, &num_corners);
@@ -1794,47 +1895,46 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
         struct v2 direction = v2_direction(position, corners[i]);
         f32 angle = f32_atan(direction.y, direction.x);
         f32 t = 0.00001f;
+        f32 epsilon = 0.00001f;
 
-        if (tile_ray_cast_to_position(state, position, corners[i], &collision,
-            false))
+        if (ray_cast_to_direction(position, v2_direction(position, corners[i]),
+            state->wall_faces, state->num_wall_faces, &collision))
         {
-            struct ray_cast_collision collision_temp = { 0 };
-            finals[num_finals++] = collision.position;
+            struct v2 collision_temp = { 0 };
+            finals[num_finals++] = collision;
 
             if (render_lines)
             {
-                line_render(state, position, collision.position, colors[RED],
+                line_render(state, position, collision, colors[RED],
                     0.005f, 0.005f);
             }
 
-            tile_ray_cast_to_angle(state, position, angle + t, length_max,
-                &collision_temp, false);
+            ray_cast_to_direction(position, v2_direction_from_angle(angle + t),
+                state->wall_faces, state->num_wall_faces, &collision_temp);
 
-            if (v2_distance(collision_temp.position, collision.position) >
-                0.00001f)
+            if (v2_distance(collision_temp, collision) > epsilon)
             {
                 if (render_lines)
                 {
-                    line_render(state, position, collision_temp.position,
+                    line_render(state, position, collision_temp,
                         colors[RED], 0.005f, 0.005f);
                 }
 
-                finals[num_finals++] = collision_temp.position;
+                finals[num_finals++] = collision_temp;
             }
 
-            tile_ray_cast_to_angle(state, position, angle - t, length_max,
-                &collision_temp, false);
+            ray_cast_to_direction(position, v2_direction_from_angle(angle - t),
+                state->wall_faces, state->num_wall_faces, &collision_temp);
 
-            if (v2_distance(collision_temp.position, collision.position) >
-                0.00001f)
+            if (v2_distance(collision_temp, collision) > epsilon)
             {
                 if (render_lines)
                 {
-                    line_render(state, position, collision_temp.position,
+                    line_render(state, position, collision_temp,
                         colors[RED], 0.005f, 0.005f);
                 }
 
-                finals[num_finals++] = collision_temp.position;
+                finals[num_finals++] = collision_temp;
             }
         }
     }
@@ -1870,26 +1970,23 @@ void enemies_render(struct game_state* state)
             mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader,
                 colors[WHITE]);
 
-            struct v4 color = colors[TEAL];
-            color.a = 0.25f;
-
             line_of_sight_render(state, enemy->body.position,
                 enemy->body.angle, enemy->vision_cone_size *
-                ENEMY_LINE_OF_SIGHT_HALF, color, false);
+                ENEMY_LINE_OF_SIGHT_HALF, colors[TEAL], true);
 
-            health_bar_render(state, enemy->body.position, enemy->health, 
+            health_bar_render(state, enemy->body.position, enemy->health,
                 100.0f);
 
             // Render velocity vector
             {
                 f32 max_speed = 7.0f;
                 f32 length = v2_length(enemy->body.velocity) / max_speed;
-                f32 angle = f32_atan(enemy->body.velocity.x, 
+                f32 angle = f32_atan(enemy->body.velocity.x,
                     enemy->body.velocity.y);
 
                 transform = m4_translate(
-                    enemy->body.position.x + enemy->body.velocity.x / max_speed, 
-                    enemy->body.position.y + enemy->body.velocity.y / max_speed, 
+                    enemy->body.position.x + enemy->body.velocity.x / max_speed,
+                    enemy->body.position.y + enemy->body.velocity.y / max_speed,
                     0.012f);
 
                 rotation = m4_rotate_z(-angle);
@@ -1901,7 +1998,7 @@ void enemies_render(struct game_state* state)
                 mvp = m4_mul_m4(model, state->camera.view);
                 mvp = m4_mul_m4(mvp, state->camera.projection);
 
-                mesh_render(&state->floor, &mvp, state->texture_tileset, 
+                mesh_render(&state->floor, &mvp, state->texture_tileset,
                     state->shader_simple, colors[GREY]);
             }
 
@@ -1982,15 +2079,15 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
 
         if (bullet->alive)
         {
-            struct v2 move_delta = 
+            struct v2 move_delta =
             {
-                bullet->body.velocity.x * dt, 
+                bullet->body.velocity.x * dt,
                 bullet->body.velocity.y * dt
             };
 
             // Todo: projectiles sometimes get stuck in the wall instead of
             // bouncing
-            if (check_tile_collisions(&bullet->body.position, 
+            if (check_tile_collisions(&bullet->body.position,
                 &bullet->body.velocity, move_delta, PROJECTILE_RADIUS, 2))
             {
                 bullet->alive = false;
@@ -2003,7 +2100,7 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                     struct enemy* enemy = &state->enemies[j];
 
                     if (enemy->alive && collision_circle_to_circle(
-                        bullet->body.position, PROJECTILE_RADIUS, 
+                        bullet->body.position, PROJECTILE_RADIUS,
                         enemy->body.position, PLAYER_RADIUS))
                     {
                         bullet->alive = false;
@@ -2016,7 +2113,7 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                 struct player* player = &state->player;
 
                 if (player->alive && collision_circle_to_circle(
-                    bullet->body.position, PROJECTILE_RADIUS, 
+                    bullet->body.position, PROJECTILE_RADIUS,
                     player->body.position, PLAYER_RADIUS))
                 {
                     bullet->alive = false;
@@ -2035,7 +2132,7 @@ void bullets_render(struct game_state* state)
 
         if (bullet->alive)
         {
-            struct m4 transform = m4_translate(bullet->body.position.x,  
+            struct m4 transform = m4_translate(bullet->body.position.x,
                 bullet->body.position.y, PLAYER_RADIUS);
             struct m4 rotation = m4_rotate_z(bullet->body.angle);
             struct m4 scale = m4_scale_all(PROJECTILE_RADIUS);
@@ -2055,16 +2152,16 @@ void bullets_render(struct game_state* state)
 void player_update(struct game_state* state, struct game_input* input, f32 dt)
 {
     struct player* player = &state->player;
- 
+
     player->alive = player->health > 0.0f;
-    
+
     if (player->alive)
     {
         struct v2 direction = { 0.0f };
         struct v2 acceleration = { 0.0f };
         struct v2 move_delta = { 0.0f };
 
-        struct v2 dir = { state->mouse.world.x - player->body.position.x, 
+        struct v2 dir = { state->mouse.world.x - player->body.position.x,
             (state->mouse.world.y - PLAYER_RADIUS) - player->body.position.y };
         dir = v2_normalize(dir);
 
@@ -2075,7 +2172,7 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         {
             direction.x -= 1.0f;
         }
-        
+
         if (input->move_right.key_down)
         {
             direction.x += 1.0f;
@@ -2105,15 +2202,15 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         acceleration.x += -player->body.velocity.x * FRICTION;
         acceleration.y += -player->body.velocity.y * FRICTION;
 
-        move_delta.x = 0.5f * acceleration.x * f32_square(dt) + 
+        move_delta.x = 0.5f * acceleration.x * f32_square(dt) +
             player->body.velocity.x * dt;
-        move_delta.y = 0.5f * acceleration.y * f32_square(dt) + 
+        move_delta.y = 0.5f * acceleration.y * f32_square(dt) +
             player->body.velocity.y * dt;
 
         player->body.velocity.x = player->body.velocity.x + acceleration.x * dt;
         player->body.velocity.y = player->body.velocity.y + acceleration.y * dt;
 
-        check_tile_collisions(&player->body.position, &player->body.velocity, 
+        check_tile_collisions(&player->body.position, &player->body.velocity,
             move_delta, PLAYER_RADIUS, 1);
 
         if (input->shoot.key_down)
@@ -2150,10 +2247,10 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 void player_render(struct game_state* state)
 {
     struct player* player = &state->player;
- 
+
     if (player->alive)
     {
-        struct m4 transform = m4_translate(player->body.position.x, 
+        struct m4 transform = m4_translate(player->body.position.x,
             player->body.position.y, PLAYER_RADIUS);
         struct m4 rotation = m4_rotate_z(player->body.angle);
         struct m4 scale = m4_scale_xyz(PLAYER_RADIUS, PLAYER_RADIUS, 0.25f);
@@ -2171,12 +2268,12 @@ void player_render(struct game_state* state)
         {
             f32 max_speed = 7.0f;
             f32 length = v2_length(player->body.velocity) / max_speed;
-            f32 angle = f32_atan(player->body.velocity.x, 
+            f32 angle = f32_atan(player->body.velocity.x,
                 player->body.velocity.y);
 
             transform = m4_translate(
-                player->body.position.x + player->body.velocity.x / max_speed, 
-                player->body.position.y + player->body.velocity.y / max_speed, 
+                player->body.position.x + player->body.velocity.x / max_speed,
+                player->body.position.y + player->body.velocity.y / max_speed,
                 0.01f);
 
             rotation = m4_rotate_z(-angle);
@@ -2188,14 +2285,14 @@ void player_render(struct game_state* state)
             mvp = m4_mul_m4(model, state->camera.view);
             mvp = m4_mul_m4(mvp, state->camera.projection);
 
-            mesh_render(&state->floor, &mvp, state->texture_tileset, 
+            mesh_render(&state->floor, &mvp, state->texture_tileset,
                 state->shader_simple, colors[GREY]);
         }
 
         // Render aim vector
         {
-            struct v2 vec = 
-            { 
+            struct v2 vec =
+            {
                 state->mouse.world.x - player->body.position.x,
                 (state->mouse.world.y - PLAYER_RADIUS) - player->body.position.y
             };
@@ -2206,7 +2303,7 @@ void player_render(struct game_state* state)
             struct v2 direction = v2_normalize(vec);
 
             transform = m4_translate(
-                player->body.position.x + direction.x * length, 
+                player->body.position.x + direction.x * length,
                 player->body.position.y + direction.y * length, PLAYER_RADIUS);
             rotation = m4_rotate_z(-angle);
             scale = m4_scale_xyz(0.01f, length, 0.01f);
@@ -2217,7 +2314,7 @@ void player_render(struct game_state* state)
             mvp = m4_mul_m4(model, state->camera.view);
             mvp = m4_mul_m4(mvp, state->camera.projection);
 
-            mesh_render(&state->floor, &mvp, state->texture_tileset, 
+            mesh_render(&state->floor, &mvp, state->texture_tileset,
                 state->shader_simple, colors[RED]);
         }
 
@@ -2280,7 +2377,7 @@ u32 texture_create(struct memory_block* block, char* path)
     file_handle file;
     u64 file_size = 0;
     s8* file_data = 0;
-    s8* pixel_data = 0; 
+    s8* pixel_data = 0;
 
     file_open(&file, path, true);
     file_size_get(&file, &file_size);
@@ -2338,7 +2435,7 @@ s32 s32_parse(char* str, u64* size)
     s32 value = 0;
     u64 bytes = 0;
     b32 negative = false;
-    
+
     if (*str == '-')
     {
         negative = true;
@@ -2347,7 +2444,7 @@ s32 s32_parse(char* str, u64* size)
     }
 
     while (is_digit(*str))
-    {  
+    {
         u8 val = *str++ - '0';
 
         value *= 10.0;
@@ -2385,7 +2482,7 @@ f32 f32_parse(char* str, u64* size)
     }
 
     while (is_digit(*str))
-    {  
+    {
         u8 val = *str++ - '0';
 
         value *= 10.0;
@@ -2397,9 +2494,9 @@ f32 f32_parse(char* str, u64* size)
     {
         s32 num_decimals = 0;
         bytes++;
-        
+
         while (is_digit(*str))
-        {  
+        {
             u8 val = *str++ - '0';
 
             value *= 10.0;
@@ -2449,7 +2546,7 @@ f32 f32_parse(char* str, u64* size)
 
             num_decimals++;
         }
-    
+
         while (num_decimals > 0)
         {
             value *= 10;
@@ -2547,7 +2644,7 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
             struct v3* v = &in_vertices[num_in_vertices++];
 
             // LOG("v");
-            
+
             data += str_size;
             str_size = string_read(data, str, 255);
             v->x = f32_parse(str, NULL);
@@ -2567,7 +2664,7 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
         {
             struct v2* uv = &in_uvs[num_in_uvs++];
 
-            // LOG("vt");            
+            // LOG("vt");
 
             data += str_size;
             str_size = string_read(data, str, 255);
@@ -2614,7 +2711,7 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
                 char* s = str;
 
                 u64 bytes_read = 0;
-                face[0] = s32_parse(s, &bytes_read); 
+                face[0] = s32_parse(s, &bytes_read);
                 // LOG(" %d", face[0]);
                 s += bytes_read + 1;
                 // LOG("%c", *s++);
@@ -2622,7 +2719,7 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
                 // LOG("%d", face[1]);
                 s += bytes_read + 1;
                 // LOG("%c", *s++);
-                face[2] = s32_parse(s, &bytes_read); 
+                face[2] = s32_parse(s, &bytes_read);
                 // LOG("%d", face[2]);
 
                 num_in_faces += 3;
@@ -2795,7 +2892,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
             "assets/textures/sphere.tga");
         state->texture_player = texture_create(&state->temporary,
             "assets/textures/cube.tga");
-        state->texture_enemy = texture_create(&state->temporary, 
+        state->texture_enemy = texture_create(&state->temporary,
             "assets/textures/enemy.tga");
 
         mesh_create(&state->temporary, "assets/meshes/cube.mesh",
@@ -2814,10 +2911,10 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
     state->camera.screen_width = init->screen_width;
     state->camera.screen_height = init->screen_height;
-    state->camera.projection = m4_perspective(60.0f, 
-        (f32)state->camera.screen_width/(f32)state->camera.screen_height, 
+    state->camera.projection = m4_perspective(60.0f,
+        (f32)state->camera.screen_width/(f32)state->camera.screen_height,
         0.1f, 100.0f);
-    // state->camera.projection = m4_orthographic(-10.0f, 10.0f, -10.0f, 10.0f, 
+    // state->camera.projection = m4_orthographic(-10.0f, 10.0f, -10.0f, 10.0f,
     //     0.1f, 100.0f);
     state->camera.projection_inverse = m4_inverse(state->camera.projection);
 
@@ -2826,7 +2923,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
     for (u32 i = 0; i < state->num_enemies; i++)
     {
         struct enemy* enemy = &state->enemies[i];
-            
+
         enemy->body.position.x = 2.0f + i * 2.0f;
         enemy->body.position.y = 5.0f;
         enemy->alive = true;
@@ -2844,7 +2941,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
     state->mouse.world = state->player.body.position;
 
-    struct v2 temp = 
+    struct v2 temp =
     {
         state->mouse.world.x - state->player.body.position.x,
         state->mouse.world.y - state->player.body.position.y
@@ -2854,7 +2951,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
     state->camera.position.y = state->player.body.position.y + temp.y * 0.5f;
     state->camera.position.z = 10.0f;
 
-    state->camera.view = m4_translate(-state->camera.position.x, 
+    state->camera.view = m4_translate(-state->camera.position.x,
         -state->camera.position.y, -state->camera.position.z);
 
     state->camera.view_inverse = m4_inverse(state->camera.view);
@@ -2864,7 +2961,23 @@ void game_init(struct game_memory* memory, struct game_init* init)
     get_wall_corners(state->wall_corners, MAX_WALL_CORNERS,
         &state->num_wall_corners);
 
+    get_wall_faces(state->wall_faces, MAX_WALL_FACES, &state->num_wall_faces);
+
     glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
+
+    struct v2 start = { 0.0f, 5.0f };
+    struct v2 direction = { 1.0f, 0.0f };
+    struct v2 collision = { 0.0f };
+    struct line_segment segment = {{ 0.0f, 6.0f }, { 0.0f, -12.0f }};
+
+    if (ray_cast_to_direction(start, direction, &segment, 1, &collision))
+    {
+        LOG("They do collide!\n");
+    }
+    else
+    {
+        LOG("They don't...?\n");
+    }
 
     if (!memory->initialized)
     {

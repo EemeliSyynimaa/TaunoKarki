@@ -1,6 +1,9 @@
 #include <math.h>
+#include <float.h>
 
 #define F64_PI 3.1415926535897932384626433832795028841971693993751058209749445
+#define F32_MAX FLT_MAX
+#define F32_MIN FLT_MIN
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
@@ -127,8 +130,8 @@ f32 f32_square(f32 value)
 
 f32 f32_abs(f32 value)
 {
-    f32 result  = value < 0 ? value * -1 : value;
-    
+    f32 result = value < 0 ? value * -1 : value;
+
     return result;
 }
 
@@ -169,7 +172,7 @@ f32 determinant(f32* values, u32 size)
     {
         for (u32 i = 0; i < size; i++)
         {
-            // Todo: fixed size! 
+            // Todo: fixed size!
             f32 temp[16] = { 0 };
 
             u32 x1 = 0;
@@ -266,7 +269,7 @@ struct m3 m3_matrix_of_minors(struct m3 a)
             result.m[j][k] = determinant;
         }
     }
-    
+
     return result;
 }
 
@@ -394,13 +397,13 @@ struct m4 m4_matrix_of_minors(struct m4 a)
             result.m[j][k] = determinant;
         }
     }
-    
+
     return result;
 }
 
 struct m4 m4_translate(f32 x, f32 y, f32 z)
 {
-    struct m4 result = 
+    struct m4 result =
     {{
         { 1.0f, 0.0f, 0.0f, 0.0f },
         { 0.0f, 1.0f, 0.0f, 0.0f },
@@ -416,7 +419,7 @@ struct m4 m4_rotate_x(f32 angle)
     f32 c = f32_cos(angle);
     f32 s = f32_sin(angle);
 
-    struct m4 result = 
+    struct m4 result =
     {{
         { 1.0f, 0.0f, 0.0f, 0.0f },
         { 0.0f,    c,    s, 0.0f },
@@ -432,7 +435,7 @@ struct m4 m4_rotate_y(f32 angle)
     f32 c = f32_cos(angle);
     f32 s = f32_sin(angle);
 
-    struct m4 result = 
+    struct m4 result =
     {{
         { c,    0.0f,   -s, 0.0f },
         { 0.0f, 1.0f, 0.0f, 0.0f },
@@ -448,7 +451,7 @@ struct m4 m4_rotate_z(f32 angle)
     f32 c = f32_cos(angle);
     f32 s = f32_sin(angle);
 
-    struct m4 result = 
+    struct m4 result =
     {{
         {    c,    s, 0.0f, 0.0f },
         {   -s,    c, 0.0f, 0.0f },
@@ -461,7 +464,7 @@ struct m4 m4_rotate_z(f32 angle)
 
 struct m4 m4_scale_xyz(f32 x, f32 y, f32 z)
 {
-    struct m4 result = 
+    struct m4 result =
     {{
         {    x, 0.0f, 0.0f, 0.0f },
         { 0.0f,    y, 0.0f, 0.0f },
@@ -487,8 +490,8 @@ struct m4 m4_mul_m4(struct m4 a, struct m4 b)
         {
             result.m[i][j] =
                 a.m[i][0] * b.m[0][j] +
-                a.m[i][1] * b.m[1][j] + 
-                a.m[i][2] * b.m[2][j] + 
+                a.m[i][1] * b.m[1][j] +
+                a.m[i][2] * b.m[2][j] +
                 a.m[i][3] * b.m[3][j];
         }
     }
@@ -515,13 +518,13 @@ struct v4 m4_mul_v4(struct m4 a, struct v4 b)
 {
     struct v4 result = { 0 };
 
-    result.x = a.m[0][0] * b.x + a.m[1][0] * b.y + a.m[2][0] * b.z + a.m[3][0] 
+    result.x = a.m[0][0] * b.x + a.m[1][0] * b.y + a.m[2][0] * b.z + a.m[3][0]
         * b.w;
-    result.y = a.m[0][1] * b.x + a.m[1][1] * b.y + a.m[2][1] * b.z + a.m[3][1] 
+    result.y = a.m[0][1] * b.x + a.m[1][1] * b.y + a.m[2][1] * b.z + a.m[3][1]
         * b.w;
-    result.z = a.m[0][2] * b.x + a.m[1][2] * b.y + a.m[2][2] * b.z + a.m[3][2] 
+    result.z = a.m[0][2] * b.x + a.m[1][2] * b.y + a.m[2][2] * b.z + a.m[3][2]
         * b.w;
-    result.w = a.m[0][3] * b.x + a.m[1][3] * b.y + a.m[2][3] * b.z + a.m[3][3] 
+    result.w = a.m[0][3] * b.x + a.m[1][3] * b.y + a.m[2][3] * b.z + a.m[3][3]
         * b.w;
 
     return result;
@@ -636,6 +639,13 @@ f32 v2_length_squared(struct v2 v)
 f32 v2_dot(struct v2 a, struct v2 b)
 {
     f32 result = a.x * b.x + a.y * b.y;
+
+    return result;
+}
+
+f32 v2_cross(struct v2 a, struct v2 b)
+{
+    f32 result = a.x * b.y - a.y * b.x;
 
     return result;
 }
@@ -837,6 +847,18 @@ struct v4 v4_mul(struct v4 a, struct v4 b)
     result.y = a.y * b.y;
     result.z = a.z * b.z;
     result.w = a.w * b.w;
+
+    return result;
+}
+
+f32 f32_triangle_area_signed(struct v2 a, struct v2 b, struct v2 c)
+{
+    f32 result;
+
+    struct v3 b2 = { b.x - a.x, b.y - a.y, 0.0f };
+    struct v3 c2 = { c.x - a.x, c.y - a.y, 0.0f };
+
+    result = v3_cross(b2, c2).z;
 
     return result;
 }
