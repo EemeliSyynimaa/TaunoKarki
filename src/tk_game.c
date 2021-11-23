@@ -76,8 +76,8 @@ struct mesh
 
 #define MAX_BULLETS 64
 #define MAX_ENEMIES 5
-#define MAX_WALL_CORNERS 1024
-#define MAX_WALL_FACES 4096
+#define MAX_WALL_CORNERS 2048
+#define MAX_WALL_FACES 2048
 
 struct memory_block
 {
@@ -1161,6 +1161,15 @@ void map_render(struct game_state* state)
     }
 }
 
+void collision_map_render(struct game_state* state)
+{
+    for (u32 i = 0; i < state->num_wall_faces; i++)
+    {
+        line_render(state, state->wall_faces[i].start, state->wall_faces[i].end,
+            colors[RED], WALL_SIZE + 0.01f, 0.025f);
+    }
+}
+
 b32 collision_circle_to_circle(struct v2 position_a, f32 radius_a,
     struct v2 position_b, f32 radius_b)
 {
@@ -1788,6 +1797,42 @@ void get_wall_corners(struct v2 corners[], u32 max, u32* count)
     }
 }
 
+b32 line_segment_equals(struct line_segment a, struct line_segment b)
+{
+    b32 result = v2_equals(a.start, b.start) && v2_equals(a.end, b.end);
+
+    return result;
+}
+
+b32 insert_face(struct line_segment face, struct line_segment faces[], u32 max,
+    u32* count)
+{
+    b32 result = false;
+
+    if (*count < max)
+    {
+        b32 found = false;
+
+        for (u32 i = 0; i < *count; i++)
+        {
+            if (line_segment_equals(face, faces[i]))
+            {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            faces[(*count)++] = face;
+        }
+
+        result = true;
+    }
+
+    return result;
+}
+
 void get_wall_faces(struct line_segment faces[], u32 max, u32* count)
 {
     for (u32 y = 0; y < MAP_HEIGHT; y++)
@@ -1798,7 +1843,6 @@ void get_wall_faces(struct line_segment faces[], u32 max, u32* count)
 
             if (tile_is_of_type(tile, TILE_WALL))
             {
-                // Todo: skip duplicates
                 // Todo: don't add faces between two walls
                 f32 t = WALL_SIZE * 0.5f;
 
@@ -1806,23 +1850,36 @@ void get_wall_faces(struct line_segment faces[], u32 max, u32* count)
 
                 face.start = (struct v2){ tile.x - t, tile.y - t };
                 face.end   = (struct v2){ tile.x + t, tile.y - t };
-                faces[(*count)++] = face;
+                if (!insert_face(face, faces, max, count))
+                {
+                    return;
+                }
 
                 face.start = (struct v2){ tile.x - t, tile.y + t };
                 face.end   = (struct v2){ tile.x + t, tile.y + t };
-                faces[(*count)++] = face;
+                if (!insert_face(face, faces, max, count))
+                {
+                    return;
+                }
 
                 face.start = (struct v2){ tile.x + t, tile.y - t };
                 face.end   = (struct v2){ tile.x + t, tile.y + t };
-                faces[(*count)++] = face;
+                if (!insert_face(face, faces, max, count))
+                {
+                    return;
+                }
 
                 face.start = (struct v2){ tile.x - t, tile.y - t };
                 face.end   = (struct v2){ tile.x - t, tile.y + t };
-                faces[(*count)++] = face;
+                if (!insert_face(face, faces, max, count))
+                {
+                    return;
+                }
             }
         }
     }
 }
+
 
 void exclude_corners_not_in_view(struct game_state* state, struct v2 position,
     f32 angle_start, f32 angle_max, struct v2 corners[], u32 max, u32* count)
@@ -2961,23 +3018,13 @@ void game_init(struct game_memory* memory, struct game_init* init)
     get_wall_corners(state->wall_corners, MAX_WALL_CORNERS,
         &state->num_wall_corners);
 
+    LOG("Wall corners: %d/%d\n", state->num_wall_corners, MAX_WALL_CORNERS);
+
     get_wall_faces(state->wall_faces, MAX_WALL_FACES, &state->num_wall_faces);
 
+    LOG("Wall faces: %d/%d\n", state->num_wall_faces, MAX_WALL_FACES);
+
     glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
-
-    struct v2 start = { 0.0f, 5.0f };
-    struct v2 direction = { 1.0f, 0.0f };
-    struct v2 collision = { 0.0f };
-    struct line_segment segment = {{ 0.0f, 6.0f }, { 0.0f, -12.0f }};
-
-    if (ray_cast_to_direction(start, direction, &segment, 1, &collision))
-    {
-        LOG("They do collide!\n");
-    }
-    else
-    {
-        LOG("They don't...?\n");
-    }
 
     if (!memory->initialized)
     {
@@ -3035,6 +3082,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
         player_render(state);
         enemies_render(state);
         bullets_render(state);
+        collision_map_render(state);
         // cursor_render(state);
     }
     else
