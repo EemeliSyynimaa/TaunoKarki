@@ -33,6 +33,7 @@ struct enemy
     struct v2 path[256];
     struct v2 direction_aim;
     struct v2 direction_look;
+    struct v2 eye_position;
     u32 path_index;
     u32 path_length;
     f32 health;
@@ -75,7 +76,7 @@ struct mesh
 };
 
 #define MAX_BULLETS 64
-#define MAX_ENEMIES 1
+#define MAX_ENEMIES 5
 #define MAX_WALL_CORNERS 512
 #define MAX_WALL_FACES 512
 #define MAX_COLLISION_SEGMENTS 1024
@@ -1692,6 +1693,12 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 }
             }
 
+            struct v2 eye = { PLAYER_RADIUS + 0.0001f, 0.0f };
+
+            enemy->eye_position = v2_rotate(eye, enemy->body.angle);
+            enemy->eye_position.x += enemy->body.position.x;
+            enemy->eye_position.y += enemy->body.position.y;
+
             enemy->last_shot += dt;
 
             if (enemy->last_shot > 1.0f)
@@ -2034,10 +2041,45 @@ void collision_segments_update(struct game_state* state)
         { plr_rect[3], plr_rect[0] }
     };
 
-    for (u32 i = 0; i < 4; i++)
+    for (u32 i = 0;
+        i < 4 && state->num_collision_segments < MAX_COLLISION_SEGMENTS; i++)
     {
         state->collision_segments[state->num_collision_segments++] =
             segments[i];
+    }
+
+    for (u32 i = 0; i < state->num_enemies; i++)
+    {
+        struct enemy* enemy = &state->enemies[i];
+        struct v2 plr_rect[4] =
+        {
+            { -PLAYER_RADIUS,  PLAYER_RADIUS },
+            {  PLAYER_RADIUS,  PLAYER_RADIUS },
+            {  PLAYER_RADIUS, -PLAYER_RADIUS },
+            { -PLAYER_RADIUS, -PLAYER_RADIUS }
+        };
+
+        for (u32 i = 0; i < 4; i++)
+        {
+            plr_rect[i] = v2_rotate(plr_rect[i], enemy->body.angle);
+            plr_rect[i].x += enemy->body.position.x;
+            plr_rect[i].y += enemy->body.position.y;
+        }
+
+        struct line_segment segments[] =
+        {
+            { plr_rect[0], plr_rect[1] },
+            { plr_rect[1], plr_rect[2] },
+            { plr_rect[2], plr_rect[3] },
+            { plr_rect[3], plr_rect[0] }
+        };
+
+        for (u32 i = 0;
+            i < 4 && state->num_collision_segments < MAX_COLLISION_SEGMENTS; i++)
+        {
+            state->collision_segments[state->num_collision_segments++] =
+                segments[i];
+        }
     }
 }
 
@@ -2120,6 +2162,32 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
             dir_left, dir_right))
         {
             corners[num_corners++] = plr_rect[i];
+        }
+    }
+
+    for (u32 i = 0; i < state->num_enemies && num_corners < MAX_WALL_CORNERS;
+        i++)
+    {
+        struct enemy* enemy = &state->enemies[i];
+        struct v2 plr_rect[4] =
+        {
+            { -PLAYER_RADIUS,  PLAYER_RADIUS },
+            {  PLAYER_RADIUS,  PLAYER_RADIUS },
+            {  PLAYER_RADIUS, -PLAYER_RADIUS },
+            { -PLAYER_RADIUS, -PLAYER_RADIUS }
+        };
+
+        for (u32 j = 0; j < 4; j++)
+        {
+            plr_rect[j] = v2_rotate(plr_rect[j], enemy->body.angle);
+            plr_rect[j].x += enemy->body.position.x;
+            plr_rect[j].y += enemy->body.position.y;
+
+            if (direction_in_range(v2_direction(position, plr_rect[j]),
+                dir_left, dir_right))
+            {
+                corners[num_corners++] = plr_rect[j];
+            }
         }
     }
 
@@ -2209,7 +2277,7 @@ void enemies_render(struct game_state* state)
             mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader,
                 colors[WHITE]);
 
-            line_of_sight_render(state, enemy->body.position,
+            line_of_sight_render(state, enemy->eye_position,
                 enemy->body.angle, enemy->vision_cone_size *
                 ENEMY_LINE_OF_SIGHT_HALF, colors[TEAL], true);
 
