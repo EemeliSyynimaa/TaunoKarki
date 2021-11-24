@@ -1050,7 +1050,7 @@ b32 tile_ray_cast_to_position(struct game_state* state, struct v2 start,
 }
 
 b32 intersect_ray_to_line_segment(struct v2 start, struct v2 direction,
-    struct line_segment line_segment, struct v2* collision_position)
+    struct line_segment line_segment, struct v2* collision)
 {
     b32 result = false;
     struct v2 p = start;
@@ -1062,7 +1062,7 @@ b32 intersect_ray_to_line_segment(struct v2 start, struct v2 direction,
 
     if (r_x_s == 0.0f)
     {
-
+        // Todo: implement if necessary
     }
     else
     {
@@ -1074,8 +1074,12 @@ b32 intersect_ray_to_line_segment(struct v2 start, struct v2 direction,
 
         if (t > 0.0f && u > 0.0f && u < 1.0f)
         {
-            collision_position->x = p.x + t * r.x;
-            collision_position->y = p.y + t * r.y;
+            if (collision)
+            {
+                collision->x = p.x + t * r.x;
+                collision->y = p.y + t * r.y;
+            }
+
             result = true;
         }
     }
@@ -1084,7 +1088,7 @@ b32 intersect_ray_to_line_segment(struct v2 start, struct v2 direction,
 }
 
 f32 ray_cast_to_direction(struct v2 start, struct v2 direction,
-    struct line_segment cols[], u32 num_cols, struct v2* collision_position,
+    struct line_segment cols[], u32 num_cols, struct v2* collision,
     f32 max_length)
 {
     f32 result = max_length;
@@ -1096,9 +1100,38 @@ f32 ray_cast_to_direction(struct v2 start, struct v2 direction,
         if (intersect_ray_to_line_segment(start, direction, cols[i], &position)
             && v2_distance(start, position) < result)
         {
-            *collision_position = position;
+            if (collision)
+            {
+                *collision = position;
+            }
+
             result = v2_distance(start, position);
         }
+    }
+
+    return result;
+}
+
+f32 ray_cast_direction(struct game_state* state, struct v2 position,
+    struct v2 direction, struct v2* collision)
+{
+    f32 result = ray_cast_to_direction(position, direction, state->cols_static,
+            state->num_cols_static, collision, F32_MAX);
+    result = ray_cast_to_direction(position, direction, state->cols_dynamic,
+            state->num_cols_dynamic, collision, result);
+    return result;
+}
+
+f32 ray_cast_position(struct game_state* state, struct v2 start, struct v2 end,
+    struct v2* collision)
+{
+    f32 result = ray_cast_direction(state, start, v2_direction(start, end),
+        collision);
+    f32 distance = v2_distance(start, end) - 0.01f;
+
+    if (result < distance)
+    {
+        result = 0.0f;
     }
 
     return result;
@@ -1727,31 +1760,6 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
     }
 }
 
-void cast_ray_to_tile_corner(struct game_state* state, struct v2 position,
-    f32 corner_x, f32 corner_y)
-{
-    struct v2 target = { corner_x, corner_y };
-    struct ray_cast_collision collision = { 0 };
-    struct v2 direction = v2_direction(position, target);
-    f32 angle = f32_atan(direction.y, direction.x);
-    f32 length_max = 20.0f;
-    f32 t = 0.00001f;
-
-    if (tile_ray_cast_to_position(state, position, target, &collision, false))
-    {
-        line_render(state, position, collision.position,
-            colors[RED], 0.005f, 0.005f);
-        tile_ray_cast_to_angle(state, position, angle + t,
-            length_max, &collision, false);
-        line_render(state, position, collision.position,
-            colors[RED], 0.005f, 0.005f);
-        tile_ray_cast_to_angle(state, position, angle - t,
-            length_max, &collision, false);
-        line_render(state, position, collision.position,
-            colors[RED], 0.005f, 0.005f);
-    }
-}
-
 b32 insert_corner(struct v2 corner, struct v2 corners[], u32 max, u32* count)
 {
     b32 result = false;
@@ -2084,26 +2092,6 @@ b32 direction_in_range(struct v2 dir, struct v2 left, struct v2 right)
     return result;
 }
 
-void exclude_corners_not_in_view(struct game_state* state, struct v2 position,
-    struct v2 left, struct v2 right, struct v2 corners[], u32 max,
-    u32* count)
-{
-    for (u32 i = 0; i < state->num_wall_corners; i++)
-    {
-        struct v2 dir = v2_direction(position, state->wall_corners[i]);
-
-        if (direction_in_range(dir, left, right))
-        {
-            corners[*count] = state->wall_corners[i];
-
-            if (++(*count) >= max)
-            {
-                break;
-            }
-        }
-    }
-}
-
 void reorder_corners_ccw(struct v2* corners, u32 count, struct v2 position)
 {
     for (u32 i = 0; i < count - 1; i++)
@@ -2118,16 +2106,6 @@ void reorder_corners_ccw(struct v2* corners, u32 count, struct v2 position)
     }
 }
 
-f32 ray_cast(struct game_state* state, struct v2 position, struct v2 direction,
-    struct v2* collision)
-{
-    f32 result = ray_cast_to_direction(position, direction, state->cols_static,
-            state->num_cols_static, collision, F32_MAX);
-    result = ray_cast_to_direction(position, direction, state->cols_dynamic,
-            state->num_cols_dynamic, collision, result);
-    return result;
-}
-
 void line_of_sight_render(struct game_state* state, struct v2 position,
     f32 angle_start, f32 angle_max, struct v4 color, b32 render_lines)
 {
@@ -2139,62 +2117,35 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
     struct v2 dir_left = v2_direction_from_angle(angle_start + angle_max);
     struct v2 dir_right = v2_direction_from_angle(angle_start - angle_max);
 
-    ray_cast(state, position, dir_right, &collision);
+    ray_cast_direction(state, position, dir_right, &collision);
     corners[num_corners++] = collision;
 
-    ray_cast(state, position, dir_left, &collision);
+    ray_cast_direction(state, position, dir_left, &collision);
     corners[num_corners++] = collision;
 
-    struct v2 plr_pos = state->player.body.position;
-    struct v2 plr_rect[4] =
+    for (u32 i = 0; i < state->num_cols_dynamic &&
+        num_corners < MAX_WALL_CORNERS; i++)
     {
-        { -PLAYER_RADIUS,  PLAYER_RADIUS },
-        {  PLAYER_RADIUS,  PLAYER_RADIUS },
-        {  PLAYER_RADIUS, -PLAYER_RADIUS },
-        { -PLAYER_RADIUS, -PLAYER_RADIUS }
-    };
+        struct v2 temp = state->cols_dynamic[i].start;
 
-    for (u32 i = 0; i < 4 && num_corners < MAX_WALL_CORNERS; i++)
-    {
-        plr_rect[i] = v2_rotate(plr_rect[i], state->player.body.angle);
-        plr_rect[i].x += plr_pos.x;
-        plr_rect[i].y += plr_pos.y;
-
-        if (direction_in_range(v2_direction(position, plr_rect[i]),
-            dir_left, dir_right))
+        if (direction_in_range(v2_direction(position, temp), dir_left,
+            dir_right))
         {
-            corners[num_corners++] = plr_rect[i];
+            corners[num_corners++] = temp;
         }
     }
 
-    for (u32 i = 0; i < state->num_enemies && num_corners < MAX_WALL_CORNERS;
-        i++)
+    for (u32 i = 0; i < state->num_wall_corners &&
+        num_corners < MAX_WALL_CORNERS; i++)
     {
-        struct enemy* enemy = &state->enemies[i];
-        struct v2 plr_rect[4] =
-        {
-            { -PLAYER_RADIUS,  PLAYER_RADIUS },
-            {  PLAYER_RADIUS,  PLAYER_RADIUS },
-            {  PLAYER_RADIUS, -PLAYER_RADIUS },
-            { -PLAYER_RADIUS, -PLAYER_RADIUS }
-        };
+        struct v2 temp = state->wall_corners[i];
 
-        for (u32 j = 0; j < 4; j++)
+        if (direction_in_range(v2_direction(position, temp), dir_left,
+            dir_right))
         {
-            plr_rect[j] = v2_rotate(plr_rect[j], enemy->body.angle);
-            plr_rect[j].x += enemy->body.position.x;
-            plr_rect[j].y += enemy->body.position.y;
-
-            if (direction_in_range(v2_direction(position, plr_rect[j]),
-                dir_left, dir_right))
-            {
-                corners[num_corners++] = plr_rect[j];
-            }
+            corners[num_corners++] = temp;
         }
     }
-
-    exclude_corners_not_in_view(state, position, dir_left, dir_right,
-        corners, MAX_WALL_CORNERS, &num_corners);
 
     struct v2 finals[MAX_WALL_CORNERS] = { 0 };
     u32 num_finals = 0;
@@ -2205,7 +2156,7 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
         f32 angle = f32_atan(direction.y, direction.x);
         f32 t = 0.00001f;
 
-        ray_cast(state, position, direction, &collision);
+        ray_cast_direction(state, position, direction, &collision);
 
         struct v2 collision_temp = { 0 };
         finals[num_finals++] = collision;
@@ -2216,7 +2167,7 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
                 0.005f, 0.005f);
         }
 
-        ray_cast(state, position, v2_direction_from_angle(angle + t),
+        ray_cast_direction(state, position, v2_direction_from_angle(angle + t),
             &collision_temp);
 
         if (v2_distance(collision_temp, collision) > 0.001f)
@@ -2230,7 +2181,7 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
             finals[num_finals++] = collision_temp;
         }
 
-        ray_cast(state, position, v2_direction_from_angle(angle - t),
+        ray_cast_direction(state, position, v2_direction_from_angle(angle - t),
             &collision_temp);
 
         if (v2_distance(collision_temp, collision) > 0.001f)
