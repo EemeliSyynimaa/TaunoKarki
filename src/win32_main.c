@@ -567,7 +567,6 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     assert(memory.base);
 
     struct game_input old_input = { 0 };
-    old_input.enable_debug_rendering = true;
 
     LARGE_INTEGER old_time = win32_current_time_get();
 

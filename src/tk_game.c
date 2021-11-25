@@ -23,6 +23,8 @@ struct player
 struct bullet
 {
     struct rigid_body body;
+    struct v2 start;
+    f32 time;
     f32 damage;
     b32 alive;
     b32 player_owned;
@@ -1795,7 +1797,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
                 f32 speed = PROJECTILE_SPEED;
 
-                bullet->body.position = enemy->body.position;
+                bullet->body.position = enemy->eye_position;
                 bullet->body.velocity = enemy->body.velocity;
                 // Todo: use proper look direction, this is currently the target
                 bullet->body.velocity.x += enemy->direction_aim.x * speed;
@@ -1803,6 +1805,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 bullet->alive = true;
                 bullet->damage = 5.0f;
                 bullet->player_owned = false;
+                bullet->start = bullet->body.position;
+                bullet->time = 1.0f;
 
                 enemy->last_shot = 0.0f;
             }
@@ -2429,6 +2433,12 @@ void bullets_render(struct game_state* state)
 
             mesh_render(&state->sphere, &mvp, state->texture_sphere,
                 state->shader, colors[WHITE]);
+
+            struct v4 color = colors[GREY];
+            color.a = bullet->time -= 0.025f;
+
+            line_render(state, bullet->start, bullet->body.position,
+                color, PLAYER_RADIUS, PROJECTILE_RADIUS);
         }
     }
 }
@@ -2516,13 +2526,15 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 
                 f32 speed = PROJECTILE_SPEED;
 
-                bullet->body.position = player->body.position;
+                bullet->body.position = player->eye_position;
                 bullet->body.velocity = player->body.velocity;
                 bullet->body.velocity.x += dir.x * speed;
                 bullet->body.velocity.y += dir.y * speed;
                 bullet->alive = true;
                 bullet->damage = 25.0f;
                 bullet->player_owned = true;
+                bullet->start = bullet->body.position;
+                bullet->time = 1.0f;
 
                 state->fired = true;
             }
