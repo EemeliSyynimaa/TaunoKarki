@@ -38,6 +38,11 @@
    - [ ] Pursue state
    - [ ] Attack state
    - [ ] Escape state
+ - [ ] Ray casting
+  - [X] Against line segment
+  - [ ] Against circle
+  - [ ] Against AABB
+  - [ ] Against OBB
  - [ ] Reserve the first element of array as null or default 
  - [ ] Physics
   - [ ] Use forces for movement

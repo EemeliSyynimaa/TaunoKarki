@@ -15,6 +15,7 @@ struct rigid_body
 struct player
 {
     struct rigid_body body;
+    struct v2 eye_position;
     f32 health;
     b32 alive;
 };
@@ -1050,6 +1051,31 @@ b32 tile_ray_cast_to_position(struct game_state* state, struct v2 start,
     return result;
 }
 
+void get_body_rectangle(struct rigid_body body, f32 width_half,
+    f32 height_half, struct line_segment* segments)
+{
+    struct v2 corners[4] =
+    {
+        { -width_half,  height_half },
+        {  width_half,  height_half },
+        {  width_half, -height_half },
+        { -width_half, -height_half }
+    };
+
+    for (u32 i = 0; i < 4; i++)
+    {
+        corners[i] = v2_rotate(corners[i], body.angle);
+        corners[i].x += body.position.x;
+        corners[i].y += body.position.y;
+    }
+
+    for (u32 i = 0; i < 4; i++)
+    {
+        segments[i].start = corners[i];
+        segments[i].end   = corners[(i+1) % 4];
+    }
+}
+
 b32 intersect_ray_to_line_segment(struct v2 start, struct v2 direction,
     struct line_segment line_segment, struct v2* collision)
 {
@@ -1075,11 +1101,8 @@ b32 intersect_ray_to_line_segment(struct v2 start, struct v2 direction,
 
         if (t > 0.0f && u > 0.0f && u < 1.0f)
         {
-            if (collision)
-            {
                 collision->x = p.x + t * r.x;
                 collision->y = p.y + t * r.y;
-            }
 
             result = true;
         }
@@ -1096,7 +1119,7 @@ f32 ray_cast_to_direction(struct v2 start, struct v2 direction,
 
     for (u32 i = 0; i < num_cols; i++)
     {
-        struct v2 position = { 0.0f, 0.0f };
+        struct v2 position = { 0 };
 
         if (intersect_ray_to_line_segment(start, direction, cols[i], &position)
             && v2_distance(start, position) < result)
@@ -1128,9 +1151,33 @@ f32 ray_cast_position(struct game_state* state, struct v2 start, struct v2 end,
 {
     f32 result = ray_cast_direction(state, start, v2_direction(start, end),
         collision);
-    f32 distance = v2_distance(start, end) - 0.01f;
+    f32 distance = v2_distance(start, end) - 0.1f;
 
     if (result < distance)
+    {
+        result = 0.0f;
+    }
+
+    return result;
+}
+
+f32 ray_cast_body(struct game_state* state, struct v2 start,
+    struct rigid_body body, struct v2* collision)
+{
+    f32 result = 0.0f;
+
+    struct line_segment segments[4] = { 0 };
+
+    get_body_rectangle(body, PLAYER_RADIUS, PLAYER_RADIUS, segments);
+
+    struct v2 direction = v2_direction(start, body.position);
+
+    f32 target = ray_cast_to_direction(start, direction, segments, 4, NULL,
+        F32_MAX) - 0.1f;
+
+    result = ray_cast_direction(state, start, direction, collision);
+
+    if (result < target)
     {
         result = 0.0f;
     }
@@ -1522,9 +1569,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                             // Todo: this doesn't take the enemy's size into
                             // account and it might stumble on the walls (but
                             // should not get stuck)
-                            if (!tile_ray_cast_to_position(state,
-                                enemy->body.position, enemy->path[j], NULL,
-                                false))
+                            if (!ray_cast_position(state, enemy->eye_position,
+                                enemy->path[j], NULL))
                             {
                                 break;
                             }
@@ -1559,11 +1605,12 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
                 enemy->path_length = path_find(enemy->body.position,
                     target, enemy->path, 256);
+                enemy->path_index = 0;
 
                 for (u32 j = 0; j < enemy->path_length; j++)
                 {
-                    if (!tile_ray_cast_to_position(state, enemy->body.position,
-                        enemy->path[j], NULL, false))
+                    if (!ray_cast_position(state, enemy->eye_position,
+                        enemy->path[j], NULL))
                     {
                         break;
                     }
@@ -1605,8 +1652,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
             // Todo: sometimes rotation goes crazy
             if (angle_player < ENEMY_LINE_OF_SIGHT_HALF &&
-                tile_ray_cast_to_position(state, enemy->body.position,
-                    state->player.body.position, NULL, false))
+                ray_cast_body(state, enemy->eye_position, state->player.body,
+                    NULL))
             {
                 struct v2 target_forward = direction_player;
 
@@ -1631,7 +1678,6 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     if (PROJECTILE_SPEED > initial_velocity)
                     {
                         desired_velocity.x = -initial_velocity;
-
                     }
                     else
                     {
@@ -2007,31 +2053,12 @@ void collision_map_static_calculate(struct line_segment faces[], u32 max,
 void collision_map_dynamic_calculate(struct game_state* state)
 {
     state->num_cols_dynamic = 0;
+    struct line_segment segments[4] = { 0 };
 
     if (state->player.alive)
     {
-        struct v2 plr_rect[4] =
-        {
-            { -PLAYER_RADIUS,  PLAYER_RADIUS },
-            {  PLAYER_RADIUS,  PLAYER_RADIUS },
-            {  PLAYER_RADIUS, -PLAYER_RADIUS },
-            { -PLAYER_RADIUS, -PLAYER_RADIUS }
-        };
-
-        for (u32 i = 0; i < 4; i++)
-        {
-            plr_rect[i] = v2_rotate(plr_rect[i], state->player.body.angle);
-            plr_rect[i].x += state->player.body.position.x;
-            plr_rect[i].y += state->player.body.position.y;
-        }
-
-        struct line_segment segments[] =
-        {
-            { plr_rect[0], plr_rect[1] },
-            { plr_rect[1], plr_rect[2] },
-            { plr_rect[2], plr_rect[3] },
-            { plr_rect[3], plr_rect[0] }
-        };
+        get_body_rectangle(state->player.body, PLAYER_RADIUS, PLAYER_RADIUS,
+            segments);
 
         for (u32 i = 0;
             i < 4 && state->num_cols_static < MAX_COLLISION_SEGMENTS; i++)
@@ -2046,28 +2073,8 @@ void collision_map_dynamic_calculate(struct game_state* state)
 
         if (enemy->alive)
         {
-            struct v2 plr_rect[4] =
-            {
-                { -PLAYER_RADIUS,  PLAYER_RADIUS },
-                {  PLAYER_RADIUS,  PLAYER_RADIUS },
-                {  PLAYER_RADIUS, -PLAYER_RADIUS },
-                { -PLAYER_RADIUS, -PLAYER_RADIUS }
-            };
-
-            for (u32 i = 0; i < 4; i++)
-            {
-                plr_rect[i] = v2_rotate(plr_rect[i], enemy->body.angle);
-                plr_rect[i].x += enemy->body.position.x;
-                plr_rect[i].y += enemy->body.position.y;
-            }
-
-            struct line_segment segments[] =
-            {
-                { plr_rect[0], plr_rect[1] },
-                { plr_rect[1], plr_rect[2] },
-                { plr_rect[2], plr_rect[3] },
-                { plr_rect[3], plr_rect[0] }
-            };
+            get_body_rectangle(enemy->body, PLAYER_RADIUS, PLAYER_RADIUS,
+                segments);
 
             for (u32 i = 0;
                 i < 4 && state->num_cols_dynamic < MAX_COLLISION_SEGMENTS; i++)
@@ -2481,6 +2488,12 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         check_tile_collisions(&player->body.position, &player->body.velocity,
             move_delta, PLAYER_RADIUS, 1);
 
+        struct v2 eye = { PLAYER_RADIUS + 0.0001f, 0.0f };
+
+        player->eye_position = v2_rotate(eye, player->body.angle);
+        player->eye_position.x += player->body.position.x;
+        player->eye_position.y += player->body.position.y;
+
         if (input->shoot.key_down)
         {
             if (!state->fired)
@@ -2532,9 +2545,11 @@ void player_render(struct game_state* state)
         mesh_render(&state->cube, &mvp, state->texture_player, state->shader,
             colors[WHITE]);
 
-        // line_of_sight_render(state, player->body.position,
-        //     player->body.angle, ENEMY_LINE_OF_SIGHT_HALF, colors[YELLOW],
-        //     true);
+        struct v4 color = colors[LIME];
+        color.a = 0.5f;
+
+        line_of_sight_render(state, player->eye_position, player->body.angle,
+            ENEMY_LINE_OF_SIGHT_HALF, color, true);
 
         // Render velocity vector
         {
