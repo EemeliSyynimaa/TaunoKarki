@@ -567,6 +567,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     assert(memory.base);
 
     struct game_input old_input = { 0 };
+    old_input.enable_debug_rendering = true;
 
     LARGE_INTEGER old_time = win32_current_time_get();
 
@@ -593,6 +594,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         {
             new_input.keys[i].key_down = old_input.keys[i].key_down;
         }
+
+        new_input.enable_debug_rendering = old_input.enable_debug_rendering;
 
         MSG msg;
 
@@ -623,6 +626,11 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             // input_process(&new_input.back, is_down);
                             LOG("ESCAPE - %s\n", 
                                 is_down ? "down" :"up");
+                        }
+                        else if (msg.wParam == VK_F1 && was_down)
+                        {
+                            new_input.enable_debug_rendering =
+                                !new_input.enable_debug_rendering;
                         }
                         else if (msg.wParam == VK_F5 && was_down)
                         {
@@ -730,6 +738,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             new_input.mouse_x = mouse.x;
             new_input.mouse_y = mouse.y;
 
+            // Todo: we would like to know if the mouse was
+            // pressed and released
             new_input.shoot.key_down = 
                 (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
         }

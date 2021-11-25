@@ -115,6 +115,7 @@ struct game_state
     struct line_segment cols_static[MAX_COLLISION_SEGMENTS];
     struct line_segment cols_dynamic[MAX_COLLISION_SEGMENTS];
     b32 fired;
+    b32 render_debug;
     f32 accumulator;
     u32 shader;
     u32 shader_simple;
@@ -2244,15 +2245,20 @@ void enemies_render(struct game_state* state)
             mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader,
                 colors[WHITE]);
 
-            line_of_sight_render(state, enemy->eye_position,
-                enemy->body.angle, enemy->vision_cone_size *
-                ENEMY_LINE_OF_SIGHT_HALF,
-                enemy->player_in_view ? colors[PURPLE] : colors[TEAL], true);
+            if (state->render_debug)
+            {
+                line_of_sight_render(state, enemy->eye_position,
+                    enemy->body.angle, enemy->vision_cone_size *
+                    ENEMY_LINE_OF_SIGHT_HALF,
+                    enemy->player_in_view ? colors[PURPLE] : colors[TEAL],
+                    true);
+            }
 
             health_bar_render(state, enemy->body.position, enemy->health,
                 100.0f);
 
             // Render velocity vector
+            if (state->render_debug)
             {
                 f32 max_speed = 7.0f;
                 f32 length = v2_length(enemy->body.velocity) / max_speed;
@@ -2278,6 +2284,7 @@ void enemies_render(struct game_state* state)
             }
 
             // Render aim vector
+            if (state->render_debug)
             {
                 f32 length = 1.0f;
                 f32 angle = f32_atan(enemy->direction_aim.x,
@@ -2302,6 +2309,7 @@ void enemies_render(struct game_state* state)
             }
 
             // Render aim vector
+            if (state->render_debug)
             {
                 f32 length = 1.0f;
                 f32 angle = f32_atan(enemy->direction_look.x,
@@ -2326,6 +2334,7 @@ void enemies_render(struct game_state* state)
             }
 
             // Render path
+            if (state->render_debug)
             {
                 if (enemy->path_length)
                 {
@@ -2545,13 +2554,16 @@ void player_render(struct game_state* state)
         mesh_render(&state->cube, &mvp, state->texture_player, state->shader,
             colors[WHITE]);
 
-        struct v4 color = colors[LIME];
-        color.a = 0.5f;
-
-        line_of_sight_render(state, player->eye_position, player->body.angle,
-            ENEMY_LINE_OF_SIGHT_HALF, color, true);
+        if (state->render_debug)
+        {
+            struct v4 color = colors[LIME];
+            color.a = 0.5f;
+            line_of_sight_render(state, player->eye_position, player->body.angle,
+                ENEMY_LINE_OF_SIGHT_HALF, color, true);
+        }
 
         // Render velocity vector
+        if (state->render_debug)
         {
             f32 max_speed = 7.0f;
             f32 length = v2_length(player->body.velocity) / max_speed;
@@ -2577,6 +2589,7 @@ void player_render(struct game_state* state)
         }
 
         // Render aim vector
+        if (state->render_debug)
         {
             struct v2 vec =
             {
@@ -3220,6 +3233,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
     }
 
     state->level = 2;
+    state->render_debug = false;
 
     state->player.body.position.x = 3.0f;
     state->player.body.position.y = 3.0f;
@@ -3270,6 +3284,8 @@ void game_update(struct game_memory* memory, struct game_input* input)
         struct game_state* state = (struct game_state*)memory->base;
         struct camera* camera = &state->camera;
 
+        state->render_debug = input->enable_debug_rendering;
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         f32 step = 1.0f / 120.0f;
@@ -3315,7 +3331,11 @@ void game_update(struct game_memory* memory, struct game_input* input)
         player_render(state);
         enemies_render(state);
         bullets_render(state);
-        collision_map_render(state);
+
+        if (state->render_debug)
+        {
+            collision_map_render(state);
+        }
         // cursor_render(state);
     }
     else
