@@ -39,6 +39,7 @@ struct enemy
     f32 health;
     f32 last_shot;
     f32 vision_cone_size;
+    b32 player_in_view;
     b32 alive;
 };
 
@@ -1599,7 +1600,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 direction_current);
 
             f32 vision_cone_update_speed = 3.0f;
-            f32 vision_cone_size_min = 1.0f;
+            f32 vision_cone_size_min = 0.25f;
             f32 vision_cone_size_max = 1.0f;
 
             // Todo: sometimes rotation goes crazy
@@ -1671,6 +1672,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 enemy->vision_cone_size = MAX(enemy->vision_cone_size,
                     vision_cone_size_min);
                 enemy->direction_look = direction_player;
+                enemy->player_in_view = true;
             }
             else
             {
@@ -1679,6 +1681,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     vision_cone_size_max);
                 enemy->direction_look = direction_move;
                 enemy->direction_aim = direction_move;
+                enemy->player_in_view = false;
             }
 
             {
@@ -2005,38 +2008,8 @@ void collision_map_dynamic_calculate(struct game_state* state)
 {
     state->num_cols_dynamic = 0;
 
-    struct v2 plr_rect[4] =
+    if (state->player.alive)
     {
-        { -PLAYER_RADIUS,  PLAYER_RADIUS },
-        {  PLAYER_RADIUS,  PLAYER_RADIUS },
-        {  PLAYER_RADIUS, -PLAYER_RADIUS },
-        { -PLAYER_RADIUS, -PLAYER_RADIUS }
-    };
-
-    for (u32 i = 0; i < 4; i++)
-    {
-        plr_rect[i] = v2_rotate(plr_rect[i], state->player.body.angle);
-        plr_rect[i].x += state->player.body.position.x;
-        plr_rect[i].y += state->player.body.position.y;
-    }
-
-    struct line_segment segments[] =
-    {
-        { plr_rect[0], plr_rect[1] },
-        { plr_rect[1], plr_rect[2] },
-        { plr_rect[2], plr_rect[3] },
-        { plr_rect[3], plr_rect[0] }
-    };
-
-    for (u32 i = 0;
-        i < 4 && state->num_cols_static < MAX_COLLISION_SEGMENTS; i++)
-    {
-        state->cols_dynamic[state->num_cols_dynamic++] = segments[i];
-    }
-
-    for (u32 i = 0; i < state->num_enemies; i++)
-    {
-        struct enemy* enemy = &state->enemies[i];
         struct v2 plr_rect[4] =
         {
             { -PLAYER_RADIUS,  PLAYER_RADIUS },
@@ -2047,9 +2020,9 @@ void collision_map_dynamic_calculate(struct game_state* state)
 
         for (u32 i = 0; i < 4; i++)
         {
-            plr_rect[i] = v2_rotate(plr_rect[i], enemy->body.angle);
-            plr_rect[i].x += enemy->body.position.x;
-            plr_rect[i].y += enemy->body.position.y;
+            plr_rect[i] = v2_rotate(plr_rect[i], state->player.body.angle);
+            plr_rect[i].x += state->player.body.position.x;
+            plr_rect[i].y += state->player.body.position.y;
         }
 
         struct line_segment segments[] =
@@ -2061,9 +2034,46 @@ void collision_map_dynamic_calculate(struct game_state* state)
         };
 
         for (u32 i = 0;
-            i < 4 && state->num_cols_dynamic < MAX_COLLISION_SEGMENTS; i++)
+            i < 4 && state->num_cols_static < MAX_COLLISION_SEGMENTS; i++)
         {
             state->cols_dynamic[state->num_cols_dynamic++] = segments[i];
+        }
+    }
+
+    for (u32 i = 0; i < state->num_enemies; i++)
+    {
+        struct enemy* enemy = &state->enemies[i];
+
+        if (enemy->alive)
+        {
+            struct v2 plr_rect[4] =
+            {
+                { -PLAYER_RADIUS,  PLAYER_RADIUS },
+                {  PLAYER_RADIUS,  PLAYER_RADIUS },
+                {  PLAYER_RADIUS, -PLAYER_RADIUS },
+                { -PLAYER_RADIUS, -PLAYER_RADIUS }
+            };
+
+            for (u32 i = 0; i < 4; i++)
+            {
+                plr_rect[i] = v2_rotate(plr_rect[i], enemy->body.angle);
+                plr_rect[i].x += enemy->body.position.x;
+                plr_rect[i].y += enemy->body.position.y;
+            }
+
+            struct line_segment segments[] =
+            {
+                { plr_rect[0], plr_rect[1] },
+                { plr_rect[1], plr_rect[2] },
+                { plr_rect[2], plr_rect[3] },
+                { plr_rect[3], plr_rect[0] }
+            };
+
+            for (u32 i = 0;
+                i < 4 && state->num_cols_dynamic < MAX_COLLISION_SEGMENTS; i++)
+            {
+                state->cols_dynamic[state->num_cols_dynamic++] = segments[i];
+            }
         }
     }
 }
@@ -2229,7 +2239,8 @@ void enemies_render(struct game_state* state)
 
             line_of_sight_render(state, enemy->eye_position,
                 enemy->body.angle, enemy->vision_cone_size *
-                ENEMY_LINE_OF_SIGHT_HALF, colors[TEAL], true);
+                ENEMY_LINE_OF_SIGHT_HALF,
+                enemy->player_in_view ? colors[PURPLE] : colors[TEAL], true);
 
             health_bar_render(state, enemy->body.position, enemy->health,
                 100.0f);
