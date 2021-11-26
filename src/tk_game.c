@@ -5,6 +5,21 @@
 
 #include <string.h>
 
+struct particle
+{
+    struct v2 start;
+    struct v2 end;
+    struct v2 velocity;
+    struct v4 color_start;
+    struct v4 color_end;
+    struct v4 color_current;
+    f32 time_start;
+    f32 time_current;
+    f32 radius;
+    f32 angle;
+    b32 alive;
+};
+
 struct rigid_body
 {
     struct v2 position;
@@ -24,7 +39,6 @@ struct bullet
 {
     struct rigid_body body;
     struct v2 start;
-    f32 time;
     f32 damage;
     b32 alive;
     b32 player_owned;
@@ -84,6 +98,7 @@ struct mesh
 #define MAX_WALL_CORNERS 512
 #define MAX_WALL_FACES 512
 #define MAX_COLLISION_SEGMENTS 1024
+#define MAX_PARTICLES 1024
 
 struct memory_block
 {
@@ -104,6 +119,7 @@ struct game_state
     struct player player;
     struct bullet bullets[MAX_BULLETS];
     struct enemy enemies[MAX_ENEMIES];
+    struct particle particles[MAX_PARTICLES];
     struct camera camera;
     struct mouse mouse;
     struct mesh cube;
@@ -126,6 +142,7 @@ struct game_state
     u32 texture_player;
     u32 texture_enemy;
     u32 free_bullet;
+    u32 free_particle;
     u32 num_enemies;
     u32 num_wall_corners;
     u32 num_wall_faces;
@@ -1806,7 +1823,6 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 bullet->damage = 5.0f;
                 bullet->player_owned = false;
                 bullet->start = bullet->body.position;
-                bullet->time = 1.0f;
 
                 enemy->last_shot = 0.0f;
             }
@@ -2376,9 +2392,30 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
             // Todo: projectiles sometimes get stuck in the wall instead of
             // bouncing
             if (check_tile_collisions(&bullet->body.position,
-                &bullet->body.velocity, move_delta, PROJECTILE_RADIUS, 2))
+                &bullet->body.velocity, move_delta, PROJECTILE_RADIUS, 0))
             {
                 bullet->alive = false;
+            }
+
+            {
+                if (++state->free_particle == MAX_PARTICLES)
+                {
+                    state->free_particle = 0;
+                }
+
+                struct particle* particle =
+                    &state->particles[state->free_particle];
+
+                *particle = (struct particle){ 0 };
+                particle->start = bullet->start;
+                particle->end = bullet->body.position;
+                particle->color_start = colors[GREY];
+                particle->color_end = colors[GREY];
+                particle->alive = true;
+                particle->radius = PROJECTILE_RADIUS;
+                particle->color_end.a = 0.0f;
+                particle->time_start = 0.30f;
+                particle->time_current = particle->time_start;
             }
 
             if (bullet->player_owned)
@@ -2408,6 +2445,8 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                     player->health -= bullet->damage;
                 }
             }
+
+            bullet->start = bullet->body.position;
         }
     }
 }
@@ -2433,12 +2472,6 @@ void bullets_render(struct game_state* state)
 
             mesh_render(&state->sphere, &mvp, state->texture_sphere,
                 state->shader, colors[WHITE]);
-
-            struct v4 color = colors[GREY];
-            color.a = bullet->time -= 0.025f;
-
-            line_render(state, bullet->start, bullet->body.position,
-                color, PLAYER_RADIUS, PROJECTILE_RADIUS);
         }
     }
 }
@@ -2534,7 +2567,6 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
                 bullet->damage = 25.0f;
                 bullet->player_owned = true;
                 bullet->start = bullet->body.position;
-                bullet->time = 1.0f;
 
                 state->fired = true;
             }
@@ -2631,6 +2663,66 @@ void player_render(struct game_state* state)
         }
 
         health_bar_render(state, player->body.position, player->health, 100.0f);
+    }
+}
+
+void particles_update(struct game_state* state, struct game_input* input,
+    f32 dt)
+{
+    for (u32 i = 0; i < MAX_PARTICLES; i++)
+    {
+        struct particle* particle = &state->particles[i];
+
+        if (particle->alive)
+        {
+            if (particle->time_current <= 0.0f)
+            {
+                particle->alive = false;
+            }
+            else
+            {
+                particle->time_current -= dt;
+                f32 t = 1.0f - particle->time_current / particle->time_start;
+
+                particle->color_current = particle->color_start;
+
+                particle->color_current.r = particle->color_start.r +
+                    (particle->color_end.r - particle->color_start.r) * t;
+                particle->color_current.g = particle->color_start.g +
+                    (particle->color_end.g - particle->color_start.g) * t;
+                particle->color_current.b = particle->color_start.b +
+                    (particle->color_end.b - particle->color_start.b) * t;
+                particle->color_current.a = particle->color_start.a +
+                    (particle->color_end.a - particle->color_start.a) * t;
+            }
+        }
+    }
+}
+
+void particles_render(struct game_state* state)
+{
+    for (u32 i = 0; i < MAX_PARTICLES; i++)
+    {
+        struct particle* particle = &state->particles[i];
+
+        if (particle->alive)
+        {
+            // struct m4 transform = m4_translate(particle->position.x,
+            //     particle->position.y, PLAYER_RADIUS);
+            // struct m4 rotation = m4_rotate_z(particle->angle);
+            // struct m4 scale = m4_scale_all(particle->radius);
+
+            // struct m4 model = m4_mul_m4(scale, rotation);
+            // model = m4_mul_m4(model, transform);
+
+            // struct m4 mvp = m4_mul_m4(model, state->camera.view);
+            // mvp = m4_mul_m4(mvp, state->camera.projection);
+
+            // mesh_render(&state->sphere, &mvp, state->texture_sphere,
+            //     state->shader, particle->color_current);
+            line_render(state, particle->start, particle->end,
+                particle->color_current, PLAYER_RADIUS, PROJECTILE_RADIUS);
+        }
     }
 }
 
@@ -3316,6 +3408,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
             player_update(state, input, step);
             enemies_update(state, input, step);
             bullets_update(state, input, step);
+            particles_update(state, input, step);
 
             camera->position.x = state->player.body.position.x;
             camera->position.y = state->player.body.position.y - 5.0f;
@@ -3343,6 +3436,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
         player_render(state);
         enemies_render(state);
         bullets_render(state);
+        particles_render(state);
 
         if (state->render_debug)
         {
