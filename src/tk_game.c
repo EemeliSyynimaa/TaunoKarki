@@ -14,7 +14,6 @@ struct particle_line
     struct v4 color_current;
     f32 time_start;
     f32 time_current;
-    f32 radius;
     b32 alive;
 };
 
@@ -1582,6 +1581,51 @@ b32 check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta,
     return result;
 }
 
+void particle_sphere_create(struct game_state* state, struct v2 position,
+    struct v2 velocity, struct v4 color, f32 radius_start, f32 radius_end,
+    f32 time)
+{
+    if (++state->free_particle_sphere == MAX_PARTICLES)
+    {
+        state->free_particle_sphere = 0;
+    }
+
+    struct particle_sphere* particle = &state->particle_spheres[
+        state->free_particle_sphere];
+
+    *particle = (struct particle_sphere){ 0 };
+    particle->position = position;
+    particle->velocity = velocity;
+    particle->color = color;
+    particle->alive = true;
+    particle->radius_start = radius_start;
+    particle->radius_end = radius_end;
+    particle->time_start = time;
+    particle->time_current = particle->time_start;
+    particle->radius_current = particle->radius_start;
+}
+
+void particle_line_create(struct game_state* state, struct v2 start,
+    struct v2 end, struct v4 color_start, struct v4 color_end, f32 time)
+{
+    if (++state->free_particle_line == MAX_PARTICLES)
+    {
+        state->free_particle_line = 0;
+    }
+
+    struct particle_line* particle =
+        &state->particle_lines[state->free_particle_line];
+
+    *particle = (struct particle_line){ 0 };
+    particle->start = start;
+    particle->end = end;
+    particle->color_start = color_start;
+    particle->color_end = color_end;
+    particle->alive = true;
+    particle->time_start = time;
+    particle->time_current = particle->time_start;
+}
+
 void bullet_create(struct game_state* state, struct v2 position,
     struct v2 start_velocity, struct v2 direction, f32 speed, f32 damage,
     b32 player_owned)
@@ -1595,7 +1639,6 @@ void bullet_create(struct game_state* state, struct v2 position,
 
     bullet->body.position = position;
     bullet->body.velocity = start_velocity;
-    // Todo: use proper look direction, this is currently the target
     bullet->body.velocity.x += direction.x * speed;
     bullet->body.velocity.y += direction.y * speed;
     bullet->alive = true;
@@ -1603,23 +1646,8 @@ void bullet_create(struct game_state* state, struct v2 position,
     bullet->player_owned = player_owned;
     bullet->start = bullet->body.position;
 
-    if (++state->free_particle_sphere == MAX_PARTICLES)
-    {
-        state->free_particle_sphere = 0;
-    }
-
-    struct particle_sphere* particle =
-        &state->particle_spheres[state->free_particle_sphere];
-
-    *particle = (struct particle_sphere){ 0 };
-    particle->position = position;
-    particle->color =  colors[YELLOW];
-    particle->alive = true;
-    particle->radius_start = PROJECTILE_RADIUS;
-    particle->radius_end = PROJECTILE_RADIUS * 5.0f;
-    particle->time_start = 0.10f;
-    particle->time_current = particle->time_start;
-    particle->radius_current = particle->radius_start;
+    particle_sphere_create(state, position, (struct v2){ 0.0f, 0.0f },
+        colors[YELLOW], PROJECTILE_RADIUS, PROJECTILE_RADIUS * 5.0f, 0.10f);
 }
 
 void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
@@ -2447,42 +2475,15 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
             if (check_tile_collisions(&bullet->body.position,
                 &bullet->body.velocity, move_delta, PROJECTILE_RADIUS, 0))
             {
-                struct particle_sphere* particle =
-                    &state->particle_spheres[state->free_particle_sphere];
-
-                *particle = (struct particle_sphere){ 0 };
-                particle->position = bullet->body.position;
-                particle->color =  colors[GREY];
-                particle->alive = true;
-                particle->radius_start = PROJECTILE_RADIUS;
-                particle->radius_end = PROJECTILE_RADIUS * 5.0f;
-                particle->time_start = 0.10f;
-                particle->time_current = particle->time_start;
-                particle->radius_current = particle->radius_start;
-
+                particle_sphere_create(state, bullet->body.position,
+                    (struct v2){ 0.0f, 0.0f }, colors[GREY], PROJECTILE_RADIUS,
+                    PROJECTILE_RADIUS * 5.0f, 0.15f);
                 bullet->alive = false;
             }
 
-            {
-                if (++state->free_particle_line == MAX_PARTICLES)
-                {
-                    state->free_particle_line = 0;
-                }
-
-                struct particle_line* particle =
-                    &state->particle_lines[state->free_particle_line];
-
-                *particle = (struct particle_line){ 0 };
-                particle->start = bullet->start;
-                particle->end = bullet->body.position;
-                particle->color_start = colors[GREY];
-                particle->color_end = colors[GREY];
-                particle->alive = true;
-                particle->radius = PROJECTILE_RADIUS;
-                particle->color_end.a = 0.0f;
-                particle->time_start = 0.30f;
-                particle->time_current = particle->time_start;
-            }
+            particle_line_create(state, bullet->start, bullet->body.position,
+                colors[GREY], (struct v4){ colors[GREY].r, colors[GREY].g,
+                    colors[GREY].b, 0.0f }, 0.30f);
 
             if (bullet->player_owned)
             {
@@ -2497,21 +2498,10 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                         bullet->alive = false;
                         enemy->health -= bullet->damage;
 
-                        struct particle_sphere* particle =
-                            &state->particle_spheres[
-                                state->free_particle_sphere];
-
-                        *particle = (struct particle_sphere){ 0 };
-                        particle->position = bullet->body.position;
-                        particle->velocity.x = bullet->body.velocity.x * 0.5;
-                        particle->velocity.y = bullet->body.velocity.y * 0.5;
-                        particle->color =  colors[RED];
-                        particle->alive = true;
-                        particle->radius_start = PROJECTILE_RADIUS;
-                        particle->radius_end = PROJECTILE_RADIUS * 2.5f;
-                        particle->time_start = 0.15f;
-                        particle->time_current = particle->time_start;
-                        particle->radius_current = particle->radius_start;
+                        particle_sphere_create(state, bullet->body.position,
+                            (struct v2){ bullet->body.velocity.x * 0.5,
+                                bullet->body.velocity.y * 0.5 }, colors[RED],
+                            PROJECTILE_RADIUS, PROJECTILE_RADIUS * 2.5f, 0.15f);
 
                         bullet->alive = false;
                     }
@@ -2528,21 +2518,10 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                     bullet->alive = false;
                     player->health -= bullet->damage;
 
-                    struct particle_sphere* particle =
-                        &state->particle_spheres[
-                            state->free_particle_sphere];
-
-                    *particle = (struct particle_sphere){ 0 };
-                    particle->position = bullet->body.position;
-                    particle->velocity.x = bullet->body.velocity.x * 0.5;
-                    particle->velocity.y = bullet->body.velocity.y * 0.5;
-                    particle->color =  colors[RED];
-                    particle->alive = true;
-                    particle->radius_start = PROJECTILE_RADIUS;
-                    particle->radius_end = PROJECTILE_RADIUS * 2.5f;
-                    particle->time_start = 0.15f;
-                    particle->time_current = particle->time_start;
-                    particle->radius_current = particle->radius_start;
+                    particle_sphere_create(state, bullet->body.position,
+                        (struct v2){ bullet->body.velocity.x * 0.5,
+                            bullet->body.velocity.y * 0.5 }, colors[RED],
+                        PROJECTILE_RADIUS, PROJECTILE_RADIUS * 2.5f, 0.15f);
                 }
             }
 
@@ -2833,7 +2812,7 @@ void particle_spheres_render(struct game_state* state)
         if (particle->alive)
         {
             sphere_render(state, particle->position, particle->radius_current,
-                particle->color, PLAYER_RADIUS);;
+                particle->color, PLAYER_RADIUS);
         }
     }
 }
