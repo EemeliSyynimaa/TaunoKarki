@@ -1178,7 +1178,8 @@ f32 ray_cast_to_direction(struct v2 start, struct v2 direction,
     {
         struct v2 position = { 0 };
 
-        if (intersect_ray_to_line_segment(start, direction, cols[i], &position)
+        if (cols[i].type & flags &&
+            intersect_ray_to_line_segment(start, direction, cols[i], &position)
             && v2_distance(start, position) < result)
         {
             if (collision)
@@ -1236,6 +1237,11 @@ f32 ray_cast_body(struct game_state* state, struct v2 start,
     struct line_segment segments[4] = { 0 };
 
     get_body_rectangle(body, PLAYER_RADIUS, PLAYER_RADIUS, segments);
+
+    for (u32 i = 0; i < 4; i++)
+    {
+        segments[i].type = flags;
+    }
 
     struct v2 direction = v2_direction(start, body.position);
 
@@ -1706,7 +1712,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                             // account and it might stumble on the walls (but
                             // should not get stuck)
                             if (!ray_cast_position(state, enemy->eye_position,
-                                enemy->path[j], NULL, COLLISION_ALL))
+                                enemy->path[j], NULL, COLLISION_STATIC))
                             {
                                 break;
                             }
@@ -1746,7 +1752,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 for (u32 j = 0; j < enemy->path_length; j++)
                 {
                     if (!ray_cast_position(state, enemy->eye_position,
-                        enemy->path[j], NULL, COLLISION_ALL))
+                        enemy->path[j], NULL, COLLISION_STATIC))
                     {
                         break;
                     }
@@ -1917,7 +1923,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             enemy->eye_position.x += enemy->body.position.x;
             enemy->eye_position.y += enemy->body.position.y;
 
-            // enemy->last_shot += dt;
+            enemy->last_shot += dt;
 
             if (enemy->last_shot > 1.0f)
             {
@@ -2053,12 +2059,12 @@ void collision_map_static_calculate(struct line_segment faces[], u32 max,
     {
         struct line_segment face_top    = { 0.0f };
         struct line_segment face_bottom = { 0.0f };
-        face_top.type = COLLISION_STATIC;
-        face_bottom.type = COLLISION_STATIC;
 
         for (u32 x = 0; x <= MAP_WIDTH; x++)
         {
             struct v2 tile = { x, y };
+            face_top.type = COLLISION_STATIC;
+            face_bottom.type = COLLISION_STATIC;
 
             if (tile_is_of_type(tile, TILE_WALL))
             {
@@ -2115,12 +2121,12 @@ void collision_map_static_calculate(struct line_segment faces[], u32 max,
     {
         struct line_segment face_left  = { 0.0f };
         struct line_segment face_right = { 0.0f };
-        face_left.type = COLLISION_STATIC;
-        face_right.type = COLLISION_STATIC;
 
         for (u32 y = 0; y < MAP_HEIGHT; y++)
         {
             struct v2 tile = { x, y };
+            face_left.type = COLLISION_STATIC;
+            face_right.type = COLLISION_STATIC;
 
             if (tile_is_of_type(tile, TILE_WALL))
             {
@@ -2496,16 +2502,35 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
             };
 
             f32 distance_target = v2_length(move_delta);
+            u32 flags = COLLISION_STATIC;
+
+            if (bullet->player_owned)
+            {
+                flags |= COLLISION_ENEMY;
+            }
+            else
+            {
+                flags |= COLLISION_PLAYER;
+            }
+
             f32 distance = ray_cast_direction(state, bullet->body.position,
-                v2_normalize(move_delta), NULL, COLLISION_ALL);
-            f32 fraction = distance / distance_target;
+                v2_normalize(move_delta), NULL, flags);
+
+            f32 fraction = 1.0f;
+
+            if (distance < distance_target)
+            {
+                fraction = distance / distance_target;
+            }
 
             bullet->body.position.x += move_delta.x * fraction;
             bullet->body.position.y += move_delta.y * fraction;
 
             if (distance < distance_target)
             {
-                LOG("DESTROY!\n");
+                particle_sphere_create(state, bullet->body.position,
+                    (struct v2){ 0.0f, 0.0f }, colors[GREY], PROJECTILE_RADIUS,
+                    PROJECTILE_RADIUS * 5.0f, 0.15f);
                 bullet->alive = false;
             }
 
@@ -2521,15 +2546,12 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
             // if (check_tile_collisions(&bullet->body.position,
             //     &bullet->body.velocity, move_delta, PROJECTILE_RADIUS, 0))
             // {
-            //     particle_sphere_create(state, bullet->body.position,
-            //         (struct v2){ 0.0f, 0.0f }, colors[GREY], PROJECTILE_RADIUS,
-            //         PROJECTILE_RADIUS * 5.0f, 0.15f);
             //     bullet->alive = false;
             // }
 
-            // particle_line_create(state, bullet->start, bullet->body.position,
-            //     colors[GREY], (struct v4){ colors[GREY].r, colors[GREY].g,
-            //         colors[GREY].b, 0.0f }, 0.30f);
+            particle_line_create(state, bullet->start, bullet->body.position,
+                colors[GREY], (struct v4){ colors[GREY].r, colors[GREY].g,
+                    colors[GREY].b, 0.0f }, 0.30f);
 
             // if (bullet->player_owned)
             // {
