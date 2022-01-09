@@ -122,6 +122,7 @@ struct line_segment
 {
     struct v2 start;
     struct v2 end;
+    u32 type;
 };
 
 struct game_state
@@ -192,13 +193,20 @@ f32 ENEMY_ACCELERATION       = 35.0f;
 f32 ENEMY_LINE_OF_SIGHT_HALF = F64_PI * 0.125f; // 22.5 degrees
 f32 FRICTION                 = 10.0f;
 f32 PROJECTILE_RADIUS        = 0.035f;
-f32 PROJECTILE_SPEED         = 50.0f;
+f32 PROJECTILE_SPEED         = 250.0f;
 f32 PLAYER_RADIUS            = 0.25f;
 f32 WALL_SIZE                = 1.0f;
 
 u32 TILE_NOTHING = 0;
 u32 TILE_WALL    = 1;
 u32 TILE_FLOOR   = 2;
+
+u32 COLLISION_STATIC  = 1;
+u32 COLLISION_PLAYER  = 2;
+u32 COLLISION_ENEMY   = 4;
+u32 COLLISION_BULLET  = 8;
+u32 COLLISION_DYNAMIC = 14;
+u32 COLLISION_ALL     = 255;
 
 // Todo: clean this, not very nice
 struct v4 colors[] =
@@ -1162,7 +1170,7 @@ b32 intersect_ray_to_line_segment(struct v2 start, struct v2 direction,
 
 f32 ray_cast_to_direction(struct v2 start, struct v2 direction,
     struct line_segment cols[], u32 num_cols, struct v2* collision,
-    f32 max_length)
+    f32 max_length, u32 flags)
 {
     f32 result = max_length;
 
@@ -1186,20 +1194,30 @@ f32 ray_cast_to_direction(struct v2 start, struct v2 direction,
 }
 
 f32 ray_cast_direction(struct game_state* state, struct v2 position,
-    struct v2 direction, struct v2* collision)
+    struct v2 direction, struct v2* collision, u32 flags)
 {
-    f32 result = ray_cast_to_direction(position, direction, state->cols_static,
-            state->num_cols_static, collision, F32_MAX);
-    result = ray_cast_to_direction(position, direction, state->cols_dynamic,
-            state->num_cols_dynamic, collision, result);
+    f32 result = F32_MAX;
+
+    if (flags & COLLISION_STATIC)
+    {
+        result = ray_cast_to_direction(position, direction, state->cols_static,
+            state->num_cols_static, collision, result, flags);
+    }
+
+    if (flags & COLLISION_DYNAMIC)
+    {
+        result = ray_cast_to_direction(position, direction, state->cols_dynamic,
+            state->num_cols_dynamic, collision, result, flags);
+    }
+
     return result;
 }
 
 f32 ray_cast_position(struct game_state* state, struct v2 start, struct v2 end,
-    struct v2* collision)
+    struct v2* collision, u32 flags)
 {
     f32 result = ray_cast_direction(state, start, v2_direction(start, end),
-        collision);
+        collision, flags);
     f32 distance = v2_distance(start, end) - 0.1f;
 
     if (result < distance)
@@ -1211,7 +1229,7 @@ f32 ray_cast_position(struct game_state* state, struct v2 start, struct v2 end,
 }
 
 f32 ray_cast_body(struct game_state* state, struct v2 start,
-    struct rigid_body body, struct v2* collision)
+    struct rigid_body body, struct v2* collision, u32 flags)
 {
     f32 result = 0.0f;
 
@@ -1222,9 +1240,9 @@ f32 ray_cast_body(struct game_state* state, struct v2 start,
     struct v2 direction = v2_direction(start, body.position);
 
     f32 target = ray_cast_to_direction(start, direction, segments, 4, NULL,
-        F32_MAX) - 0.1f;
+        F32_MAX, flags) - 0.1f;
 
-    result = ray_cast_direction(state, start, direction, collision);
+    result = ray_cast_direction(state, start, direction, collision, flags);
 
     if (result < target)
     {
@@ -1688,7 +1706,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                             // account and it might stumble on the walls (but
                             // should not get stuck)
                             if (!ray_cast_position(state, enemy->eye_position,
-                                enemy->path[j], NULL))
+                                enemy->path[j], NULL, COLLISION_ALL))
                             {
                                 break;
                             }
@@ -1728,7 +1746,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 for (u32 j = 0; j < enemy->path_length; j++)
                 {
                     if (!ray_cast_position(state, enemy->eye_position,
-                        enemy->path[j], NULL))
+                        enemy->path[j], NULL, COLLISION_ALL))
                     {
                         break;
                     }
@@ -1771,7 +1789,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             // Todo: sometimes rotation goes crazy
             if (angle_player < ENEMY_LINE_OF_SIGHT_HALF &&
                 ray_cast_body(state, enemy->eye_position, state->player.body,
-                    NULL))
+                    NULL, COLLISION_ALL))
             {
                 struct v2 target_forward = direction_player;
 
@@ -1899,7 +1917,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             enemy->eye_position.x += enemy->body.position.x;
             enemy->eye_position.y += enemy->body.position.y;
 
-            enemy->last_shot += dt;
+            // enemy->last_shot += dt;
 
             if (enemy->last_shot > 1.0f)
             {
@@ -2035,6 +2053,8 @@ void collision_map_static_calculate(struct line_segment faces[], u32 max,
     {
         struct line_segment face_top    = { 0.0f };
         struct line_segment face_bottom = { 0.0f };
+        face_top.type = COLLISION_STATIC;
+        face_bottom.type = COLLISION_STATIC;
 
         for (u32 x = 0; x <= MAP_WIDTH; x++)
         {
@@ -2095,6 +2115,8 @@ void collision_map_static_calculate(struct line_segment faces[], u32 max,
     {
         struct line_segment face_left  = { 0.0f };
         struct line_segment face_right = { 0.0f };
+        face_left.type = COLLISION_STATIC;
+        face_right.type = COLLISION_STATIC;
 
         for (u32 y = 0; y < MAP_HEIGHT; y++)
         {
@@ -2165,6 +2187,7 @@ void collision_map_dynamic_calculate(struct game_state* state)
         for (u32 i = 0;
             i < 4 && state->num_cols_static < MAX_COLLISION_SEGMENTS; i++)
         {
+            segments[i].type = COLLISION_PLAYER;
             state->cols_dynamic[state->num_cols_dynamic++] = segments[i];
         }
     }
@@ -2181,6 +2204,7 @@ void collision_map_dynamic_calculate(struct game_state* state)
             for (u32 i = 0;
                 i < 4 && state->num_cols_dynamic < MAX_COLLISION_SEGMENTS; i++)
             {
+                segments[i].type = COLLISION_ENEMY;
                 state->cols_dynamic[state->num_cols_dynamic++] = segments[i];
             }
         }
@@ -2236,10 +2260,10 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
     struct v2 dir_left = v2_direction_from_angle(angle_start + angle_max);
     struct v2 dir_right = v2_direction_from_angle(angle_start - angle_max);
 
-    ray_cast_direction(state, position, dir_right, &collision);
+    ray_cast_direction(state, position, dir_right, &collision, COLLISION_ALL);
     corners[num_corners++] = collision;
 
-    ray_cast_direction(state, position, dir_left, &collision);
+    ray_cast_direction(state, position, dir_left, &collision, COLLISION_ALL);
     corners[num_corners++] = collision;
 
     for (u32 i = 0; i < state->num_cols_dynamic &&
@@ -2275,7 +2299,8 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
         f32 angle = f32_atan(direction.y, direction.x);
         f32 t = 0.00001f;
 
-        ray_cast_direction(state, position, direction, &collision);
+        ray_cast_direction(state, position, direction, &collision,
+            COLLISION_ALL);
 
         struct v2 collision_temp = { 0 };
         finals[num_finals++] = collision;
@@ -2287,7 +2312,7 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
         }
 
         ray_cast_direction(state, position, v2_direction_from_angle(angle + t),
-            &collision_temp);
+            &collision_temp, COLLISION_ALL);
 
         if (v2_distance(collision_temp, collision) > 0.001f)
         {
@@ -2301,7 +2326,7 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
         }
 
         ray_cast_direction(state, position, v2_direction_from_angle(angle - t),
-            &collision_temp);
+            &collision_temp, COLLISION_ALL);
 
         if (v2_distance(collision_temp, collision) > 0.001f)
         {
@@ -2470,60 +2495,79 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                 bullet->body.velocity.y * dt
             };
 
-            // Todo: projectiles sometimes get stuck in the wall instead of
-            // bouncing
-            if (check_tile_collisions(&bullet->body.position,
-                &bullet->body.velocity, move_delta, PROJECTILE_RADIUS, 0))
+            f32 distance_target = v2_length(move_delta);
+            f32 distance = ray_cast_direction(state, bullet->body.position,
+                v2_normalize(move_delta), NULL, COLLISION_ALL);
+            f32 fraction = distance / distance_target;
+
+            bullet->body.position.x += move_delta.x * fraction;
+            bullet->body.position.y += move_delta.y * fraction;
+
+            if (distance < distance_target)
             {
-                particle_sphere_create(state, bullet->body.position,
-                    (struct v2){ 0.0f, 0.0f }, colors[GREY], PROJECTILE_RADIUS,
-                    PROJECTILE_RADIUS * 5.0f, 0.15f);
+                LOG("DESTROY!\n");
                 bullet->alive = false;
             }
 
-            particle_line_create(state, bullet->start, bullet->body.position,
-                colors[GREY], (struct v4){ colors[GREY].r, colors[GREY].g,
-                    colors[GREY].b, 0.0f }, 0.30f);
+            // f32 ray_cast_to_direction(struct v2 start, struct v2 direction,
+            //     struct line_segment cols[], u32 num_cols, struct v2* collision,
+            //     f32 max_length)
 
-            if (bullet->player_owned)
-            {
-                for (u32 j = 0; j < state->num_enemies; j++)
-                {
-                    struct enemy* enemy = &state->enemies[j];
+            // f32 ray_cast_body(struct game_state* state, struct v2 start,
+            //     struct rigid_body body, struct v2* collision)
 
-                    if (enemy->alive && collision_circle_to_circle(
-                        bullet->body.position, PROJECTILE_RADIUS,
-                        enemy->body.position, PLAYER_RADIUS))
-                    {
-                        bullet->alive = false;
-                        enemy->health -= bullet->damage;
+            // Todo: projectiles sometimes get stuck in the wall instead of
+            // bouncing
+            // if (check_tile_collisions(&bullet->body.position,
+            //     &bullet->body.velocity, move_delta, PROJECTILE_RADIUS, 0))
+            // {
+            //     particle_sphere_create(state, bullet->body.position,
+            //         (struct v2){ 0.0f, 0.0f }, colors[GREY], PROJECTILE_RADIUS,
+            //         PROJECTILE_RADIUS * 5.0f, 0.15f);
+            //     bullet->alive = false;
+            // }
 
-                        particle_sphere_create(state, bullet->body.position,
-                            (struct v2){ bullet->body.velocity.x * 0.5,
-                                bullet->body.velocity.y * 0.5 }, colors[RED],
-                            PROJECTILE_RADIUS, PROJECTILE_RADIUS * 2.5f, 0.15f);
+            // particle_line_create(state, bullet->start, bullet->body.position,
+            //     colors[GREY], (struct v4){ colors[GREY].r, colors[GREY].g,
+            //         colors[GREY].b, 0.0f }, 0.30f);
 
-                        bullet->alive = false;
-                    }
-                }
-            }
-            else
-            {
-                struct player* player = &state->player;
+            // if (bullet->player_owned)
+            // {
+            //     for (u32 j = 0; j < state->num_enemies; j++)
+            //     {
+            //         struct enemy* enemy = &state->enemies[j];
 
-                if (player->alive && collision_circle_to_circle(
-                    bullet->body.position, PROJECTILE_RADIUS,
-                    player->body.position, PLAYER_RADIUS))
-                {
-                    bullet->alive = false;
-                    player->health -= bullet->damage;
+            //         if (enemy->alive && collision_circle_to_circle(
+            //             bullet->body.position, PROJECTILE_RADIUS,
+            //             enemy->body.position, PLAYER_RADIUS))
+            //         {
+            //             bullet->alive = false;
+            //             enemy->health -= bullet->damage;
 
-                    particle_sphere_create(state, bullet->body.position,
-                        (struct v2){ bullet->body.velocity.x * 0.5,
-                            bullet->body.velocity.y * 0.5 }, colors[RED],
-                        PROJECTILE_RADIUS, PROJECTILE_RADIUS * 2.5f, 0.15f);
-                }
-            }
+            //             particle_sphere_create(state, bullet->body.position,
+            //                 (struct v2){ bullet->body.velocity.x * 0.5,
+            //                     bullet->body.velocity.y * 0.5 }, colors[RED],
+            //                 PROJECTILE_RADIUS, PROJECTILE_RADIUS * 2.5f, 0.15f);
+            //         }
+            //     }
+            // }
+            // else
+            // {
+            //     struct player* player = &state->player;
+
+            //     if (player->alive && collision_circle_to_circle(
+            //         bullet->body.position, PROJECTILE_RADIUS,
+            //         player->body.position, PLAYER_RADIUS))
+            //     {
+            //         bullet->alive = false;
+            //         player->health -= bullet->damage;
+
+            //         particle_sphere_create(state, bullet->body.position,
+            //             (struct v2){ bullet->body.velocity.x * 0.5,
+            //                 bullet->body.velocity.y * 0.5 }, colors[RED],
+            //             PROJECTILE_RADIUS, PROJECTILE_RADIUS * 2.5f, 0.15f);
+            //     }
+            // }
 
             bullet->start = bullet->body.position;
         }
