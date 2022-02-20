@@ -2559,28 +2559,32 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                 bullet->alive = false;
             }
 
-            // Todo: projectiles sometimes get stuck in the wall instead of
-            // bouncing
-            // if (check_tile_collisions(&bullet->body.position,
-            //     &bullet->body.velocity, move_delta, PROJECTILE_RADIUS, 0))
-            // {
-            //     bullet->alive = false;
-            // }
-
             particle_line_create(state, bullet->start, bullet->body.position,
                 colors[GREY], (struct v4){ colors[GREY].r, colors[GREY].g,
                     colors[GREY].b, 0.0f }, 0.30f);
 
-            // Todo: implement collision circle to OBB
+            f32 target_size = PLAYER_RADIUS + PROJECTILE_RADIUS;
+
             if (bullet->player_owned)
             {
                 for (u32 j = 0; j < state->num_enemies; j++)
                 {
                     struct enemy* enemy = &state->enemies[j];
+                    struct line_segment segments[4] = { 0 };
 
-                    if (enemy->alive && collision_circle_to_circle(
-                        bullet->body.position, PROJECTILE_RADIUS,
-                        enemy->body.position, PLAYER_RADIUS))
+                    get_body_rectangle(enemy->body, target_size, target_size,
+                        segments);
+
+                    struct v2 corners[] =
+                    {
+                        segments[0].start,
+                        segments[1].start,
+                        segments[2].start,
+                        segments[3].start
+                    };
+
+                    if (enemy->alive && collision_point_to_obb(
+                        bullet->body.position, corners))
                     {
                         bullet->alive = false;
                         enemy->health -= bullet->damage;
@@ -2595,10 +2599,21 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
             else
             {
                 struct player* player = &state->player;
+                struct line_segment segments[4] = { 0 };
 
-                if (player->alive && collision_circle_to_circle(
-                    bullet->body.position, PROJECTILE_RADIUS,
-                    player->body.position, PLAYER_RADIUS))
+                get_body_rectangle(player->body, target_size, target_size,
+                    segments);
+
+                struct v2 corners[] =
+                {
+                    segments[0].start,
+                    segments[1].start,
+                    segments[2].start,
+                    segments[3].start
+                };
+
+                if (player->alive && collision_point_to_obb(
+                    bullet->body.position, corners))
                 {
                     bullet->alive = false;
                     player->health -= bullet->damage;
