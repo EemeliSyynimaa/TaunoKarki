@@ -193,7 +193,7 @@ f32 ENEMY_ACCELERATION       = 35.0f;
 f32 ENEMY_LINE_OF_SIGHT_HALF = F64_PI * 0.125f; // 22.5 degrees
 f32 FRICTION                 = 10.0f;
 f32 PROJECTILE_RADIUS        = 0.035f;
-f32 PROJECTILE_SPEED         = 250.0f;
+f32 PROJECTILE_SPEED         = 750.0f;
 f32 PLAYER_RADIUS            = 0.25f;
 f32 WALL_SIZE                = 1.0f;
 
@@ -1158,8 +1158,8 @@ b32 intersect_ray_to_line_segment(struct v2 start, struct v2 direction,
 
         if (t > 0.0f && u > 0.0f && u < 1.0f)
         {
-                collision->x = p.x + t * r.x;
-                collision->y = p.y + t * r.y;
+            collision->x = p.x + t * r.x;
+            collision->y = p.y + t * r.y;
 
             result = true;
         }
@@ -1258,12 +1258,30 @@ f32 ray_cast_body(struct game_state* state, struct v2 start,
     return result;
 }
 
-b32 collision_point_to_rect(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y,
+b32 collision_point_to_aabb(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y,
     f32 max_y)
 {
-    f32 result;
+    b32 result = false;
 
-    result = (x >= min_x && x <= max_x && y >= min_y && y <= max_y);
+    result = x >= min_x && x <= max_x && y >= min_y && y <= max_y;
+
+    return result;
+}
+
+b32 collision_point_to_obb(struct v2 pos, struct v2 corners[4])
+{
+    b32 result = false;
+
+    b32 result_top = v2_cross(v2_direction(corners[0], corners[1]),
+        v2_direction(corners[0], pos)) < 0.0f;
+    b32 result_right = v2_cross(v2_direction(corners[1], corners[2]),
+        v2_direction(corners[1], pos)) < 0.0f;
+    b32 result_bottom = v2_cross(v2_direction(corners[2], corners[3]),
+        v2_direction(corners[2], pos)) < 0.0f;
+    b32 result_left = v2_cross(v2_direction(corners[3], corners[0]),
+        v2_direction(corners[3], pos)) < 0.0f;
+
+    result = result_top && result_right && result_bottom && result_left;
 
     return result;
 }
@@ -1287,8 +1305,20 @@ void map_render(struct game_state* state)
             f32 left = x - TILE_WALL * 0.5f;
             f32 right = x + TILE_WALL * 0.5f;
 
-            if (collision_point_to_rect(state->mouse.world.x,
-                state->mouse.world.y, left, right, bottom, top))
+            struct v2 corners[] =
+            {
+                { left, top },
+                { right, top },
+                { right, bottom },
+                { left, bottom }
+            };
+
+            b32 collision_obb = collision_point_to_obb(state->mouse.world,
+                corners);
+            // b32 collision_aabb = collision_point_to_aabb(state->mouse.world.x,
+            //     state->mouse.world.y, left, right, bottom, top);
+
+            if (collision_obb)
             {
                 color = colors[RED];
             }
@@ -1538,12 +1568,6 @@ b32 check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta,
                 {
                     pos->x - x,
                     pos->y - y
-                };
-
-                struct v2 rel_new =
-                {
-                    rel.x + move_delta.x,
-                    rel.y + move_delta.y
                 };
 
                 if (collision_wall_resolve(-wall_high, rel.y, rel.x,
@@ -2154,7 +2178,8 @@ void collision_map_static_calculate(struct line_segment faces[], u32 max,
                 {
                     if (line_segment_empty(face_right))
                     {
-                        face_right.start = (struct v2){ tile.x + t, tile.y - t };
+                        face_right.start =
+                            (struct v2){ tile.x + t, tile.y - t };
                     }
 
                     face_right.end = (struct v2){ tile.x + t, tile.y + t };
@@ -2534,13 +2559,6 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                 bullet->alive = false;
             }
 
-            // f32 ray_cast_to_direction(struct v2 start, struct v2 direction,
-            //     struct line_segment cols[], u32 num_cols, struct v2* collision,
-            //     f32 max_length)
-
-            // f32 ray_cast_body(struct game_state* state, struct v2 start,
-            //     struct rigid_body body, struct v2* collision)
-
             // Todo: projectiles sometimes get stuck in the wall instead of
             // bouncing
             // if (check_tile_collisions(&bullet->body.position,
@@ -2553,43 +2571,44 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                 colors[GREY], (struct v4){ colors[GREY].r, colors[GREY].g,
                     colors[GREY].b, 0.0f }, 0.30f);
 
-            // if (bullet->player_owned)
-            // {
-            //     for (u32 j = 0; j < state->num_enemies; j++)
-            //     {
-            //         struct enemy* enemy = &state->enemies[j];
+            // Todo: implement collision circle to OBB
+            if (bullet->player_owned)
+            {
+                for (u32 j = 0; j < state->num_enemies; j++)
+                {
+                    struct enemy* enemy = &state->enemies[j];
 
-            //         if (enemy->alive && collision_circle_to_circle(
-            //             bullet->body.position, PROJECTILE_RADIUS,
-            //             enemy->body.position, PLAYER_RADIUS))
-            //         {
-            //             bullet->alive = false;
-            //             enemy->health -= bullet->damage;
+                    if (enemy->alive && collision_circle_to_circle(
+                        bullet->body.position, PROJECTILE_RADIUS,
+                        enemy->body.position, PLAYER_RADIUS))
+                    {
+                        bullet->alive = false;
+                        enemy->health -= bullet->damage;
 
-            //             particle_sphere_create(state, bullet->body.position,
-            //                 (struct v2){ bullet->body.velocity.x * 0.5,
-            //                     bullet->body.velocity.y * 0.5 }, colors[RED],
-            //                 PROJECTILE_RADIUS, PROJECTILE_RADIUS * 2.5f, 0.15f);
-            //         }
-            //     }
-            // }
-            // else
-            // {
-            //     struct player* player = &state->player;
+                        particle_sphere_create(state, bullet->body.position,
+                            (struct v2){ bullet->body.velocity.x * 0.5,
+                                bullet->body.velocity.y * 0.5 }, colors[RED],
+                            PROJECTILE_RADIUS, PROJECTILE_RADIUS * 2.5f, 0.15f);
+                    }
+                }
+            }
+            else
+            {
+                struct player* player = &state->player;
 
-            //     if (player->alive && collision_circle_to_circle(
-            //         bullet->body.position, PROJECTILE_RADIUS,
-            //         player->body.position, PLAYER_RADIUS))
-            //     {
-            //         bullet->alive = false;
-            //         player->health -= bullet->damage;
+                if (player->alive && collision_circle_to_circle(
+                    bullet->body.position, PROJECTILE_RADIUS,
+                    player->body.position, PLAYER_RADIUS))
+                {
+                    bullet->alive = false;
+                    player->health -= bullet->damage;
 
-            //         particle_sphere_create(state, bullet->body.position,
-            //             (struct v2){ bullet->body.velocity.x * 0.5,
-            //                 bullet->body.velocity.y * 0.5 }, colors[RED],
-            //             PROJECTILE_RADIUS, PROJECTILE_RADIUS * 2.5f, 0.15f);
-            //     }
-            // }
+                    particle_sphere_create(state, bullet->body.position,
+                        (struct v2){ bullet->body.velocity.x * 0.5,
+                            bullet->body.velocity.y * 0.5 }, colors[RED],
+                        PROJECTILE_RADIUS, PROJECTILE_RADIUS * 2.5f, 0.15f);
+                }
+            }
 
             bullet->start = bullet->body.position;
         }
@@ -2731,8 +2750,8 @@ void player_render(struct game_state* state)
         {
             struct v4 color = colors[LIME];
             color.a = 0.5f;
-            line_of_sight_render(state, player->eye_position, player->body.angle,
-                ENEMY_LINE_OF_SIGHT_HALF, color, true);
+            line_of_sight_render(state, player->eye_position,
+                player->body.angle, ENEMY_LINE_OF_SIGHT_HALF, color, true);
         }
 
         // Render velocity vector
