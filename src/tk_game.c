@@ -178,9 +178,20 @@ u32 random_number_generate()
     return result;
 }
 
-u32 random_number_generate_and_distribute(u32 min, u32 max)
+u32 u32_random_number_get(u32 min, u32 max)
 {
     u32 result = random_number_generate() % max + min;
+
+    return result;
+}
+
+f32 f32_random_number_get(f32 min, f32 max)
+{
+    f32 result = 0.0f;
+    f32 max_half = U32_MAX * 0.5f;
+    f32 rand = (u32_random_number_get(0, U32_MAX) - max_half) /
+        max_half;
+    result = rand * (max - min);
 
     return result;
 }
@@ -315,8 +326,8 @@ struct v2 tile_random_get(u32 type)
     {
         struct v2 position =
         {
-            random_number_generate_and_distribute(0, MAP_WIDTH),
-            random_number_generate_and_distribute(0, MAP_HEIGHT)
+            u32_random_number_get(0, MAP_WIDTH),
+            u32_random_number_get(0, MAP_HEIGHT)
         };
 
         if (tile_is_of_type(position, type))
@@ -1685,10 +1696,15 @@ void bullet_create(struct game_state* state, struct v2 position,
 
     struct bullet* bullet = &state->bullets[state->free_bullet];
 
+    f32 bullet_spread = f32_radians(1.5f);
+
+    struct v2 randomized = v2_rotate(direction, f32_random_number_get(
+        -bullet_spread, bullet_spread));
+
     bullet->body.position = position;
     bullet->body.velocity = start_velocity;
-    bullet->body.velocity.x += direction.x * speed;
-    bullet->body.velocity.y += direction.y * speed;
+    bullet->body.velocity.x += randomized.x * speed;
+    bullet->body.velocity.y += randomized.y * speed;
     bullet->alive = true;
     bullet->damage = damage;
     bullet->player_owned = player_owned;

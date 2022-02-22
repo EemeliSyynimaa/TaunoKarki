@@ -4,6 +4,7 @@
 #define F64_PI 3.1415926535897932384626433832795028841971693993751058209749445
 #define F32_MAX FLT_MAX
 #define F32_MIN FLT_MIN
+#define U32_MAX 0xFFFFFFFF
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
