@@ -5,6 +5,7 @@
 #define F32_MAX FLT_MAX
 #define F32_MIN FLT_MIN
 #define U32_MAX 0xFFFFFFFF
+#define S32_MAX 0x7FFFFFFF
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))

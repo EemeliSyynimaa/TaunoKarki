@@ -194,10 +194,8 @@ u32 u32_random_number_get(u32 min, u32 max)
 f32 f32_random_number_get(f32 min, f32 max)
 {
     f32 result = 0.0f;
-    f32 max_half = U32_MAX * 0.5f;
-    f32 rand = (u32_random_number_get(0, U32_MAX) - max_half) /
-        max_half;
-    result = rand * (max - min);
+    f32 rand = u32_random_number_get(0, S32_MAX) / (f32)S32_MAX;
+    result = min + rand * (max - min);
 
     return result;
 }
@@ -210,7 +208,7 @@ f32 ENEMY_ACCELERATION       = 35.0f;
 f32 ENEMY_LINE_OF_SIGHT_HALF = F64_PI * 0.125f; // 22.5 degrees
 f32 FRICTION                 = 10.0f;
 f32 PROJECTILE_RADIUS        = 0.035f;
-f32 PROJECTILE_SPEED         = 750.0f;
+f32 PROJECTILE_SPEED         = 100.0f;
 f32 PLAYER_RADIUS            = 0.25f;
 f32 WALL_SIZE                = 1.0f;
 
@@ -2775,13 +2773,31 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
                     player->last_shot = 0.0f;
                 }
             }
+            else if (player->weapon == WEAPON_SHOTGUN)
+            {
+                if (!state->fired && player->last_shot > 0.5f)
+                {
+                    for (u32 i = 0; i < 10; i++)
+                    {
+                        f32 bullet_spread = f32_radians(10.0f);
+
+                        struct v2 randomized = v2_rotate(dir, f32_random_number_get(
+                            -bullet_spread, bullet_spread));
+
+                        bullet_create(state, player->eye_position,
+                            player->body.velocity, randomized,
+                            f32_random_number_get(0.75f * PROJECTILE_SPEED,
+                                PROJECTILE_SPEED),
+                            5.5f, true, PROJECTILE_RADIUS * 0.25f);
+                        player->last_shot = 0.0f;
+                        state->fired = true;
+                    }
+                }
+            }
         }
         else
         {
-            if (player->weapon == WEAPON_PISTOL)
-            {
-                state->fired = false;
-            }
+            state->fired = false;
         }
     }
 }
@@ -3579,7 +3595,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
     state->player.body.position.y = 3.0f;
     state->player.alive = true;
     state->player.health = 100.0f;
-    state->player.weapon = WEAPON_MACHINEGUN;
+    state->player.weapon = WEAPON_SHOTGUN;
 
     state->mouse.world = state->player.body.position;
 
