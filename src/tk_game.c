@@ -42,7 +42,9 @@ struct player
     struct rigid_body body;
     struct v2 eye_position;
     f32 health;
+    f32 last_shot;
     b32 alive;
+    u32 weapon;
 };
 
 struct bullet
@@ -109,6 +111,10 @@ struct mesh
 #define MAX_WALL_FACES 512
 #define MAX_COLLISION_SEGMENTS 1024
 #define MAX_PARTICLES 1024
+
+#define WEAPON_PISTOL     0
+#define WEAPON_MACHINEGUN 1
+#define WEAPON_SHOTGUN    2
 
 struct memory_block
 {
@@ -1326,8 +1332,6 @@ void map_render(struct game_state* state)
 
             b32 collision_obb = collision_point_to_obb(state->mouse.world,
                 corners);
-            // b32 collision_aabb = collision_point_to_aabb(state->mouse.world.x,
-            //     state->mouse.world.y, left, right, bottom, top);
 
             if (collision_obb)
             {
@@ -1687,7 +1691,7 @@ void particle_line_create(struct game_state* state, struct v2 start,
 
 void bullet_create(struct game_state* state, struct v2 position,
     struct v2 start_velocity, struct v2 direction, f32 speed, f32 damage,
-    b32 player_owned)
+    b32 player_owned, f32 size)
 {
     if (++state->free_bullet == MAX_BULLETS)
     {
@@ -1695,23 +1699,17 @@ void bullet_create(struct game_state* state, struct v2 position,
     }
 
     struct bullet* bullet = &state->bullets[state->free_bullet];
-
-    f32 bullet_spread = f32_radians(1.5f);
-
-    struct v2 randomized = v2_rotate(direction, f32_random_number_get(
-        -bullet_spread, bullet_spread));
-
     bullet->body.position = position;
     bullet->body.velocity = start_velocity;
-    bullet->body.velocity.x += randomized.x * speed;
-    bullet->body.velocity.y += randomized.y * speed;
+    bullet->body.velocity.x += direction.x * speed;
+    bullet->body.velocity.y += direction.y * speed;
     bullet->alive = true;
     bullet->damage = damage;
     bullet->player_owned = player_owned;
     bullet->start = bullet->body.position;
 
     particle_sphere_create(state, position, (struct v2){ 0.0f, 0.0f },
-        colors[YELLOW], PROJECTILE_RADIUS, PROJECTILE_RADIUS * 5.0f, 0.10f);
+        colors[YELLOW], size, size * 5.0f, 0.10f);
 }
 
 void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
@@ -1968,7 +1966,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             if (enemy->last_shot > 1.0f)
             {
                 bullet_create(state, enemy->eye_position, enemy->body.velocity,
-                    enemy->direction_aim, PROJECTILE_SPEED, 5.0f, false);
+                    enemy->direction_aim, PROJECTILE_SPEED, 5.0f, false,
+                    PROJECTILE_RADIUS);
                 enemy->last_shot = 0.0f;
             }
         }
@@ -2741,18 +2740,48 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         player->eye_position.x += player->body.position.x;
         player->eye_position.y += player->body.position.y;
 
+        player->last_shot += dt;
+
         if (input->shoot.key_down)
         {
-            if (!state->fired)
+            if (player->weapon == WEAPON_PISTOL)
             {
-                bullet_create(state, player->eye_position,
-                    player->body.velocity, dir, PROJECTILE_SPEED, 25.0f, true);
-                state->fired = true;
+                if (!state->fired)
+                {
+                    f32 bullet_spread = f32_radians(1.5f);
+
+                    struct v2 randomized = v2_rotate(dir, f32_random_number_get(
+                        -bullet_spread, bullet_spread));
+
+                    bullet_create(state, player->eye_position,
+                        player->body.velocity, randomized, PROJECTILE_SPEED, 25.0f,
+                        true, PROJECTILE_RADIUS);
+
+                    state->fired = true;
+                }
+            }
+            else if (player->weapon == WEAPON_MACHINEGUN)
+            {
+                if (player->last_shot > 0.075f)
+                {
+                    f32 bullet_spread = f32_radians(3.5f);
+
+                    struct v2 randomized = v2_rotate(dir, f32_random_number_get(
+                        -bullet_spread, bullet_spread));
+
+                    bullet_create(state, player->eye_position,
+                        player->body.velocity, randomized, PROJECTILE_SPEED,
+                        12.5f, true, PROJECTILE_RADIUS * 0.75f);
+                    player->last_shot = 0.0f;
+                }
             }
         }
         else
         {
-            state->fired = false;
+            if (player->weapon == WEAPON_PISTOL)
+            {
+                state->fired = false;
+            }
         }
     }
 }
@@ -3550,6 +3579,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
     state->player.body.position.y = 3.0f;
     state->player.alive = true;
     state->player.health = 100.0f;
+    state->player.weapon = WEAPON_MACHINEGUN;
 
     state->mouse.world = state->player.body.position;
 
