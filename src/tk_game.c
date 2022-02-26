@@ -168,33 +168,28 @@ struct game_state
     u32 num_cols_static;
     u32 num_cols_dynamic;
     u32 level;
+    u32 random_seed;
 };
 
-u32 random_seed = 0;
-
-void random_seed_set(u32 seed)
-{
-    random_seed = seed;
-}
-
-u32 random_number_generate()
+u32 random_number_generate(struct game_state* state)
 {  
-    u32 result = random_seed = (u64)random_seed * 48271 % 0x7fffffff;
+    u32 result = state->random_seed =
+        (u64)state->random_seed * 48271 % 0x7fffffff;
 
     return result;
 }
 
-u32 u32_random_number_get(u32 min, u32 max)
+u32 u32_random_number_get(struct game_state* state, u32 min, u32 max)
 {
-    u32 result = random_number_generate() % max + min;
+    u32 result = random_number_generate(state) % max + min;
 
     return result;
 }
 
-f32 f32_random_number_get(f32 min, f32 max)
+f32 f32_random_number_get(struct game_state* state, f32 min, f32 max)
 {
     f32 result = 0.0f;
-    f32 rand = u32_random_number_get(0, S32_MAX) / (f32)S32_MAX;
+    f32 rand = u32_random_number_get(state, 0, S32_MAX) / (f32)S32_MAX;
     result = min + rand * (max - min);
 
     return result;
@@ -320,7 +315,7 @@ b32 tile_is_free(struct v2 position)
     return tile_is_of_type(position, TILE_FLOOR);
 }
 
-struct v2 tile_random_get(u32 type)
+struct v2 tile_random_get(struct game_state* state, u32 type)
 {
     struct v2 result = { 0 };
 
@@ -330,8 +325,8 @@ struct v2 tile_random_get(u32 type)
     {
         struct v2 position =
         {
-            u32_random_number_get(0, MAP_WIDTH),
-            u32_random_number_get(0, MAP_HEIGHT)
+            u32_random_number_get(state, 0, MAP_WIDTH),
+            u32_random_number_get(state, 0, MAP_HEIGHT)
         };
 
         if (tile_is_of_type(position, type))
@@ -1779,7 +1774,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             }
             else
             {
-                struct v2 target = tile_random_get(TILE_FLOOR);
+                struct v2 target = tile_random_get(state, TILE_FLOOR);
 
                 enemy->path_length = path_find(enemy->body.position,
                     target, enemy->path, 256);
@@ -2765,7 +2760,7 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
                     f32 bullet_spread = f32_radians(1.5f);
 
                     struct v2 randomized = v2_rotate(dir, f32_random_number_get(
-                        -bullet_spread, bullet_spread));
+                        state, -bullet_spread, bullet_spread));
 
                     bullet_create(state, player->eye_position,
                         player->body.velocity, randomized, PROJECTILE_SPEED, 25.0f,
@@ -2781,7 +2776,7 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
                     f32 bullet_spread = f32_radians(3.5f);
 
                     struct v2 randomized = v2_rotate(dir, f32_random_number_get(
-                        -bullet_spread, bullet_spread));
+                        state, -bullet_spread, bullet_spread));
 
                     bullet_create(state, player->eye_position,
                         player->body.velocity, randomized, PROJECTILE_SPEED,
@@ -2797,13 +2792,14 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
                     {
                         f32 bullet_spread = f32_radians(10.0f);
 
-                        struct v2 randomized = v2_rotate(dir, f32_random_number_get(
-                            -bullet_spread, bullet_spread));
+                        struct v2 randomized = v2_rotate(dir,
+                            f32_random_number_get(state, -bullet_spread,
+                                bullet_spread));
 
                         bullet_create(state, player->eye_position,
                             player->body.velocity, randomized,
-                            f32_random_number_get(0.75f * PROJECTILE_SPEED,
-                                PROJECTILE_SPEED),
+                            f32_random_number_get(state,
+                                0.75f * PROJECTILE_SPEED, PROJECTILE_SPEED),
                             5.5f, true, PROJECTILE_RADIUS * 0.25f);
                         player->last_shot = 0.0f;
                         state->fired = true;
@@ -3630,7 +3626,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
     state->camera.view_inverse = m4_inverse(state->camera.view);
 
-    random_seed_set(init->init_time);
+    state->random_seed = init->init_time;
 
     collision_map_static_calculate(state->cols_static, MAX_COLLISION_SEGMENTS,
         &state->num_cols_static);
