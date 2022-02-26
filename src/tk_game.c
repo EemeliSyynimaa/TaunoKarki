@@ -2740,6 +2740,22 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 
         player->last_shot += dt;
 
+        if (input->weapon_slot_1.key_down)
+        {
+            player->weapon = WEAPON_PISTOL;
+            state->fired = true;
+        }
+        else if (input->weapon_slot_2.key_down)
+        {
+            player->weapon = WEAPON_MACHINEGUN;
+            state->fired = true;
+        }
+        else if (input->weapon_slot_3.key_down)
+        {
+            player->weapon = WEAPON_SHOTGUN;
+            state->fired = true;
+        }
+
         if (input->shoot.key_down)
         {
             if (player->weapon == WEAPON_PISTOL)
@@ -2760,7 +2776,7 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
             }
             else if (player->weapon == WEAPON_MACHINEGUN)
             {
-                if (player->last_shot > 0.075f)
+                if (!state->fired && player->last_shot > 0.075f)
                 {
                     f32 bullet_spread = f32_radians(3.5f);
 
@@ -3595,7 +3611,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
     state->player.body.position.y = 3.0f;
     state->player.alive = true;
     state->player.health = 100.0f;
-    state->player.weapon = WEAPON_SHOTGUN;
+    state->player.weapon = WEAPON_MACHINEGUN;
 
     state->mouse.world = state->player.body.position;
 

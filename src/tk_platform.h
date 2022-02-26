@@ -36,7 +36,7 @@ struct game_input
 
     union 
     {
-        struct key_state keys[7];
+        struct key_state keys[12];
 
         struct
         {
@@ -49,6 +49,12 @@ struct game_input
             struct key_state shoot;
 
             struct key_state back;
+
+            struct key_state weapon_slot_1;
+            struct key_state weapon_slot_2;
+            struct key_state weapon_slot_3;
+            struct key_state weapon_slot_4;
+            struct key_state weapon_slot_5;
         };
     };
 

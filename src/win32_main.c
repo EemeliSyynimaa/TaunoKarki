@@ -711,6 +711,36 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                 win32_input_process(&new_input.reload, 
                                     is_down);
                             }
+                            else if (msg.wParam == 0x31)
+                            {
+                                LOG("1 - %s\n", is_down ? "down" : "up");
+                                win32_input_process(&new_input.weapon_slot_1,
+                                    is_down);
+                            }
+                            else if (msg.wParam == 0x32)
+                            {
+                                LOG("2 - %s\n", is_down ? "down" : "up");
+                                win32_input_process(&new_input.weapon_slot_2,
+                                    is_down);
+                            }
+                            else if (msg.wParam == 0x33)
+                            {
+                                LOG("3 - %s\n", is_down ? "down" : "up");
+                                win32_input_process(&new_input.weapon_slot_3,
+                                    is_down);
+                            }
+                            else if (msg.wParam == 0x34)
+                            {
+                                LOG("4 - %s\n", is_down ? "down" : "up");
+                                win32_input_process(&new_input.weapon_slot_4,
+                                    is_down);
+                            }
+                            else if (msg.wParam == 0x35)
+                            {
+                                LOG("5 - %s\n", is_down ? "down" : "up");
+                                win32_input_process(&new_input.weapon_slot_5,
+                                    is_down);
+                            }
                         }
                     }
                 } break;
