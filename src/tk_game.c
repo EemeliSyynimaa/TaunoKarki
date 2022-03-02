@@ -37,14 +37,21 @@ struct rigid_body
     f32 angle;
 };
 
+struct weapon
+{
+    u32 type;
+    f32 last_shot;
+    b32 fired;
+};
+
 struct player
 {
     struct rigid_body body;
     struct v2 eye_position;
+    struct weapon weapons[3];
     f32 health;
-    f32 last_shot;
     b32 alive;
-    u32 weapon;
+    u32 weapon_current;
 };
 
 struct bullet
@@ -150,7 +157,6 @@ struct game_state
     struct line_segment wall_faces[MAX_WALL_FACES];
     struct line_segment cols_static[MAX_COLLISION_SEGMENTS];
     struct line_segment cols_dynamic[MAX_COLLISION_SEGMENTS];
-    b32 fired;
     b32 render_debug;
     f32 accumulator;
     u32 shader;
@@ -2733,29 +2739,44 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         player->eye_position.x += player->body.position.x;
         player->eye_position.y += player->body.position.y;
 
-        player->last_shot += dt;
+        // Todo: maybe update the status of weapon that's changed
+        u32 weapon_next = player->weapon_current;
+        struct weapon* weapon = &player->weapons[player->weapon_current];
 
         if (input->weapon_slot_1.key_down)
         {
-            player->weapon = WEAPON_PISTOL;
-            state->fired = true;
+            LOG("Change weapon to PISTOL\n");
+            weapon_next = 0;
         }
         else if (input->weapon_slot_2.key_down)
         {
-            player->weapon = WEAPON_MACHINEGUN;
-            state->fired = true;
+            LOG("Change weapon to MACHINEGUN\n");
+            weapon_next = 1;
         }
         else if (input->weapon_slot_3.key_down)
         {
-            player->weapon = WEAPON_SHOTGUN;
-            state->fired = true;
+            LOG("Change weapon to SHOTGUN\n");
+            weapon_next = 2;
+        }
+
+        if (weapon_next != player->weapon_current)
+        {
+            weapon->last_shot = 0.0f;
+            weapon->fired = true;
+
+            player->weapon_current = weapon_next;
+            weapon = &player->weapons[player->weapon_current];
+        }
+        else if (weapon->last_shot > 0.0f)
+        {
+            weapon->last_shot -= dt;
         }
 
         if (input->shoot.key_down)
         {
-            if (player->weapon == WEAPON_PISTOL)
+            if (player->weapon_current == WEAPON_PISTOL)
             {
-                if (!state->fired)
+                if (!weapon->fired)
                 {
                     f32 bullet_spread = f32_radians(1.5f);
 
@@ -2763,15 +2784,15 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
                         state, -bullet_spread, bullet_spread));
 
                     bullet_create(state, player->eye_position,
-                        player->body.velocity, randomized, PROJECTILE_SPEED, 25.0f,
-                        true, PROJECTILE_RADIUS);
+                        player->body.velocity, randomized, PROJECTILE_SPEED,
+                        25.0f, true, PROJECTILE_RADIUS);
 
-                    state->fired = true;
+                    weapon->fired = true;
                 }
             }
-            else if (player->weapon == WEAPON_MACHINEGUN)
+            else if (player->weapon_current == WEAPON_MACHINEGUN)
             {
-                if (!state->fired && player->last_shot > 0.075f)
+                if (!weapon->fired && weapon->last_shot <= 0.0f)
                 {
                     f32 bullet_spread = f32_radians(3.5f);
 
@@ -2781,12 +2802,12 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
                     bullet_create(state, player->eye_position,
                         player->body.velocity, randomized, PROJECTILE_SPEED,
                         12.5f, true, PROJECTILE_RADIUS * 0.75f);
-                    player->last_shot = 0.0f;
+                    weapon->last_shot = 0.075f;
                 }
             }
-            else if (player->weapon == WEAPON_SHOTGUN)
+            else if (player->weapon_current == WEAPON_SHOTGUN)
             {
-                if (!state->fired && player->last_shot > 0.5f)
+                if (!weapon->fired && weapon->last_shot <= 0.0f)
                 {
                     for (u32 i = 0; i < 10; i++)
                     {
@@ -2801,15 +2822,15 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
                             f32_random_number_get(state,
                                 0.75f * PROJECTILE_SPEED, PROJECTILE_SPEED),
                             5.5f, true, PROJECTILE_RADIUS * 0.25f);
-                        player->last_shot = 0.0f;
-                        state->fired = true;
+                        weapon->last_shot = 0.5f;
+                        weapon->fired = true;
                     }
                 }
             }
         }
         else
         {
-            state->fired = false;
+            weapon->fired = false;
         }
     }
 }
@@ -3607,7 +3628,22 @@ void game_init(struct game_memory* memory, struct game_init* init)
     state->player.body.position.y = 3.0f;
     state->player.alive = true;
     state->player.health = 100.0f;
-    state->player.weapon = WEAPON_MACHINEGUN;
+    state->player.weapon_current = WEAPON_MACHINEGUN;
+
+    struct weapon* weapon = &state->player.weapons[0];
+    weapon->type = WEAPON_PISTOL;
+    weapon->last_shot = 0.0f;
+    weapon->fired = true;
+
+    ++weapon;
+    weapon->type = WEAPON_MACHINEGUN;
+    weapon->last_shot = 0.0f;
+    weapon->fired = true;
+
+    ++weapon;
+    weapon->type = WEAPON_SHOTGUN;
+    weapon->last_shot = 0.0f;
+    weapon->fired = true;
 
     state->mouse.world = state->player.body.position;
 
