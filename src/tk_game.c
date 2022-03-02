@@ -42,6 +42,10 @@ struct weapon
     u32 type;
     f32 last_shot;
     b32 fired;
+    u32 ammo;
+    u32 ammo_max;
+    f32 fire_rate;
+    f32 reload_time;
 };
 
 struct player
@@ -2761,7 +2765,6 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 
         if (weapon_next != player->weapon_current)
         {
-            weapon->last_shot = 0.0f;
             weapon->fired = true;
 
             player->weapon_current = weapon_next;
@@ -2772,65 +2775,70 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
             weapon->last_shot -= dt;
         }
 
-        if (input->shoot.key_down)
+        if (input->reload.key_down)
+        {
+            weapon->ammo = weapon->ammo_max;
+            weapon->last_shot = weapon->reload_time;
+        }
+
+        if (!input->shoot.key_down)
+        {
+            weapon->fired = false;
+        }
+        else if (weapon->ammo > 0 && !weapon->fired &&
+            weapon->last_shot <= 0.0f)
         {
             if (player->weapon_current == WEAPON_PISTOL)
             {
-                if (!weapon->fired)
-                {
-                    f32 bullet_spread = f32_radians(1.5f);
+                f32 bullet_spread = f32_radians(1.5f);
 
-                    struct v2 randomized = v2_rotate(dir, f32_random_number_get(
-                        state, -bullet_spread, bullet_spread));
+                struct v2 randomized = v2_rotate(dir, f32_random_number_get(
+                    state, -bullet_spread, bullet_spread));
 
-                    bullet_create(state, player->eye_position,
-                        player->body.velocity, randomized, PROJECTILE_SPEED,
-                        25.0f, true, PROJECTILE_RADIUS);
+                bullet_create(state, player->eye_position,
+                    player->body.velocity, randomized, PROJECTILE_SPEED,
+                    25.0f, true, PROJECTILE_RADIUS);
 
-                    weapon->fired = true;
-                }
+                weapon->fired = true;
+                weapon->ammo--;
+                LOG("Ammo: %d/%d\n", weapon->ammo, weapon->ammo_max);
             }
             else if (player->weapon_current == WEAPON_MACHINEGUN)
             {
-                if (!weapon->fired && weapon->last_shot <= 0.0f)
-                {
-                    f32 bullet_spread = f32_radians(3.5f);
+                f32 bullet_spread = f32_radians(3.5f);
 
-                    struct v2 randomized = v2_rotate(dir, f32_random_number_get(
-                        state, -bullet_spread, bullet_spread));
+                struct v2 randomized = v2_rotate(dir, f32_random_number_get(
+                    state, -bullet_spread, bullet_spread));
 
-                    bullet_create(state, player->eye_position,
-                        player->body.velocity, randomized, PROJECTILE_SPEED,
-                        12.5f, true, PROJECTILE_RADIUS * 0.75f);
-                    weapon->last_shot = 0.075f;
-                }
+                bullet_create(state, player->eye_position,
+                    player->body.velocity, randomized, PROJECTILE_SPEED,
+                    12.5f, true, PROJECTILE_RADIUS * 0.75f);
+                weapon->last_shot = weapon->fire_rate;
+                weapon->ammo--;
+                LOG("Ammo: %d/%d\n", weapon->ammo, weapon->ammo_max);
             }
             else if (player->weapon_current == WEAPON_SHOTGUN)
             {
-                if (!weapon->fired && weapon->last_shot <= 0.0f)
+                for (u32 i = 0; i < 10; i++)
                 {
-                    for (u32 i = 0; i < 10; i++)
-                    {
-                        f32 bullet_spread = f32_radians(10.0f);
+                    f32 bullet_spread = f32_radians(10.0f);
 
-                        struct v2 randomized = v2_rotate(dir,
-                            f32_random_number_get(state, -bullet_spread,
-                                bullet_spread));
+                    struct v2 randomized = v2_rotate(dir,
+                        f32_random_number_get(state, -bullet_spread,
+                            bullet_spread));
 
-                        bullet_create(state, player->eye_position,
-                            player->body.velocity, randomized,
-                            f32_random_number_get(state,
-                                0.75f * PROJECTILE_SPEED, PROJECTILE_SPEED),
-                            5.5f, true, PROJECTILE_RADIUS * 0.25f);
-                        weapon->last_shot = 0.5f;
-                        weapon->fired = true;
-                    }
+                    bullet_create(state, player->eye_position,
+                        player->body.velocity, randomized,
+                        f32_random_number_get(state,
+                            0.75f * PROJECTILE_SPEED, PROJECTILE_SPEED),
+                        5.5f, true, PROJECTILE_RADIUS * 0.25f);
                 }
+
+                weapon->last_shot = weapon->fire_rate;
+                weapon->fired = true;
+                weapon->ammo--;
+                LOG("Ammo: %d/%d\n", weapon->ammo, weapon->ammo_max);
             }
-        }
-        else
-        {
-            weapon->fired = false;
         }
     }
 }
@@ -3628,22 +3636,31 @@ void game_init(struct game_memory* memory, struct game_init* init)
     state->player.body.position.y = 3.0f;
     state->player.alive = true;
     state->player.health = 100.0f;
-    state->player.weapon_current = WEAPON_MACHINEGUN;
+    state->player.weapon_current = WEAPON_PISTOL;
 
     struct weapon* weapon = &state->player.weapons[0];
     weapon->type = WEAPON_PISTOL;
     weapon->last_shot = 0.0f;
     weapon->fired = true;
+    weapon->ammo_max = weapon->ammo = 12;
+    weapon->fire_rate = 0.0f;
+    weapon->reload_time = 1.0f;
 
     ++weapon;
     weapon->type = WEAPON_MACHINEGUN;
     weapon->last_shot = 0.0f;
     weapon->fired = true;
+    weapon->ammo_max = weapon->ammo = 40;
+    weapon->fire_rate = 0.075f;
+    weapon->reload_time = 1.5f;
 
     ++weapon;
     weapon->type = WEAPON_SHOTGUN;
     weapon->last_shot = 0.0f;
     weapon->fired = true;
+    weapon->ammo_max = weapon->ammo = 8;
+    weapon->fire_rate = 0.5f;
+    weapon->reload_time = 3.0f;
 
     state->mouse.world = state->player.body.position;
 
