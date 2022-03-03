@@ -231,22 +231,22 @@ u32 COLLISION_ALL     = 255;
 // Todo: clean this, not very nice
 struct v4 colors[] =
 {
-    {{{ 0.0,  0.0,  0.0,  1.0 }}},
-    {{{ 0.0,  0.0,  0.5,  1.0 }}},
-    {{{ 0.0,  0.0,  1.0,  1.0 }}},
-    {{{ 0.0,  0.5,  0.0,  1.0 }}},
-    {{{ 0.0,  0.5,  0.5,  1.0 }}},
-    {{{ 0.0,  1.0,  0.0,  1.0 }}},
-    {{{ 0.0,  1.0,  1.0,  1.0 }}},
-    {{{ 0.5,  0.0,  0.0,  1.0 }}},
-    {{{ 0.5,  0.0,  0.5,  1.0 }}},
-    {{{ 0.5,  0.5,  0.0,  1.0 }}},
-    {{{ 0.5,  0.5,  0.5,  1.0 }}},
-    {{{ 0.75, 0.75, 0.75, 1.0 }}},
-    {{{ 1.0,  0.0,  0.0,  1.0 }}},
-    {{{ 1.0,  0.0,  1.0,  1.0 }}},
-    {{{ 1.0,  1.0,  0.0,  1.0 }}},
-    {{{ 1.0,  1.0,  1.0,  1.0 }}}
+    { 0.0,  0.0,  0.0,  1.0 },
+    { 0.0,  0.0,  0.5,  1.0 },
+    { 0.0,  0.0,  1.0,  1.0 },
+    { 0.0,  0.5,  0.0,  1.0 },
+    { 0.0,  0.5,  0.5,  1.0 },
+    { 0.0,  1.0,  0.0,  1.0 },
+    { 0.0,  1.0,  1.0,  1.0 },
+    { 0.5,  0.0,  0.0,  1.0 },
+    { 0.5,  0.0,  0.5,  1.0 },
+    { 0.5,  0.5,  0.0,  1.0 },
+    { 0.5,  0.5,  0.5,  1.0 },
+    { 0.75, 0.75, 0.75, 1.0 },
+    { 1.0,  0.0,  0.0,  1.0 },
+    { 1.0,  0.0,  1.0,  1.0 },
+    { 1.0,  1.0,  0.0,  1.0 },
+    { 1.0,  1.0,  1.0,  1.0 }
 };
 
 enum
@@ -386,8 +386,6 @@ struct node* lowest_rank_find(struct node nodes[], u32 num_nodes)
 
     for (u32 i = 0; i < num_nodes; i++)
     {
-        struct node* node = &nodes[i];
-
         if (nodes[i].in_use && (!result || nodes[i].f < result->f))
         {
             result = &nodes[i];
@@ -1525,7 +1523,6 @@ b32 collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius,
 
         // 4. calculate t and normal
         f32 distance_relative_to_new = v2_length(plr_to_new);
-        f32 distance = v2_distance(rel, rel_new);
 
         f32 t = distance_relative_to_perfect / distance_relative_to_new;
 
@@ -2304,7 +2301,6 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
     struct v2 corners[MAX_WALL_CORNERS] = { 0 };
     u32 num_corners = 0;
 
-    f32 length_max = 20.0f;
     struct v2 collision = { 0 };
     struct v2 dir_left = v2_direction_from_angle(angle_start + angle_max);
     struct v2 dir_right = v2_direction_from_angle(angle_start - angle_max);
