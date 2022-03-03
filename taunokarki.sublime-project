@@ -10,7 +10,11 @@
         "rulers":
         [
             80
-        ]
+        ],
+        "ClangFormat":
+        {
+            "languages": []
+        }
     },
      "build_systems":
     [
