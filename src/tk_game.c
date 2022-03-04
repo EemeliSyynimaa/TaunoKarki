@@ -648,10 +648,11 @@ struct v2 calculate_world_pos(f32 pos_x, f32 pos_y, struct camera* camera)
     return result;
 }
 
-struct v2 calculate_screen_pos(f32 pos_x, f32 pos_y, struct camera* camera)
+struct v2 calculate_screen_pos(f32 pos_x, f32 pos_y, f32 pos_z,
+    struct camera* camera)
 {
     struct v2 result = { 0.0f };
-    struct v4 world = { pos_x, pos_y, 0.0f, 1.0f };
+    struct v4 world = { pos_x, pos_y, pos_z, 1.0f };
 
     struct v4 view = m4_mul_v4(camera->view, world);
     struct v4 clip = m4_mul_v4(camera->projection, view);
@@ -745,34 +746,6 @@ void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader,
     glUseProgram(0);
 }
 
-void health_bar_render(struct game_state* state, struct v2 position,
-    f32 health, f32 health_max)
-{
-    f32 bar_length_max = 35.0f;
-    f32 bar_length = health / health_max * bar_length_max;
-
-    struct v2 screen_pos = calculate_screen_pos(position.x, position.y,
-        &state->camera);
-
-    struct m4 transform = m4_translate(
-        screen_pos.x - bar_length_max + bar_length,
-        screen_pos.y + 65.0f,
-        0.0f);
-    struct m4 rotation = m4_identity();
-    struct m4 scale = m4_scale_xyz(bar_length, 5.0f, 1.0f);
-
-    struct m4 model = m4_mul_m4(scale, rotation);
-    model = m4_mul_m4(model, transform);
-
-    struct m4 projection = m4_orthographic(0.0f, state->camera.screen_width,
-        0.0f, state->camera.screen_height, 0.0f, 1.0f);
-
-    struct m4 mp = m4_mul_m4(model, projection);
-
-    mesh_render(&state->floor, &mp, state->texture_tileset,
-        state->shader_simple, colors[RED]);
-}
-
 void line_render(struct game_state* state, struct v2 start, struct v2 end,
     struct v4 color, f32 depth, f32 thickness)
 {
@@ -797,6 +770,34 @@ void line_render(struct game_state* state, struct v2 start, struct v2 end,
 
     mesh_render(&state->floor, &mvp, state->texture_tileset,
         state->shader_simple, color);
+}
+
+void health_bar_render(struct game_state* state, struct v2 position,
+    f32 health, f32 health_max)
+{
+    f32 bar_length_max = 35.0f;
+    f32 bar_length = health / health_max * bar_length_max;
+
+    struct v2 screen_pos = calculate_screen_pos(position.x, position.y + 0.5f,
+        0.5f, &state->camera);
+
+    struct m4 transform = m4_translate(
+        screen_pos.x - bar_length_max + bar_length,
+        screen_pos.y,
+        0.0f);
+    struct m4 rotation = m4_identity();
+    struct m4 scale = m4_scale_xyz(bar_length, 5.0f, 1.0f);
+
+    struct m4 model = m4_mul_m4(scale, rotation);
+    model = m4_mul_m4(model, transform);
+
+    struct m4 projection = m4_orthographic(0.0f, state->camera.screen_width,
+        0.0f, state->camera.screen_height, 0.0f, 1.0f);
+
+    struct m4 mp = m4_mul_m4(model, projection);
+
+    mesh_render(&state->floor, &mp, state->texture_tileset,
+        state->shader_simple, colors[RED]);
 }
 
 void sphere_render(struct game_state* state, struct v2 position, f32 radius,
