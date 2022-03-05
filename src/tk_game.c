@@ -811,6 +811,25 @@ void health_bar_render(struct game_state* state, struct v2 position,
     //     colors[BLACK]);
 }
 
+void ammo_bar_render(struct game_state* state, struct v2 position,
+    f32 ammo, f32 ammo_max)
+{
+    f32 bar_length_max = 35.0f;
+    f32 bar_length = ammo / ammo_max * bar_length_max;
+
+    struct v2 screen_pos = calculate_screen_pos(position.x, position.y + 0.35f,
+        0.5f, &state->camera);
+
+    f32 x = screen_pos.x - bar_length_max + bar_length;
+    f32 y = screen_pos.y;
+    f32 width = bar_length;
+    f32 height = 5.0f;
+    f32 angle = 0.0f;
+
+    gui_rect_render(state, x, y, width, height, angle, colors[YELLOW]);
+    // gui_rect_render(state, x, y, width + 5.0f, height + 5.0f, angle,
+    //     colors[BLACK]);
+}
 void sphere_render(struct game_state* state, struct v2 position, f32 radius,
     struct v4 color, f32 depth)
 {
@@ -2935,7 +2954,10 @@ void player_render(struct game_state* state)
                 state->shader_simple, colors[RED]);
         }
 
+        struct weapon* weapon = &player->weapons[player->weapon_current];
         health_bar_render(state, player->body.position, player->health, 100.0f);
+        ammo_bar_render(state, player->body.position, weapon->ammo,
+            weapon->ammo_max);
     }
 }
 
