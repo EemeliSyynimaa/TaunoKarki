@@ -772,21 +772,12 @@ void line_render(struct game_state* state, struct v2 start, struct v2 end,
         state->shader_simple, color);
 }
 
-void health_bar_render(struct game_state* state, struct v2 position,
-    f32 health, f32 health_max)
+void gui_rect_render(struct game_state* state, f32 x, f32 y, f32 width,
+    f32 height, f32 angle, struct v4 color)
 {
-    f32 bar_length_max = 35.0f;
-    f32 bar_length = health / health_max * bar_length_max;
-
-    struct v2 screen_pos = calculate_screen_pos(position.x, position.y + 0.5f,
-        0.5f, &state->camera);
-
-    struct m4 transform = m4_translate(
-        screen_pos.x - bar_length_max + bar_length,
-        screen_pos.y,
-        0.0f);
-    struct m4 rotation = m4_identity();
-    struct m4 scale = m4_scale_xyz(bar_length, 5.0f, 1.0f);
+    struct m4 transform = m4_translate(x, y, 0.0f);
+    struct m4 rotation = m4_rotate_z(angle);
+    struct m4 scale = m4_scale_xyz(width, height, 1.0f);
 
     struct m4 model = m4_mul_m4(scale, rotation);
     model = m4_mul_m4(model, transform);
@@ -797,7 +788,27 @@ void health_bar_render(struct game_state* state, struct v2 position,
     struct m4 mp = m4_mul_m4(model, projection);
 
     mesh_render(&state->floor, &mp, state->texture_tileset,
-        state->shader_simple, colors[RED]);
+        state->shader_simple, color);
+}
+
+void health_bar_render(struct game_state* state, struct v2 position,
+    f32 health, f32 health_max)
+{
+    f32 bar_length_max = 35.0f;
+    f32 bar_length = health / health_max * bar_length_max;
+
+    struct v2 screen_pos = calculate_screen_pos(position.x, position.y + 0.5f,
+        0.5f, &state->camera);
+
+    f32 x = screen_pos.x - bar_length_max + bar_length;
+    f32 y = screen_pos.y;
+    f32 width = bar_length;
+    f32 height = 5.0f;
+    f32 angle = 0.0f;
+
+    gui_rect_render(state, x, y, width, height, angle, colors[RED]);
+    // gui_rect_render(state, x, y, width + 5.0f, height + 5.0f, angle,
+    //     colors[BLACK]);
 }
 
 void sphere_render(struct game_state* state, struct v2 position, f32 radius,
