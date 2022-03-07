@@ -2844,8 +2844,12 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
                         20.0f, true, PROJECTILE_RADIUS);
 
                     weapon->fired = true;
-                    weapon->ammo--;
-                    LOG("Ammo: %d/%d\n", weapon->ammo, weapon->ammo_max);
+
+                    if (--weapon->ammo == 0)
+                    {
+                        weapon->reloading = true;
+                        weapon->last_shot = weapon->reload_time;
+                    }
                 }
             }
             else
@@ -2868,9 +2872,16 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
                     bullet_create(state, player->eye_position,
                         player->body.velocity, randomized, PROJECTILE_SPEED,
                         10.0f, true, PROJECTILE_RADIUS * 0.75f);
-                    weapon->last_shot = weapon->fire_rate;
-                    weapon->ammo--;
-                    LOG("Ammo: %d/%d\n", weapon->ammo, weapon->ammo_max);
+
+                    if (--weapon->ammo == 0)
+                    {
+                        weapon->reloading = true;
+                        weapon->last_shot = weapon->reload_time;
+                    }
+                    else
+                    {
+                        weapon->last_shot = weapon->fire_rate;
+                    }
                 }
             }
             else
@@ -2903,10 +2914,17 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
                             7.5f, true, PROJECTILE_RADIUS * 0.25f);
                     }
 
-                    weapon->last_shot = weapon->fire_rate;
                     weapon->fired = true;
-                    weapon->ammo--;
-                    LOG("Ammo: %d/%d\n", weapon->ammo, weapon->ammo_max);
+
+                    if (--weapon->ammo == 0)
+                    {
+                        weapon->reloading = true;
+                        weapon->last_shot = weapon->reload_time;
+                    }
+                    else
+                    {
+                        weapon->last_shot = weapon->fire_rate;
+                    }
                 }
             }
             else
