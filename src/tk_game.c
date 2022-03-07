@@ -43,17 +43,17 @@ struct weapon
     struct v2 velocity;
     struct v2 direction;
     u32 type;
-    f32 last_shot;
-    b32 fired;
     u32 ammo;
     u32 ammo_max;
+    f32 last_shot;
     f32 fire_rate;
     f32 reload_time;
-    b32 reloading;
     f32 spread;
     f32 projectile_size;
     f32 projectile_speed;
     f32 projectile_damage;
+    b32 fired;
+    b32 reloading;
 };
 
 struct player
@@ -82,13 +82,15 @@ struct enemy
     struct v2 direction_aim;
     struct v2 direction_look;
     struct v2 eye_position;
+    struct weapon weapon;
     u32 path_index;
     u32 path_length;
     f32 health;
-    f32 last_shot;
+    f32 trigger_release;
     f32 vision_cone_size;
     b32 player_in_view;
     b32 alive;
+    b32 shooting;
 };
 
 struct camera
@@ -811,7 +813,7 @@ void health_bar_render(struct game_state* state, struct v2 position,
         0.5f, &state->camera);
 
     f32 x = screen_pos.x - bar_length_max * 0.5f;
-    f32 y = screen_pos.y;
+    f32 y = screen_pos.y + 6.0f;
     f32 width = bar_length;
     f32 height = 10.0f;
     f32 angle = 0.0f;
@@ -835,11 +837,11 @@ void ammo_bar_render(struct game_state* state, struct v2 position,
     f32 bar_length_max = 70.0f;
     f32 bar_length = bar_length_max / ammo_max;
 
-    struct v2 screen_pos = calculate_screen_pos(position.x, position.y + 0.35f,
+    struct v2 screen_pos = calculate_screen_pos(position.x, position.y + 0.5f,
         0.5f, &state->camera);
 
     f32 x = screen_pos.x - bar_length_max * 0.5f;
-    f32 y = screen_pos.y;
+    f32 y = screen_pos.y - 6.0f;
     f32 width = bar_length - 1.0f;
     f32 height = 10.0f;
     f32 angle = 0.0f;
@@ -1763,7 +1765,7 @@ void bullet_create(struct game_state* state, struct v2 position,
         colors[YELLOW], size, size * 5.0f, 0.10f);
 }
 
-void weapon_shoot(struct game_state* state, struct weapon* weapon)
+void weapon_shoot(struct game_state* state, struct weapon* weapon, bool player)
 {
     if (weapon->type == WEAPON_PISTOL)
     {
@@ -1774,7 +1776,7 @@ void weapon_shoot(struct game_state* state, struct weapon* weapon)
                 f32_random_number_get(state, -weapon->spread, weapon->spread));
 
             bullet_create(state, weapon->position, weapon->velocity, randomized,
-                weapon->projectile_speed, weapon->projectile_damage, true,
+                weapon->projectile_speed, weapon->projectile_damage, player,
                 weapon->projectile_size);
 
             weapon->fired = true;
@@ -1784,18 +1786,22 @@ void weapon_shoot(struct game_state* state, struct weapon* weapon)
                 weapon->reloading = true;
                 weapon->last_shot = weapon->reload_time;
             }
+            else
+            {
+                weapon->last_shot = weapon->fire_rate;
+            }
         }
     }
     else if (weapon->type == WEAPON_MACHINEGUN)
     {
-        if (weapon->last_shot <= 0.0f && weapon->ammo &&
-            !weapon->fired && !weapon->reloading)
+        if (weapon->last_shot <= 0.0f && weapon->ammo && !weapon->fired &&
+            !weapon->reloading)
         {
             struct v2 randomized = v2_rotate(weapon->direction,
                 f32_random_number_get(state, -weapon->spread, weapon->spread));
 
             bullet_create(state, weapon->position, weapon->velocity, randomized,
-                weapon->projectile_speed, weapon->projectile_damage, true,
+                weapon->projectile_speed, weapon->projectile_damage, player,
                 weapon->projectile_size);
 
             if (--weapon->ammo == 0)
@@ -1827,7 +1833,7 @@ void weapon_shoot(struct game_state* state, struct weapon* weapon)
                     0.75f * weapon->projectile_speed, weapon->projectile_speed);
 
                 bullet_create(state, weapon->position, weapon->velocity,
-                    randomized, speed, weapon->projectile_damage, true,
+                    randomized, speed, weapon->projectile_damage, player,
                     weapon->projectile_size);
             }
 
@@ -1987,15 +1993,15 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             struct v2 direction_current = v2_direction_from_angle(
                 enemy->body.angle);
 
-            f32 angle_player = v2_angle(direction_player,
-                direction_current);
+            f32 angle_player = v2_angle(direction_player, direction_current);
 
             f32 vision_cone_update_speed = 3.0f;
             f32 vision_cone_size_min = 0.25f;
             f32 vision_cone_size_max = 1.0f;
 
             // Todo: sometimes rotation goes crazy
-            if (angle_player < ENEMY_LINE_OF_SIGHT_HALF &&
+            if (state->player.alive &&
+                angle_player < ENEMY_LINE_OF_SIGHT_HALF &&
                 ray_cast_body(state, enemy->eye_position, state->player.body,
                     NULL, COLLISION_ALL))
             {
@@ -2063,6 +2069,12 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     vision_cone_size_min);
                 enemy->direction_look = direction_player;
                 enemy->player_in_view = true;
+
+                // Todo: this is a bit hacky
+                {
+                    enemy->body.velocity.x = 0.0f;
+                    enemy->body.velocity.y = 0.0f;
+                }
             }
             else
             {
@@ -2090,10 +2102,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
                 if (target_angle < enemy->body.angle)
                 {
-                    diff_clockwise = target_angle + circle -
-                        enemy->body.angle;
-                    diff_counter_clockwise = enemy->body.angle -
-                        target_angle;
+                    diff_clockwise = target_angle + circle - enemy->body.angle;
+                    diff_counter_clockwise = enemy->body.angle - target_angle;
                 }
                 else
                 {
@@ -2125,14 +2135,59 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             enemy->eye_position.x += enemy->body.position.x;
             enemy->eye_position.y += enemy->body.position.y;
 
-            enemy->last_shot += dt;
+            enemy->shooting = enemy->player_in_view;
 
-            if (enemy->last_shot > 1.0f)
+            struct weapon* weapon = &enemy->weapon;
+
+            if (enemy->trigger_release > 0.0f)
             {
-                bullet_create(state, enemy->eye_position, enemy->body.velocity,
-                    enemy->direction_aim, PROJECTILE_SPEED, 5.0f, false,
-                    PROJECTILE_RADIUS);
-                enemy->last_shot = 0.0f;
+                enemy->trigger_release -= dt;
+
+                if (enemy->trigger_release <= 0.0f)
+                {
+                    weapon->fired = false;
+                }
+            }
+
+            if (weapon->last_shot > 0.0f)
+            {
+                weapon->last_shot -= dt;
+            }
+
+            if (enemy->shooting)
+            {
+                weapon->direction = enemy->direction_aim;
+                weapon->position = enemy->eye_position;
+                weapon->velocity = enemy->body.velocity;
+
+                weapon_shoot(state, weapon, false);
+
+                if (weapon->fired && enemy->trigger_release <= 0.0f)
+                {
+
+                    enemy->trigger_release = 0.5f;
+                }
+            }
+            else
+            {
+                weapon_reload(weapon);
+            }
+
+            if (weapon->reloading)
+            {
+                if (weapon->last_shot <= 0.0f)
+                {
+                    weapon->ammo++;
+
+                    if (weapon->ammo == weapon->ammo_max)
+                    {
+                        weapon->reloading = false;
+                    }
+                    else
+                    {
+                        weapon->last_shot = weapon->reload_time;
+                    }
+                }
             }
         }
     }
@@ -2591,6 +2646,8 @@ void enemies_render(struct game_state* state)
 
             health_bar_render(state, enemy->body.position, enemy->health,
                 100.0f);
+            ammo_bar_render(state, enemy->body.position, enemy->weapon.ammo,
+                enemy->weapon.ammo_max);
 
             // Render velocity vector
             if (state->render_debug)
@@ -2946,7 +3003,7 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 
         if (input->shoot.key_down)
         {
-            weapon_shoot(state, weapon);
+            weapon_shoot(state, weapon, true);
         }
         else
         {
@@ -3747,7 +3804,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
     //     0.1f, 100.0f);
     state->camera.projection_inverse = m4_inverse(state->camera.projection);
 
-    state->num_enemies = MAX_ENEMIES;
+    state->num_enemies = 5;
 
     for (u32 i = 0; i < state->num_enemies; i++)
     {
@@ -3759,6 +3816,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         enemy->health = 100.0f;
         enemy->body.angle = f32_radians(270 - i * 15.0f);
         enemy->vision_cone_size = 0.2f * i;
+        enemy->shooting = false;
     }
 
     state->level = 2;
@@ -3778,7 +3836,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
     weapon->fire_rate = 0.0f;
     weapon->reload_time = 0.8f / weapon->ammo;
     weapon->reloading = false;
-    weapon->spread = 0.05f;
+    weapon->spread = 0.0125f;
     weapon->projectile_size = PROJECTILE_RADIUS;
     weapon->projectile_speed = PROJECTILE_SPEED;
     weapon->projectile_damage = 20.0f;
@@ -3791,7 +3849,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
     weapon->fire_rate = 0.075f;
     weapon->reload_time = 1.1f / weapon->ammo;
     weapon->reloading = false;
-    weapon->spread = 0.075f;
+    weapon->spread = 0.035f;
     weapon->projectile_size = PROJECTILE_RADIUS * 0.75f;
     weapon->projectile_speed = PROJECTILE_SPEED;
     weapon->projectile_damage = 10.0f;
@@ -3808,6 +3866,14 @@ void game_init(struct game_memory* memory, struct game_init* init)
     weapon->projectile_size = PROJECTILE_RADIUS * 0.25f;
     weapon->projectile_speed = PROJECTILE_SPEED;
     weapon->projectile_damage = 7.5f;
+
+    for (u32 i = 0; i < state->num_enemies; i++)
+    {
+        struct enemy* enemy = &state->enemies[i];
+
+        enemy->weapon = state->player.weapons[i % 3];
+        enemy->weapon.projectile_damage *= 0.2f;
+    }
 
     state->mouse.world = state->player.body.position;
 
