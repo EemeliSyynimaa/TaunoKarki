@@ -3804,14 +3804,14 @@ void game_init(struct game_memory* memory, struct game_init* init)
     //     0.1f, 100.0f);
     state->camera.projection_inverse = m4_inverse(state->camera.projection);
 
+    state->random_seed = init->init_time;
+
     state->num_enemies = 5;
 
     for (u32 i = 0; i < state->num_enemies; i++)
     {
         struct enemy* enemy = &state->enemies[i];
-
-        enemy->body.position.x = 2.0f + i * 2.0f;
-        enemy->body.position.y = 5.0f;
+        enemy->body.position = tile_random_get(state, TILE_FLOOR);
         enemy->alive = true;
         enemy->health = 100.0f;
         enemy->body.angle = f32_radians(270 - i * 15.0f);
@@ -3891,8 +3891,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
         -state->camera.position.y, -state->camera.position.z);
 
     state->camera.view_inverse = m4_inverse(state->camera.view);
-
-    state->random_seed = init->init_time;
 
     collision_map_static_calculate(state->cols_static, MAX_COLLISION_SEGMENTS,
         &state->num_cols_static);
