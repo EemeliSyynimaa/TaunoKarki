@@ -624,6 +624,11 @@ struct v3 v3_from_v2(struct v2 v, f32 z)
     return result;
 }
 
+b32 v3_equals(struct v3 a, struct v3 b)
+{
+    return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+
 f32 v2_length(struct v2 v)
 {
     f32 result = f32_sqrt(v.x * v.x + v.y * v.y);

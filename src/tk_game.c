@@ -110,12 +110,12 @@ struct mouse
     struct v2 screen;
 };
 
-// Todo: support vertices with a color property?
 struct vertex
 {
     struct v3 position;
     struct v2 uv;
     struct v3 normal;
+    struct v4 color;
 };
 
 struct mesh
@@ -693,6 +693,7 @@ void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
 
     // Todo: implement offsetof
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
@@ -701,6 +702,8 @@ void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
         (void*)12);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
         (void*)20);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
+        (void*)32);
 }
 
 void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
@@ -3628,22 +3631,26 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
         v.position = in_vertices[face[0] - 1];
         v.uv = in_uvs[face[1] - 1];
         v.normal = in_normals[face[2] - 1];
+        v.color.r = 1.0f;
+        v.color.g = 1.0f;
+        v.color.b = 1.0f;
+        v.color.a = 1.0f;
 
         b32 found = false;
 
         for (u32 j = 0; j < num_vertices; j++)
         {
-            // struct vertex other = vertices[j];
+            struct vertex other = vertices[j];
 
-            // Todo: fix this
-            // if (v.position == other.position && v.uv == other.uv &&
-            //     v.normal == other.normal)
-            // {
-            //     mesh->indices[mesh->num_indices++] = j;
+            if (v3_equals(v.position, other.position) &&
+                v2_equals(v.uv, other.uv) &&
+                v3_equals(v.normal, other.normal))
+            {
+                indices[mesh->num_indices++] = j;
 
-            //     found = true;
-            //     break;
-            // }
+                found = true;
+                break;
+            }
         }
 
         if (!found)
