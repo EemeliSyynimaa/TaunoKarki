@@ -1081,9 +1081,9 @@ void triangle_render(struct game_state* state, struct v2 a, struct v2 b,
     u32 texture = 0;
     struct vertex vertices[] =
     {
-        {{ a.x, a.y, depth }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }},
-        {{ b.x, b.y, depth }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }},
-        {{ c.x, c.y, depth }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }}
+        {{ a.x, a.y, depth }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, color },
+        {{ b.x, b.y, depth }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, color },
+        {{ c.x, c.y, depth }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, color }
     };
 
     glGenVertexArrays(1, &vao);
@@ -1102,6 +1102,7 @@ void triangle_render(struct game_state* state, struct v2 a, struct v2 b,
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
 
     // Todo: implement offsetof
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
@@ -1110,6 +1111,8 @@ void triangle_render(struct game_state* state, struct v2 a, struct v2 b,
         (void*)12);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
         (void*)20);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
+        (void*)32);
 
     glUseProgram(state->shader_simple);
 
