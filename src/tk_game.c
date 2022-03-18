@@ -706,6 +706,202 @@ void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
         (void*)32);
 }
 
+void mesh_create_cube(struct mesh* mesh)
+{
+    struct vertex vertices[] =
+    {
+        // Normal top
+        {
+            // Top right
+            { 1.0f, 1.0f, 1.0f },
+            { 0.0f, 0.0f },
+            { 0.0f, 0.0f, 1.0f },
+            colors[RED]
+        },
+        {
+            // Top left
+            { -1.0f, 1.0f, 1.0f },
+            { 0.0f, 0.0f },
+            { 0.0f, 0.0f, 1.0f },
+            colors[RED]
+        },
+        {
+            // Bottom left
+            { -1.0f, -1.0f, 1.0f },
+            { 0.0f, 0.0f },
+            { 0.0f, 0.0f, 1.0f },
+            colors[RED]
+        },
+        {
+            // Bottom right
+            { 1.0f, -1.0f, 1.0f },
+            { 0.0f, 0.0f },
+            { 0.0f, 0.0f, 1.0f },
+            colors[RED]
+        },
+        // Normal bottom
+        {
+            // Top right
+            { -1.0f, 1.0f, -1.0f },
+            { 0.0f, 0.0f },
+            { 0.0f, 0.0f, -1.0f },
+            colors[YELLOW]
+        },
+        {
+            // Top left
+            { 1.0f, 1.0f, -1.0f },
+            { 0.0f, 0.0f },
+            { 0.0f, 0.0f, -1.0f },
+            colors[YELLOW]
+        },
+        {
+            // Bottom left
+            { 1.0f, -1.0f, -1.0f },
+            { 0.0f, 0.0f },
+            { 0.0f, 0.0f, -1.0f },
+            colors[YELLOW]
+        },
+        {
+            // Bottom right
+            { -1.0f, -1.0f, -1.0f },
+            { 0.0f, 0.0f },
+            { 0.0f, 0.0f, -1.0f },
+            colors[YELLOW]
+        },
+        // Normal left
+        {
+            // Top right
+            { -1.0f, -1.0f, 1.0f },
+            { 0.0f, 0.0f },
+            { -1.0f, 0.0f, 0.0f },
+            colors[GREEN]
+        },
+        {
+            // Top left
+            { -1.0f, 1.0f, 1.0f },
+            { 0.0f, 0.0f },
+            { -1.0f, 0.0f, 0.0f },
+            colors[GREEN]
+        },
+        {
+            // Bottom left
+            { -1.0f, 1.0f, -1.0f },
+            { 0.0f, 0.0f },
+            { -1.0f, 0.0f, 0.0f },
+            colors[GREEN]
+        },
+        {
+            // Bottom right
+            { -1.0f, -1.0f, -1.0f },
+            { 0.0f, 0.0f },
+            { -1.0f, 0.0f, 0.0f },
+            colors[GREEN]
+        },
+        // Normal right
+        {
+            // Top right
+            { 1.0f, 1.0f, 1.0f },
+            { 0.0f, 0.0f },
+            { 1.0f, 0.0f, 0.0f },
+            colors[BLUE]
+        },
+        {
+            // Top left
+            { 1.0f, -1.0f, 1.0f },
+            { 0.0f, 0.0f },
+            { 1.0f, 0.0f, 0.0f },
+            colors[BLUE]
+        },
+        {
+            // Bottom left
+            { 1.0f, -1.0f, -1.0f },
+            { 0.0f, 0.0f },
+            { 1.0f, 0.0f, 0.0f },
+            colors[BLUE]
+        },
+        {
+            // Bottom right
+            { 1.0f, 1.0f, -1.0f },
+            { 0.0f, 0.0f },
+            { 1.0f, 0.0f, 0.0f },
+            colors[BLUE]
+        },
+        // Normal up
+        {
+            // Top right
+            { -1.0f, 1.0f, 1.0f },
+            { 0.0f, 0.0f },
+            { 0.0f, 1.0f, 0.0f },
+            colors[AQUA]
+        },
+        {
+            // Top left
+            { 1.0f, 1.0f, 1.0f },
+            { 0.0f, 0.0f },
+            { 0.0f, 1.0f, 0.0f },
+            colors[AQUA]
+        },
+        {
+            // Bottom left
+            { 1.0f, 1.0f, -1.0f },
+            { 0.0f, 0.0f },
+            { 0.0f, 1.0f, 0.0f },
+            colors[AQUA]
+        },
+        {
+            // Bottom right
+            { -1.0f, 1.0f, -1.0f },
+            { 0.0f, 0.0f },
+            { 0.0f, 1.0f, 0.0f },
+            colors[AQUA]
+        },
+        // Normal down
+        {
+            // Top right
+            { 1.0f, -1.0f, 1.0f },
+            { 0.0f, 0.0f },
+            { 0.0f, -1.0f, 0.0f },
+            colors[FUCHSIA]
+        },
+        {
+            // Top left
+            { -1.0f, -1.0f, 1.0f },
+            { 0.0f, 0.0f },
+            { 0.0f, -1.0f, 0.0f },
+            colors[FUCHSIA]
+        },
+        {
+            // Bottom left
+            { -1.0f, -1.0f, -1.0f },
+            { 0.0f, 0.0f },
+            { 0.0f, -1.0f, 0.0f },
+            colors[FUCHSIA]
+        },
+        {
+            // Bottom right
+            { 1.0f, -1.0f, -1.0f },
+            { 0.0f, 0.0f },
+            { 0.0f, -1.0f, 0.0f },
+            colors[FUCHSIA]
+        }
+    };
+
+    u32 indices[] =
+    {
+         0,  1,  2,  0,  2,  3, // Top
+         4,  5,  6,  4,  6,  7, // Bottom
+         8,  9, 10,  8, 10, 11, // Left
+        12, 13, 14, 12, 14, 15, // Right
+        16, 17, 18, 16, 18, 19, // Up
+        20, 21, 22, 20, 22, 23, // Down
+    };
+
+    u32 num_vertices = 24;
+    mesh->num_indices = 36;
+
+    generate_vertex_array(mesh, vertices, num_vertices, indices);
+}
+
 void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
 {
     struct v2 temp_b = { b->x - a.x, b->y - a.y };
@@ -745,7 +941,7 @@ void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader,
 
     u32 uniform_mvp = glGetUniformLocation(shader, "MVP");
     u32 uniform_texture = glGetUniformLocation(shader, "texture");
-    u32 uniform_color = glGetUniformLocation(shader, "color");
+    u32 uniform_color = glGetUniformLocation(shader, "uniform_color");
 
     glUniform1i(uniform_texture, 0);
     glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, (GLfloat*)mvp);
@@ -919,7 +1115,8 @@ void triangle_render(struct game_state* state, struct v2 a, struct v2 b,
 
     u32 uniform_mvp = glGetUniformLocation(state->shader_simple, "MVP");
     u32 uniform_texture = glGetUniformLocation(state->shader_simple, "texture");
-    u32 uniform_color = glGetUniformLocation(state->shader_simple, "color");
+    u32 uniform_color = glGetUniformLocation(state->shader_simple,
+        "uniform_color");
 
     struct m4 mvp = state->camera.view;
     mvp = m4_mul_m4(mvp, state->camera.projection);
@@ -3917,8 +4114,11 @@ void game_init(struct game_memory* memory, struct game_init* init)
     }
 }
 
+
 void game_update(struct game_memory* memory, struct game_input* input)
 {
+    static f32 test_rotation = 0.0f;
+
     if (memory->initialized)
     {
         struct game_state* state = (struct game_state*)memory->base;
@@ -3967,6 +4167,8 @@ void game_update(struct game_memory* memory, struct game_input* input)
                 input->mouse_y, camera);
 
             collision_map_dynamic_calculate(state);
+
+            test_rotation += step;
         }
 
         map_render(state);
@@ -3975,6 +4177,23 @@ void game_update(struct game_memory* memory, struct game_input* input)
         bullets_render(state);
         particle_lines_render(state);
         particle_spheres_render(state);
+
+        struct mesh meshi;
+        mesh_create_cube(&meshi);
+
+        struct m4 transform = m4_translate(4.0f,
+            4.0f, 0.5f);
+        struct m4 rotation = m4_rotate_z(test_rotation);
+        struct m4 scale = m4_scale_all(0.25f);
+
+        struct m4 model = m4_mul_m4(scale, rotation);
+        model = m4_mul_m4(model, transform);
+
+        struct m4 mvp = m4_mul_m4(model, state->camera.view);
+        mvp = m4_mul_m4(mvp, state->camera.projection);
+
+        mesh_render(&meshi, &mvp, state->texture_sphere,
+            state->shader_simple, colors[WHITE]);
 
         if (state->render_debug)
         {
