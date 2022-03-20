@@ -177,8 +177,7 @@ struct game_state
     u32 shader_simple;
     u32 texture_tileset;
     u32 texture_sphere;
-    u32 texture_player;
-    u32 texture_enemy;
+    u32 texture_cube;
     u32 free_bullet;
     u32 free_particle_line;
     u32 free_particle_sphere;
@@ -714,30 +713,30 @@ void mesh_create_cube(struct mesh* mesh)
         {
             // Top right
             { 1.0f, 1.0f, 1.0f },
-            { 0.0f, 0.0f },
+            { 0.25f, 1.0f },
             { 0.0f, 0.0f, 1.0f },
-            colors[RED]
+            colors[WHITE]
         },
         {
             // Top left
             { -1.0f, 1.0f, 1.0f },
-            { 0.0f, 0.0f },
+            { 0.25f, 0.0f },
             { 0.0f, 0.0f, 1.0f },
-            colors[RED]
+            colors[WHITE]
         },
         {
             // Bottom left
             { -1.0f, -1.0f, 1.0f },
-            { 0.0f, 0.0f },
+            { 0.5f, 0.0f },
             { 0.0f, 0.0f, 1.0f },
-            colors[RED]
+            colors[WHITE]
         },
         {
             // Bottom right
             { 1.0f, -1.0f, 1.0f },
-            { 0.0f, 0.0f },
+            { 0.5f, 1.0f },
             { 0.0f, 0.0f, 1.0f },
-            colors[RED]
+            colors[WHITE]
         },
         // Normal bottom
         {
@@ -2835,7 +2834,7 @@ void enemies_render(struct game_state* state)
             struct m4 mvp = m4_mul_m4(model, state->camera.view);
             mvp = m4_mul_m4(mvp, state->camera.projection);
 
-            mesh_render(&state->cube, &mvp, state->texture_enemy, state->shader,
+            mesh_render(&state->cube, &mvp, state->texture_cube, state->shader,
                 colors[WHITE]);
 
             if (state->render_debug)
@@ -3249,7 +3248,7 @@ void player_render(struct game_state* state)
         struct m4 mvp = m4_mul_m4(model, state->camera.view);
         mvp = m4_mul_m4(mvp, state->camera.projection);
 
-        mesh_render(&state->cube, &mvp, state->texture_player, state->shader,
+        mesh_render(&state->cube, &mvp, state->texture_cube, state->shader,
             colors[WHITE]);
 
         if (state->render_debug)
@@ -3983,13 +3982,11 @@ void game_init(struct game_memory* memory, struct game_init* init)
             "assets/textures/tileset.tga");
         state->texture_sphere = texture_create(&state->temporary,
             "assets/textures/sphere.tga");
-        state->texture_player = texture_create(&state->temporary,
+        state->texture_cube = texture_create(&state->temporary,
             "assets/textures/cube.tga");
-        state->texture_enemy = texture_create(&state->temporary,
-            "assets/textures/enemy.tga");
 
-        mesh_create(&state->temporary, "assets/meshes/cube.mesh",
-            &state->cube);
+        mesh_create_cube(&state->cube);
+
         mesh_create(&state->temporary, "assets/meshes/sphere.mesh",
             &state->sphere);
         mesh_create(&state->temporary, "assets/meshes/wall.mesh",
@@ -4181,9 +4178,6 @@ void game_update(struct game_memory* memory, struct game_input* input)
         particle_lines_render(state);
         particle_spheres_render(state);
 
-        struct mesh meshi;
-        mesh_create_cube(&meshi);
-
         struct m4 transform = m4_translate(4.0f,
             4.0f, 0.5f);
         struct m4 rotation = m4_rotate_z(test_rotation);
@@ -4195,7 +4189,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
         struct m4 mvp = m4_mul_m4(model, state->camera.view);
         mvp = m4_mul_m4(mvp, state->camera.projection);
 
-        mesh_render(&meshi, &mvp, state->texture_sphere,
+        mesh_render(&state->cube, &mvp, state->texture_sphere,
             state->shader_simple, colors[WHITE]);
 
         if (state->render_debug)
