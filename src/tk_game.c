@@ -2,6 +2,7 @@
 #include "tk_math.h"
 #include "tk_opengl.h"
 #include "tk_file.h"
+#include "tk_time.h"
 
 #include <string.h>
 
@@ -3946,6 +3947,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
     _log = *init->log;
     opengl_functions_set(init->gl);
     file_functions_set(init->file);
+    time_functions_set(init->time);
 
     // Todo: should we check if copied functions are valid before use?
 
@@ -4171,12 +4173,22 @@ void game_update(struct game_memory* memory, struct game_input* input)
             test_rotation += step;
         }
 
+        u64 render_start = ticks_current_get();
         map_render(state);
         player_render(state);
         enemies_render(state);
         bullets_render(state);
         particle_lines_render(state);
         particle_spheres_render(state);
+
+        u64 render_end = ticks_current_get();
+        u64 render_time = render_end - render_start;
+        u64 ticks_per_second = ticks_frequency_get();
+        render_time *= 1000000;
+        render_time /= ticks_per_second;
+        f32 render_time_in_seconds = (f32)render_time / 1000000.0f;
+
+        LOG("Render time: %f\n", render_time_in_seconds);
 
         struct m4 transform = m4_translate(4.0f,
             4.0f, 0.5f);

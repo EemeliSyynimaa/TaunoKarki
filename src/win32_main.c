@@ -118,13 +118,30 @@ LARGE_INTEGER win32_current_time_get()
     return result;
 }
 
+u64 win32_ticks_current_get()
+{
+    LARGE_INTEGER result;
+
+    QueryPerformanceCounter(&result);
+
+    return result.QuadPart;
+}
+
+u64 win32_ticks_frequency_get()
+{
+    LARGE_INTEGER result;
+
+    QueryPerformanceFrequency(&result);
+
+    return result.QuadPart;
+}
+
 f32 win32_elapsed_time_get(LARGE_INTEGER frequency, LARGE_INTEGER start,
     LARGE_INTEGER end)
 {
     f32 result;
 
-    result = (f32)(end.QuadPart - start.QuadPart) / 
-        (f32)frequency.QuadPart;
+    result = (f32)(end.QuadPart - start.QuadPart) / (f32)frequency.QuadPart;
 
     return result;
 }
@@ -362,6 +379,7 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 // Todo: get rid of globals
 struct file_functions file;
 struct opengl_functions gl;
+struct time_functions time;
 struct win32_recorded_inputs record;
 
 #define OPEN_GL_FUNCTION_LOAD(name) gl.name = \
@@ -549,9 +567,13 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     file.file_read = win32_file_read;
     file.file_size_get = win32_file_size_get;
 
+    time.ticks_current_get = win32_ticks_current_get;
+    time.ticks_frequency_get = win32_ticks_frequency_get;
+
     struct game_init init = { 0 };
     init.file = &file;
     init.gl = &gl;
+    init.time = &time;
     init.log = win32_log;
     init.screen_width = client_width;
     init.screen_height = client_height;
@@ -583,8 +605,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         LARGE_INTEGER new_time = win32_current_time_get();
 
-        f32 delta_time = win32_elapsed_time_get(
-            query_performance_frequency, old_time, new_time);
+        f32 delta_time = win32_elapsed_time_get(query_performance_frequency,
+            old_time, new_time);
         old_time = new_time;
 
         s32 num_keys = sizeof(new_input.keys)/sizeof(new_input.keys[0]);

@@ -21,6 +21,7 @@ typedef bool        b32;
 
 #include "tk_opengl_api.h"
 #include "tk_file_api.h"
+#include "tk_time_api.h"
 
 typedef void type_log(char*, ...);
 
@@ -69,6 +70,7 @@ struct game_init
 {
     struct opengl_functions* gl;
     struct file_functions* file;
+    struct time_functions* time;
     type_log* log;
     s32 screen_width;
     s32 screen_height;
