@@ -189,7 +189,16 @@ struct game_state
     u32 num_cols_dynamic;
     u32 level;
     u32 random_seed;
+    u32 ticks_per_second;
 };
+
+f32 time_elapsed_seconds(struct game_state* state, u32 ticks_start,
+    u32 ticks_end)
+{
+    f32 result =  (f32)(ticks_end - ticks_start) / (f32)state->ticks_per_second;
+
+    return result;
+}
 
 u32 random_number_generate(struct game_state* state)
 {  
@@ -3967,6 +3976,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
     if (!memory->initialized)
     {
+        state->ticks_per_second = ticks_frequency_get();
         state->temporary.base = (s8*)state + sizeof(struct game_state);
         state->temporary.last = state->temporary.base;
         state->temporary.current = state->temporary.base;
@@ -4180,15 +4190,10 @@ void game_update(struct game_memory* memory, struct game_input* input)
         bullets_render(state);
         particle_lines_render(state);
         particle_spheres_render(state);
-
         u64 render_end = ticks_current_get();
-        u64 render_time = render_end - render_start;
-        u64 ticks_per_second = ticks_frequency_get();
-        render_time *= 1000000;
-        render_time /= ticks_per_second;
-        f32 render_time_in_seconds = (f32)render_time / 1000000.0f;
 
-        LOG("Render time: %f\n", render_time_in_seconds);
+        LOG("Render time: %f\n", time_elapsed_seconds(state, render_start,
+            render_end));
 
         struct m4 transform = m4_translate(4.0f,
             4.0f, 0.5f);
