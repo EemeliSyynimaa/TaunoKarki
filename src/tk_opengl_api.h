@@ -85,6 +85,7 @@ typedef void type_glBufferData(GLenum target, GLsizeiptr size,
 typedef void type_glGenVertexArrays(GLsizei n, GLuint *arrays);
 typedef void type_glBindVertexArray(GLuint array);
 typedef void type_glActiveTexture(GLenum texture);
+typedef void type_glVertexAttribDivisor(GLuint index, GLuint divisor);
 typedef void type_glGetIntegerv(GLenum pname, GLint* data);
 typedef void type_glEnable(GLenum cap);
 typedef void type_glDisable(GLenum cap);
@@ -129,6 +130,7 @@ struct opengl_functions
     OPEN_GL_FUNCTION(glGenVertexArrays);
     OPEN_GL_FUNCTION(glBindVertexArray);
     OPEN_GL_FUNCTION(glActiveTexture);
+    OPEN_GL_FUNCTION(glVertexAttribDivisor);
     OPEN_GL_FUNCTION(glGetIntegerv);
     OPEN_GL_FUNCTION(glEnable);
     OPEN_GL_FUNCTION(glDisable);

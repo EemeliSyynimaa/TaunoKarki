@@ -23,6 +23,7 @@ OPEN_GL_FUNCTION(glBufferData);
 OPEN_GL_FUNCTION(glGenVertexArrays);
 OPEN_GL_FUNCTION(glBindVertexArray);
 OPEN_GL_FUNCTION(glActiveTexture);
+OPEN_GL_FUNCTION(glVertexAttribDivisor);
 OPEN_GL_FUNCTION(glGetIntegerv);
 OPEN_GL_FUNCTION(glEnable);
 OPEN_GL_FUNCTION(glDisable);
@@ -66,6 +67,7 @@ void opengl_functions_set(struct opengl_functions* gl)
     OPEN_GL_FUNCTION_COPY(glGenVertexArrays);
     OPEN_GL_FUNCTION_COPY(glBindVertexArray);
     OPEN_GL_FUNCTION_COPY(glActiveTexture);
+    OPEN_GL_FUNCTION_COPY(glVertexAttribDivisor);
     OPEN_GL_FUNCTION_COPY(glGetIntegerv);
     OPEN_GL_FUNCTION_COPY(glEnable);
     OPEN_GL_FUNCTION_COPY(glDisable);
