@@ -123,10 +123,28 @@ struct mesh
 {
     u32 vao;
     u32 vbo;
-    u32 vbo_1;
-    u32 vbo_2;
     u32 ibo;
     u32 num_indices;
+};
+
+struct cube_def
+{
+    struct m4 mvp;
+};
+
+#define MAX_CUBES 1024
+
+struct cube_renderer
+{
+    struct cube_def cubes[MAX_CUBES];
+    u32 vao;
+    u32 vbo_vertices;
+    u32 vbo_colors;
+    u32 vbo_uvs;
+    u32 vbo_mvps;
+    u32 ibo;
+    u32 num_indices;
+    u32 num_cubes;
 };
 
 #define MAX_BULLETS 64
@@ -164,7 +182,6 @@ struct game_state
     struct particle_sphere particle_spheres[MAX_PARTICLES];
     struct camera camera;
     struct mouse mouse;
-    struct mesh cube;
     struct mesh sphere;
     struct mesh wall;
     struct mesh floor;
@@ -174,6 +191,7 @@ struct game_state
     struct line_segment wall_faces[MAX_WALL_FACES];
     struct line_segment cols_static[MAX_COLLISION_SEGMENTS];
     struct line_segment cols_dynamic[MAX_COLLISION_SEGMENTS];
+    struct cube_renderer cube_renderer;
     b32 render_debug;
     f32 accumulator;
     u32 shader;
@@ -718,7 +736,7 @@ void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
         (void*)32);
 }
 
-void mesh_create_cube(struct mesh* mesh)
+void cube_renderer_init(struct cube_renderer* renderer)
 {
     struct v3 vertices[] =
     {
@@ -806,10 +824,10 @@ void mesh_create_cube(struct mesh* mesh)
         { 1.0f, 1.0f, 1.0f, 1.0f },
         { 1.0f, 1.0f, 1.0f, 1.0f },
         { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
+        { 1.0f, 0.0f, 0.0f, 1.0f },
+        { 1.0f, 0.0f, 0.0f, 1.0f },
+        { 1.0f, 0.0f, 0.0f, 1.0f },
+        { 1.0f, 0.0f, 0.0f, 1.0f },
         { 1.0f, 1.0f, 1.0f, 1.0f },
         { 1.0f, 1.0f, 1.0f, 1.0f },
         { 1.0f, 1.0f, 1.0f, 1.0f },
@@ -863,44 +881,64 @@ void mesh_create_cube(struct mesh* mesh)
     };
 
     u32 num_vertices = 24;
-    mesh->num_indices = 36;
+    renderer->num_indices = 36;
 
-    glGenVertexArrays(1, &mesh->vao);
-    glBindVertexArray(mesh->vao);
+    glGenVertexArrays(1, &renderer->vao);
+    glBindVertexArray(renderer->vao);
 
-    glGenBuffers(1, &mesh->vbo);
-    glGenBuffers(1, &mesh->vbo_1);
-    glGenBuffers(1, &mesh->vbo_2);
-    glGenBuffers(1, &mesh->ibo);
+    glGenBuffers(1, &renderer->vbo_vertices);
+    glGenBuffers(1, &renderer->vbo_colors);
+    glGenBuffers(1, &renderer->vbo_uvs);
+    glGenBuffers(1, &renderer->vbo_mvps);
+    glGenBuffers(1, &renderer->ibo);
 
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
     glEnableVertexAttribArray(3);
+    glEnableVertexAttribArray(4);
+    glEnableVertexAttribArray(5);
+    glEnableVertexAttribArray(6);
+    glEnableVertexAttribArray(7);
 
-    glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_vertices);
     glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct v3) * 2,
         vertices, GL_DYNAMIC_DRAW);
-
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct v3) * 2,
         (void*)0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(struct v3) * 2,
         (void*)sizeof(struct v3));
 
-    glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo_1);
+    // Todo: colors and uvs are static for now
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_colors);
     glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct v2),
         uvs, GL_DYNAMIC_DRAW);
-
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo_2);
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_uvs);
     glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct v4),
         colors, GL_DYNAMIC_DRAW);
-
     glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 0, 0);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->num_indices * sizeof(u32),
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_mvps);
+    glBufferData(GL_ARRAY_BUFFER, MAX_CUBES * sizeof(struct m4),
+        renderer->cubes, GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(struct m4),
+        (void*)0);
+    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(struct m4),
+        (void*)sizeof(struct v4));
+    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(struct m4),
+        (void*)(sizeof(struct v4) * 2));
+    glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(struct m4),
+        (void*)(sizeof(struct v4) * 3));
+
+    glVertexAttribDivisor(4, 1);
+    glVertexAttribDivisor(5, 1);
+    glVertexAttribDivisor(6, 1);
+    glVertexAttribDivisor(7, 1);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, renderer->num_indices * sizeof(u32),
         indices, GL_DYNAMIC_DRAW);
 }
 
@@ -932,6 +970,40 @@ void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
     {
         v2_swap(b, c);
     }
+}
+
+void cube_renderer_add(struct cube_renderer* renderer, struct cube_def cube)
+{
+    if (renderer->num_cubes < MAX_CUBES)
+    {
+        renderer->cubes[renderer->num_cubes++] = cube;
+    }
+}
+
+void cube_renderer_flush(struct cube_renderer* renderer, u32 texture,
+    u32 shader)
+{
+    glBindVertexArray(renderer->vao);
+
+    glUseProgram(shader);
+
+    u32 uniform_texture = glGetUniformLocation(shader, "texture");
+
+    glUniform1i(uniform_texture, 0);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_mvps);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, renderer->num_cubes * sizeof(struct m4),
+        renderer->cubes);
+
+    glDrawElementsInstanced(GL_TRIANGLES, renderer->num_indices,
+        GL_UNSIGNED_INT, NULL, renderer->num_cubes);
+
+    glUseProgram(0);
+
+    renderer->num_cubes = 0;
 }
 
 void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader,
@@ -1612,8 +1684,11 @@ void map_render(struct game_state* state)
                     struct m4 mvp = m4_mul_m4(model, state->camera.view);
                     mvp = m4_mul_m4(mvp, state->camera.projection);
 
-                    mesh_render(&state->wall, &mvp, state->texture_tileset,
-                        state->shader, color);
+                    struct cube_def cube;
+                    cube.mvp = mvp;
+                    cube_renderer_add(&state->cube_renderer, cube);
+                    // mesh_render(&state->wall, &mvp, state->texture_tileset,
+                    //     state->shader, color);
                 }
             }
             else if (tile == TILE_FLOOR)
@@ -2837,8 +2912,11 @@ void enemies_render(struct game_state* state)
             struct m4 mvp = m4_mul_m4(model, state->camera.view);
             mvp = m4_mul_m4(mvp, state->camera.projection);
 
-            mesh_render(&state->cube, &mvp, state->texture_cube,
-                state->shader_cube, colors[WHITE]);
+            struct cube_def cube;
+            cube.mvp = mvp;
+            cube_renderer_add(&state->cube_renderer, cube);
+            // cube_render(&state->cube, &mvp, state->texture_cube,
+            //     state->shader_cube, colors[WHITE]);
 
             if (state->render_debug)
             {
@@ -3251,8 +3329,11 @@ void player_render(struct game_state* state)
         struct m4 mvp = m4_mul_m4(model, state->camera.view);
         mvp = m4_mul_m4(mvp, state->camera.projection);
 
-        mesh_render(&state->cube, &mvp, state->texture_cube, state->shader_cube,
-            colors[WHITE]);
+        struct cube_def cube;
+        cube.mvp = mvp;
+        cube_renderer_add(&state->cube_renderer, cube);
+        // cube_render(&state->cube, &mvp, state->texture_cube, state->shader_cube,
+        //     colors[WHITE]);
 
         if (state->render_debug)
         {
@@ -3994,7 +4075,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->texture_cube = texture_create(&state->temporary,
             "assets/textures/cube.tga");
 
-        mesh_create_cube(&state->cube);
+        cube_renderer_init(&state->cube_renderer);
 
         mesh_create(&state->temporary, "assets/meshes/sphere.mesh",
             &state->sphere);
@@ -4187,24 +4268,12 @@ void game_update(struct game_memory* memory, struct game_input* input)
         bullets_render(state);
         particle_lines_render(state);
         particle_spheres_render(state);
+        cube_renderer_flush(&state->cube_renderer, state->texture_cube,
+            state->shader_cube);
         u64 render_end = ticks_current_get();
 
         LOG("Render time: %f\n", time_elapsed_seconds(state, render_start,
             render_end));
-
-        struct m4 transform = m4_translate(4.0f,
-            4.0f, 0.5f);
-        struct m4 rotation = m4_rotate_z(test_rotation);
-        struct m4 scale = m4_scale_all(0.25f);
-
-        struct m4 model = m4_mul_m4(scale, rotation);
-        model = m4_mul_m4(model, transform);
-
-        struct m4 mvp = m4_mul_m4(model, state->camera.view);
-        mvp = m4_mul_m4(mvp, state->camera.projection);
-
-        mesh_render(&state->cube, &mvp, state->texture_sphere,
-            state->shader_simple, colors[WHITE]);
 
         if (state->render_debug)
         {

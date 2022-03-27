@@ -41,6 +41,7 @@
 #define GL_ONE_MINUS_SRC_ALPHA            0x0303
 
 typedef u64 GLsizeiptr;
+typedef u64 GLintptr;
 typedef u32 GLenum;
 typedef u32 GLbitfield;
 typedef u32 GLuint;
@@ -82,6 +83,8 @@ typedef void type_glUniformMatrix4fv(GLint location, GLsizei count,
 typedef void type_glGenBuffers(GLsizei n, GLuint* buffers);
 typedef void type_glBufferData(GLenum target, GLsizeiptr size,
     const void* data, GLenum usage);
+typedef void type_glBufferSubData(GLenum target, GLintptr offset,
+    GLsizeiptr size, const void* data);
 typedef void type_glGenVertexArrays(GLsizei n, GLuint *arrays);
 typedef void type_glBindVertexArray(GLuint array);
 typedef void type_glActiveTexture(GLenum texture);
@@ -96,6 +99,8 @@ typedef void type_glClear(GLbitfield mask);
 typedef void type_glBindTexture(GLenum target, GLuint texture);
 typedef void type_glDrawElements(GLenum mode, GLsizei count, GLenum type, 
     const void* indices);
+typedef void type_glDrawElementsInstanced(GLenum mode, GLsizei count,
+    GLenum type, const void* indices, GLsizei instancecount);
 typedef void type_glGenTextures(GLsizei n, GLuint* textures);
 typedef void type_glTexParameteri(GLenum target, GLenum pname, GLint param);
 typedef void type_glTexImage2D(GLenum target, GLint level,
@@ -127,6 +132,7 @@ struct opengl_functions
     OPEN_GL_FUNCTION(glUniformMatrix4fv);
     OPEN_GL_FUNCTION(glGenBuffers);
     OPEN_GL_FUNCTION(glBufferData);
+    OPEN_GL_FUNCTION(glBufferSubData);
     OPEN_GL_FUNCTION(glGenVertexArrays);
     OPEN_GL_FUNCTION(glBindVertexArray);
     OPEN_GL_FUNCTION(glActiveTexture);
@@ -139,6 +145,7 @@ struct opengl_functions
     OPEN_GL_FUNCTION(glClear);
     OPEN_GL_FUNCTION(glBindTexture);
     OPEN_GL_FUNCTION(glDrawElements);
+    OPEN_GL_FUNCTION(glDrawElementsInstanced);
     OPEN_GL_FUNCTION(glGenTextures);
     OPEN_GL_FUNCTION(glTexParameteri);
     OPEN_GL_FUNCTION(glTexImage2D);

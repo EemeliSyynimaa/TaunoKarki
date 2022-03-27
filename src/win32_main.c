@@ -536,10 +536,12 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     OPEN_GL_FUNCTION_LOAD(glUniformMatrix4fv);
     OPEN_GL_FUNCTION_LOAD(glGenBuffers);
     OPEN_GL_FUNCTION_LOAD(glBufferData);
+    OPEN_GL_FUNCTION_LOAD(glBufferSubData);
     OPEN_GL_FUNCTION_LOAD(glGenVertexArrays);
     OPEN_GL_FUNCTION_LOAD(glBindVertexArray);
     OPEN_GL_FUNCTION_LOAD(glActiveTexture);
     OPEN_GL_FUNCTION_LOAD(glVertexAttribDivisor);
+    OPEN_GL_FUNCTION_LOAD(glDrawElementsInstanced);
     OPEN_GL_FUNCTION_COPY(glGetIntegerv);
     OPEN_GL_FUNCTION_COPY(glEnable);
     OPEN_GL_FUNCTION_COPY(glDepthFunc);
