@@ -137,6 +137,8 @@ struct cube_def
 struct cube_renderer
 {
     struct cube_def cubes[MAX_CUBES];
+    struct v4 colors[MAX_CUBES];
+    struct v2 uvs[MAX_CUBES * 24];
     u32 vao;
     u32 vbo_vertices;
     u32 vbo_colors;
@@ -814,33 +816,19 @@ void cube_renderer_init(struct cube_renderer* renderer)
         { 0.0f, -1.0f, 0.0f }
     };
 
-    struct v4 colors[] =
+    u32 num_vertices = 24;
+    for (u32 i = 0; i < MAX_CUBES; i++)
     {
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 0.0f, 0.0f, 1.0f },
-        { 1.0f, 0.0f, 0.0f, 1.0f },
-        { 1.0f, 0.0f, 0.0f, 1.0f },
-        { 1.0f, 0.0f, 0.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f },
-        { 1.0f, 1.0f, 1.0f, 1.0f }
-    };
+        renderer->colors[i].r = 1.0f;
+        renderer->colors[i].g = 0.0f;
+        renderer->colors[i].b = 0.0f;
+        renderer->colors[i].a = 1.0f;
+    }
+
+    renderer->colors[2].r = 0.0f;
+    renderer->colors[2].g = 1.0f;
+    renderer->colors[2].b = 0.0f;
+    renderer->colors[2].a = 1.0f;
 
     struct v2 uvs[] =
     {
@@ -880,7 +868,6 @@ void cube_renderer_init(struct cube_renderer* renderer)
         20, 21, 22, 20, 22, 23, // Down
     };
 
-    u32 num_vertices = 24;
     renderer->num_indices = 36;
 
     glGenVertexArrays(1, &renderer->vao);
@@ -910,14 +897,14 @@ void cube_renderer_init(struct cube_renderer* renderer)
         (void*)sizeof(struct v3));
 
     // Todo: colors and uvs are static for now
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_colors);
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_uvs);
     glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct v2),
         uvs, GL_DYNAMIC_DRAW);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_uvs);
-    glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct v4),
-        colors, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_colors);
+    glBufferData(GL_ARRAY_BUFFER, MAX_CUBES * sizeof(struct v4),
+        renderer->colors, GL_DYNAMIC_DRAW);
     glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 0, 0);
 
     glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_mvps);
@@ -932,6 +919,7 @@ void cube_renderer_init(struct cube_renderer* renderer)
     glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(struct m4),
         (void*)(sizeof(struct v4) * 3));
 
+    glVertexAttribDivisor(3, 1);
     glVertexAttribDivisor(4, 1);
     glVertexAttribDivisor(5, 1);
     glVertexAttribDivisor(6, 1);
@@ -4039,6 +4027,27 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
     glGetIntegerv(GL_MAJOR_VERSION, &version_major);
     glGetIntegerv(GL_MINOR_VERSION, &version_minor);
+
+    s32 uniform_blocks_max_vertex = 0;
+    s32 uniform_blocks_max_geometry = 0;
+    s32 uniform_blocks_max_fragment = 0;
+    s32 uniform_blocks_max_combined = 0;
+    s32 uniform_buffer_max_bindings = 0;
+    s32 uniform_block_max_size = 0;
+
+    glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS, &uniform_blocks_max_vertex);
+    glGetIntegerv(GL_MAX_GEOMETRY_UNIFORM_BLOCKS, &uniform_blocks_max_geometry);
+    glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_BLOCKS, &uniform_blocks_max_fragment);
+    glGetIntegerv(GL_MAX_COMBINED_UNIFORM_BLOCKS, &uniform_blocks_max_combined);
+    glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &uniform_buffer_max_bindings);
+    glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniform_block_max_size);
+
+    LOG("Uniform blocks max vertex: %d\n", uniform_blocks_max_vertex);
+    LOG("Uniform blocks max gemoetry: %d\n", uniform_blocks_max_geometry);
+    LOG("Uniform blocks max fragment: %d\n", uniform_blocks_max_fragment);
+    LOG("Uniform blocks max combined: %d\n", uniform_blocks_max_combined);
+    LOG("Uniform buffer max bindings: %d\n", uniform_buffer_max_bindings);
+    LOG("Uniform block max size: %d\n", uniform_block_max_size);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);

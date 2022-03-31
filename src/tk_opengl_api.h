@@ -39,6 +39,12 @@
 #define GL_BLEND                          0x0BE2
 #define GL_SRC_ALPHA                      0x0302
 #define GL_ONE_MINUS_SRC_ALPHA            0x0303
+#define GL_MAX_VERTEX_UNIFORM_BLOCKS      0x8A2B
+#define GL_MAX_GEOMETRY_UNIFORM_BLOCKS    0x8A2C
+#define GL_MAX_FRAGMENT_UNIFORM_BLOCKS    0x8A2D
+#define GL_MAX_COMBINED_UNIFORM_BLOCKS    0x8A2E
+#define GL_MAX_UNIFORM_BUFFER_BINDINGS    0x8A2F
+#define GL_MAX_UNIFORM_BLOCK_SIZE         0x8A30
 
 typedef u64 GLsizeiptr;
 typedef u64 GLintptr;
