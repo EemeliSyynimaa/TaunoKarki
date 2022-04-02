@@ -45,6 +45,14 @@
 #define GL_MAX_COMBINED_UNIFORM_BLOCKS    0x8A2E
 #define GL_MAX_UNIFORM_BUFFER_BINDINGS    0x8A2F
 #define GL_MAX_UNIFORM_BLOCK_SIZE         0x8A30
+#define GL_TEXTURE_2D_ARRAY               0x8C1A
+#define GL_NO_ERROR                       0
+#define GL_INVALID_ENUM                   0x0500
+#define GL_INVALID_VALUE                  0x0501
+#define GL_INVALID_OPERATION              0x0502
+#define GL_STACK_OVERFLOW                 0x0503
+#define GL_STACK_UNDERFLOW                0x0504
+#define GL_OUT_OF_MEMORY                  0x0505
 
 typedef u64 GLsizeiptr;
 typedef u64 GLintptr;
@@ -112,7 +120,14 @@ typedef void type_glTexParameteri(GLenum target, GLenum pname, GLint param);
 typedef void type_glTexImage2D(GLenum target, GLint level,
     GLint internalformat, GLsizei width, GLsizei height, GLint border, 
     GLenum format, GLenum type, const void* data);
+typedef void type_glTexImage3D(GLenum target, GLint level, GLint internalformat,
+    GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format,
+    GLenum type, const void* data);
+typedef void type_glTexSubImage3D(GLenum target, GLint level, GLint xoffset,
+    GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth,
+    GLenum format, GLenum type, const void* pixels);
 typedef void type_glBlendFunc(GLenum sfactor, GLenum dfactor);
+typedef GLenum type_glGetError(void);
 
 struct opengl_functions
 {
@@ -155,5 +170,8 @@ struct opengl_functions
     OPEN_GL_FUNCTION(glGenTextures);
     OPEN_GL_FUNCTION(glTexParameteri);
     OPEN_GL_FUNCTION(glTexImage2D);
+    OPEN_GL_FUNCTION(glTexImage3D);
+    OPEN_GL_FUNCTION(glTexSubImage3D);
     OPEN_GL_FUNCTION(glBlendFunc);
+    OPEN_GL_FUNCTION(glGetError);
 };

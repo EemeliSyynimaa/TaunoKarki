@@ -660,6 +660,13 @@ void memory_free(struct memory_block* block)
     block->current = block->last;
 }
 
+void memory_set(void* data, u64 size, u8 value)
+{
+    for (u32 i = 0; i < size; i++)
+    {
+        *((u8*)data + i) = value;
+    }
+}
 
 struct v2 calculate_world_pos(f32 pos_x, f32 pos_y, struct camera* camera)
 {
@@ -704,6 +711,39 @@ struct v2 calculate_screen_pos(f32 pos_x, f32 pos_y, f32 pos_z,
     result.y = (ndc.y + 1.0f) * camera->screen_height * 0.5f;
 
     return result;
+}
+
+void log_gl_error(char* t)
+{
+    GLenum error = glGetError();
+
+    switch (error)
+    {
+        case GL_NO_ERROR:
+            // LOG("glGetError(): NO ERROR (%s)\n", t);
+            break;
+        case GL_INVALID_ENUM:
+            LOG("glGetError(): INVALID ENUM (%s)\n", t);
+            break;
+        case GL_INVALID_VALUE:
+            LOG("glGetError(): INVALID VALUE (%s)\n", t);
+            break;
+        case GL_INVALID_OPERATION:
+            LOG("glGetError(): INVALID OPERATION (%s)\n", t);
+            break;
+        case GL_STACK_OVERFLOW:
+            LOG("glGetError(): STACK OVERFLOW (%s)\n", t);
+            break;
+        case GL_STACK_UNDERFLOW:
+            LOG("glGetError(): STACK UNDERFLOW (%s)\n", t);
+            break;
+        case GL_OUT_OF_MEMORY:
+            LOG("glGetError(): OUT OF MEMORY (%s)\n", t);
+            break;
+        default:
+            LOG("glGetError(): UNKNOWN ERROR (%s)\n", t);
+            break;
+    };
 }
 
 void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
@@ -820,22 +860,17 @@ void cube_renderer_init(struct cube_renderer* renderer)
     for (u32 i = 0; i < MAX_CUBES; i++)
     {
         renderer->colors[i].r = 1.0f;
-        renderer->colors[i].g = 0.0f;
-        renderer->colors[i].b = 0.0f;
+        renderer->colors[i].g = 1.0f;
+        renderer->colors[i].b = 1.0f;
         renderer->colors[i].a = 1.0f;
     }
 
-    renderer->colors[2].r = 0.0f;
-    renderer->colors[2].g = 1.0f;
-    renderer->colors[2].b = 0.0f;
-    renderer->colors[2].a = 1.0f;
-
     struct v2 uvs[] =
     {
-        { 0.25f, 1.0f },
-        { 0.25f, 0.0f },
-        { 0.5f, 0.0f },
-        { 0.5f, 1.0f },
+        { 0.0f, 1.0f },
+        { 0.0f, 0.0f },
+        { 1.0f, 0.0f },
+        { 1.0f, 1.0f },
         { 0.0f, 0.0f },
         { 0.0f, 0.0f },
         { 0.0f, 0.0f },
@@ -975,12 +1010,12 @@ void cube_renderer_flush(struct cube_renderer* renderer, u32 texture,
 
     glUseProgram(shader);
 
-    u32 uniform_texture = glGetUniformLocation(shader, "texture");
+    u32 uniform_texture = glGetUniformLocation(shader, "uni_texture");
 
     glUniform1i(uniform_texture, 0);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
 
     glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_mvps);
     glBufferSubData(GL_ARRAY_BUFFER, 0, renderer->num_cubes * sizeof(struct m4),
@@ -1674,9 +1709,9 @@ void map_render(struct game_state* state)
 
                     struct cube_def cube;
                     cube.mvp = mvp;
-                    cube_renderer_add(&state->cube_renderer, cube);
-                    // mesh_render(&state->wall, &mvp, state->texture_tileset,
-                    //     state->shader, color);
+                    // cube_renderer_add(&state->cube_renderer, cube);
+                    mesh_render(&state->wall, &mvp, state->texture_tileset,
+                        state->shader, color);
                 }
             }
             else if (tile == TILE_FLOOR)
@@ -3320,8 +3355,8 @@ void player_render(struct game_state* state)
         struct cube_def cube;
         cube.mvp = mvp;
         cube_renderer_add(&state->cube_renderer, cube);
-        // cube_render(&state->cube, &mvp, state->texture_cube, state->shader_cube,
-        //     colors[WHITE]);
+        // cube_render(&state->cube, &mvp, state->texture_cube,
+        //     state->shader_cube, colors[WHITE]);
 
         if (state->render_debug)
         {
@@ -3548,8 +3583,7 @@ u32 texture_create(struct memory_block* block, char* path)
     file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
 
-    tga_decode(file_data, read_bytes, pixel_data, &width,
-        &height);
+    tga_decode(file_data, read_bytes, pixel_data, &width, &height);
 
     glGenTextures(1, &id);
     glBindTexture(target, id);
@@ -3562,6 +3596,87 @@ u32 texture_create(struct memory_block* block, char* path)
 
     memory_free(block);
     memory_free(block);
+
+    log_gl_error("texture_create");
+
+    return id;
+}
+
+u32 texture_array_create(struct memory_block* block, char* path, u32 rows,
+    u32 cols)
+{
+    file_handle file;
+    u64 read_bytes = 0;
+    u64 file_size = 0;
+    s8* file_data = 0;
+    s8* pixel_data = 0;
+    s8* tile_data = 0;
+
+    file_open(&file, path, true);
+    file_size_get(&file, &file_size);
+
+    file_data = memory_get(block, file_size);
+    pixel_data = memory_get(block, file_size);
+
+    file_read(&file, file_data, file_size, &read_bytes);
+    file_close(&file);
+
+    u32 image_width = 0;
+    u32 image_height = 0;
+
+    tga_decode(file_data, read_bytes, pixel_data, &image_width, &image_height);
+
+    u32 tile_width = image_width / cols;
+    u32 tile_height = image_height / rows;
+    s32 depth = rows * cols;
+
+    u32 id = 0;
+    glGenTextures(1, &id);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, id);
+
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, tile_width, tile_height,
+        depth, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+    u32 channels = 4;
+    u32 tile_size_bytes = tile_width * tile_height * channels;
+
+    tile_data = memory_get(block, tile_size_bytes);
+
+    for (u32 y = 0; y < rows; y++)
+    {
+        for (u32 x = 0; x < cols; x++)
+        {
+            s8* ptr_dest = tile_data;
+            memory_set(ptr_dest, tile_size_bytes, 0);
+
+            for (u32 i = 0; i < tile_height; i++)
+            {
+                s8* ptr_src = pixel_data + ((y * tile_height + i) *
+                    image_width + x * tile_width) * channels;
+
+                for (u32 j = 0; j < tile_width; j++)
+                {
+                    for (u32 k = 0; k < channels; k++)
+                    {
+                        *ptr_dest++ = *ptr_src++;
+                    }
+                }
+            }
+
+            u32 i = y * cols + x;
+            glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, tile_width,
+                tile_height, 1, GL_RGBA, GL_UNSIGNED_BYTE, tile_data);
+        }
+    }
+
+    memory_free(block);
+    memory_free(block);
+    memory_free(block);
+
+    log_gl_error("texture_array_create");
 
     return id;
 }
@@ -3934,6 +4049,8 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
     memory_free(block);
 
     generate_vertex_array(mesh, vertices, num_vertices, indices);
+
+    log_gl_error("mesh_create");
 }
 
 u32 program_create(struct memory_block* block, char* vertex_shader_path,
@@ -4008,6 +4125,8 @@ u32 program_create(struct memory_block* block, char* vertex_shader_path,
     glDeleteShader(vertex_shader);
     glDeleteShader(fragment_shader);
 
+    log_gl_error("shader_create");
+
     return program;
 }
 
@@ -4016,18 +4135,13 @@ void game_init(struct game_memory* memory, struct game_init* init)
     struct game_state* state = (struct game_state*)memory->base;
 
     _log = *init->log;
+    // Todo: should we check if copied functions are valid before use?
     opengl_functions_set(init->gl);
     file_functions_set(init->file);
     time_functions_set(init->time);
 
-    // Todo: should we check if copied functions are valid before use?
-
     s32 version_major = 0;
     s32 version_minor = 0;
-
-    glGetIntegerv(GL_MAJOR_VERSION, &version_major);
-    glGetIntegerv(GL_MINOR_VERSION, &version_minor);
-
     s32 uniform_blocks_max_vertex = 0;
     s32 uniform_blocks_max_geometry = 0;
     s32 uniform_blocks_max_fragment = 0;
@@ -4035,6 +4149,8 @@ void game_init(struct game_memory* memory, struct game_init* init)
     s32 uniform_buffer_max_bindings = 0;
     s32 uniform_block_max_size = 0;
 
+    glGetIntegerv(GL_MAJOR_VERSION, &version_major);
+    glGetIntegerv(GL_MINOR_VERSION, &version_minor);
     glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS, &uniform_blocks_max_vertex);
     glGetIntegerv(GL_MAX_GEOMETRY_UNIFORM_BLOCKS, &uniform_blocks_max_geometry);
     glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_BLOCKS, &uniform_blocks_max_fragment);
@@ -4042,6 +4158,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
     glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &uniform_buffer_max_bindings);
     glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniform_block_max_size);
 
+    LOG("OpenGL %i.%i\n", version_major, version_minor);
     LOG("Uniform blocks max vertex: %d\n", uniform_blocks_max_vertex);
     LOG("Uniform blocks max gemoetry: %d\n", uniform_blocks_max_geometry);
     LOG("Uniform blocks max fragment: %d\n", uniform_blocks_max_fragment);
@@ -4054,8 +4171,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
     glEnable(GL_CULL_FACE);
     glDepthFunc(GL_LESS);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    LOG("OpenGL %i.%i\n", version_major, version_minor);
 
     if (!memory->initialized)
     {
@@ -4075,14 +4190,14 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         state->shader_cube = program_create(&state->temporary,
             "assets/shaders/vertex_cube.glsl",
-            "assets/shaders/fragment.glsl");
+            "assets/shaders/fragment_cube.glsl");
 
         state->texture_tileset = texture_create(&state->temporary,
             "assets/textures/tileset.tga");
         state->texture_sphere = texture_create(&state->temporary,
             "assets/textures/sphere.tga");
-        state->texture_cube = texture_create(&state->temporary,
-            "assets/textures/cube.tga");
+        state->texture_cube = texture_array_create(&state->temporary,
+            "assets/textures/cube.tga", 4, 4);
 
         cube_renderer_init(&state->cube_renderer);
 

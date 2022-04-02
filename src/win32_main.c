@@ -542,6 +542,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     OPEN_GL_FUNCTION_LOAD(glActiveTexture);
     OPEN_GL_FUNCTION_LOAD(glVertexAttribDivisor);
     OPEN_GL_FUNCTION_LOAD(glDrawElementsInstanced);
+    OPEN_GL_FUNCTION_LOAD(glTexImage3D);
+    OPEN_GL_FUNCTION_LOAD(glTexSubImage3D);
     OPEN_GL_FUNCTION_COPY(glGetIntegerv);
     OPEN_GL_FUNCTION_COPY(glEnable);
     OPEN_GL_FUNCTION_COPY(glDepthFunc);
@@ -553,6 +555,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     OPEN_GL_FUNCTION_COPY(glTexParameteri);
     OPEN_GL_FUNCTION_COPY(glTexImage2D);
     OPEN_GL_FUNCTION_COPY(glBlendFunc);
+    OPEN_GL_FUNCTION_COPY(glGetError);
 
     wglMakeCurrent(dummy_dc, 0);
     wglDeleteContext(dummy_context);
