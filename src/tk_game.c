@@ -127,23 +127,25 @@ struct mesh
     u32 num_indices;
 };
 
-struct cube_def
-{
-    struct m4 mvp;
-};
-
 #define MAX_CUBES 1024
+
+struct cube_vertex_data
+{
+    struct v3 position;
+    struct v3 normal;
+    struct v2 uv;
+};
 
 struct cube_renderer
 {
-    struct cube_def cubes[MAX_CUBES];
+    struct m4 models[MAX_CUBES];
     struct v4 colors[MAX_CUBES];
-    struct v2 uvs[MAX_CUBES * 24];
+    u32 textures[MAX_CUBES];
     u32 vao;
     u32 vbo_vertices;
     u32 vbo_colors;
-    u32 vbo_uvs;
-    u32 vbo_mvps;
+    u32 vbo_textures;
+    u32 vbo_models;
     u32 ibo;
     u32 num_indices;
     u32 num_cubes;
@@ -780,117 +782,152 @@ void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
 
 void cube_renderer_init(struct cube_renderer* renderer)
 {
-    struct v3 vertices[] =
+    struct cube_vertex_data vertices[] =
     {
         // Top right
-        { 1.0f, 1.0f, 1.0f },
-        { 0.0f, 0.0f, 1.0f },
+        {
+            { 1.0f, 1.0f, 1.0f },
+            { 0.0f, 0.0f, 1.0f },
+            { 0.0f, 1.0f }
+        },
         // Top left
-        { -1.0f, 1.0f, 1.0f },
-        { 0.0f, 0.0f, 1.0f },
+        {
+            { -1.0f, 1.0f, 1.0f },
+            { 0.0f, 0.0f, 1.0f },
+            { 0.0f, 0.0f }
+        },
         // Bottom left
-        { -1.0f, -1.0f, 1.0f },
-        { 0.0f, 0.0f, 1.0f },
+        {
+            { -1.0f, -1.0f, 1.0f },
+            { 0.0f, 0.0f, 1.0f },
+            { 1.0f, 0.0f }
+        },
         // Bottom right
-        { 1.0f, -1.0f, 1.0f },
-        { 0.0f, 0.0f, 1.0f },
+        {
+            { 1.0f, -1.0f, 1.0f },
+            { 0.0f, 0.0f, 1.0f },
+            { 1.0f, 1.0f }
+        },
         // Top right
-        { -1.0f, 1.0f, -1.0f },
-        { 0.0f, 0.0f, -1.0f },
+        {
+            { -1.0f, 1.0f, -1.0f },
+            { 0.0f, 0.0f, -1.0f },
+            { 0.0f, 0.0f }
+        },
         // Top left
-        { 1.0f, 1.0f, -1.0f },
-        { 0.0f, 0.0f, -1.0f },
+        {
+            { 1.0f, 1.0f, -1.0f },
+            { 0.0f, 0.0f, -1.0f },
+            { 0.0f, 0.0f }
+        },
         // Bottom left
-        { 1.0f, -1.0f, -1.0f },
-        { 0.0f, 0.0f, -1.0f },
+        {
+            { 1.0f, -1.0f, -1.0f },
+            { 0.0f, 0.0f, -1.0f },
+            { 0.0f, 0.0f }
+        },
         // Bottom right
-        { -1.0f, -1.0f, -1.0f },
-        { 0.0f, 0.0f, -1.0f },
+        {
+            { -1.0f, -1.0f, -1.0f },
+            { 0.0f, 0.0f, -1.0f },
+            { 0.0f, 0.0f }
+        },
         // Top right
-        { -1.0f, -1.0f, 1.0f },
-        { -1.0f, 0.0f, 0.0f },
+        {
+            { -1.0f, -1.0f, 1.0f },
+            { -1.0f, 0.0f, 0.0f },
+            { 0.0f, 0.0f }
+        },
         // Top left
-        { -1.0f, 1.0f, 1.0f },
-        { -1.0f, 0.0f, 0.0f },
+        {
+            { -1.0f, 1.0f, 1.0f },
+            { -1.0f, 0.0f, 0.0f },
+            { 0.0f, 0.0f }
+        },
         // Bottom left
-        { -1.0f, 1.0f, -1.0f },
-        { -1.0f, 0.0f, 0.0f },
+        {
+            { -1.0f, 1.0f, -1.0f },
+            { -1.0f, 0.0f, 0.0f },
+            { 0.0f, 0.0f }
+        },
         // Bottom right
-        { -1.0f, -1.0f, -1.0f },
-        { -1.0f, 0.0f, 0.0f },
+        {
+            { -1.0f, -1.0f, -1.0f },
+            { -1.0f, 0.0f, 0.0f },
+            { 0.0f, 0.0f }
+        },
         // Top right
-        { 1.0f, 1.0f, 1.0f },
-        { 1.0f, 0.0f, 0.0f },
+        {
+            { 1.0f, 1.0f, 1.0f },
+            { 1.0f, 0.0f, 0.0f },
+            { 0.0f, 0.0f }
+        },
         // Top left
-        { 1.0f, -1.0f, 1.0f },
-        { 1.0f, 0.0f, 0.0f },
+        {
+            { 1.0f, -1.0f, 1.0f },
+            { 1.0f, 0.0f, 0.0f },
+            { 0.0f, 0.0f }
+        },
         // Bottom left
-        { 1.0f, -1.0f, -1.0f },
-        { 1.0f, 0.0f, 0.0f },
+        {
+            { 1.0f, -1.0f, -1.0f },
+            { 1.0f, 0.0f, 0.0f },
+            { 0.0f, 0.0f }
+        },
         // Bottom right
-        { 1.0f, 1.0f, -1.0f },
-        { 1.0f, 0.0f, 0.0f },
+        {
+            { 1.0f, 1.0f, -1.0f },
+            { 1.0f, 0.0f, 0.0f },
+            { 0.0f, 0.0f }
+        },
         // Top right
-        { -1.0f, 1.0f, 1.0f },
-        { 0.0f, 1.0f, 0.0f },
+        {
+            { -1.0f, 1.0f, 1.0f },
+            { 0.0f, 1.0f, 0.0f },
+            { 0.0f, 0.0f }
+        },
         // Top left
-        { 1.0f, 1.0f, 1.0f },
-        { 0.0f, 1.0f, 0.0f },
+        {
+            { 1.0f, 1.0f, 1.0f },
+            { 0.0f, 1.0f, 0.0f },
+            { 0.0f, 0.0f }
+        },
         // Bottom left
-        { 1.0f, 1.0f, -1.0f },
-        { 0.0f, 1.0f, 0.0f },
+        {
+            { 1.0f, 1.0f, -1.0f },
+            { 0.0f, 1.0f, 0.0f },
+            { 0.0f, 0.0f }
+        },
         // Bottom right
-        { -1.0f, 1.0f, -1.0f },
-        { 0.0f, 1.0f, 0.0f },
+        {
+            { -1.0f, 1.0f, -1.0f },
+            { 0.0f, 1.0f, 0.0f },
+            { 0.0f, 0.0f }
+        },
         // Top right
-        { 1.0f, -1.0f, 1.0f },
-        { 0.0f, -1.0f, 0.0f },
+        {
+            { 1.0f, -1.0f, 1.0f },
+            { 0.0f, -1.0f, 0.0f },
+            { 0.0f, 0.0f }
+        },
         // Top left
-        { -1.0f, -1.0f, 1.0f },
-        { 0.0f, -1.0f, 0.0f },
+        {
+            { -1.0f, -1.0f, 1.0f },
+            { 0.0f, -1.0f, 0.0f },
+            { 0.0f, 0.0f }
+        },
         // Bottom left
-        { -1.0f, -1.0f, -1.0f },
-        { 0.0f, -1.0f, 0.0f },
+        {
+            { -1.0f, -1.0f, -1.0f },
+            { 0.0f, -1.0f, 0.0f },
+            { 0.0f, 0.0f }
+        },
         // Bottom right
-        { 1.0f, -1.0f, -1.0f },
-        { 0.0f, -1.0f, 0.0f }
-    };
-
-    u32 num_vertices = 24;
-    for (u32 i = 0; i < MAX_CUBES; i++)
-    {
-        renderer->colors[i].r = 1.0f;
-        renderer->colors[i].g = 1.0f;
-        renderer->colors[i].b = 1.0f;
-        renderer->colors[i].a = 1.0f;
-    }
-
-    struct v2 uvs[] =
-    {
-        { 0.0f, 1.0f },
-        { 0.0f, 0.0f },
-        { 1.0f, 0.0f },
-        { 1.0f, 1.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f },
-        { 0.0f, 0.0f }
+        {
+            { 1.0f, -1.0f, -1.0f },
+            { 0.0f, -1.0f, 0.0f },
+            { 0.0f, 0.0f }
+        }
     };
 
     u32 indices[] =
@@ -910,8 +947,8 @@ void cube_renderer_init(struct cube_renderer* renderer)
 
     glGenBuffers(1, &renderer->vbo_vertices);
     glGenBuffers(1, &renderer->vbo_colors);
-    glGenBuffers(1, &renderer->vbo_uvs);
-    glGenBuffers(1, &renderer->vbo_mvps);
+    glGenBuffers(1, &renderer->vbo_textures);
+    glGenBuffers(1, &renderer->vbo_models);
     glGenBuffers(1, &renderer->ibo);
 
     glEnableVertexAttribArray(0);
@@ -922,36 +959,37 @@ void cube_renderer_init(struct cube_renderer* renderer)
     glEnableVertexAttribArray(5);
     glEnableVertexAttribArray(6);
     glEnableVertexAttribArray(7);
+    glEnableVertexAttribArray(8);
 
     glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_vertices);
-    glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct v3) * 2,
-        vertices, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct v3) * 2,
-        (void*)0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(struct v3) * 2,
-        (void*)sizeof(struct v3));
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+        sizeof(struct cube_vertex_data), (void*)0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
+        sizeof(struct cube_vertex_data), (void*)12);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE,
+        sizeof(struct cube_vertex_data), (void*)24);
 
-    // Todo: colors and uvs are static for now
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_uvs);
-    glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct v2),
-        uvs, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_textures);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->textures),
+        renderer->textures, GL_DYNAMIC_DRAW);
+    glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, 0, 0);
 
     glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_colors);
-    glBufferData(GL_ARRAY_BUFFER, MAX_CUBES * sizeof(struct v4),
-        renderer->colors, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 0, 0);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->colors), renderer->colors,
+        GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 0, 0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_mvps);
-    glBufferData(GL_ARRAY_BUFFER, MAX_CUBES * sizeof(struct m4),
-        renderer->cubes, GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(struct m4),
-        (void*)0);
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_models);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->models), renderer->models,
+        GL_DYNAMIC_DRAW);
     glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(struct m4),
-        (void*)sizeof(struct v4));
+        (void*)0);
     glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(struct m4),
-        (void*)(sizeof(struct v4) * 2));
+        (void*)sizeof(struct v4));
     glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(struct m4),
+        (void*)(sizeof(struct v4) * 2));
+    glVertexAttribPointer(8, 4, GL_FLOAT, GL_FALSE, sizeof(struct m4),
         (void*)(sizeof(struct v4) * 3));
 
     glVertexAttribDivisor(3, 1);
@@ -959,6 +997,7 @@ void cube_renderer_init(struct cube_renderer* renderer)
     glVertexAttribDivisor(5, 1);
     glVertexAttribDivisor(6, 1);
     glVertexAttribDivisor(7, 1);
+    glVertexAttribDivisor(8, 1);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, renderer->num_indices * sizeof(u32),
@@ -995,11 +1034,15 @@ void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
     }
 }
 
-void cube_renderer_add(struct cube_renderer* renderer, struct cube_def cube)
+void cube_renderer_add(struct cube_renderer* renderer, struct m4 model,
+    struct v4 color, u32 texture)
 {
     if (renderer->num_cubes < MAX_CUBES)
     {
-        renderer->cubes[renderer->num_cubes++] = cube;
+        renderer->models[renderer->num_cubes] = model;
+        renderer->colors[renderer->num_cubes] = color;
+        renderer->textures[renderer->num_cubes] = texture;
+        renderer->num_cubes++;
     }
 }
 
@@ -1017,9 +1060,19 @@ void cube_renderer_flush(struct cube_renderer* renderer, u32 texture,
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
 
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_mvps);
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_models);
     glBufferSubData(GL_ARRAY_BUFFER, 0, renderer->num_cubes * sizeof(struct m4),
-        renderer->cubes);
+        renderer->models);
+
+    // Todo: maybe passing colors and textures each frame is not the smartest
+    // thing ever
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_colors);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, renderer->num_cubes * sizeof(struct v4),
+        renderer->colors);
+
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_textures);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, renderer->num_cubes * sizeof(u32),
+        renderer->textures);
 
     glDrawElementsInstanced(GL_TRIANGLES, renderer->num_indices,
         GL_UNSIGNED_INT, NULL, renderer->num_cubes);
@@ -1707,8 +1760,6 @@ void map_render(struct game_state* state)
                     struct m4 mvp = m4_mul_m4(model, state->camera.view);
                     mvp = m4_mul_m4(mvp, state->camera.projection);
 
-                    struct cube_def cube;
-                    cube.mvp = mvp;
                     // cube_renderer_add(&state->cube_renderer, cube);
                     mesh_render(&state->wall, &mvp, state->texture_tileset,
                         state->shader, color);
@@ -2935,9 +2986,7 @@ void enemies_render(struct game_state* state)
             struct m4 mvp = m4_mul_m4(model, state->camera.view);
             mvp = m4_mul_m4(mvp, state->camera.projection);
 
-            struct cube_def cube;
-            cube.mvp = mvp;
-            cube_renderer_add(&state->cube_renderer, cube);
+            cube_renderer_add(&state->cube_renderer, mvp, colors[WHITE], 13);
             // cube_render(&state->cube, &mvp, state->texture_cube,
             //     state->shader_cube, colors[WHITE]);
 
@@ -3352,9 +3401,7 @@ void player_render(struct game_state* state)
         struct m4 mvp = m4_mul_m4(model, state->camera.view);
         mvp = m4_mul_m4(mvp, state->camera.projection);
 
-        struct cube_def cube;
-        cube.mvp = mvp;
-        cube_renderer_add(&state->cube_renderer, cube);
+        cube_renderer_add(&state->cube_renderer, mvp, colors[WHITE], 15);
         // cube_render(&state->cube, &mvp, state->texture_cube,
         //     state->shader_cube, colors[WHITE]);
 

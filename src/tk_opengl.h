@@ -15,6 +15,7 @@ OPEN_GL_FUNCTION(glBindBuffer);
 OPEN_GL_FUNCTION(glEnableVertexAttribArray);
 OPEN_GL_FUNCTION(glDisableVertexAttribArray);
 OPEN_GL_FUNCTION(glVertexAttribPointer);
+OPEN_GL_FUNCTION(glVertexAttribIPointer);
 OPEN_GL_FUNCTION(glUniform1i);
 OPEN_GL_FUNCTION(glUniform4fv);
 OPEN_GL_FUNCTION(glUniformMatrix4fv);
@@ -64,6 +65,7 @@ void opengl_functions_set(struct opengl_functions* gl)
     OPEN_GL_FUNCTION_COPY(glEnableVertexAttribArray);
     OPEN_GL_FUNCTION_COPY(glDisableVertexAttribArray);
     OPEN_GL_FUNCTION_COPY(glVertexAttribPointer);
+    OPEN_GL_FUNCTION_COPY(glVertexAttribIPointer);
     OPEN_GL_FUNCTION_COPY(glUniform1i);
     OPEN_GL_FUNCTION_COPY(glUniform4fv);
     OPEN_GL_FUNCTION_COPY(glUniformMatrix4fv);
