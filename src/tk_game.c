@@ -1042,15 +1042,17 @@ void cube_renderer_add(struct cube_renderer* renderer, struct m4 model,
 }
 
 void cube_renderer_flush(struct cube_renderer* renderer, u32 texture,
-    u32 shader)
+    u32 shader, struct m4* view_projection)
 {
     glBindVertexArray(renderer->vao);
 
     glUseProgram(shader);
 
-    u32 uniform_texture = glGetUniformLocation(shader, "uni_texture");
+    u32 uniform_texture = glGetUniformLocation(shader, "uniform_texture");
+    u32 uniform_vp = glGetUniformLocation(shader, "uniform_vp");
 
     glUniform1i(uniform_texture, 0);
+    glUniformMatrix4fv(uniform_vp, 1, GL_FALSE, (GLfloat*)view_projection);
 
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
@@ -2964,16 +2966,10 @@ void enemies_render(struct game_state* state)
                 enemy->body.position.y, PLAYER_RADIUS);
             struct m4 rotation = m4_rotate_z(enemy->body.angle);
             struct m4 scale = m4_scale_xyz(PLAYER_RADIUS, PLAYER_RADIUS, 0.25f);
-
             struct m4 model = m4_mul_m4(scale, rotation);
             model = m4_mul_m4(model, transform);
 
-            struct m4 mvp = m4_mul_m4(model, state->camera.view);
-            mvp = m4_mul_m4(mvp, state->camera.projection);
-
-            cube_renderer_add(&state->cube_renderer, mvp, colors[WHITE], 13);
-            // cube_render(&state->cube, &mvp, state->texture_cube,
-            //     state->shader_cube, colors[WHITE]);
+            cube_renderer_add(&state->cube_renderer, model, colors[WHITE], 13);
 
             if (state->render_debug)
             {
@@ -3008,7 +3004,7 @@ void enemies_render(struct game_state* state)
                 model = m4_mul_m4(scale, rotation);
                 model = m4_mul_m4(model, transform);
 
-                mvp = m4_mul_m4(model, state->camera.view);
+                struct m4 mvp = m4_mul_m4(model, state->camera.view);
                 mvp = m4_mul_m4(mvp, state->camera.projection);
 
                 mesh_render(&state->floor, &mvp, state->texture_tileset,
@@ -3033,7 +3029,7 @@ void enemies_render(struct game_state* state)
                 model = m4_mul_m4(scale, rotation);
                 model = m4_mul_m4(model, transform);
 
-                mvp = m4_mul_m4(model, state->camera.view);
+                struct m4 mvp = m4_mul_m4(model, state->camera.view);
                 mvp = m4_mul_m4(mvp, state->camera.projection);
 
                 mesh_render(&state->floor, &mvp, state->texture_tileset,
@@ -3058,7 +3054,7 @@ void enemies_render(struct game_state* state)
                 model = m4_mul_m4(scale, rotation);
                 model = m4_mul_m4(model, transform);
 
-                mvp = m4_mul_m4(model, state->camera.view);
+                struct m4 mvp = m4_mul_m4(model, state->camera.view);
                 mvp = m4_mul_m4(mvp, state->camera.projection);
 
                 mesh_render(&state->floor, &mvp, state->texture_tileset,
@@ -3379,16 +3375,10 @@ void player_render(struct game_state* state)
             player->body.position.y, PLAYER_RADIUS);
         struct m4 rotation = m4_rotate_z(player->body.angle);
         struct m4 scale = m4_scale_xyz(PLAYER_RADIUS, PLAYER_RADIUS, 0.25f);
-
         struct m4 model = m4_mul_m4(scale, rotation);
         model = m4_mul_m4(model, transform);
 
-        struct m4 mvp = m4_mul_m4(model, state->camera.view);
-        mvp = m4_mul_m4(mvp, state->camera.projection);
-
-        cube_renderer_add(&state->cube_renderer, mvp, colors[WHITE], 15);
-        // cube_render(&state->cube, &mvp, state->texture_cube,
-        //     state->shader_cube, colors[WHITE]);
+        cube_renderer_add(&state->cube_renderer, model, colors[WHITE], 15);
 
         if (state->render_debug)
         {
@@ -3417,7 +3407,7 @@ void player_render(struct game_state* state)
             model = m4_mul_m4(scale, rotation);
             model = m4_mul_m4(model, transform);
 
-            mvp = m4_mul_m4(model, state->camera.view);
+            struct m4 mvp = m4_mul_m4(model, state->camera.view);
             mvp = m4_mul_m4(mvp, state->camera.projection);
 
             mesh_render(&state->floor, &mvp, state->texture_tileset,
@@ -3447,7 +3437,7 @@ void player_render(struct game_state* state)
             model = m4_mul_m4(scale, rotation);
             model = m4_mul_m4(model, transform);
 
-            mvp = m4_mul_m4(model, state->camera.view);
+            struct m4 mvp = m4_mul_m4(model, state->camera.view);
             mvp = m4_mul_m4(mvp, state->camera.projection);
 
             mesh_render(&state->floor, &mvp, state->texture_tileset,
@@ -4417,6 +4407,10 @@ void game_update(struct game_memory* memory, struct game_input* input)
             test_rotation += step;
         }
 
+
+        struct m4 view_projection =
+            m4_mul_m4(state->camera.view, state->camera.projection);
+
         u64 render_start = ticks_current_get();
         map_render(state);
         player_render(state);
@@ -4424,8 +4418,9 @@ void game_update(struct game_memory* memory, struct game_input* input)
         bullets_render(state);
         particle_lines_render(state);
         particle_spheres_render(state);
+
         cube_renderer_flush(&state->cube_renderer, state->texture_cube,
-            state->shader_cube);
+            state->shader_cube, &view_projection);
         u64 render_end = ticks_current_get();
 
         LOG("Render time: %f\n", time_elapsed_seconds(state, render_start,
