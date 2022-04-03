@@ -136,16 +136,19 @@ struct cube_vertex_data
     struct v2 uv;
 };
 
+struct cube_data
+{
+    struct m4 model;
+    struct v4 color;
+    u32 texture;
+};
+
 struct cube_renderer
 {
-    struct m4 models[MAX_CUBES];
-    struct v4 colors[MAX_CUBES];
-    u32 textures[MAX_CUBES];
+    struct cube_data cubes[MAX_CUBES];
     u32 vao;
     u32 vbo_vertices;
-    u32 vbo_colors;
-    u32 vbo_textures;
-    u32 vbo_models;
+    u32 vbo_cubes;
     u32 ibo;
     u32 num_indices;
     u32 num_cubes;
@@ -946,9 +949,7 @@ void cube_renderer_init(struct cube_renderer* renderer)
     glBindVertexArray(renderer->vao);
 
     glGenBuffers(1, &renderer->vbo_vertices);
-    glGenBuffers(1, &renderer->vbo_colors);
-    glGenBuffers(1, &renderer->vbo_textures);
-    glGenBuffers(1, &renderer->vbo_models);
+    glGenBuffers(1, &renderer->vbo_cubes);
     glGenBuffers(1, &renderer->ibo);
 
     glEnableVertexAttribArray(0);
@@ -970,27 +971,21 @@ void cube_renderer_init(struct cube_renderer* renderer)
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE,
         sizeof(struct cube_vertex_data), (void*)24);
 
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_textures);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->textures),
-        renderer->textures, GL_DYNAMIC_DRAW);
-    glVertexAttribIPointer(3, 1, GL_UNSIGNED_INT, 0, 0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_colors);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->colors), renderer->colors,
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_cubes);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->cubes), renderer->cubes,
         GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 0, 0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_models);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->models), renderer->models,
-        GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(struct m4),
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(struct cube_data),
         (void*)0);
-    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(struct m4),
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(struct cube_data),
         (void*)sizeof(struct v4));
-    glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(struct m4),
+    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(struct cube_data),
         (void*)(sizeof(struct v4) * 2));
-    glVertexAttribPointer(8, 4, GL_FLOAT, GL_FALSE, sizeof(struct m4),
+    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(struct cube_data),
         (void*)(sizeof(struct v4) * 3));
+    glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(struct cube_data),
+        (void*)(sizeof(struct v4) * 4));
+    glVertexAttribIPointer(8, 1, GL_UNSIGNED_INT, sizeof(struct cube_data),
+        (void*)(sizeof(struct v4) * 5));
 
     glVertexAttribDivisor(3, 1);
     glVertexAttribDivisor(4, 1);
@@ -1001,7 +996,7 @@ void cube_renderer_init(struct cube_renderer* renderer)
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, renderer->num_indices * sizeof(u32),
-        indices, GL_DYNAMIC_DRAW);
+        indices, GL_STATIC_DRAW);
 }
 
 void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
@@ -1039,10 +1034,10 @@ void cube_renderer_add(struct cube_renderer* renderer, struct m4 model,
 {
     if (renderer->num_cubes < MAX_CUBES)
     {
-        renderer->models[renderer->num_cubes] = model;
-        renderer->colors[renderer->num_cubes] = color;
-        renderer->textures[renderer->num_cubes] = texture;
-        renderer->num_cubes++;
+        struct cube_data* cube = &renderer->cubes[renderer->num_cubes++];
+        cube->model = model;
+        cube->color = color;
+        cube->texture = texture;
     }
 }
 
@@ -1060,19 +1055,9 @@ void cube_renderer_flush(struct cube_renderer* renderer, u32 texture,
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
 
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_models);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, renderer->num_cubes * sizeof(struct m4),
-        renderer->models);
-
-    // Todo: maybe passing colors and textures each frame is not the smartest
-    // thing ever
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_colors);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, renderer->num_cubes * sizeof(struct v4),
-        renderer->colors);
-
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_textures);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, renderer->num_cubes * sizeof(u32),
-        renderer->textures);
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_cubes);
+    glBufferSubData(GL_ARRAY_BUFFER, 0,
+        renderer->num_cubes * sizeof(struct cube_data), renderer->cubes);
 
     glDrawElementsInstanced(GL_TRIANGLES, renderer->num_indices,
         GL_UNSIGNED_INT, NULL, renderer->num_cubes);
