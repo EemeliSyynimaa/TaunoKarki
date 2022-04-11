@@ -815,7 +815,7 @@ void cube_renderer_init(struct cube_renderer* renderer)
         {
             { -1.0f, 1.0f, -1.0f },
             { 0.0f, 0.0f, -1.0f },
-            { 0.0f, 0.0f }
+            { 0.0f, 1.0f }
         },
         // Top left
         {
@@ -827,19 +827,19 @@ void cube_renderer_init(struct cube_renderer* renderer)
         {
             { 1.0f, -1.0f, -1.0f },
             { 0.0f, 0.0f, -1.0f },
-            { 0.0f, 0.0f }
+            { 1.0f, 0.0f }
         },
         // Bottom right
         {
             { -1.0f, -1.0f, -1.0f },
             { 0.0f, 0.0f, -1.0f },
-            { 0.0f, 0.0f }
+            { 1.0f, 1.0f }
         },
         // Top right
         {
             { -1.0f, -1.0f, 1.0f },
             { -1.0f, 0.0f, 0.0f },
-            { 0.0f, 0.0f }
+            { 0.0f, 1.0f }
         },
         // Top left
         {
@@ -851,19 +851,19 @@ void cube_renderer_init(struct cube_renderer* renderer)
         {
             { -1.0f, 1.0f, -1.0f },
             { -1.0f, 0.0f, 0.0f },
-            { 0.0f, 0.0f }
+            { 1.0f, 0.0f }
         },
         // Bottom right
         {
             { -1.0f, -1.0f, -1.0f },
             { -1.0f, 0.0f, 0.0f },
-            { 0.0f, 0.0f }
+            { 1.0f, 1.0f }
         },
         // Top right
         {
             { 1.0f, 1.0f, 1.0f },
             { 1.0f, 0.0f, 0.0f },
-            { 0.0f, 0.0f }
+            { 0.0f, 1.0f }
         },
         // Top left
         {
@@ -875,19 +875,19 @@ void cube_renderer_init(struct cube_renderer* renderer)
         {
             { 1.0f, -1.0f, -1.0f },
             { 1.0f, 0.0f, 0.0f },
-            { 0.0f, 0.0f }
+            { 1.0f, 0.0f }
         },
         // Bottom right
         {
             { 1.0f, 1.0f, -1.0f },
             { 1.0f, 0.0f, 0.0f },
-            { 0.0f, 0.0f }
+            { 1.0f, 1.0f }
         },
         // Top right
         {
             { -1.0f, 1.0f, 1.0f },
             { 0.0f, 1.0f, 0.0f },
-            { 0.0f, 0.0f }
+            { 0.0f, 1.0f }
         },
         // Top left
         {
@@ -899,19 +899,19 @@ void cube_renderer_init(struct cube_renderer* renderer)
         {
             { 1.0f, 1.0f, -1.0f },
             { 0.0f, 1.0f, 0.0f },
-            { 0.0f, 0.0f }
+            { 1.0f, 0.0f }
         },
         // Bottom right
         {
             { -1.0f, 1.0f, -1.0f },
             { 0.0f, 1.0f, 0.0f },
-            { 0.0f, 0.0f }
+            { 1.0f, 1.0f }
         },
         // Top right
         {
             { 1.0f, -1.0f, 1.0f },
             { 0.0f, -1.0f, 0.0f },
-            { 0.0f, 0.0f }
+            { 0.0f, 1.0f }
         },
         // Top left
         {
@@ -923,13 +923,13 @@ void cube_renderer_init(struct cube_renderer* renderer)
         {
             { -1.0f, -1.0f, -1.0f },
             { 0.0f, -1.0f, 0.0f },
-            { 0.0f, 0.0f }
+            { 1.0f, 0.0f }
         },
         // Bottom right
         {
             { 1.0f, -1.0f, -1.0f },
             { 0.0f, -1.0f, 0.0f },
-            { 0.0f, 0.0f }
+            { 1.0f, 1.0f }
         }
     };
 

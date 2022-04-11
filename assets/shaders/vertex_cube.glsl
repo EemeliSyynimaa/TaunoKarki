@@ -18,5 +18,18 @@ void main()
 	gl_Position = uniform_vp * inModel * vec4(inPosition, 1.0);
 	texcoords = inTexcoords;
 	color = inColor;
-	texture_index = inTexture;
+
+	// Choose texture based on cube normal (different texture for each side)
+	if (inNormals.z == 1)
+		texture_index = inTexture;
+	else if (inNormals.z == -1)
+		texture_index = 0;
+	else if (inNormals.x == -1)
+		texture_index = 1;
+	else if (inNormals.x == 1)
+		texture_index = 1;
+	else if (inNormals.y == 1)
+		texture_index = 0;
+	else if (inNormals.y == -1)
+		texture_index = 0;
 }
