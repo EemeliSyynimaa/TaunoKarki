@@ -136,11 +136,17 @@ struct cube_vertex_data
     struct v2 uv;
 };
 
+struct cube_texture
+{
+    u8 index;
+    u8 rotation;
+};
+
 struct cube_data
 {
     struct m4 model;
     struct v4 color;
-    u32 texture;
+    struct cube_texture textures[6];
 };
 
 struct cube_renderer
@@ -961,6 +967,11 @@ void cube_renderer_init(struct cube_renderer* renderer)
     glEnableVertexAttribArray(6);
     glEnableVertexAttribArray(7);
     glEnableVertexAttribArray(8);
+    glEnableVertexAttribArray(9);
+    glEnableVertexAttribArray(10);
+    glEnableVertexAttribArray(11);
+    glEnableVertexAttribArray(12);
+    glEnableVertexAttribArray(13);
 
     glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_vertices);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -984,8 +995,18 @@ void cube_renderer_init(struct cube_renderer* renderer)
         (void*)(sizeof(struct v4) * 3));
     glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE, sizeof(struct cube_data),
         (void*)(sizeof(struct v4) * 4));
-    glVertexAttribIPointer(8, 1, GL_UNSIGNED_INT, sizeof(struct cube_data),
+    glVertexAttribIPointer(8, 2, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
         (void*)(sizeof(struct v4) * 5));
+    glVertexAttribIPointer(9, 2, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
+        (void*)(sizeof(struct v4) * 5 + 2));
+    glVertexAttribIPointer(10, 2, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
+        (void*)(sizeof(struct v4) * 5 + 4));
+    glVertexAttribIPointer(11, 2, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
+        (void*)(sizeof(struct v4) * 5 + 6));
+    glVertexAttribIPointer(12, 2, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
+        (void*)(sizeof(struct v4) * 5 + 8));
+    glVertexAttribIPointer(13, 2, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
+        (void*)(sizeof(struct v4) * 5 + 10));
 
     glVertexAttribDivisor(3, 1);
     glVertexAttribDivisor(4, 1);
@@ -993,6 +1014,11 @@ void cube_renderer_init(struct cube_renderer* renderer)
     glVertexAttribDivisor(6, 1);
     glVertexAttribDivisor(7, 1);
     glVertexAttribDivisor(8, 1);
+    glVertexAttribDivisor(9, 1);
+    glVertexAttribDivisor(10, 1);
+    glVertexAttribDivisor(11, 1);
+    glVertexAttribDivisor(12, 1);
+    glVertexAttribDivisor(13, 1);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, renderer->num_indices * sizeof(u32),
@@ -1037,7 +1063,8 @@ void cube_renderer_add(struct cube_renderer* renderer, struct m4 model,
         struct cube_data* cube = &renderer->cubes[renderer->num_cubes++];
         cube->model = model;
         cube->color = color;
-        cube->texture = texture;
+        cube->textures[0].index = texture;
+        cube->textures[0].rotation = 2;
     }
 }
 
