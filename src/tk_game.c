@@ -63,8 +63,10 @@ struct player
     struct v2 eye_position;
     struct weapon weapons[3];
     f32 health;
+    f32 rotation_timer;
     b32 alive;
     u32 weapon_current;
+    u8 texture_rotation;
 };
 
 struct bullet
@@ -1056,7 +1058,7 @@ void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
 }
 
 void cube_renderer_add(struct cube_renderer* renderer, struct m4 model,
-    struct v4 color, u32 texture)
+    struct v4 color, u32 texture, u32 rotation)
 {
     if (renderer->num_cubes < MAX_CUBES)
     {
@@ -1064,7 +1066,7 @@ void cube_renderer_add(struct cube_renderer* renderer, struct m4 model,
         cube->model = model;
         cube->color = color;
         cube->textures[0].index = texture;
-        cube->textures[0].rotation = 2;
+        cube->textures[0].rotation = rotation;
     }
 }
 
@@ -2996,7 +2998,8 @@ void enemies_render(struct game_state* state)
             struct m4 model = m4_mul_m4(scale, rotation);
             model = m4_mul_m4(model, transform);
 
-            cube_renderer_add(&state->cube_renderer, model, colors[WHITE], 13);
+            cube_renderer_add(&state->cube_renderer, model, colors[WHITE], 13,
+                0);
 
             if (state->render_debug)
             {
@@ -3261,6 +3264,16 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 
     if (player->alive)
     {
+        if ((player->rotation_timer += dt) > 0.5f)
+        {
+            player->rotation_timer = 0.0f;
+
+            if (++player->texture_rotation > 3)
+            {
+                player->texture_rotation = 0;
+            }
+        }
+
         struct v2 direction = { 0.0f };
         struct v2 acceleration = { 0.0f };
         struct v2 move_delta = { 0.0f };
@@ -3405,7 +3418,8 @@ void player_render(struct game_state* state)
         struct m4 model = m4_mul_m4(scale, rotation);
         model = m4_mul_m4(model, transform);
 
-        cube_renderer_add(&state->cube_renderer, model, colors[WHITE], 15);
+        cube_renderer_add(&state->cube_renderer, model, colors[WHITE], 15,
+            player->texture_rotation);
 
         if (state->render_debug)
         {

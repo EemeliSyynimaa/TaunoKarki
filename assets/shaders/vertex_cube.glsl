@@ -21,20 +21,31 @@ out float texture_index;
 void main()
 {
 	gl_Position = uniform_vp * inModel * vec4(inPosition, 1.0);
-	texcoords = inTexcoords;
 	color = inColor;
 
 	// Choose texture based on cube normal (different texture for each side)
+	uvec2 texture_used;
+
 	if (inNormals.z == 1)
-		texture_index = inTexture1.x;
+		texture_used = inTexture1;
 	else if (inNormals.z == -1)
-		texture_index = inTexture2.x;
+		texture_used = inTexture2;
 	else if (inNormals.x == -1)
-		texture_index = inTexture3.x;
+		texture_used = inTexture3;
 	else if (inNormals.x == 1)
-		texture_index = inTexture4.x;
+		texture_used = inTexture4;
 	else if (inNormals.y == 1)
-		texture_index = inTexture5.x;
+		texture_used = inTexture5;
 	else if (inNormals.y == -1)
-		texture_index = inTexture6.x;
+		texture_used = inTexture6;
+
+	texture_index = texture_used.x;
+
+	float angle = radians(texture_used.y * 90.0f);
+
+	float c = cos(angle);
+	float s = sin(angle);
+
+	texcoords.x = c * inTexcoords.x - s * inTexcoords.y;
+	texcoords.y = s * inTexcoords.x + c * inTexcoords.y;
 }
