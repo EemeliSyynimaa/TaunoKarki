@@ -6,6 +6,39 @@
 
 #include <string.h>
 
+#define MAX_CUBES 1024
+
+struct cube_vertex_data
+{
+    struct v3 position;
+    struct v3 normal;
+    struct v2 uv;
+};
+
+struct cube_face
+{
+    u8 texture;
+    u8 rotation;
+    u8 color;
+};
+
+struct cube_data
+{
+    struct m4 model;
+    struct cube_face faces[6];
+};
+
+struct cube_renderer
+{
+    struct cube_data cubes[MAX_CUBES];
+    u32 vao;
+    u32 vbo_vertices;
+    u32 vbo_cubes;
+    u32 ibo;
+    u32 num_indices;
+    u32 num_cubes;
+};
+
 struct particle_line
 {
     struct v2 start;
@@ -62,11 +95,11 @@ struct player
     struct rigid_body body;
     struct v2 eye_position;
     struct weapon weapons[3];
+    struct cube_data cube;
     f32 health;
     f32 rotation_timer;
     b32 alive;
     u32 weapon_current;
-    u8 texture_rotation;
 };
 
 struct bullet
@@ -86,6 +119,7 @@ struct enemy
     struct v2 direction_look;
     struct v2 eye_position;
     struct weapon weapon;
+    struct cube_data cube;
     u32 path_index;
     u32 path_length;
     f32 health;
@@ -127,39 +161,6 @@ struct mesh
     u32 vbo;
     u32 ibo;
     u32 num_indices;
-};
-
-#define MAX_CUBES 1024
-
-struct cube_vertex_data
-{
-    struct v3 position;
-    struct v3 normal;
-    struct v2 uv;
-};
-
-struct cube_face
-{
-    u8 index;
-    u8 rotation;
-    u8 color;
-};
-
-struct cube_data
-{
-    struct m4 model;
-    struct cube_face faces[6];
-};
-
-struct cube_renderer
-{
-    struct cube_data cubes[MAX_CUBES];
-    u32 vao;
-    u32 vbo_vertices;
-    u32 vbo_cubes;
-    u32 ibo;
-    u32 num_indices;
-    u32 num_cubes;
 };
 
 #define MAX_BULLETS 64
@@ -1053,17 +1054,11 @@ void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
     }
 }
 
-void cube_renderer_add(struct cube_renderer* renderer, struct m4 model,
-    struct v4 color, u32 texture, u32 rotation)
+void cube_renderer_add(struct cube_renderer* renderer, struct cube_data* data)
 {
     if (renderer->num_cubes < MAX_CUBES)
     {
-        struct cube_data* cube = &renderer->cubes[renderer->num_cubes++];
-        memory_set(cube, sizeof(struct cube_data), 0);
-        cube->model = model;
-        cube->faces[0].index = texture;
-        cube->faces[0].rotation = rotation;
-        cube->faces[0].color = 3;
+        renderer->cubes[renderer->num_cubes++] = *data;
     }
 }
 
@@ -2995,8 +2990,9 @@ void enemies_render(struct game_state* state)
             struct m4 model = m4_mul_m4(scale, rotation);
             model = m4_mul_m4(model, transform);
 
-            cube_renderer_add(&state->cube_renderer, model, colors[WHITE], 13,
-                0);
+            enemy->cube.model = model;
+
+            cube_renderer_add(&state->cube_renderer, &enemy->cube);
 
             if (state->render_debug)
             {
@@ -3265,9 +3261,9 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         {
             player->rotation_timer = 0.0f;
 
-            if (++player->texture_rotation > 3)
+            if (++player->cube.faces[0].rotation > 3)
             {
-                player->texture_rotation = 0;
+                player->cube.faces[0].rotation = 0;
             }
         }
 
@@ -3415,8 +3411,9 @@ void player_render(struct game_state* state)
         struct m4 model = m4_mul_m4(scale, rotation);
         model = m4_mul_m4(model, transform);
 
-        cube_renderer_add(&state->cube_renderer, model, colors[TEAL], 15,
-            player->texture_rotation);
+        player->cube.model = model;
+
+        cube_renderer_add(&state->cube_renderer, &player->cube);
 
         if (state->render_debug)
         {
@@ -4295,6 +4292,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         enemy->body.angle = f32_radians(270 - i * 15.0f);
         enemy->vision_cone_size = 0.2f * i;
         enemy->shooting = false;
+        enemy->cube.faces[0].texture = 13;
     }
 
     state->level = 2;
@@ -4305,6 +4303,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
     state->player.alive = true;
     state->player.health = 100.0f;
     state->player.weapon_current = WEAPON_PISTOL;
+    state->player.cube.faces[0].texture = 15;
 
     struct weapon* weapon = &state->player.weapons[0];
     weapon->type = WEAPON_PISTOL;

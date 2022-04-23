@@ -48,11 +48,13 @@ void main()
 	texcoords.y = s * inTexcoords.x + c * inTexcoords.y;
 
 	if (color_index == 0)
-		color = vec4(1.0, 0.0, 0.0, 1.0);
+		color = vec4(1.0, 1.0, 1.0, 1.0);
 	else if (color_index == 1)
-		color = vec4(0.0, 1.0, 0.0, 1.0);
+		color = vec4(1.0, 0.0, 0.0, 1.0);
 	else if (color_index == 2)
+		color = vec4(0.0, 1.0, 0.0, 1.0);
+	else if (color_index == 3)
 		color = vec4(0.0, 0.0, 1.0, 1.0);
 	else
-		color = vec4(1.0);
+		color = vec4(0.0, 0.0, 0.0, 1.0);
 }
