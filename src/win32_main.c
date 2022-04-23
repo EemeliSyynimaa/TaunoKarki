@@ -545,6 +545,10 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     OPEN_GL_FUNCTION_LOAD(glDrawElementsInstanced);
     OPEN_GL_FUNCTION_LOAD(glTexImage3D);
     OPEN_GL_FUNCTION_LOAD(glTexSubImage3D);
+    OPEN_GL_FUNCTION_LOAD(glGetUniformBlockIndex);
+    OPEN_GL_FUNCTION_LOAD(glUniformBlockBinding);
+    OPEN_GL_FUNCTION_LOAD(glBindBufferRange);
+
     OPEN_GL_FUNCTION_COPY(glGetIntegerv);
     OPEN_GL_FUNCTION_COPY(glEnable);
     OPEN_GL_FUNCTION_COPY(glDepthFunc);

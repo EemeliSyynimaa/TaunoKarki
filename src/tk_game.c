@@ -7,6 +7,7 @@
 #include <string.h>
 
 #define MAX_CUBES 1024
+#define MAX_CUBE_COLORS 2048
 
 struct cube_vertex_data
 {
@@ -31,12 +32,17 @@ struct cube_data
 struct cube_renderer
 {
     struct cube_data cubes[MAX_CUBES];
+    struct v4 colors[MAX_CUBE_COLORS];
     u32 vao;
     u32 vbo_vertices;
     u32 vbo_cubes;
     u32 ibo;
+    u32 ubo;
     u32 num_indices;
     u32 num_cubes;
+    u32 num_colors;
+    u32 shader;
+    u32 texture;
 };
 
 struct particle_line
@@ -792,8 +798,12 @@ void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
         (void*)32);
 }
 
-void cube_renderer_init(struct cube_renderer* renderer)
+void cube_renderer_init(struct cube_renderer* renderer, u32 shader, u32 texture)
 {
+    renderer->shader = shader;
+    renderer->texture = texture;
+    renderer->colors[0] = (struct v4){ 1.0f, 1.0f, 1.0f, 1.0f };
+
     struct cube_vertex_data vertices[] =
     {
         // Top right
@@ -960,6 +970,7 @@ void cube_renderer_init(struct cube_renderer* renderer)
     glGenBuffers(1, &renderer->vbo_vertices);
     glGenBuffers(1, &renderer->vbo_cubes);
     glGenBuffers(1, &renderer->ibo);
+    glGenBuffers(1, &renderer->ubo);
 
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
@@ -1022,6 +1033,17 @@ void cube_renderer_init(struct cube_renderer* renderer)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, renderer->num_indices * sizeof(u32),
         indices, GL_STATIC_DRAW);
+
+    u32 uniform_block_index = glGetUniformBlockIndex(renderer->shader,
+        "uniform_colors");
+    glUniformBlockBinding(renderer->shader, uniform_block_index, 0);
+
+    glBindBuffer(GL_UNIFORM_BUFFER, renderer->ubo);
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(renderer->colors), NULL,
+        GL_STATIC_DRAW);
+
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, renderer->ubo, 0,
+        sizeof(renderer->colors));
 }
 
 void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
@@ -1062,21 +1084,27 @@ void cube_renderer_add(struct cube_renderer* renderer, struct cube_data* data)
     }
 }
 
-void cube_renderer_flush(struct cube_renderer* renderer, u32 texture,
-    u32 shader, struct m4* view_projection)
+void cube_renderer_flush(struct cube_renderer* renderer, struct m4* view,
+    struct m4* projection)
 {
     glBindVertexArray(renderer->vao);
 
-    glUseProgram(shader);
+    glUseProgram(renderer->shader);
 
-    u32 uniform_texture = glGetUniformLocation(shader, "uniform_texture");
-    u32 uniform_vp = glGetUniformLocation(shader, "uniform_vp");
+    u32 uniform_texture = glGetUniformLocation(renderer->shader,
+        "uniform_texture");
+    u32 uniform_vp = glGetUniformLocation(renderer->shader, "uniform_vp");
+
+    glBufferData(GL_UNIFORM_BUFFER, sizeof(renderer->colors), &renderer->colors,
+        GL_STATIC_DRAW);
+
+    struct m4 vp = m4_mul_m4(*view, *projection);
 
     glUniform1i(uniform_texture, 0);
-    glUniformMatrix4fv(uniform_vp, 1, GL_FALSE, (GLfloat*)view_projection);
+    glUniformMatrix4fv(uniform_vp, 1, GL_FALSE, (GLfloat*)&vp);
 
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, renderer->texture);
 
     glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_cubes);
     glBufferSubData(GL_ARRAY_BUFFER, 0,
@@ -4205,6 +4233,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
     s32 uniform_blocks_max_combined = 0;
     s32 uniform_buffer_max_bindings = 0;
     s32 uniform_block_max_size = 0;
+    s32 vertex_attribs_max = 0;
 
     glGetIntegerv(GL_MAJOR_VERSION, &version_major);
     glGetIntegerv(GL_MINOR_VERSION, &version_minor);
@@ -4214,6 +4243,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
     glGetIntegerv(GL_MAX_COMBINED_UNIFORM_BLOCKS, &uniform_blocks_max_combined);
     glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &uniform_buffer_max_bindings);
     glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniform_block_max_size);
+    glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &vertex_attribs_max);
 
     LOG("OpenGL %i.%i\n", version_major, version_minor);
     LOG("Uniform blocks max vertex: %d\n", uniform_blocks_max_vertex);
@@ -4222,6 +4252,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
     LOG("Uniform blocks max combined: %d\n", uniform_blocks_max_combined);
     LOG("Uniform buffer max bindings: %d\n", uniform_buffer_max_bindings);
     LOG("Uniform block max size: %d\n", uniform_block_max_size);
+    LOG("Vertex attribs max: %d\n", vertex_attribs_max);
 
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_BLEND);
@@ -4256,7 +4287,8 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->texture_cube = texture_array_create(&state->temporary,
             "assets/textures/cube.tga", 4, 4);
 
-        cube_renderer_init(&state->cube_renderer);
+        cube_renderer_init(&state->cube_renderer, state->shader_cube,
+            state->texture_cube);
 
         mesh_create(&state->temporary, "assets/meshes/sphere.mesh",
             &state->sphere);
@@ -4444,10 +4476,6 @@ void game_update(struct game_memory* memory, struct game_input* input)
             test_rotation += step;
         }
 
-
-        struct m4 view_projection =
-            m4_mul_m4(state->camera.view, state->camera.projection);
-
         u64 render_start = ticks_current_get();
         map_render(state);
         player_render(state);
@@ -4456,8 +4484,8 @@ void game_update(struct game_memory* memory, struct game_input* input)
         particle_lines_render(state);
         particle_spheres_render(state);
 
-        cube_renderer_flush(&state->cube_renderer, state->texture_cube,
-            state->shader_cube, &view_projection);
+        cube_renderer_flush(&state->cube_renderer, &state->camera.view,
+            &state->camera.projection);
         u64 render_end = ticks_current_get();
 
         LOG("Render time: %f\n", time_elapsed_seconds(state, render_start,

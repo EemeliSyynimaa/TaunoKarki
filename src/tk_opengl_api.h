@@ -53,6 +53,8 @@
 #define GL_STACK_OVERFLOW                 0x0503
 #define GL_STACK_UNDERFLOW                0x0504
 #define GL_OUT_OF_MEMORY                  0x0505
+#define GL_MAX_VERTEX_ATTRIBS             0x8869
+#define GL_UNIFORM_BUFFER                 0x8A11
 
 typedef u64 GLsizeiptr;
 typedef u64 GLintptr;
@@ -130,6 +132,12 @@ typedef void type_glTexSubImage3D(GLenum target, GLint level, GLint xoffset,
     GLenum format, GLenum type, const void* pixels);
 typedef void type_glBlendFunc(GLenum sfactor, GLenum dfactor);
 typedef GLenum type_glGetError(void);
+typedef GLuint type_glGetUniformBlockIndex(GLuint program,
+    const GLchar* uniformBlockName);
+typedef void type_glUniformBlockBinding(GLuint program,
+    GLuint uniformBlockIndex, GLuint uniformBlockBinding);
+typedef void type_glBindBufferRange(GLenum target, GLuint index, GLuint buffer,
+    GLintptr offset, GLsizeiptr size);
 
 struct opengl_functions
 {
@@ -177,4 +185,7 @@ struct opengl_functions
     OPEN_GL_FUNCTION(glTexSubImage3D);
     OPEN_GL_FUNCTION(glBlendFunc);
     OPEN_GL_FUNCTION(glGetError);
+    OPEN_GL_FUNCTION(glGetUniformBlockIndex);
+    OPEN_GL_FUNCTION(glUniformBlockBinding);
+    OPEN_GL_FUNCTION(glBindBufferRange);
 };

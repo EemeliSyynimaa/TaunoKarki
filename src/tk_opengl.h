@@ -42,6 +42,9 @@ OPEN_GL_FUNCTION(glTexImage3D);
 OPEN_GL_FUNCTION(glTexSubImage3D);
 OPEN_GL_FUNCTION(glBlendFunc);
 OPEN_GL_FUNCTION(glGetError);
+OPEN_GL_FUNCTION(glGetUniformBlockIndex);
+OPEN_GL_FUNCTION(glUniformBlockBinding);
+OPEN_GL_FUNCTION(glBindBufferRange);
 
 #define OPEN_GL_FUNCTION_COPY(name) name = gl->name
 
@@ -92,5 +95,8 @@ void opengl_functions_set(struct opengl_functions* gl)
     OPEN_GL_FUNCTION_COPY(glTexSubImage3D);
     OPEN_GL_FUNCTION_COPY(glBlendFunc);
     OPEN_GL_FUNCTION_COPY(glGetError);
+    OPEN_GL_FUNCTION_COPY(glGetUniformBlockIndex);
+    OPEN_GL_FUNCTION_COPY(glUniformBlockBinding);
+    OPEN_GL_FUNCTION_COPY(glBindBufferRange);
     LOG("done\n");
 }

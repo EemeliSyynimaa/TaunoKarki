@@ -17,6 +17,11 @@ out vec2 texcoords;
 out vec4 color;
 out float texture_index;
 
+layout(std140) uniform uniform_colors
+{
+	vec4 colors[4096];
+};
+
 void main()
 {
 	gl_Position = uniform_vp * inModel * vec4(inPosition, 1.0);
@@ -39,22 +44,11 @@ void main()
 
 	texture_index = face.x;
 	float angle = radians(face.y * 90.0f);
-	float color_index = face.z;
-
 	float c = cos(angle);
 	float s = sin(angle);
 
 	texcoords.x = c * inTexcoords.x - s * inTexcoords.y;
 	texcoords.y = s * inTexcoords.x + c * inTexcoords.y;
 
-	if (color_index == 0)
-		color = vec4(1.0, 1.0, 1.0, 1.0);
-	else if (color_index == 1)
-		color = vec4(1.0, 0.0, 0.0, 1.0);
-	else if (color_index == 2)
-		color = vec4(0.0, 1.0, 0.0, 1.0);
-	else if (color_index == 3)
-		color = vec4(0.0, 0.0, 1.0, 1.0);
-	else
-		color = vec4(0.0, 0.0, 0.0, 1.0);
+	color = colors[face.z];
 }
