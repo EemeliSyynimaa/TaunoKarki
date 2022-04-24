@@ -3646,14 +3646,56 @@ void player_render(struct game_state* state)
 
     if (player->alive)
     {
-        struct m4 transform = m4_translate(player->body.position.x,
-            player->body.position.y, PLAYER_RADIUS);
-        struct m4 rotation = m4_rotate_z(player->body.angle);
-        struct m4 scale = m4_scale_xyz(PLAYER_RADIUS, PLAYER_RADIUS, 0.25f);
-        struct m4 model = m4_mul_m4(scale, rotation);
-        model = m4_mul_m4(model, transform);
+        u32 voxels = 8;
+        f32 radius = (f32)PLAYER_RADIUS / (f32)voxels;
 
-        voxel_renderer_add(&state->voxel_renderer, &model, &colors[FUCHSIA]);
+        struct m4 transform = { 0 };
+        struct m4 rotation = m4_rotate_z(player->body.angle);
+        struct m4 scale = m4_scale_xyz(radius, radius, radius);
+        struct m4 model = { 0 };
+
+        struct v3 position = { player->body.position.x,
+            player->body.position.y, PLAYER_RADIUS };
+
+        struct v3 start =
+        {
+            -PLAYER_RADIUS + PLAYER_RADIUS / voxels,
+            -PLAYER_RADIUS + PLAYER_RADIUS / voxels,
+            0.0f
+        };
+
+        for (u32 z = 0, i = 0; z < voxels; z++)
+        {
+            for (u32 y = 0; y < voxels; y++)
+            {
+                for (u32 x = 0; x < voxels; x++, i++)
+                {
+                    transform = m4_translate(start.x + x * radius * 2.0f,
+                        start.y + y * radius * 2.0f,
+                        start.z + z * radius * 2.0f);
+
+                    model = m4_mul_m4(scale, transform);
+                    model = m4_mul_m4(model, rotation);
+
+                    transform = m4_translate(position.x, position.y,
+                        position.z);
+
+                    model = m4_mul_m4(model, transform);
+                    voxel_renderer_add(&state->voxel_renderer, &model,
+                        &colors[(i % 2 ? WHITE : RED)]);
+                }
+
+                if (!(voxels % 2))
+                {
+                    i++;
+                }
+            }
+
+            if (!(voxels % 2))
+            {
+                i++;
+            }
+        }
 
         if (state->render_debug)
         {
