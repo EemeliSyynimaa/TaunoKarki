@@ -45,6 +45,32 @@ struct cube_renderer
     u32 texture;
 };
 
+#define MAX_VOXELS 8192
+
+struct voxel_vertex_data
+{
+    struct v3 position;
+    struct v3 normal;
+};
+
+struct voxel_data
+{
+    struct m4 model;
+    struct v4 color;
+};
+
+struct voxel_renderer
+{
+    struct voxel_data voxels[MAX_VOXELS];
+    u32 vao;
+    u32 vbo_vertices;
+    u32 vbo_voxels;
+    u32 ibo;
+    u32 num_indices;
+    u32 num_voxels;
+    u32 shader;
+};
+
 struct particle_line
 {
     struct v2 start;
@@ -101,9 +127,7 @@ struct player
     struct rigid_body body;
     struct v2 eye_position;
     struct weapon weapons[3];
-    struct cube_data cube;
     f32 health;
-    f32 rotation_timer;
     b32 alive;
     u32 weapon_current;
 };
@@ -125,7 +149,6 @@ struct enemy
     struct v2 direction_look;
     struct v2 eye_position;
     struct weapon weapon;
-    struct cube_data cube;
     u32 path_index;
     u32 path_length;
     f32 health;
@@ -214,11 +237,13 @@ struct game_state
     struct line_segment cols_static[MAX_COLLISION_SEGMENTS];
     struct line_segment cols_dynamic[MAX_COLLISION_SEGMENTS];
     struct cube_renderer cube_renderer;
+    struct voxel_renderer voxel_renderer;
     b32 render_debug;
     f32 accumulator;
     u32 shader;
     u32 shader_simple;
     u32 shader_cube;
+    u32 shader_voxel;
     u32 texture_tileset;
     u32 texture_sphere;
     u32 texture_cube;
@@ -1046,36 +1071,6 @@ void cube_renderer_init(struct cube_renderer* renderer, u32 shader, u32 texture)
         sizeof(renderer->colors));
 }
 
-void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
-{
-    struct v2 temp_b = { b->x - a.x, b->y - a.y };
-    struct v2 temp_c = { c->x - a.x, c->y - a.y };
-    struct v2 forward =
-    {
-        (temp_b.x + temp_c.x) * 0.5f,
-        (temp_b.y + temp_c.y) * 0.5f
-    };
-
-    // Todo: use cross product
-    f32 angle = F64_PI*1.5f;
-    f32 tsin = f32_sin(angle);
-    f32 tcos = f32_cos(angle);
-
-    struct v2 right =
-    {
-        forward.x * tcos - forward.y * tsin,
-        forward.x * tsin + forward.y * tcos
-    };
-
-    f32 diff_b = v2_dot(right, temp_b);
-    f32 diff_c = v2_dot(right, temp_c);
-
-    if (diff_c > diff_b)
-    {
-        v2_swap(b, c);
-    }
-}
-
 void cube_renderer_add(struct cube_renderer* renderer, struct cube_data* data)
 {
     if (renderer->num_cubes < MAX_CUBES)
@@ -1114,8 +1109,240 @@ void cube_renderer_flush(struct cube_renderer* renderer, struct m4* view,
         GL_UNSIGNED_INT, NULL, renderer->num_cubes);
 
     glUseProgram(0);
+    glBindVertexArray(0);
 
     renderer->num_cubes = 0;
+}
+
+void voxel_renderer_init(struct voxel_renderer* renderer, u32 shader)
+{
+    renderer->shader = shader;
+
+    struct voxel_vertex_data vertices[] =
+    {
+        {
+            { 1.0f, 1.0f, 1.0f },
+            { 0.0f, 0.0f, 1.0f }
+        },
+        {
+            { -1.0f, 1.0f, 1.0f },
+            { 0.0f, 0.0f, 1.0f }
+        },
+        {
+            { -1.0f, -1.0f, 1.0f },
+            { 0.0f, 0.0f, 1.0f }
+        },
+        {
+            { 1.0f, -1.0f, 1.0f },
+            { 0.0f, 0.0f, 1.0f }
+        },
+        {
+            { -1.0f, 1.0f, -1.0f },
+            { 0.0f, 0.0f, -1.0f }
+        },
+        {
+            { 1.0f, 1.0f, -1.0f },
+            { 0.0f, 0.0f, -1.0f }
+        },
+        {
+            { 1.0f, -1.0f, -1.0f },
+            { 0.0f, 0.0f, -1.0f }
+        },
+        {
+            { -1.0f, -1.0f, -1.0f },
+            { 0.0f, 0.0f, -1.0f }
+        },
+        {
+            { -1.0f, -1.0f, 1.0f },
+            { -1.0f, 0.0f, 0.0f }
+        },
+        {
+            { -1.0f, 1.0f, 1.0f },
+            { -1.0f, 0.0f, 0.0f }
+        },
+        {
+            { -1.0f, 1.0f, -1.0f },
+            { -1.0f, 0.0f, 0.0f }
+        },
+        {
+            { -1.0f, -1.0f, -1.0f },
+            { -1.0f, 0.0f, 0.0f }
+        },
+        {
+            { 1.0f, 1.0f, 1.0f },
+            { 1.0f, 0.0f, 0.0f }
+        },
+        {
+            { 1.0f, -1.0f, 1.0f },
+            { 1.0f, 0.0f, 0.0f }
+        },
+        {
+            { 1.0f, -1.0f, -1.0f },
+            { 1.0f, 0.0f, 0.0f }
+        },
+        {
+            { 1.0f, 1.0f, -1.0f },
+            { 1.0f, 0.0f, 0.0f }
+        },
+        {
+            { -1.0f, 1.0f, 1.0f },
+            { 0.0f, 1.0f, 0.0f }
+        },
+        {
+            { 1.0f, 1.0f, 1.0f },
+            { 0.0f, 1.0f, 0.0f }
+        },
+        {
+            { 1.0f, 1.0f, -1.0f },
+            { 0.0f, 1.0f, 0.0f }
+        },
+        {
+            { -1.0f, 1.0f, -1.0f },
+            { 0.0f, 1.0f, 0.0f }
+        },
+        {
+            { 1.0f, -1.0f, 1.0f },
+            { 0.0f, -1.0f, 0.0f }
+        },
+        {
+            { -1.0f, -1.0f, 1.0f },
+            { 0.0f, -1.0f, 0.0f }
+        },
+        {
+            { -1.0f, -1.0f, -1.0f },
+            { 0.0f, -1.0f, 0.0f }
+        },
+        {
+            { 1.0f, -1.0f, -1.0f },
+            { 0.0f, -1.0f, 0.0f }
+        }
+    };
+
+    u32 indices[] =
+    {
+         0,  1,  2,  0,  2,  3, // Top
+         4,  5,  6,  4,  6,  7, // Bottom
+         8,  9, 10,  8, 10, 11, // Left
+        12, 13, 14, 12, 14, 15, // Right
+        16, 17, 18, 16, 18, 19, // Up
+        20, 21, 22, 20, 22, 23, // Down
+    };
+
+    renderer->num_indices = 36;
+
+    glGenVertexArrays(1, &renderer->vao);
+    glBindVertexArray(renderer->vao);
+
+    glGenBuffers(1, &renderer->vbo_vertices);
+    glGenBuffers(1, &renderer->vbo_voxels);
+    glGenBuffers(1, &renderer->ibo);
+
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+    glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
+    glEnableVertexAttribArray(4);
+    glEnableVertexAttribArray(5);
+    glEnableVertexAttribArray(6);
+
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_vertices);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+        sizeof(struct voxel_vertex_data), (void*)0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
+        sizeof(struct voxel_vertex_data), (void*)(sizeof(struct v3)));
+
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_voxels);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->voxels), NULL,
+        GL_DYNAMIC_DRAW);
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(struct voxel_data),
+        (void*)0);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(struct voxel_data),
+        (void*)sizeof(struct v4));
+    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(struct voxel_data),
+        (void*)(sizeof(struct v4) * 2));
+    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(struct voxel_data),
+        (void*)(sizeof(struct v4) * 3));
+    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(struct voxel_data),
+        (void*)(sizeof(struct v4) * 4));
+
+    glVertexAttribDivisor(2, 1);
+    glVertexAttribDivisor(3, 1);
+    glVertexAttribDivisor(4, 1);
+    glVertexAttribDivisor(5, 1);
+    glVertexAttribDivisor(6, 1);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, renderer->num_indices * sizeof(u32),
+        indices, GL_STATIC_DRAW);
+
+    glBindVertexArray(0);
+}
+
+void voxel_renderer_add(struct voxel_renderer* renderer, struct m4* model,
+    struct v4* color)
+{
+    if (renderer->num_voxels < MAX_VOXELS)
+    {
+        struct voxel_data* data = &renderer->voxels[renderer->num_voxels++];
+        data->model = *model;
+        data->color = *color;
+    }
+}
+
+void voxel_renderer_flush(struct voxel_renderer* renderer, struct m4* view,
+    struct m4* projection)
+{
+    glBindVertexArray(renderer->vao);
+    glUseProgram(renderer->shader);
+
+    u32 uniform_vp = glGetUniformLocation(renderer->shader, "uniform_vp");
+
+    struct m4 vp = m4_mul_m4(*view, *projection);
+
+    glUniformMatrix4fv(uniform_vp, 1, GL_FALSE, (GLfloat*)&vp);
+
+    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_voxels);
+    glBufferSubData(GL_ARRAY_BUFFER, 0,
+        renderer->num_voxels * sizeof(struct voxel_data), renderer->voxels);
+
+    glDrawElementsInstanced(GL_TRIANGLES, renderer->num_indices,
+        GL_UNSIGNED_INT, NULL, renderer->num_voxels);
+
+    glUseProgram(0);
+    glBindVertexArray(0);
+
+    renderer->num_voxels = 0;
+}
+
+void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
+{
+    struct v2 temp_b = { b->x - a.x, b->y - a.y };
+    struct v2 temp_c = { c->x - a.x, c->y - a.y };
+    struct v2 forward =
+    {
+        (temp_b.x + temp_c.x) * 0.5f,
+        (temp_b.y + temp_c.y) * 0.5f
+    };
+
+    // Todo: use cross product
+    f32 angle = F64_PI*1.5f;
+    f32 tsin = f32_sin(angle);
+    f32 tcos = f32_cos(angle);
+
+    struct v2 right =
+    {
+        forward.x * tcos - forward.y * tsin,
+        forward.x * tsin + forward.y * tcos
+    };
+
+    f32 diff_b = v2_dot(right, temp_b);
+    f32 diff_c = v2_dot(right, temp_c);
+
+    if (diff_c > diff_b)
+    {
+        v2_swap(b, c);
+    }
 }
 
 void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader,
@@ -1796,7 +2023,6 @@ void map_render(struct game_state* state)
                     struct m4 mvp = m4_mul_m4(model, state->camera.view);
                     mvp = m4_mul_m4(mvp, state->camera.projection);
 
-                    // cube_renderer_add(&state->cube_renderer, cube);
                     mesh_render(&state->wall, &mvp, state->texture_tileset,
                         state->shader, color);
                 }
@@ -3018,9 +3244,7 @@ void enemies_render(struct game_state* state)
             struct m4 model = m4_mul_m4(scale, rotation);
             model = m4_mul_m4(model, transform);
 
-            enemy->cube.model = model;
-
-            cube_renderer_add(&state->cube_renderer, &enemy->cube);
+            voxel_renderer_add(&state->voxel_renderer, &model, &colors[LIME]);
 
             if (state->render_debug)
             {
@@ -3285,16 +3509,6 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 
     if (player->alive)
     {
-        if ((player->rotation_timer += dt) > 0.5f)
-        {
-            player->rotation_timer = 0.0f;
-
-            if (++player->cube.faces[0].rotation > 3)
-            {
-                player->cube.faces[0].rotation = 0;
-            }
-        }
-
         struct v2 direction = { 0.0f };
         struct v2 acceleration = { 0.0f };
         struct v2 move_delta = { 0.0f };
@@ -3439,9 +3653,7 @@ void player_render(struct game_state* state)
         struct m4 model = m4_mul_m4(scale, rotation);
         model = m4_mul_m4(model, transform);
 
-        player->cube.model = model;
-
-        cube_renderer_add(&state->cube_renderer, &player->cube);
+        voxel_renderer_add(&state->voxel_renderer, &model, &colors[FUCHSIA]);
 
         if (state->render_debug)
         {
@@ -4280,6 +4492,10 @@ void game_init(struct game_memory* memory, struct game_init* init)
             "assets/shaders/vertex_cube.glsl",
             "assets/shaders/fragment_cube.glsl");
 
+        state->shader_voxel = program_create(&state->temporary,
+            "assets/shaders/vertex_voxel.glsl",
+            "assets/shaders/fragment_voxel.glsl");
+
         state->texture_tileset = texture_create(&state->temporary,
             "assets/textures/tileset.tga");
         state->texture_sphere = texture_create(&state->temporary,
@@ -4289,6 +4505,8 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         cube_renderer_init(&state->cube_renderer, state->shader_cube,
             state->texture_cube);
+
+        voxel_renderer_init(&state->voxel_renderer, state->shader_voxel);
 
         mesh_create(&state->temporary, "assets/meshes/sphere.mesh",
             &state->sphere);
@@ -4324,7 +4542,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
         enemy->body.angle = f32_radians(270 - i * 15.0f);
         enemy->vision_cone_size = 0.2f * i;
         enemy->shooting = false;
-        enemy->cube.faces[0].texture = 13;
     }
 
     state->level = 2;
@@ -4335,7 +4552,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
     state->player.alive = true;
     state->player.health = 100.0f;
     state->player.weapon_current = WEAPON_PISTOL;
-    state->player.cube.faces[0].texture = 15;
 
     struct weapon* weapon = &state->player.weapons[0];
     weapon->type = WEAPON_PISTOL;
@@ -4486,6 +4702,9 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
         cube_renderer_flush(&state->cube_renderer, &state->camera.view,
             &state->camera.projection);
+        voxel_renderer_flush(&state->voxel_renderer, &state->camera.view,
+            &state->camera.projection);
+
         u64 render_end = ticks_current_get();
 
         LOG("Render time: %f\n", time_elapsed_seconds(state, render_start,
