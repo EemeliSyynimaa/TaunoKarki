@@ -122,11 +122,20 @@ struct weapon
     b32 reloading;
 };
 
+struct voxel_map
+{
+    struct v4 color;
+    b32 alive;
+};
+
+#define PLAYER_VOXELS 8
+
 struct player
 {
     struct rigid_body body;
     struct v2 eye_position;
     struct weapon weapons[3];
+    struct voxel_map voxels[PLAYER_VOXELS][PLAYER_VOXELS][PLAYER_VOXELS];
     f32 health;
     b32 alive;
     u32 weapon_current;
@@ -149,6 +158,7 @@ struct enemy
     struct v2 direction_look;
     struct v2 eye_position;
     struct weapon weapon;
+    struct voxel_map voxels[PLAYER_VOXELS][PLAYER_VOXELS][PLAYER_VOXELS];
     u32 path_index;
     u32 path_length;
     f32 health;
@@ -278,7 +288,7 @@ u32 random_number_generate(struct game_state* state)
 
 u32 u32_random_number_get(struct game_state* state, u32 min, u32 max)
 {
-    u32 result = random_number_generate(state) % max + min;
+    u32 result = random_number_generate(state) % (max + 1) + min;
 
     return result;
 }
@@ -1293,6 +1303,7 @@ void voxel_renderer_add(struct voxel_renderer* renderer, struct m4* model,
 void voxel_renderer_flush(struct voxel_renderer* renderer, struct m4* view,
     struct m4* projection)
 {
+    LOG("Rendering voxels: %d/%d\n", renderer->num_voxels, MAX_VOXELS);
     glBindVertexArray(renderer->vao);
     glUseProgram(renderer->shader);
 
@@ -3237,14 +3248,50 @@ void enemies_render(struct game_state* state)
 
         if (enemy->alive)
         {
-            struct m4 transform = m4_translate(enemy->body.position.x,
-                enemy->body.position.y, PLAYER_RADIUS);
-            struct m4 rotation = m4_rotate_z(enemy->body.angle);
-            struct m4 scale = m4_scale_xyz(PLAYER_RADIUS, PLAYER_RADIUS, 0.25f);
-            struct m4 model = m4_mul_m4(scale, rotation);
-            model = m4_mul_m4(model, transform);
+            f32 radius = (f32)PLAYER_RADIUS / (f32)PLAYER_VOXELS;
 
-            voxel_renderer_add(&state->voxel_renderer, &model, &colors[LIME]);
+            struct m4 transform = { 0 };
+            struct m4 rotation = m4_rotate_z(enemy->body.angle);
+            struct m4 scale = m4_scale_xyz(radius, radius, radius);
+            struct m4 model = { 0 };
+
+            struct v3 position = { enemy->body.position.x,
+                enemy->body.position.y, PLAYER_RADIUS };
+
+            struct v3 start =
+            {
+                -PLAYER_RADIUS + PLAYER_RADIUS / PLAYER_VOXELS,
+                -PLAYER_RADIUS + PLAYER_RADIUS / PLAYER_VOXELS,
+                0.0f
+            };
+
+            for (u32 z = 0; z < PLAYER_VOXELS; z++)
+            {
+                for (u32 y = 0; y < PLAYER_VOXELS; y++)
+                {
+                    for (u32 x = 0; x < PLAYER_VOXELS; x++)
+                    {
+                        struct voxel_map* voxel = &enemy->voxels[z][y][x];
+
+                        if (voxel->alive)
+                        {
+                            transform = m4_translate(start.x + x * radius * 2.0f,
+                                start.y + y * radius * 2.0f,
+                                start.z + z * radius * 2.0f);
+
+                            model = m4_mul_m4(scale, transform);
+                            model = m4_mul_m4(model, rotation);
+
+                            transform = m4_translate(position.x, position.y,
+                                position.z);
+
+                            model = m4_mul_m4(model, transform);
+                            voxel_renderer_add(&state->voxel_renderer, &model,
+                                &voxel->color);
+                        }
+                    }
+                }
+            }
 
             if (state->render_debug)
             {
@@ -3646,8 +3693,7 @@ void player_render(struct game_state* state)
 
     if (player->alive)
     {
-        u32 voxels = 8;
-        f32 radius = (f32)PLAYER_RADIUS / (f32)voxels;
+        f32 radius = (f32)PLAYER_RADIUS / (f32)PLAYER_VOXELS;
 
         struct m4 transform = { 0 };
         struct m4 rotation = m4_rotate_z(player->body.angle);
@@ -3659,41 +3705,36 @@ void player_render(struct game_state* state)
 
         struct v3 start =
         {
-            -PLAYER_RADIUS + PLAYER_RADIUS / voxels,
-            -PLAYER_RADIUS + PLAYER_RADIUS / voxels,
+            -PLAYER_RADIUS + PLAYER_RADIUS / PLAYER_VOXELS,
+            -PLAYER_RADIUS + PLAYER_RADIUS / PLAYER_VOXELS,
             0.0f
         };
 
-        for (u32 z = 0, i = 0; z < voxels; z++)
+        for (u32 z = 0; z < PLAYER_VOXELS; z++)
         {
-            for (u32 y = 0; y < voxels; y++)
+            for (u32 y = 0; y < PLAYER_VOXELS; y++)
             {
-                for (u32 x = 0; x < voxels; x++, i++)
+                for (u32 x = 0; x < PLAYER_VOXELS; x++)
                 {
-                    transform = m4_translate(start.x + x * radius * 2.0f,
-                        start.y + y * radius * 2.0f,
-                        start.z + z * radius * 2.0f);
+                    struct voxel_map* voxel = &player->voxels[z][y][x];
 
-                    model = m4_mul_m4(scale, transform);
-                    model = m4_mul_m4(model, rotation);
+                    if (voxel->alive)
+                    {
+                        transform = m4_translate(start.x + x * radius * 2.0f,
+                            start.y + y * radius * 2.0f,
+                            start.z + z * radius * 2.0f);
 
-                    transform = m4_translate(position.x, position.y,
-                        position.z);
+                        model = m4_mul_m4(scale, transform);
+                        model = m4_mul_m4(model, rotation);
 
-                    model = m4_mul_m4(model, transform);
-                    voxel_renderer_add(&state->voxel_renderer, &model,
-                        &colors[(i % 2 ? WHITE : RED)]);
+                        transform = m4_translate(position.x, position.y,
+                            position.z);
+
+                        model = m4_mul_m4(model, transform);
+                        voxel_renderer_add(&state->voxel_renderer, &model,
+                            &voxel->color);
+                    }
                 }
-
-                if (!(voxels % 2))
-                {
-                    i++;
-                }
-            }
-
-            if (!(voxels % 2))
-            {
-                i++;
             }
         }
 
@@ -4584,6 +4625,20 @@ void game_init(struct game_memory* memory, struct game_init* init)
         enemy->body.angle = f32_radians(270 - i * 15.0f);
         enemy->vision_cone_size = 0.2f * i;
         enemy->shooting = false;
+
+        for (u32 z = 0; z < PLAYER_VOXELS; z++)
+        {
+            for (u32 y = 0; y < PLAYER_VOXELS; y++)
+            {
+                for (u32 x = 0; x < PLAYER_VOXELS; x++)
+                {
+                    struct voxel_map* voxel = &enemy->voxels[z][y][x];
+                    voxel->color =
+                        z == PLAYER_VOXELS -1 ? colors[RED] : colors[LIME];
+                    voxel->alive = true;
+                }
+            }
+        }
     }
 
     state->level = 2;
@@ -4594,6 +4649,20 @@ void game_init(struct game_memory* memory, struct game_init* init)
     state->player.alive = true;
     state->player.health = 100.0f;
     state->player.weapon_current = WEAPON_PISTOL;
+
+    for (u32 z = 0; z < PLAYER_VOXELS; z++)
+    {
+        for (u32 y = 0; y < PLAYER_VOXELS; y++)
+        {
+            for (u32 x = 0; x < PLAYER_VOXELS; x++)
+            {
+                struct voxel_map* voxel = &state->player.voxels[z][y][x];
+                voxel->color =
+                    z == PLAYER_VOXELS -1 ? colors[BLACK] : colors[AQUA];
+                voxel->alive = true;
+            }
+        }
+    }
 
     struct weapon* weapon = &state->player.weapons[0];
     weapon->type = WEAPON_PISTOL;
@@ -4749,8 +4818,8 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
         u64 render_end = ticks_current_get();
 
-        LOG("Render time: %f\n", time_elapsed_seconds(state, render_start,
-            render_end));
+        // LOG("Render time: %f\n", time_elapsed_seconds(state, render_start,
+        //     render_end));
 
         if (state->render_debug)
         {
