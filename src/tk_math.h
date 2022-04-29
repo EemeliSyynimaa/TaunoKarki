@@ -572,6 +572,11 @@ struct m4 m4_identity()
     return result;
 }
 
+b32 v4_equals(struct v4 a, struct v4 b)
+{
+    return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
+}
+
 f32 v3_length(struct v3 v)
 {
     f32 result = f32_sqrt(v.x * v.x + v.y * v.y + v.z * v.z);

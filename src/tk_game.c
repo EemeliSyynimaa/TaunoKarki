@@ -43,6 +43,7 @@ struct cube_renderer
     u32 num_colors;
     u32 shader;
     u32 texture;
+    b32 update_color_data;
 };
 
 struct particle_line
@@ -802,7 +803,6 @@ void cube_renderer_init(struct cube_renderer* renderer, u32 shader, u32 texture)
 {
     renderer->shader = shader;
     renderer->texture = texture;
-    renderer->colors[0] = (struct v4){ 1.0f, 1.0f, 1.0f, 1.0f };
 
     struct cube_vertex_data vertices[] =
     {
@@ -1009,15 +1009,15 @@ void cube_renderer_init(struct cube_renderer* renderer, u32 shader, u32 texture)
     glVertexAttribIPointer(7, 3, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
         (void*)(sizeof(struct v4) * 4));
     glVertexAttribIPointer(8, 3, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
-        (void*)(sizeof(struct v4) * 4 + 2));
+        (void*)(sizeof(struct v4) * 4 + 3));
     glVertexAttribIPointer(9, 3, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
-        (void*)(sizeof(struct v4) * 4 + 4));
-    glVertexAttribIPointer(10, 3, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
         (void*)(sizeof(struct v4) * 4 + 6));
+    glVertexAttribIPointer(10, 3, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
+        (void*)(sizeof(struct v4) * 4 + 9));
     glVertexAttribIPointer(11, 3, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
-        (void*)(sizeof(struct v4) * 4 + 8));
+        (void*)(sizeof(struct v4) * 4 + 12));
     glVertexAttribIPointer(12, 3, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
-        (void*)(sizeof(struct v4) * 4 + 10));
+        (void*)(sizeof(struct v4) * 4 + 15));
 
     glVertexAttribDivisor(3, 1);
     glVertexAttribDivisor(4, 1);
@@ -1088,15 +1088,19 @@ void cube_renderer_flush(struct cube_renderer* renderer, struct m4* view,
     struct m4* projection)
 {
     glBindVertexArray(renderer->vao);
-
     glUseProgram(renderer->shader);
 
     u32 uniform_texture = glGetUniformLocation(renderer->shader,
         "uniform_texture");
     u32 uniform_vp = glGetUniformLocation(renderer->shader, "uniform_vp");
 
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(renderer->colors), &renderer->colors,
-        GL_STATIC_DRAW);
+    if (renderer->update_color_data)
+    {
+        glBufferData(GL_UNIFORM_BUFFER, sizeof(renderer->colors),
+            &renderer->colors, GL_STATIC_DRAW);
+
+        renderer->update_color_data = false;
+    }
 
     struct m4 vp = m4_mul_m4(*view, *projection);
 
@@ -1114,8 +1118,34 @@ void cube_renderer_flush(struct cube_renderer* renderer, struct m4* view,
         GL_UNSIGNED_INT, NULL, renderer->num_cubes);
 
     glUseProgram(0);
+    glBindVertexArray(0);
 
     renderer->num_cubes = 0;
+}
+
+s32 cube_renderer_color_add(struct cube_renderer* renderer, struct v4 color)
+{
+    s32 result = -1;
+
+    // Todo: we should figure out what to do when the color buffer is full
+    for (u32 i = 0; i < renderer->num_colors; i++)
+    {
+        if (v4_equals(renderer->colors[i], color))
+        {
+            result = i;
+            renderer->update_color_data = true;
+            break;
+        }
+    }
+
+    if (result == -1 && renderer->num_colors < MAX_CUBE_COLORS)
+    {
+        result = renderer->num_colors++;
+        renderer->colors[result] = color;
+        renderer->update_color_data = true;
+    }
+
+    return result;
 }
 
 void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader,
@@ -1139,6 +1169,7 @@ void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader,
     glDrawElements(GL_TRIANGLES, mesh->num_indices, GL_UNSIGNED_INT, NULL);
 
     glUseProgram(0);
+    glBindVertexArray(0);
 }
 
 void line_render(struct game_state* state, struct v2 start, struct v2 end,
@@ -1320,6 +1351,7 @@ void triangle_render(struct game_state* state, struct v2 a, struct v2 b,
     glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, NULL);
 
     glUseProgram(0);
+    glBindVertexArray(0);
 }
 
 void cursor_render(struct game_state* state)
@@ -4315,6 +4347,11 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
     state->num_enemies = 5;
 
+    u32 color_enemy = cube_renderer_color_add(&state->cube_renderer,
+        (struct v4){ 0.7f, 0.90f, 0.1f, 1.0f });
+    u32 color_player = cube_renderer_color_add(&state->cube_renderer,
+        (struct v4){ 1.0f, 0.4f, 0.9f, 1.0f });
+
     for (u32 i = 0; i < state->num_enemies; i++)
     {
         struct enemy* enemy = &state->enemies[i];
@@ -4325,6 +4362,11 @@ void game_init(struct game_memory* memory, struct game_init* init)
         enemy->vision_cone_size = 0.2f * i;
         enemy->shooting = false;
         enemy->cube.faces[0].texture = 13;
+
+        for (u32 i = 0; i < 6; i++)
+        {
+            enemy->cube.faces[i].color = color_enemy;
+        }
     }
 
     state->level = 2;
@@ -4336,6 +4378,11 @@ void game_init(struct game_memory* memory, struct game_init* init)
     state->player.health = 100.0f;
     state->player.weapon_current = WEAPON_PISTOL;
     state->player.cube.faces[0].texture = 15;
+
+    for (u32 i = 0; i < 6; i++)
+    {
+        state->player.cube.faces[i].color = color_player;
+    }
 
     struct weapon* weapon = &state->player.weapons[0];
     weapon->type = WEAPON_PISTOL;

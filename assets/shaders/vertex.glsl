@@ -10,7 +10,7 @@ out vec4 color;
 
 void main()
 {
-	gl_Position = MVP * vec4(inPosition, 1.0);
-	texcoords = inTexcoords;
-	color = inColor;
+    gl_Position = MVP * vec4(inPosition, 1.0);
+    texcoords = inTexcoords;
+    color = inColor;
 }
