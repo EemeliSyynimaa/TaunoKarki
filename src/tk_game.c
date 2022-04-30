@@ -4466,7 +4466,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
     }
 }
 
-
 void game_update(struct game_memory* memory, struct game_input* input)
 {
     static f32 test_rotation = 0.0f;
