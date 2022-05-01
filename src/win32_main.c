@@ -628,6 +628,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         }
 
         new_input.enable_debug_rendering = old_input.enable_debug_rendering;
+        new_input.pause = old_input.pause;
 
         MSG msg;
 
@@ -663,6 +664,10 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                         {
                             new_input.enable_debug_rendering =
                                 !new_input.enable_debug_rendering;
+                        }
+                        else if (msg.wParam == 0x50 && was_down)
+                        {
+                            new_input.pause = !new_input.pause;
                         }
                         else if (msg.wParam == VK_F5 && was_down)
                         {

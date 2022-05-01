@@ -104,7 +104,6 @@ struct player
     struct weapon weapons[3];
     struct cube_data cube;
     f32 health;
-    f32 rotation_timer;
     b32 alive;
     u32 weapon_current;
 };
@@ -3317,16 +3316,6 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 
     if (player->alive)
     {
-        if ((player->rotation_timer += dt) > 0.5f)
-        {
-            player->rotation_timer = 0.0f;
-
-            if (++player->cube.faces[0].rotation > 3)
-            {
-                player->cube.faces[0].rotation = 0;
-            }
-        }
-
         struct v2 direction = { 0.0f };
         struct v2 acceleration = { 0.0f };
         struct v2 move_delta = { 0.0f };
@@ -4474,8 +4463,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
 void game_update(struct game_memory* memory, struct game_input* input)
 {
-    static f32 test_rotation = 0.0f;
-
     if (memory->initialized)
     {
         struct game_state* state = (struct game_state*)memory->base;
@@ -4486,47 +4473,50 @@ void game_update(struct game_memory* memory, struct game_input* input)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         f32 step = 1.0f / 120.0f;
-        state->accumulator += input->delta_time;
 
         state->mouse.screen.x = input->mouse_x;
         state->mouse.screen.y = input->mouse_y;
 
         state->mouse.world = calculate_world_pos(input->mouse_x, 
             input->mouse_y, camera);
-            
-        while (state->accumulator >= step)
+
+        if (!input->pause)
         {
-            state->accumulator -= step;
+            state->accumulator += input->delta_time;
 
-            player_update(state, input, step);
-            enemies_update(state, input, step);
-            bullets_update(state, input, step);
-            particle_lines_update(state, input, step);
-            particle_spheres_update(state, input, step);
-
-            camera->position.x = state->player.body.position.x;
-            camera->position.y = state->player.body.position.y - 5.0f;
-            camera->position.z = 7.5f;
-
-            struct v3 target = 
+            while (!input->pause && state->accumulator >= step)
             {
-                state->player.body.position.x,
-                state->player.body.position.y,
-                0.0f
-            };
+                state->accumulator -= step;
 
-            struct v3 up = { 0.0f, 1.0f, 0.0f };
+                player_update(state, input, step);
+                enemies_update(state, input, step);
+                bullets_update(state, input, step);
+                particle_lines_update(state, input, step);
+                particle_spheres_update(state, input, step);
 
-            camera->view = m4_look_at(camera->position, target, up);
-            camera->view_inverse = m4_inverse(camera->view);
+                camera->position.x = state->player.body.position.x;
+                camera->position.y = state->player.body.position.y - 5.0f;
+                camera->position.z = 7.5f;
 
-            state->mouse.world = calculate_world_pos(input->mouse_x, 
-                input->mouse_y, camera);
+                struct v3 target =
+                {
+                    state->player.body.position.x,
+                    state->player.body.position.y,
+                    0.0f
+                };
 
-            collision_map_dynamic_calculate(state);
+                struct v3 up = { 0.0f, 1.0f, 0.0f };
 
-            test_rotation += step;
+                camera->view = m4_look_at(camera->position, target, up);
+                camera->view_inverse = m4_inverse(camera->view);
+
+                state->mouse.world = calculate_world_pos(input->mouse_x,
+                    input->mouse_y, camera);
+
+                collision_map_dynamic_calculate(state);
+            }
         }
+
 
         u64 render_start = ticks_current_get();
         map_render(state);
@@ -4540,8 +4530,8 @@ void game_update(struct game_memory* memory, struct game_input* input)
             &state->camera.projection);
         u64 render_end = ticks_current_get();
 
-        LOG("Render time: %f\n", time_elapsed_seconds(state, render_start,
-            render_end));
+        // LOG("Render time: %f\n", time_elapsed_seconds(state, render_start,
+        //     render_end));
 
         if (state->render_debug)
         {

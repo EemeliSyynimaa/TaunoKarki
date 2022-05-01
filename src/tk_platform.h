@@ -64,6 +64,7 @@ struct game_input
 
     // Debug stuff
     b32 enable_debug_rendering;
+    b32 pause;
 };
 
 struct game_init
