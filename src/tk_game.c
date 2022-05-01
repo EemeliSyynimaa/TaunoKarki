@@ -4249,56 +4249,61 @@ u32 program_create(struct memory_block* block, char* vertex_shader_path,
 
 void game_init(struct game_memory* memory, struct game_init* init)
 {
-    struct game_state* state = (struct game_state*)memory->base;
-
     _log = *init->log;
+
     // Todo: should we check if copied functions are valid before use?
     opengl_functions_set(init->gl);
     file_functions_set(init->file);
     time_functions_set(init->time);
 
-    s32 version_major = 0;
-    s32 version_minor = 0;
-    s32 uniform_blocks_max_vertex = 0;
-    s32 uniform_blocks_max_geometry = 0;
-    s32 uniform_blocks_max_fragment = 0;
-    s32 uniform_blocks_max_combined = 0;
-    s32 uniform_buffer_max_bindings = 0;
-    s32 uniform_block_max_size = 0;
-    s32 vertex_attribs_max = 0;
-
-    glGetIntegerv(GL_MAJOR_VERSION, &version_major);
-    glGetIntegerv(GL_MINOR_VERSION, &version_minor);
-    glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS, &uniform_blocks_max_vertex);
-    glGetIntegerv(GL_MAX_GEOMETRY_UNIFORM_BLOCKS, &uniform_blocks_max_geometry);
-    glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_BLOCKS, &uniform_blocks_max_fragment);
-    glGetIntegerv(GL_MAX_COMBINED_UNIFORM_BLOCKS, &uniform_blocks_max_combined);
-    glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &uniform_buffer_max_bindings);
-    glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniform_block_max_size);
-    glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &vertex_attribs_max);
-
-    LOG("OpenGL %i.%i\n", version_major, version_minor);
-    LOG("Uniform blocks max vertex: %d\n", uniform_blocks_max_vertex);
-    LOG("Uniform blocks max gemoetry: %d\n", uniform_blocks_max_geometry);
-    LOG("Uniform blocks max fragment: %d\n", uniform_blocks_max_fragment);
-    LOG("Uniform blocks max combined: %d\n", uniform_blocks_max_combined);
-    LOG("Uniform buffer max bindings: %d\n", uniform_buffer_max_bindings);
-    LOG("Uniform block max size: %d\n", uniform_block_max_size);
-    LOG("Vertex attribs max: %d\n", vertex_attribs_max);
-
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_BLEND);
-    glEnable(GL_CULL_FACE);
-    glDepthFunc(GL_LESS);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
     if (!memory->initialized)
     {
+        struct game_state* state = (struct game_state*)memory->base;
+        s32 version_major = 0;
+        s32 version_minor = 0;
+        s32 uniform_blocks_max_vertex = 0;
+        s32 uniform_blocks_max_geometry = 0;
+        s32 uniform_blocks_max_fragment = 0;
+        s32 uniform_blocks_max_combined = 0;
+        s32 uniform_buffer_max_bindings = 0;
+        s32 uniform_block_max_size = 0;
+        s32 vertex_attribs_max = 0;
+
+        glGetIntegerv(GL_MAJOR_VERSION, &version_major);
+        glGetIntegerv(GL_MINOR_VERSION, &version_minor);
+        glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS, &uniform_blocks_max_vertex);
+        glGetIntegerv(GL_MAX_GEOMETRY_UNIFORM_BLOCKS,
+            &uniform_blocks_max_geometry);
+        glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_BLOCKS,
+            &uniform_blocks_max_fragment);
+        glGetIntegerv(GL_MAX_COMBINED_UNIFORM_BLOCKS,
+            &uniform_blocks_max_combined);
+        glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS,
+            &uniform_buffer_max_bindings);
+        glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniform_block_max_size);
+        glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &vertex_attribs_max);
+
+        LOG("OpenGL %i.%i\n", version_major, version_minor);
+        LOG("Uniform blocks max vertex: %d\n", uniform_blocks_max_vertex);
+        LOG("Uniform blocks max gemoetry: %d\n", uniform_blocks_max_geometry);
+        LOG("Uniform blocks max fragment: %d\n", uniform_blocks_max_fragment);
+        LOG("Uniform blocks max combined: %d\n", uniform_blocks_max_combined);
+        LOG("Uniform buffer max bindings: %d\n", uniform_buffer_max_bindings);
+        LOG("Uniform block max size: %d\n", uniform_block_max_size);
+        LOG("Vertex attribs max: %d\n", vertex_attribs_max);
+
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glEnable(GL_CULL_FACE);
+        glDepthFunc(GL_LESS);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
         state->ticks_per_second = ticks_frequency_get();
         state->temporary.base = (s8*)state + sizeof(struct game_state);
         state->temporary.last = state->temporary.base;
         state->temporary.current = state->temporary.base;
         state->temporary.size = 100*1024*1024;
+        state->random_seed = init->init_time;
 
         state->shader = program_create(&state->temporary,
             "assets/shaders/vertex.glsl",
@@ -4331,134 +4336,135 @@ void game_init(struct game_memory* memory, struct game_init* init)
         mesh_create(&state->temporary, "assets/meshes/triangle.mesh",
             &state->triangle);
 
-        memory->initialized = true;
-    }
+        state->camera.screen_width = init->screen_width;
+        state->camera.screen_height = init->screen_height;
+        state->camera.projection = m4_perspective(60.0f,
+            (f32)state->camera.screen_width/(f32)state->camera.screen_height,
+            0.1f, 100.0f);
+        // state->camera.projection = m4_orthographic(-10.0f, 10.0f, -10.0f,
+        //     10.0f, 0.1f, 100.0f);
+        state->camera.projection_inverse = m4_inverse(state->camera.projection);
+        state->num_enemies = 5;
 
-    state->camera.screen_width = init->screen_width;
-    state->camera.screen_height = init->screen_height;
-    state->camera.projection = m4_perspective(60.0f,
-        (f32)state->camera.screen_width/(f32)state->camera.screen_height,
-        0.1f, 100.0f);
-    // state->camera.projection = m4_orthographic(-10.0f, 10.0f, -10.0f, 10.0f,
-    //     0.1f, 100.0f);
-    state->camera.projection_inverse = m4_inverse(state->camera.projection);
+        u32 color_enemy = cube_renderer_color_add(&state->cube_renderer,
+            (struct v4){ 0.7f, 0.90f, 0.1f, 1.0f });
+        u32 color_player = cube_renderer_color_add(&state->cube_renderer,
+            (struct v4){ 1.0f, 0.4f, 0.9f, 1.0f });
 
-    state->random_seed = init->init_time;
+        for (u32 i = 0; i < state->num_enemies; i++)
+        {
+            struct enemy* enemy = &state->enemies[i];
+            enemy->body.position = tile_random_get(state, TILE_FLOOR);
+            enemy->alive = true;
+            enemy->health = 100.0f;
+            enemy->body.angle = f32_radians(270 - i * 15.0f);
+            enemy->vision_cone_size = 0.2f * i;
+            enemy->shooting = false;
+            enemy->cube.faces[0].texture = 13;
 
-    state->num_enemies = 5;
+            for (u32 i = 0; i < 6; i++)
+            {
+                enemy->cube.faces[i].color = color_enemy;
+            }
+        }
 
-    u32 color_enemy = cube_renderer_color_add(&state->cube_renderer,
-        (struct v4){ 0.7f, 0.90f, 0.1f, 1.0f });
-    u32 color_player = cube_renderer_color_add(&state->cube_renderer,
-        (struct v4){ 1.0f, 0.4f, 0.9f, 1.0f });
+        state->level = 2;
+        state->render_debug = false;
 
-    for (u32 i = 0; i < state->num_enemies; i++)
-    {
-        struct enemy* enemy = &state->enemies[i];
-        enemy->body.position = tile_random_get(state, TILE_FLOOR);
-        enemy->alive = true;
-        enemy->health = 100.0f;
-        enemy->body.angle = f32_radians(270 - i * 15.0f);
-        enemy->vision_cone_size = 0.2f * i;
-        enemy->shooting = false;
-        enemy->cube.faces[0].texture = 13;
+        state->player.body.position.x = 3.0f;
+        state->player.body.position.y = 3.0f;
+        state->player.alive = true;
+        state->player.health = 100.0f;
+        state->player.weapon_current = WEAPON_PISTOL;
+        state->player.cube.faces[0].texture = 15;
 
         for (u32 i = 0; i < 6; i++)
         {
-            enemy->cube.faces[i].color = color_enemy;
+            state->player.cube.faces[i].color = color_player;
         }
+
+        struct weapon* weapon = &state->player.weapons[0];
+        weapon->type = WEAPON_PISTOL;
+        weapon->last_shot = 0.0f;
+        weapon->fired = true;
+        weapon->ammo_max = weapon->ammo = 12;
+        weapon->fire_rate = 0.0f;
+        weapon->reload_time = 0.8f / weapon->ammo;
+        weapon->reloading = false;
+        weapon->spread = 0.0125f;
+        weapon->projectile_size = PROJECTILE_RADIUS;
+        weapon->projectile_speed = PROJECTILE_SPEED;
+        weapon->projectile_damage = 20.0f;
+
+        ++weapon;
+        weapon->type = WEAPON_MACHINEGUN;
+        weapon->last_shot = 0.0f;
+        weapon->fired = true;
+        weapon->ammo_max = weapon->ammo = 40;
+        weapon->fire_rate = 0.075f;
+        weapon->reload_time = 1.1f / weapon->ammo;
+        weapon->reloading = false;
+        weapon->spread = 0.035f;
+        weapon->projectile_size = PROJECTILE_RADIUS * 0.75f;
+        weapon->projectile_speed = PROJECTILE_SPEED;
+        weapon->projectile_damage = 10.0f;
+
+        ++weapon;
+        weapon->type = WEAPON_SHOTGUN;
+        weapon->last_shot = 0.0f;
+        weapon->fired = true;
+        weapon->ammo_max = weapon->ammo = 8;
+        weapon->fire_rate = 0.5f;
+        weapon->reload_time = 3.0f / weapon->ammo;
+        weapon->reloading = false;
+        weapon->spread = 0.125f;
+        weapon->projectile_size = PROJECTILE_RADIUS * 0.25f;
+        weapon->projectile_speed = PROJECTILE_SPEED;
+        weapon->projectile_damage = 7.5f;
+
+        for (u32 i = 0; i < state->num_enemies; i++)
+        {
+            struct enemy* enemy = &state->enemies[i];
+
+            enemy->weapon = state->player.weapons[i % 3];
+            enemy->weapon.projectile_damage *= 0.2f;
+        }
+
+        state->mouse.world = state->player.body.position;
+
+        struct v2 temp =
+        {
+            state->mouse.world.x - state->player.body.position.x,
+            state->mouse.world.y - state->player.body.position.y
+        };
+
+        state->camera.position.x = state->player.body.position.x +
+            temp.x * 0.5f;
+        state->camera.position.y = state->player.body.position.y +
+            temp.y * 0.5f;
+        state->camera.position.z = 10.0f;
+
+        state->camera.view = m4_translate(-state->camera.position.x,
+            -state->camera.position.y, -state->camera.position.z);
+
+        state->camera.view_inverse = m4_inverse(state->camera.view);
+
+        collision_map_static_calculate(state->cols_static,
+            MAX_COLLISION_SEGMENTS, &state->num_cols_static);
+
+        LOG("Wall faces: %d/%d\n", state->num_cols_static,
+            MAX_COLLISION_SEGMENTS);
+
+        get_wall_corners_from_faces(state->wall_corners, MAX_WALL_CORNERS,
+            &state->num_wall_corners, state->cols_static,
+            state->num_cols_static);
+
+        LOG("Wall corners: %d/%d\n", state->num_wall_corners, MAX_WALL_CORNERS);
+
+        glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
+
+        memory->initialized = true;
     }
-
-    state->level = 2;
-    state->render_debug = false;
-
-    state->player.body.position.x = 3.0f;
-    state->player.body.position.y = 3.0f;
-    state->player.alive = true;
-    state->player.health = 100.0f;
-    state->player.weapon_current = WEAPON_PISTOL;
-    state->player.cube.faces[0].texture = 15;
-
-    for (u32 i = 0; i < 6; i++)
-    {
-        state->player.cube.faces[i].color = color_player;
-    }
-
-    struct weapon* weapon = &state->player.weapons[0];
-    weapon->type = WEAPON_PISTOL;
-    weapon->last_shot = 0.0f;
-    weapon->fired = true;
-    weapon->ammo_max = weapon->ammo = 12;
-    weapon->fire_rate = 0.0f;
-    weapon->reload_time = 0.8f / weapon->ammo;
-    weapon->reloading = false;
-    weapon->spread = 0.0125f;
-    weapon->projectile_size = PROJECTILE_RADIUS;
-    weapon->projectile_speed = PROJECTILE_SPEED;
-    weapon->projectile_damage = 20.0f;
-
-    ++weapon;
-    weapon->type = WEAPON_MACHINEGUN;
-    weapon->last_shot = 0.0f;
-    weapon->fired = true;
-    weapon->ammo_max = weapon->ammo = 40;
-    weapon->fire_rate = 0.075f;
-    weapon->reload_time = 1.1f / weapon->ammo;
-    weapon->reloading = false;
-    weapon->spread = 0.035f;
-    weapon->projectile_size = PROJECTILE_RADIUS * 0.75f;
-    weapon->projectile_speed = PROJECTILE_SPEED;
-    weapon->projectile_damage = 10.0f;
-
-    ++weapon;
-    weapon->type = WEAPON_SHOTGUN;
-    weapon->last_shot = 0.0f;
-    weapon->fired = true;
-    weapon->ammo_max = weapon->ammo = 8;
-    weapon->fire_rate = 0.5f;
-    weapon->reload_time = 3.0f / weapon->ammo;
-    weapon->reloading = false;
-    weapon->spread = 0.125f;
-    weapon->projectile_size = PROJECTILE_RADIUS * 0.25f;
-    weapon->projectile_speed = PROJECTILE_SPEED;
-    weapon->projectile_damage = 7.5f;
-
-    for (u32 i = 0; i < state->num_enemies; i++)
-    {
-        struct enemy* enemy = &state->enemies[i];
-
-        enemy->weapon = state->player.weapons[i % 3];
-        enemy->weapon.projectile_damage *= 0.2f;
-    }
-
-    state->mouse.world = state->player.body.position;
-
-    struct v2 temp =
-    {
-        state->mouse.world.x - state->player.body.position.x,
-        state->mouse.world.y - state->player.body.position.y
-    };
-
-    state->camera.position.x = state->player.body.position.x + temp.x * 0.5f;
-    state->camera.position.y = state->player.body.position.y + temp.y * 0.5f;
-    state->camera.position.z = 10.0f;
-
-    state->camera.view = m4_translate(-state->camera.position.x,
-        -state->camera.position.y, -state->camera.position.z);
-
-    state->camera.view_inverse = m4_inverse(state->camera.view);
-
-    collision_map_static_calculate(state->cols_static, MAX_COLLISION_SEGMENTS,
-        &state->num_cols_static);
-
-    LOG("Wall faces: %d/%d\n", state->num_cols_static, MAX_COLLISION_SEGMENTS);
-
-    get_wall_corners_from_faces(state->wall_corners, MAX_WALL_CORNERS,
-        &state->num_wall_corners, state->cols_static, state->num_cols_static);
-
-    LOG("Wall corners: %d/%d\n", state->num_wall_corners, MAX_WALL_CORNERS);
-
-    glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
     if (!memory->initialized)
     {
