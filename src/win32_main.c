@@ -625,6 +625,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         for (s32 i = 0; i < num_keys; i++)
         {
             new_input.keys[i].key_down = old_input.keys[i].key_down;
+            new_input.keys[i].transitions = old_input.keys[i].transitions;
         }
 
         new_input.enable_debug_rendering = old_input.enable_debug_rendering;
@@ -660,12 +661,12 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             LOG("ESCAPE - %s\n", 
                                 is_down ? "down" :"up");
                         }
-                        else if (msg.wParam == VK_F1 && was_down)
+                        else if (msg.wParam == VK_F1 && !was_down)
                         {
                             new_input.enable_debug_rendering =
                                 !new_input.enable_debug_rendering;
                         }
-                        else if (msg.wParam == 0x50 && was_down)
+                        else if (msg.wParam == 0x50 && !was_down)
                         {
                             new_input.pause = !new_input.pause;
                         }

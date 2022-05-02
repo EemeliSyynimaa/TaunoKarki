@@ -235,6 +235,20 @@ struct game_state
     u32 ticks_per_second;
 };
 
+u32 key_times_pressed(struct key_state* state)
+{
+    u32 result = 0;
+
+    result = state->transitions / 2;
+
+    if (state->key_down && state->transitions % 2)
+    {
+        result++;
+    }
+
+    return result;
+}
+
 f32 time_elapsed_seconds(struct game_state* state, u32 ticks_start,
     u32 ticks_end)
 {
@@ -3382,17 +3396,17 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         u32 weapon_next = player->weapon_current;
         struct weapon* weapon = &player->weapons[player->weapon_current];
 
-        if (input->weapon_slot_1.key_down)
+        if (key_times_pressed(&input->weapon_slot_1))
         {
             LOG("Change weapon to PISTOL\n");
             weapon_next = 0;
         }
-        else if (input->weapon_slot_2.key_down)
+        if (key_times_pressed(&input->weapon_slot_2))
         {
             LOG("Change weapon to MACHINEGUN\n");
             weapon_next = 1;
         }
-        else if (input->weapon_slot_3.key_down)
+        if (key_times_pressed(&input->weapon_slot_3))
         {
             LOG("Change weapon to SHOTGUN\n");
             weapon_next = 2;
@@ -4514,6 +4528,13 @@ void game_update(struct game_memory* memory, struct game_input* input)
                     input->mouse_y, camera);
 
                 collision_map_dynamic_calculate(state);
+
+                u32 num_keys = sizeof(input->keys)/sizeof(input->keys[0]);
+
+                for (u32 i = 0; i < num_keys; i++)
+                {
+                    input->keys[i].transitions = 0;
+                }
             }
         }
 
