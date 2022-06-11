@@ -117,6 +117,12 @@ struct bullet
     b32 player_owned;
 };
 
+enum
+{
+    ENEMY_STATE_ATTACK,
+    ENEMY_STATE_WANDER
+};
+
 struct enemy
 {
     struct rigid_body body;
@@ -126,6 +132,7 @@ struct enemy
     struct v2 eye_position;
     struct weapon weapon;
     struct cube_data cube;
+    u32 state;
     u32 path_index;
     u32 path_length;
     f32 health;
@@ -2317,6 +2324,238 @@ void weapon_reload(struct weapon* weapon)
     }
 }
 
+b32 enemy_sees_player(struct game_state* state, struct enemy* enemy,
+    struct player* player)
+{
+    b32 result = false;
+
+    // Todo: maybe use direction_in_range() here instead
+    struct v2 direction_player = v2_direction(enemy->body.position,
+        player->body.position);
+    struct v2 direction_current = v2_direction_from_angle(
+        enemy->body.angle);
+
+    f32 angle_player = v2_angle(direction_player, direction_current);
+
+    // Todo: enemy AI goes nuts if two enemies are on top of each other and all
+    // collisions are checked. Check collision against static (walls) and player
+    // for now
+    result = player->alive && angle_player < ENEMY_LINE_OF_SIGHT_HALF &&
+                ray_cast_body(state, enemy->eye_position, player->body, NULL,
+                    COLLISION_STATIC | COLLISION_PLAYER);
+
+    return result;
+}
+
+void enemy_move(struct enemy* enemy, struct v2 direction, f32 dt)
+{
+    struct v2 acceleration = { 0.0f };
+    struct v2 move_delta = { 0.0f };
+
+    acceleration.x = direction.x * ENEMY_ACCELERATION;
+    acceleration.y = direction.y * ENEMY_ACCELERATION;
+
+    acceleration.x += -enemy->body.velocity.x * FRICTION;
+    acceleration.y += -enemy->body.velocity.y * FRICTION;
+
+    move_delta.x = 0.5f * acceleration.x * f32_square(dt) +
+        enemy->body.velocity.x * dt;
+    move_delta.y = 0.5f * acceleration.y * f32_square(dt) +
+        enemy->body.velocity.y * dt;
+
+    enemy->body.velocity.x = enemy->body.velocity.x + acceleration.x * dt;
+    enemy->body.velocity.y = enemy->body.velocity.y + acceleration.y * dt;
+
+    check_tile_collisions(&enemy->body.position, &enemy->body.velocity,
+        move_delta, PLAYER_RADIUS, 1);
+}
+
+void enemy_attack(struct game_state* state, struct enemy* enemy, f32 dt)
+{
+    struct v2 direction = { 0.0f };
+
+    if (enemy_sees_player(state, enemy, &state->player))
+    {
+        struct v2 target_forward = v2_direction(enemy->body.position,
+            state->player.body.position);
+
+        if (v2_length(enemy->body.velocity))
+        {
+            // Todo: calculate right with cross product
+            f32 angle = F64_PI*1.5f;
+            f32 tsin = f32_sin(angle);
+            f32 tcos = f32_cos(angle);
+
+            struct v2 target_right =
+            {
+                target_forward.x * tcos - target_forward.y * tsin,
+                target_forward.x * tsin + target_forward.y * tcos
+            };
+
+            f32 initial_velocity = v2_dot(enemy->body.velocity,
+                target_right);
+
+            struct v2 desired_velocity = { 0.0f };
+
+            if (PROJECTILE_SPEED > initial_velocity)
+            {
+                desired_velocity.x = -initial_velocity;
+            }
+            else
+            {
+                desired_velocity.x = PROJECTILE_SPEED;
+            }
+
+            if (desired_velocity.x)
+            {
+                desired_velocity.y = f32_sqrt(
+                    (PROJECTILE_SPEED * PROJECTILE_SPEED) -
+                    (desired_velocity.x * desired_velocity.x));
+            }
+            else
+            {
+                desired_velocity.y = -PROJECTILE_SPEED;
+            }
+
+            struct v2 target_right_rotate_back =
+            {
+                target_right.x, -target_right.y
+            };
+
+            struct v2 target_forward_rotate_back =
+            {
+                -target_forward.x, target_forward.y
+            };
+
+            struct v2 final_direction =
+            {
+                v2_dot(desired_velocity, target_right_rotate_back),
+                v2_dot(desired_velocity, target_forward_rotate_back)
+            };
+
+            enemy->direction_aim = v2_normalize(final_direction);
+        }
+        else
+        {
+            enemy->direction_aim = target_forward;
+        }
+
+        enemy->direction_look = target_forward;
+        enemy->player_in_view = true;
+
+        // Todo: slow down, don't do full stop
+        enemy->body.velocity.x = 0.0f;
+        enemy->body.velocity.y = 0.0f;
+    }
+    else
+    {
+        enemy->player_in_view = false;
+        enemy->direction_aim.x = 1.0f;
+        enemy->direction_aim.y = 0.0f;
+        enemy->state = ENEMY_STATE_WANDER;
+    }
+
+    struct weapon* weapon = &enemy->weapon;
+
+    weapon->direction = enemy->direction_aim;
+    weapon->position = enemy->eye_position;
+    weapon->velocity = enemy->body.velocity;
+
+    weapon_shoot(state, weapon, false);
+
+    if (weapon->fired && enemy->trigger_release <= 0.0f)
+    {
+        enemy->trigger_release = 0.5f;
+    }
+}
+
+void enemy_wander(struct game_state* state, struct enemy* enemy, f32 dt)
+{
+    struct v2 direction = { 0.0f };
+
+    if (enemy_sees_player(state, enemy, &state->player))
+    {
+        enemy->state = ENEMY_STATE_ATTACK;
+    }
+    else if (enemy->path_index < enemy->path_length)
+    {
+        while (true)
+        {
+            struct v2 current = enemy->path[enemy->path_index];
+
+            f32 distance_to_current = v2_distance(enemy->body.position,
+                current);
+            f32 epsilon = 0.25f;
+
+            if (distance_to_current < epsilon)
+            {
+                enemy->path_index += 1;
+
+                // Todo: trim path before using it
+                for (u32 j = enemy->path_index;
+                    j < enemy->path_length;
+                    j++)
+                {
+                    // Todo: this doesn't take the enemy's size into
+                    // account and it might stumble on the walls (but
+                    // should not get stuck)
+                    if (!ray_cast_position(state, enemy->eye_position,
+                        enemy->path[j], NULL, COLLISION_STATIC))
+                    {
+                        break;
+                    }
+
+                    enemy->path_index = j;
+                }
+
+                if (enemy->path_index < enemy->path_length)
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                direction = v2_normalize(v2_direction(
+                    enemy->body.position, current));
+
+                f32 length = v2_length(direction);
+
+                if (length > 1.0f)
+                {
+                    direction.x /= length;
+                    direction.y /= length;
+                }
+            }
+            break;
+        }
+    }
+    else
+    {
+        struct v2 target = tile_random_get(state, TILE_FLOOR);
+
+        enemy->path_length = path_find(enemy->body.position,
+            target, enemy->path, 256);
+        enemy->path_index = 0;
+
+        // Todo: trim path before using it
+        for (u32 j = 0; j < enemy->path_length; j++)
+        {
+            if (!ray_cast_position(state, enemy->eye_position,
+                enemy->path[j], NULL, COLLISION_STATIC))
+            {
+                break;
+            }
+
+            enemy->path_index = j;
+        }
+    }
+
+    enemy->direction_look = direction;
+    enemy->direction_aim = direction;
+
+    enemy_move(enemy, direction, dt);
+}
+
 void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 {
     // Todo: clean this function...
@@ -2328,199 +2567,19 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
         if (enemy->alive)
         {
-            struct v2 acceleration = { 0.0f };
-            struct v2 move_delta = { 0.0f };
             struct v2 direction_move = { 0.0f };
 
-            if (enemy->path_index < enemy->path_length)
+            if (enemy->state == ENEMY_STATE_ATTACK)
             {
-                while (true)
-                {
-                    struct v2 current = enemy->path[enemy->path_index];
-
-                    f32 distance_to_current = v2_distance(enemy->body.position,
-                        current);
-                    f32 epsilon = 0.25f;
-
-                    if (distance_to_current < epsilon)
-                    {
-                        enemy->path_index += 1;
-
-                        for (u32 j = enemy->path_index;
-                            j < enemy->path_length;
-                            j++)
-                        {
-
-                            // Todo: this doesn't take the enemy's size into
-                            // account and it might stumble on the walls (but
-                            // should not get stuck)
-                            if (!ray_cast_position(state, enemy->eye_position,
-                                enemy->path[j], NULL, COLLISION_STATIC))
-                            {
-                                break;
-                            }
-
-                            enemy->path_index = j;
-                        }
-
-                        if (enemy->path_index < enemy->path_length)
-                        {
-                            continue;
-                        }
-                    }
-                    else
-                    {
-                        direction_move = v2_normalize(v2_direction(
-                            enemy->body.position, current));
-
-                        f32 length = v2_length(direction_move);
-
-                        if (length > 1.0f)
-                        {
-                            direction_move.x /= length;
-                            direction_move.y /= length;
-                        }
-                    }
-                    break;
-                }
+                enemy_attack(state, enemy, dt);
             }
-            else
+            else if (enemy->state == ENEMY_STATE_WANDER)
             {
-                struct v2 target = tile_random_get(state, TILE_FLOOR);
-
-                enemy->path_length = path_find(enemy->body.position,
-                    target, enemy->path, 256);
-                enemy->path_index = 0;
-
-                for (u32 j = 0; j < enemy->path_length; j++)
-                {
-                    if (!ray_cast_position(state, enemy->eye_position,
-                        enemy->path[j], NULL, COLLISION_STATIC))
-                    {
-                        break;
-                    }
-
-                    enemy->path_index = j;
-                }
+                enemy_wander(state, enemy, dt);
             }
 
-            acceleration.x = direction_move.x * ENEMY_ACCELERATION;
-            acceleration.y = direction_move.y * ENEMY_ACCELERATION;
-
-            acceleration.x += -enemy->body.velocity.x * FRICTION;
-            acceleration.y += -enemy->body.velocity.y * FRICTION;
-
-            move_delta.x = 0.5f * acceleration.x * f32_square(dt) +
-                enemy->body.velocity.x * dt;
-            move_delta.y = 0.5f * acceleration.y * f32_square(dt) +
-                enemy->body.velocity.y * dt;
-
-            enemy->body.velocity.x = enemy->body.velocity.x + acceleration.x *
-                dt;
-            enemy->body.velocity.y = enemy->body.velocity.y + acceleration.y *
-                dt;
-
-            check_tile_collisions(&enemy->body.position, &enemy->body.velocity,
-                move_delta, PLAYER_RADIUS, 1);
-
-            struct v2 direction_player = v2_normalize(v2_direction(
-                enemy->body.position, state->player.body.position));
-            struct v2 direction_current = v2_direction_from_angle(
-                enemy->body.angle);
-
-            f32 angle_player = v2_angle(direction_player, direction_current);
-
-            f32 vision_cone_update_speed = 3.0f;
-            f32 vision_cone_size_min = 0.25f;
-            f32 vision_cone_size_max = 1.0f;
-
-            // Todo: sometimes rotation goes crazy
-            if (state->player.alive &&
-                angle_player < ENEMY_LINE_OF_SIGHT_HALF &&
-                ray_cast_body(state, enemy->eye_position, state->player.body,
-                    NULL, COLLISION_ALL))
-            {
-                struct v2 target_forward = direction_player;
-
-                if (v2_length(enemy->body.velocity))
-                {
-                    // Todo: calculate right with cross product
-                    f32 angle = F64_PI*1.5f;
-                    f32 tsin = f32_sin(angle);
-                    f32 tcos = f32_cos(angle);
-
-                    struct v2 target_right =
-                    {
-                        target_forward.x * tcos - target_forward.y * tsin,
-                        target_forward.x * tsin + target_forward.y * tcos
-                    };
-
-                    f32 initial_velocity = v2_dot(enemy->body.velocity,
-                        target_right);
-
-                    struct v2 desired_velocity = { 0.0f };
-
-                    if (PROJECTILE_SPEED > initial_velocity)
-                    {
-                        desired_velocity.x = -initial_velocity;
-                    }
-                    else
-                    {
-                        desired_velocity.x = PROJECTILE_SPEED;
-                    }
-
-                    if (desired_velocity.x)
-                    {
-                        desired_velocity.y = f32_sqrt(
-                            (PROJECTILE_SPEED * PROJECTILE_SPEED) -
-                            (desired_velocity.x * desired_velocity.x));
-                    }
-                    else
-                    {
-                        desired_velocity.y = -PROJECTILE_SPEED;
-                    }
-
-                    struct v2 target_right_rotate_back =
-                    {
-                        target_right.x, -target_right.y
-                    };
-
-                    struct v2 target_forward_rotate_back =
-                    {
-                        -target_forward.x, target_forward.y
-                    };
-
-                    struct v2 final_direction =
-                    {
-                        v2_dot(desired_velocity, target_right_rotate_back),
-                        v2_dot(desired_velocity, target_forward_rotate_back)
-                    };
-
-                    enemy->direction_aim = v2_normalize(final_direction);
-                }
-
-                enemy->vision_cone_size -= dt * vision_cone_update_speed;
-                enemy->vision_cone_size = MAX(enemy->vision_cone_size,
-                    vision_cone_size_min);
-                enemy->direction_look = direction_player;
-                enemy->player_in_view = true;
-
-                // Todo: this is a bit hacky
-                {
-                    enemy->body.velocity.x = 0.0f;
-                    enemy->body.velocity.y = 0.0f;
-                }
-            }
-            else
-            {
-                enemy->vision_cone_size += dt * vision_cone_update_speed;
-                enemy->vision_cone_size = MIN(enemy->vision_cone_size,
-                    vision_cone_size_max);
-                enemy->direction_look = direction_move;
-                enemy->direction_aim = direction_move;
-                enemy->player_in_view = false;
-            }
-
+            // Todo: clean this code, try not to use angles... they go wild
+            // sometimes
             {
                 f32 target_angle = f32_atan(enemy->direction_look.y,
                     enemy->direction_look.x);
@@ -2570,57 +2629,58 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             enemy->eye_position.x += enemy->body.position.x;
             enemy->eye_position.y += enemy->body.position.y;
 
-            enemy->shooting = enemy->player_in_view;
-
-            struct weapon* weapon = &enemy->weapon;
-
-            if (enemy->trigger_release > 0.0f)
             {
-                enemy->trigger_release -= dt;
+                f32 vision_cone_update_speed = 3.0f;
+                f32 vision_cone_size_min = 0.25f;
+                f32 vision_cone_size_max = 1.0f;
 
-                if (enemy->trigger_release <= 0.0f)
+                if (enemy->player_in_view)
                 {
-                    weapon->fired = false;
+                    enemy->vision_cone_size -= dt * vision_cone_update_speed;
+                    enemy->vision_cone_size = MAX(enemy->vision_cone_size,
+                        vision_cone_size_min);
+                }
+                else
+                {
+                    enemy->vision_cone_size += dt * vision_cone_update_speed;
+                    enemy->vision_cone_size = MIN(enemy->vision_cone_size,
+                        vision_cone_size_max);
                 }
             }
 
-            if (weapon->last_shot > 0.0f)
+            // Todo: clean this, maybe move somewhere else
             {
-                weapon->last_shot -= dt;
-            }
+                struct weapon* weapon = &enemy->weapon;
 
-            if (enemy->shooting)
-            {
-                weapon->direction = enemy->direction_aim;
-                weapon->position = enemy->eye_position;
-                weapon->velocity = enemy->body.velocity;
-
-                weapon_shoot(state, weapon, false);
-
-                if (weapon->fired && enemy->trigger_release <= 0.0f)
+                if (enemy->trigger_release > 0.0f)
                 {
+                    enemy->trigger_release -= dt;
 
-                    enemy->trigger_release = 0.5f;
-                }
-            }
-            else
-            {
-                weapon_reload(weapon);
-            }
-
-            if (weapon->reloading)
-            {
-                if (weapon->last_shot <= 0.0f)
-                {
-                    weapon->ammo++;
-
-                    if (weapon->ammo == weapon->ammo_max)
+                    if (enemy->trigger_release <= 0.0f)
                     {
-                        weapon->reloading = false;
+                        weapon->fired = false;
                     }
-                    else
+                }
+
+                if (weapon->last_shot > 0.0f)
+                {
+                    weapon->last_shot -= dt;
+                }
+
+                if (weapon->reloading)
+                {
+                    if (weapon->last_shot <= 0.0f)
                     {
-                        weapon->last_shot = weapon->reload_time;
+                        weapon->ammo++;
+
+                        if (weapon->ammo == weapon->ammo_max)
+                        {
+                            weapon->reloading = false;
+                        }
+                        else
+                        {
+                            weapon->last_shot = weapon->reload_time;
+                        }
                     }
                 }
             }
@@ -4364,6 +4424,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
             enemy->vision_cone_size = 0.2f * i;
             enemy->shooting = false;
             enemy->cube.faces[0].texture = 13;
+            enemy->state = ENEMY_STATE_WANDER;
 
             for (u32 i = 0; i < 6; i++)
             {
@@ -4389,7 +4450,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         struct weapon* weapon = &state->player.weapons[0];
         weapon->type = WEAPON_PISTOL;
         weapon->last_shot = 0.0f;
-        weapon->fired = true;
+        weapon->fired = false;
         weapon->ammo_max = weapon->ammo = 12;
         weapon->fire_rate = 0.0f;
         weapon->reload_time = 0.8f / weapon->ammo;
@@ -4402,7 +4463,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         ++weapon;
         weapon->type = WEAPON_MACHINEGUN;
         weapon->last_shot = 0.0f;
-        weapon->fired = true;
+        weapon->fired = false;
         weapon->ammo_max = weapon->ammo = 40;
         weapon->fire_rate = 0.075f;
         weapon->reload_time = 1.1f / weapon->ammo;
@@ -4415,7 +4476,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         ++weapon;
         weapon->type = WEAPON_SHOTGUN;
         weapon->last_shot = 0.0f;
-        weapon->fired = true;
+        weapon->fired = false;
         weapon->ammo_max = weapon->ammo = 8;
         weapon->fire_rate = 0.5f;
         weapon->reload_time = 3.0f / weapon->ammo;
