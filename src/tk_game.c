@@ -294,6 +294,8 @@ f32 f32_random_number_get(struct game_state* state, f32 min, f32 max)
 f32 PLAYER_ACCELERATION      = 40.0f;
 f32 ENEMY_ACCELERATION       = 35.0f;
 f32 ENEMY_LINE_OF_SIGHT_HALF = F64_PI * 0.125f; // 22.5 degrees
+f32 ENEMY_REACTION_TIME_MIN  = 0.25f;
+f32 ENEMY_REACTION_TIME_MAX  = 0.75f;
 f32 FRICTION                 = 10.0f;
 f32 PROJECTILE_RADIUS        = 0.035f;
 f32 PROJECTILE_SPEED         = 100.0f;
@@ -2476,6 +2478,8 @@ void enemy_wander(struct game_state* state, struct enemy* enemy, f32 dt)
     if (enemy_sees_player(state, enemy, &state->player))
     {
         enemy->state = ENEMY_STATE_ATTACK;
+        enemy->weapon.last_shot = f32_random_number_get(state,
+            ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX);
     }
     else if (enemy->path_index < enemy->path_length)
     {
