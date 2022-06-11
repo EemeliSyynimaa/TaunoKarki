@@ -2372,10 +2372,9 @@ void enemy_move(struct enemy* enemy, struct v2 direction, f32 dt)
         move_delta, PLAYER_RADIUS, 1);
 }
 
-void enemy_attack(struct game_state* state, struct enemy* enemy, f32 dt)
+void enemy_attack(struct game_state* state, struct enemy* enemy,
+    struct v2* direction_move, f32 dt)
 {
-    struct v2 direction = { 0.0f };
-
     if (enemy_sees_player(state, enemy, &state->player))
     {
         struct v2 target_forward = v2_direction(enemy->body.position,
@@ -2445,9 +2444,9 @@ void enemy_attack(struct game_state* state, struct enemy* enemy, f32 dt)
         enemy->direction_look = target_forward;
         enemy->player_in_view = true;
 
-        // Todo: slow down, don't do full stop
-        enemy->body.velocity.x = 0.0f;
-        enemy->body.velocity.y = 0.0f;
+        // Player in view, stop moving
+        direction_move->x = 0.0f;
+        direction_move->y = 0.0f;
     }
     else
     {
@@ -2471,10 +2470,9 @@ void enemy_attack(struct game_state* state, struct enemy* enemy, f32 dt)
     }
 }
 
-void enemy_wander(struct game_state* state, struct enemy* enemy, f32 dt)
+void enemy_wander(struct game_state* state, struct enemy* enemy,
+    struct v2* direction_move, f32 dt)
 {
-    struct v2 direction = { 0.0f };
-
     if (enemy_sees_player(state, enemy, &state->player))
     {
         enemy->state = ENEMY_STATE_ATTACK;
@@ -2519,7 +2517,7 @@ void enemy_wander(struct game_state* state, struct enemy* enemy, f32 dt)
             }
             else
             {
-                direction = v2_normalize(v2_direction(
+                struct v2 direction = v2_normalize(v2_direction(
                     enemy->body.position, current));
 
                 f32 length = v2_length(direction);
@@ -2529,6 +2527,8 @@ void enemy_wander(struct game_state* state, struct enemy* enemy, f32 dt)
                     direction.x /= length;
                     direction.y /= length;
                 }
+
+                *direction_move = direction;
             }
             break;
         }
@@ -2554,10 +2554,8 @@ void enemy_wander(struct game_state* state, struct enemy* enemy, f32 dt)
         }
     }
 
-    enemy->direction_look = direction;
-    enemy->direction_aim = direction;
-
-    enemy_move(enemy, direction, dt);
+    enemy->direction_look = *direction_move;
+    enemy->direction_aim = *direction_move;
 }
 
 void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
@@ -2575,12 +2573,14 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
             if (enemy->state == ENEMY_STATE_ATTACK)
             {
-                enemy_attack(state, enemy, dt);
+                enemy_attack(state, enemy, &direction_move, dt);
             }
             else if (enemy->state == ENEMY_STATE_WANDER)
             {
-                enemy_wander(state, enemy, dt);
+                enemy_wander(state, enemy, &direction_move, dt);
             }
+
+            enemy_move(enemy, direction_move, dt);
 
             // Todo: clean this code, try not to use angles... they go wild
             // sometimes
