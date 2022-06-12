@@ -123,10 +123,12 @@ enum
     ENEMY_STATE_WANDER
 };
 
+#define MAX_PATH 256
+
 struct enemy
 {
     struct rigid_body body;
-    struct v2 path[256];
+    struct v2 path[MAX_PATH];
     struct v2 direction_aim;
     struct v2 direction_look;
     struct v2 eye_position;
@@ -709,6 +711,218 @@ void memory_set(void* data, u64 size, u8 value)
     {
         *((u8*)data + i) = value;
     }
+}
+
+void memory_copy(void* src, void* dest, u64 size)
+{
+    for (u32 i = 0; i < size; i++)
+    {
+        *((u8*)dest + i) = *((u8*)src + i);
+    }
+}
+
+struct ray_cast_collision
+{
+    struct v2 position;
+    struct v2 wall_start;
+    struct v2 wall_end;
+    // Todo: add wall normal? Could be nice
+    f32 ray_length;
+};
+
+void get_body_rectangle(struct rigid_body body, f32 width_half,
+    f32 height_half, struct line_segment* segments)
+{
+    struct v2 corners[4] =
+    {
+        { -width_half,  height_half },
+        {  width_half,  height_half },
+        {  width_half, -height_half },
+        { -width_half, -height_half }
+    };
+
+    for (u32 i = 0; i < 4; i++)
+    {
+        corners[i] = v2_rotate(corners[i], body.angle);
+        corners[i].x += body.position.x;
+        corners[i].y += body.position.y;
+    }
+
+    for (u32 i = 0; i < 4; i++)
+    {
+        segments[i].start = corners[i];
+        segments[i].end   = corners[(i+1) % 4];
+    }
+}
+
+b32 intersect_ray_to_line_segment(struct v2 start, struct v2 direction,
+    struct line_segment line_segment, struct v2* collision)
+{
+    b32 result = false;
+    struct v2 p = start;
+    struct v2 r = direction;
+    struct v2 q = line_segment.start;
+    struct v2 s = v2_direction(line_segment.start, line_segment.end);
+    struct v2 qp = { q.x - p.x, q.y - p.y };
+    f32 r_x_s = v2_cross(r, s);
+
+    if (r_x_s == 0.0f)
+    {
+        // Todo: implement if necessary
+    }
+    else
+    {
+        f32 qp_x_s = v2_cross(qp, s);
+        f32 qp_x_r = v2_cross(qp, r);
+
+        f32 t = qp_x_s / r_x_s;
+        f32 u = qp_x_r / r_x_s;
+
+        if (t > 0.0f && u > 0.0f && u < 1.0f)
+        {
+            collision->x = p.x + t * r.x;
+            collision->y = p.y + t * r.y;
+
+            result = true;
+        }
+    }
+
+    return result;
+}
+
+f32 ray_cast_to_direction(struct v2 start, struct v2 direction,
+    struct line_segment cols[], u32 num_cols, struct v2* collision,
+    f32 max_length, u32 flags)
+{
+    f32 result = max_length;
+
+    for (u32 i = 0; i < num_cols; i++)
+    {
+        struct v2 position = { 0 };
+
+        if (cols[i].type & flags &&
+            intersect_ray_to_line_segment(start, direction, cols[i], &position)
+            && v2_distance(start, position) < result)
+        {
+            if (collision)
+            {
+                *collision = position;
+            }
+
+            result = v2_distance(start, position);
+        }
+    }
+
+    return result;
+}
+
+f32 ray_cast_direction(struct game_state* state, struct v2 position,
+    struct v2 direction, struct v2* collision, u32 flags)
+{
+    f32 result = F32_MAX;
+
+    if (flags & COLLISION_STATIC)
+    {
+        result = ray_cast_to_direction(position, direction, state->cols_static,
+            state->num_cols_static, collision, result, flags);
+    }
+
+    if (flags & COLLISION_DYNAMIC)
+    {
+        result = ray_cast_to_direction(position, direction, state->cols_dynamic,
+            state->num_cols_dynamic, collision, result, flags);
+    }
+
+    return result;
+}
+
+f32 ray_cast_position(struct game_state* state, struct v2 start, struct v2 end,
+    struct v2* collision, u32 flags)
+{
+    f32 result = ray_cast_direction(state, start, v2_direction(start, end),
+        collision, flags);
+    f32 distance = v2_distance(start, end) - 0.1f;
+
+    if (result < distance)
+    {
+        result = 0.0f;
+    }
+
+    return result;
+}
+
+f32 ray_cast_body(struct game_state* state, struct v2 start,
+    struct rigid_body body, struct v2* collision, u32 flags)
+{
+    f32 result = 0.0f;
+
+    struct line_segment segments[4] = { 0 };
+
+    get_body_rectangle(body, PLAYER_RADIUS, PLAYER_RADIUS, segments);
+
+    for (u32 i = 0; i < 4; i++)
+    {
+        segments[i].type = flags;
+    }
+
+    struct v2 direction = v2_direction(start, body.position);
+
+    f32 target = ray_cast_to_direction(start, direction, segments, 4, NULL,
+        F32_MAX, flags) - 0.1f;
+
+    result = ray_cast_direction(state, start, direction, collision, flags);
+
+    if (result < target)
+    {
+        result = 0.0f;
+    }
+
+    return result;
+}
+
+void path_trim(struct game_state* state, struct v2 path[], u32* path_size)
+{
+    struct v2 result[MAX_PATH] = { 0 };
+    u32 result_index = 0;
+
+    result[result_index++] = path[0];
+
+    for (u32 i = 0; i < *path_size - 1;)
+    {
+        struct v2 start = path[i];
+
+        u32 next_node_to_add = 0;
+
+        for (u32 j = i + 1; j < *path_size; j++)
+        {
+            // Ray cast to each tile corner
+            f32 wall_half = WALL_SIZE * 0.5f;
+
+            struct v2 tl = { path[j].x - wall_half, path[j].y + wall_half };
+            struct v2 bl = { path[j].x - wall_half, path[j].y - wall_half };
+            struct v2 br = { path[j].x + wall_half, path[j].y - wall_half };
+            struct v2 tr = { path[j].x + wall_half, path[j].y + wall_half };
+
+            if (!ray_cast_position(state, start, tl, NULL, COLLISION_STATIC) ||
+                !ray_cast_position(state, start, bl, NULL, COLLISION_STATIC) ||
+                !ray_cast_position(state, start, br, NULL, COLLISION_STATIC) ||
+                !ray_cast_position(state, start, tr, NULL, COLLISION_STATIC))
+            {
+                break;
+            }
+            else
+            {
+                next_node_to_add = j;
+            }
+        }
+
+        result[result_index++] = path[next_node_to_add];
+
+        i = next_node_to_add;
+    }
+
+    *path_size = result_index;
+    memory_copy(&result, path, *path_size * sizeof(struct v2));
 }
 
 struct v2 calculate_world_pos(f32 pos_x, f32 pos_y, struct camera* camera)
@@ -1397,15 +1611,6 @@ void cursor_render(struct game_state* state)
         state->shader_simple, colors[WHITE]);
 }
 
-struct ray_cast_collision
-{
-    struct v2 position;
-    struct v2 wall_start;
-    struct v2 wall_end;
-    // Todo: add wall normal? Could be nice
-    f32 ray_length;
-};
-
 b32 tile_ray_cast_to_direction(struct game_state* state, struct v2 start,
     struct v2 direction, f32 length_max, struct ray_cast_collision* collision,
     b32 render)
@@ -1617,156 +1822,6 @@ b32 tile_ray_cast_to_position(struct game_state* state, struct v2 start,
     if (collision)
     {
         *collision = temp;
-    }
-
-    return result;
-}
-
-void get_body_rectangle(struct rigid_body body, f32 width_half,
-    f32 height_half, struct line_segment* segments)
-{
-    struct v2 corners[4] =
-    {
-        { -width_half,  height_half },
-        {  width_half,  height_half },
-        {  width_half, -height_half },
-        { -width_half, -height_half }
-    };
-
-    for (u32 i = 0; i < 4; i++)
-    {
-        corners[i] = v2_rotate(corners[i], body.angle);
-        corners[i].x += body.position.x;
-        corners[i].y += body.position.y;
-    }
-
-    for (u32 i = 0; i < 4; i++)
-    {
-        segments[i].start = corners[i];
-        segments[i].end   = corners[(i+1) % 4];
-    }
-}
-
-b32 intersect_ray_to_line_segment(struct v2 start, struct v2 direction,
-    struct line_segment line_segment, struct v2* collision)
-{
-    b32 result = false;
-    struct v2 p = start;
-    struct v2 r = direction;
-    struct v2 q = line_segment.start;
-    struct v2 s = v2_direction(line_segment.start, line_segment.end);
-    struct v2 qp = { q.x - p.x, q.y - p.y };
-    f32 r_x_s = v2_cross(r, s);
-
-    if (r_x_s == 0.0f)
-    {
-        // Todo: implement if necessary
-    }
-    else
-    {
-        f32 qp_x_s = v2_cross(qp, s);
-        f32 qp_x_r = v2_cross(qp, r);
-
-        f32 t = qp_x_s / r_x_s;
-        f32 u = qp_x_r / r_x_s;
-
-        if (t > 0.0f && u > 0.0f && u < 1.0f)
-        {
-            collision->x = p.x + t * r.x;
-            collision->y = p.y + t * r.y;
-
-            result = true;
-        }
-    }
-
-    return result;
-}
-
-f32 ray_cast_to_direction(struct v2 start, struct v2 direction,
-    struct line_segment cols[], u32 num_cols, struct v2* collision,
-    f32 max_length, u32 flags)
-{
-    f32 result = max_length;
-
-    for (u32 i = 0; i < num_cols; i++)
-    {
-        struct v2 position = { 0 };
-
-        if (cols[i].type & flags &&
-            intersect_ray_to_line_segment(start, direction, cols[i], &position)
-            && v2_distance(start, position) < result)
-        {
-            if (collision)
-            {
-                *collision = position;
-            }
-
-            result = v2_distance(start, position);
-        }
-    }
-
-    return result;
-}
-
-f32 ray_cast_direction(struct game_state* state, struct v2 position,
-    struct v2 direction, struct v2* collision, u32 flags)
-{
-    f32 result = F32_MAX;
-
-    if (flags & COLLISION_STATIC)
-    {
-        result = ray_cast_to_direction(position, direction, state->cols_static,
-            state->num_cols_static, collision, result, flags);
-    }
-
-    if (flags & COLLISION_DYNAMIC)
-    {
-        result = ray_cast_to_direction(position, direction, state->cols_dynamic,
-            state->num_cols_dynamic, collision, result, flags);
-    }
-
-    return result;
-}
-
-f32 ray_cast_position(struct game_state* state, struct v2 start, struct v2 end,
-    struct v2* collision, u32 flags)
-{
-    f32 result = ray_cast_direction(state, start, v2_direction(start, end),
-        collision, flags);
-    f32 distance = v2_distance(start, end) - 0.1f;
-
-    if (result < distance)
-    {
-        result = 0.0f;
-    }
-
-    return result;
-}
-
-f32 ray_cast_body(struct game_state* state, struct v2 start,
-    struct rigid_body body, struct v2* collision, u32 flags)
-{
-    f32 result = 0.0f;
-
-    struct line_segment segments[4] = { 0 };
-
-    get_body_rectangle(body, PLAYER_RADIUS, PLAYER_RADIUS, segments);
-
-    for (u32 i = 0; i < 4; i++)
-    {
-        segments[i].type = flags;
-    }
-
-    struct v2 direction = v2_direction(start, body.position);
-
-    f32 target = ray_cast_to_direction(start, direction, segments, 4, NULL,
-        F32_MAX, flags) - 0.1f;
-
-    result = ray_cast_direction(state, start, direction, collision, flags);
-
-    if (result < target)
-    {
-        result = 0.0f;
     }
 
     return result;
@@ -2481,56 +2536,30 @@ void enemy_wander(struct game_state* state, struct enemy* enemy,
     }
     else if (enemy->path_index < enemy->path_length)
     {
-        while (true)
+        struct v2 current = enemy->path[enemy->path_index];
+
+        f32 distance_to_current = v2_distance(enemy->body.position,
+            current);
+        f32 epsilon = 0.25f;
+
+        if (distance_to_current < epsilon)
         {
-            struct v2 current = enemy->path[enemy->path_index];
+            enemy->path_index++;
+        }
+        else
+        {
+            struct v2 direction = v2_normalize(v2_direction(
+                enemy->body.position, current));
 
-            f32 distance_to_current = v2_distance(enemy->body.position,
-                current);
-            f32 epsilon = 0.25f;
+            f32 length = v2_length(direction);
 
-            if (distance_to_current < epsilon)
+            if (length > 1.0f)
             {
-                enemy->path_index += 1;
-
-                // Todo: trim path before using it
-                for (u32 j = enemy->path_index;
-                    j < enemy->path_length;
-                    j++)
-                {
-                    // Todo: this doesn't take the enemy's size into
-                    // account and it might stumble on the walls (but
-                    // should not get stuck)
-                    if (!ray_cast_position(state, enemy->eye_position,
-                        enemy->path[j], NULL, COLLISION_STATIC))
-                    {
-                        break;
-                    }
-
-                    enemy->path_index = j;
-                }
-
-                if (enemy->path_index < enemy->path_length)
-                {
-                    continue;
-                }
+                direction.x /= length;
+                direction.y /= length;
             }
-            else
-            {
-                struct v2 direction = v2_normalize(v2_direction(
-                    enemy->body.position, current));
 
-                f32 length = v2_length(direction);
-
-                if (length > 1.0f)
-                {
-                    direction.x /= length;
-                    direction.y /= length;
-                }
-
-                *direction_move = direction;
-            }
-            break;
+            *direction_move = direction;
         }
     }
     else
@@ -2538,20 +2567,9 @@ void enemy_wander(struct game_state* state, struct enemy* enemy,
         struct v2 target = tile_random_get(state, TILE_FLOOR);
 
         enemy->path_length = path_find(enemy->body.position,
-            target, enemy->path, 256);
+            target, enemy->path, MAX_PATH);
+        path_trim(state, enemy->path, &enemy->path_length);
         enemy->path_index = 0;
-
-        // Todo: trim path before using it
-        for (u32 j = 0; j < enemy->path_length; j++)
-        {
-            if (!ray_cast_position(state, enemy->eye_position,
-                enemy->path[j], NULL, COLLISION_STATIC))
-            {
-                break;
-            }
-
-            enemy->path_index = j;
-        }
     }
 
     enemy->direction_look = *direction_move;
