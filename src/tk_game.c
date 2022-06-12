@@ -121,7 +121,8 @@ enum
 {
     ENEMY_STATE_ATTACK,
     ENEMY_STATE_WANDER,
-    ENEMY_STATE_PURSUIT
+    ENEMY_STATE_PURSUIT,
+    ENEMY_STATE_SLEEP
 };
 
 #define MAX_PATH 256
@@ -136,6 +137,7 @@ struct enemy
     struct v2 eye_position;
     struct v2 player_last_seen_position;
     struct v2 player_last_seen_direction;
+    struct v2 gun_shot_position;
     struct weapon weapon;
     struct cube_data cube;
     u32 state;
@@ -148,6 +150,7 @@ struct enemy
     f32 state_timer;
     f32 target_angle;
     b32 player_in_view;
+    b32 gun_shot_heard;
     b32 alive;
     b32 shooting;
     b32 state_timer_active;
@@ -192,6 +195,7 @@ struct mesh
 #define MAX_WALL_FACES 512
 #define MAX_COLLISION_SEGMENTS 1024
 #define MAX_PARTICLES 1024
+#define MAX_GUN_SHOTS 64
 
 #define WEAPON_PISTOL     0
 #define WEAPON_MACHINEGUN 1
@@ -210,6 +214,12 @@ struct line_segment
     struct v2 start;
     struct v2 end;
     u32 type;
+};
+
+struct gun_shot
+{
+    struct v2 position;
+    f32 volume; // Todo: change name
 };
 
 struct game_state
@@ -231,6 +241,7 @@ struct game_state
     struct line_segment cols_static[MAX_COLLISION_SEGMENTS];
     struct line_segment cols_dynamic[MAX_COLLISION_SEGMENTS];
     struct cube_renderer cube_renderer;
+    struct gun_shot gun_shots[MAX_GUN_SHOTS];
     b32 render_debug;
     f32 accumulator;
     u32 shader;
@@ -247,6 +258,7 @@ struct game_state
     u32 num_wall_faces;
     u32 num_cols_static;
     u32 num_cols_dynamic;
+    u32 num_gun_shots;
     u32 level;
     u32 random_seed;
     u32 ticks_per_second;
@@ -301,16 +313,20 @@ f32 f32_random_number_get(struct game_state* state, f32 min, f32 max)
 #define MAP_WIDTH  20
 #define MAP_HEIGHT 20
 
-f32 PLAYER_ACCELERATION      = 40.0f;
-f32 ENEMY_ACCELERATION       = 35.0f;
-f32 ENEMY_LINE_OF_SIGHT_HALF = F64_PI * 0.125f; // 22.5 degrees
-f32 ENEMY_REACTION_TIME_MIN  = 0.25f;
-f32 ENEMY_REACTION_TIME_MAX  = 0.75f;
-f32 FRICTION                 = 10.0f;
-f32 PROJECTILE_RADIUS        = 0.035f;
-f32 PROJECTILE_SPEED         = 100.0f;
-f32 PLAYER_RADIUS            = 0.25f;
-f32 WALL_SIZE                = 1.0f;
+f32 PLAYER_ACCELERATION = 40.0f;
+f32 PLAYER_RADIUS       = 0.25f;
+
+f32 ENEMY_ACCELERATION           = 35.0f;
+f32 ENEMY_LINE_OF_SIGHT_HALF     = F64_PI * 0.125f; // 22.5 degrees
+f32 ENEMY_REACTION_TIME_MIN      = 0.25f;
+f32 ENEMY_REACTION_TIME_MAX      = 0.75f;
+f32 ENEMY_GUN_FIRE_HEAR_DISTANCE = 10.0f;
+
+f32 PROJECTILE_RADIUS = 0.035f;
+f32 PROJECTILE_SPEED  = 100.0f;
+
+f32 FRICTION  = 10.0f;
+f32 WALL_SIZE = 1.0f;
 
 u32 TILE_NOTHING = 0;
 u32 TILE_WALL    = 1;
@@ -2273,6 +2289,17 @@ void bullet_create(struct game_state* state, struct v2 position,
         colors[YELLOW], size, size * 5.0f, 0.10f);
 }
 
+void gun_shot_register(struct game_state* state, struct v2 position, f32 volume)
+{
+    if (state->num_gun_shots < MAX_GUN_SHOTS)
+    {
+        struct gun_shot* shot = &state->gun_shots[state->num_gun_shots++];
+
+        shot->position = position;
+        shot->volume = volume;
+    }
+}
+
 void weapon_shoot(struct game_state* state, struct weapon* weapon, bool player)
 {
     if (weapon->type == WEAPON_PISTOL)
@@ -2298,6 +2325,8 @@ void weapon_shoot(struct game_state* state, struct weapon* weapon, bool player)
             {
                 weapon->last_shot = weapon->fire_rate;
             }
+
+            gun_shot_register(state, weapon->position, 10.0f);
         }
     }
     else if (weapon->type == WEAPON_MACHINEGUN)
@@ -2321,6 +2350,8 @@ void weapon_shoot(struct game_state* state, struct weapon* weapon, bool player)
             {
                 weapon->last_shot = weapon->fire_rate;
             }
+
+            gun_shot_register(state, weapon->position, 10.0f);
         }
     }
     else if (weapon->type == WEAPON_SHOTGUN)
@@ -2356,6 +2387,8 @@ void weapon_shoot(struct game_state* state, struct weapon* weapon, bool player)
             {
                 weapon->last_shot = weapon->fire_rate;
             }
+
+            gun_shot_register(state, weapon->position, 10.0f);
         }
     }
 }
@@ -2413,6 +2446,28 @@ b32 enemy_sees_player(struct game_state* state, struct enemy* enemy,
     return result;
 }
 
+b32 enemy_hears_gun_shot(struct game_state* state, struct enemy* enemy)
+{
+    b32 result = false;
+    f32 closest = ENEMY_GUN_FIRE_HEAR_DISTANCE;
+
+    for (u32 i = 0; i < state->num_gun_shots; i++)
+    {
+        struct gun_shot* shot = &state->gun_shots[i];
+
+        f32 distance = v2_distance(enemy->body.position, shot->position);
+
+        if (distance < closest && distance < shot->volume)
+        {
+            enemy->gun_shot_position = shot->position;
+            closest = distance;
+            result = true;
+        }
+    }
+
+    return result;
+}
+
 void enemy_move(struct enemy* enemy, f32 dt)
 {
     struct v2 acceleration = { 0.0f };
@@ -2440,7 +2495,7 @@ void enemy_attack(struct game_state* state, struct enemy* enemy, f32 dt)
 {
     enemy->acceleration = 0.0f;
 
-    if (enemy_sees_player(state, enemy, &state->player))
+    if (enemy->player_in_view)
     {
         enemy->state_timer_active = false;
         enemy->player_last_seen_position = state->player.body.position;
@@ -2512,7 +2567,6 @@ void enemy_attack(struct game_state* state, struct enemy* enemy, f32 dt)
         }
 
         enemy->direction_look = target_forward;
-        enemy->player_in_view = true;
 
         // Player in view, stop moving
         enemy->direction_move.x = 0.0f;
@@ -2537,7 +2591,6 @@ void enemy_attack(struct game_state* state, struct enemy* enemy, f32 dt)
         // for a reaction time, state_timer is a confusing concept and should
         // be renamed but works for now
         enemy->state_timer_active = true;
-        enemy->player_in_view = false;
         enemy->state_timer = f32_random_number_get(state,
             ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX);
     }
@@ -2573,7 +2626,7 @@ void enemy_wander(struct game_state* state, struct enemy* enemy, f32 dt)
 {
     enemy->acceleration = ENEMY_ACCELERATION;
 
-    if (enemy_sees_player(state, enemy, &state->player))
+    if (enemy->player_in_view)
     {
         enemy->state = ENEMY_STATE_ATTACK;
         enemy->path_length = 0;
@@ -2596,7 +2649,7 @@ void enemy_pursuit(struct game_state* state, struct enemy* enemy, f32 dt)
 {
     enemy->acceleration = ENEMY_ACCELERATION * 1.50f;
 
-    if (enemy_sees_player(state, enemy, &state->player))
+    if (enemy->player_in_view)
     {
         enemy->state_timer_active = false;
         enemy->state = ENEMY_STATE_ATTACK;
@@ -2628,6 +2681,57 @@ void enemy_pursuit(struct game_state* state, struct enemy* enemy, f32 dt)
     }
 }
 
+void enemy_sleep(struct game_state* state, struct enemy* enemy, f32 dt)
+{
+    if (enemy->state_timer_active)
+    {
+        enemy->state_timer -= dt;
+
+        if (enemy->player_in_view)
+        {
+            enemy->state_timer_active = false;
+            enemy->state = ENEMY_STATE_ATTACK;
+            enemy->path_length = 0;
+
+            // Reaction time halved during pursuit
+            enemy->weapon.last_shot = f32_random_number_get(state,
+                ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX) * 0.5f;
+        }
+        else if (enemy->state_timer < 0.0f)
+        {
+            enemy->state_timer_active = false;
+            enemy->path_length = path_find(enemy->body.position,
+                enemy->gun_shot_position, enemy->path, MAX_PATH);
+            path_trim(state, enemy->body.position, enemy->path,
+                &enemy->path_length);
+            enemy->path_index = 0;
+
+            enemy->state = ENEMY_STATE_PURSUIT;
+        }
+    }
+    else if (enemy->gun_shot_heard)
+    {
+        enemy->direction_look = v2_direction(enemy->body.position,
+            enemy->gun_shot_position);
+
+        if (enemy->player_in_view)
+        {
+            enemy->state_timer_active = false;
+            enemy->state = ENEMY_STATE_ATTACK;
+            enemy->path_length = 0;
+
+            // Reaction time halved during pursuit
+            enemy->weapon.last_shot = f32_random_number_get(state,
+                ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX) * 0.5f;
+        }
+        else
+        {
+            enemy->state_timer = 1.0f;
+            enemy->state_timer_active = true;
+        }
+    }
+}
+
 void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 {
     // Todo: clean this function...
@@ -2639,7 +2743,16 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
         if (enemy->alive)
         {
-            if (enemy->state == ENEMY_STATE_ATTACK)
+            enemy->player_in_view = enemy_sees_player(state, enemy,
+                &state->player);
+
+            enemy->gun_shot_heard = enemy_hears_gun_shot(state, enemy);
+
+            if (enemy->state == ENEMY_STATE_SLEEP)
+            {
+                enemy_sleep(state, enemy, dt);
+            }
+            else if (enemy->state == ENEMY_STATE_ATTACK)
             {
                 enemy_attack(state, enemy, dt);
             }
@@ -4536,7 +4649,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
             enemy->vision_cone_size = 0.2f * i;
             enemy->shooting = false;
             enemy->cube.faces[0].texture = 13;
-            enemy->state = ENEMY_STATE_WANDER;
+            enemy->state = ENEMY_STATE_SLEEP;
 
             for (u32 i = 0; i < 6; i++)
             {
@@ -4708,9 +4821,10 @@ void game_update(struct game_memory* memory, struct game_input* input)
                 {
                     input->keys[i].transitions = 0;
                 }
+
+                state->num_gun_shots = 0;
             }
         }
-
 
         u64 render_start = ticks_current_get();
         map_render(state);
