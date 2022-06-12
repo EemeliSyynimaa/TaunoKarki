@@ -120,7 +120,8 @@ struct bullet
 enum
 {
     ENEMY_STATE_ATTACK,
-    ENEMY_STATE_WANDER
+    ENEMY_STATE_WANDER,
+    ENEMY_STATE_PURSUIT
 };
 
 #define MAX_PATH 256
@@ -131,7 +132,9 @@ struct enemy
     struct v2 path[MAX_PATH];
     struct v2 direction_aim;
     struct v2 direction_look;
+    struct v2 direction_move;
     struct v2 eye_position;
+    struct v2 player_last_seen;
     struct weapon weapon;
     struct cube_data cube;
     u32 state;
@@ -140,6 +143,7 @@ struct enemy
     f32 health;
     f32 trigger_release;
     f32 vision_cone_size;
+    f32 acceleration;
     b32 player_in_view;
     b32 alive;
     b32 shooting;
@@ -880,46 +884,47 @@ f32 ray_cast_body(struct game_state* state, struct v2 start,
     return result;
 }
 
-void path_trim(struct game_state* state, struct v2 path[], u32* path_size)
+void path_trim(struct game_state* state, struct v2 obj_start, struct v2 path[],
+    u32* path_size)
 {
-    struct v2 result[MAX_PATH] = { 0 };
-    u32 result_index = 0;
-
-    result[result_index++] = path[0];
-
-    for (u32 i = 0; i < *path_size - 1;)
+    if (!(*path_size))
     {
-        struct v2 start = path[i];
-
-        u32 next_node_to_add = 0;
-
-        for (u32 j = i + 1; j < *path_size; j++)
-        {
-            // Ray cast to each tile corner
-            f32 wall_half = WALL_SIZE * 0.5f;
-
-            struct v2 tl = { path[j].x - wall_half, path[j].y + wall_half };
-            struct v2 bl = { path[j].x - wall_half, path[j].y - wall_half };
-            struct v2 br = { path[j].x + wall_half, path[j].y - wall_half };
-            struct v2 tr = { path[j].x + wall_half, path[j].y + wall_half };
-
-            if (!ray_cast_position(state, start, tl, NULL, COLLISION_STATIC) ||
-                !ray_cast_position(state, start, bl, NULL, COLLISION_STATIC) ||
-                !ray_cast_position(state, start, br, NULL, COLLISION_STATIC) ||
-                !ray_cast_position(state, start, tr, NULL, COLLISION_STATIC))
-            {
-                break;
-            }
-            else
-            {
-                next_node_to_add = j;
-            }
-        }
-
-        result[result_index++] = path[next_node_to_add];
-
-        i = next_node_to_add;
+        return;
     }
+
+    struct v2 result[MAX_PATH] = { 0 };
+    struct v2 start = obj_start;
+
+    u32 result_index = 0;
+    u32 path_index = 0;
+
+    while (path_index < (*path_size - 1))
+    {
+        struct v2 end = path[path_index + 1];
+
+        // Ray cast to each tile corner
+        f32 wall_half = WALL_SIZE * 0.5f;
+
+        struct v2 tl = { end.x - wall_half, end.y + wall_half };
+        struct v2 bl = { end.x - wall_half, end.y - wall_half };
+        struct v2 br = { end.x + wall_half, end.y - wall_half };
+        struct v2 tr = { end.x + wall_half, end.y + wall_half };
+
+        if (!ray_cast_position(state, start, tl, NULL, COLLISION_STATIC) ||
+            !ray_cast_position(state, start, bl, NULL, COLLISION_STATIC) ||
+            !ray_cast_position(state, start, br, NULL, COLLISION_STATIC) ||
+            !ray_cast_position(state, start, tr, NULL, COLLISION_STATIC))
+        {
+            start = result[result_index++] = path[path_index];
+        }
+        else
+        {
+            path_index++;
+        }
+    }
+
+    // Always insert the end node
+    result[result_index++] = path[*path_size - 1];
 
     *path_size = result_index;
     memory_copy(&result, path, *path_size * sizeof(struct v2));
@@ -2404,13 +2409,13 @@ b32 enemy_sees_player(struct game_state* state, struct enemy* enemy,
     return result;
 }
 
-void enemy_move(struct enemy* enemy, struct v2 direction, f32 dt)
+void enemy_move(struct enemy* enemy, f32 dt)
 {
     struct v2 acceleration = { 0.0f };
     struct v2 move_delta = { 0.0f };
 
-    acceleration.x = direction.x * ENEMY_ACCELERATION;
-    acceleration.y = direction.y * ENEMY_ACCELERATION;
+    acceleration.x = enemy->direction_move.x * enemy->acceleration;
+    acceleration.y = enemy->direction_move.y * enemy->acceleration;
 
     acceleration.x += -enemy->body.velocity.x * FRICTION;
     acceleration.y += -enemy->body.velocity.y * FRICTION;
@@ -2427,13 +2432,16 @@ void enemy_move(struct enemy* enemy, struct v2 direction, f32 dt)
         move_delta, PLAYER_RADIUS, 1);
 }
 
-void enemy_attack(struct game_state* state, struct enemy* enemy,
-    struct v2* direction_move, f32 dt)
+void enemy_attack(struct game_state* state, struct enemy* enemy, f32 dt)
 {
+    enemy->acceleration = 0.0f;
+
     if (enemy_sees_player(state, enemy, &state->player))
     {
+        enemy->player_last_seen = state->player.body.position;
+
         struct v2 target_forward = v2_direction(enemy->body.position,
-            state->player.body.position);
+            enemy->player_last_seen);
 
         if (v2_length(enemy->body.velocity))
         {
@@ -2500,15 +2508,27 @@ void enemy_attack(struct game_state* state, struct enemy* enemy,
         enemy->player_in_view = true;
 
         // Player in view, stop moving
-        direction_move->x = 0.0f;
-        direction_move->y = 0.0f;
+        enemy->direction_move.x = 0.0f;
+        enemy->direction_move.y = 0.0f;
     }
     else
     {
         enemy->player_in_view = false;
-        enemy->direction_aim.x = 1.0f;
-        enemy->direction_aim.y = 0.0f;
-        enemy->state = ENEMY_STATE_WANDER;
+
+        if (state->player.alive)
+        {
+            enemy->path_length = path_find(enemy->body.position,
+                enemy->player_last_seen, enemy->path, MAX_PATH);
+            path_trim(state, enemy->body.position, enemy->path,
+                &enemy->path_length);
+            enemy->path_index = 0;
+
+            enemy->state = ENEMY_STATE_PURSUIT;
+        }
+        else
+        {
+            enemy->state = ENEMY_STATE_WANDER;
+        }
     }
 
     struct weapon* weapon = &enemy->weapon;
@@ -2525,55 +2545,46 @@ void enemy_attack(struct game_state* state, struct enemy* enemy,
     }
 }
 
-void enemy_wander(struct game_state* state, struct enemy* enemy,
-    struct v2* direction_move, f32 dt)
+void enemy_wander(struct game_state* state, struct enemy* enemy, f32 dt)
 {
+    enemy->acceleration = ENEMY_ACCELERATION;
+
     if (enemy_sees_player(state, enemy, &state->player))
     {
         enemy->state = ENEMY_STATE_ATTACK;
+        enemy->path_length = 0;
         enemy->weapon.last_shot = f32_random_number_get(state,
             ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX);
     }
-    else if (enemy->path_index < enemy->path_length)
-    {
-        struct v2 current = enemy->path[enemy->path_index];
-
-        f32 distance_to_current = v2_distance(enemy->body.position,
-            current);
-        f32 epsilon = 0.25f;
-
-        if (distance_to_current < epsilon)
-        {
-            enemy->path_index++;
-        }
-        else
-        {
-            struct v2 direction = v2_normalize(v2_direction(
-                enemy->body.position, current));
-
-            f32 length = v2_length(direction);
-
-            if (length > 1.0f)
-            {
-                direction.x /= length;
-                direction.y /= length;
-            }
-
-            *direction_move = direction;
-        }
-    }
-    else
+    else if (!enemy->path_length)
     {
         struct v2 target = tile_random_get(state, TILE_FLOOR);
 
         enemy->path_length = path_find(enemy->body.position,
             target, enemy->path, MAX_PATH);
-        path_trim(state, enemy->path, &enemy->path_length);
+        path_trim(state, enemy->body.position, enemy->path,
+            &enemy->path_length);
         enemy->path_index = 0;
     }
+}
 
-    enemy->direction_look = *direction_move;
-    enemy->direction_aim = *direction_move;
+void enemy_pursuit(struct game_state* state, struct enemy* enemy, f32 dt)
+{
+    enemy->acceleration = ENEMY_ACCELERATION * 1.50f;
+
+    if (enemy_sees_player(state, enemy, &state->player))
+    {
+        enemy->state = ENEMY_STATE_ATTACK;
+        enemy->path_length = 0;
+
+        // Reaction time halved during pursuit
+        enemy->weapon.last_shot = f32_random_number_get(state,
+            ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX) * 0.5f;
+    }
+    else if (!enemy->path_length)
+    {
+        enemy->state = ENEMY_STATE_WANDER;
+    }
 }
 
 void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
@@ -2587,18 +2598,57 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
         if (enemy->alive)
         {
-            struct v2 direction_move = { 0.0f };
-
             if (enemy->state == ENEMY_STATE_ATTACK)
             {
-                enemy_attack(state, enemy, &direction_move, dt);
+                enemy_attack(state, enemy, dt);
             }
             else if (enemy->state == ENEMY_STATE_WANDER)
             {
-                enemy_wander(state, enemy, &direction_move, dt);
+                enemy_wander(state, enemy, dt);
+            }
+            else if (enemy->state == ENEMY_STATE_PURSUIT)
+            {
+                enemy_pursuit(state, enemy, dt);
             }
 
-            enemy_move(enemy, direction_move, dt);
+            if (enemy->path_length)
+            {
+                struct v2 current = enemy->path[enemy->path_index];
+
+                f32 distance_to_current = v2_distance(enemy->body.position,
+                    current);
+                f32 epsilon = 0.25f;
+
+                if (distance_to_current < epsilon)
+                {
+                    if (++enemy->path_index >= enemy->path_length)
+                    {
+                        enemy->path_length = 0.0f;
+                        enemy->direction_move.x = 0.0f;
+                        enemy->direction_move.y = 0.0f;
+                    }
+                }
+                else
+                {
+                    struct v2 direction = v2_normalize(v2_direction(
+                        enemy->body.position, current));
+
+                    f32 length = v2_length(direction);
+
+                    if (length > 1.0f)
+                    {
+                        direction.x /= length;
+                        direction.y /= length;
+                    }
+
+                    enemy->direction_move = direction;
+                }
+
+                enemy->direction_look = enemy->direction_move;
+                enemy->direction_aim = enemy->direction_move;
+            }
+
+            enemy_move(enemy, dt);
 
             // Todo: clean this code, try not to use angles... they go wild
             // sometimes
@@ -4429,7 +4479,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         // state->camera.projection = m4_orthographic(-10.0f, 10.0f, -10.0f,
         //     10.0f, 0.1f, 100.0f);
         state->camera.projection_inverse = m4_inverse(state->camera.projection);
-        state->num_enemies = 5;
+        state->num_enemies = MAX_ENEMIES;
 
         u32 color_enemy = cube_renderer_color_add(&state->cube_renderer,
             (struct v4){ 0.7f, 0.90f, 0.1f, 1.0f });
