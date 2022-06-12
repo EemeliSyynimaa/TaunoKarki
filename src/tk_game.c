@@ -134,7 +134,8 @@ struct enemy
     struct v2 direction_look;
     struct v2 direction_move;
     struct v2 eye_position;
-    struct v2 player_last_seen;
+    struct v2 player_last_seen_position;
+    struct v2 player_last_seen_direction;
     struct weapon weapon;
     struct cube_data cube;
     u32 state;
@@ -144,9 +145,12 @@ struct enemy
     f32 trigger_release;
     f32 vision_cone_size;
     f32 acceleration;
+    f32 state_timer;
+    f32 target_angle;
     b32 player_in_view;
     b32 alive;
     b32 shooting;
+    b32 state_timer_active;
 };
 
 struct camera
@@ -2438,10 +2442,13 @@ void enemy_attack(struct game_state* state, struct enemy* enemy, f32 dt)
 
     if (enemy_sees_player(state, enemy, &state->player))
     {
-        enemy->player_last_seen = state->player.body.position;
+        enemy->state_timer_active = false;
+        enemy->player_last_seen_position = state->player.body.position;
+        enemy->player_last_seen_direction = v2_normalize(
+            state->player.body.velocity);
 
         struct v2 target_forward = v2_direction(enemy->body.position,
-            enemy->player_last_seen);
+            enemy->player_last_seen_position);
 
         if (v2_length(enemy->body.velocity))
         {
@@ -2510,38 +2517,55 @@ void enemy_attack(struct game_state* state, struct enemy* enemy, f32 dt)
         // Player in view, stop moving
         enemy->direction_move.x = 0.0f;
         enemy->direction_move.y = 0.0f;
+
+        struct weapon* weapon = &enemy->weapon;
+
+        weapon->direction = enemy->direction_aim;
+        weapon->position = enemy->eye_position;
+        weapon->velocity = enemy->body.velocity;
+
+        weapon_shoot(state, weapon, false);
+
+        if (weapon->fired && enemy->trigger_release <= 0.0f)
+        {
+            enemy->trigger_release = 0.5f;
+        }
+    }
+    else if (!enemy->state_timer_active)
+    {
+        // Todo: the enemy should not start the pursuit immediately but wait
+        // for a reaction time, state_timer is a confusing concept and should
+        // be renamed but works for now
+        enemy->state_timer_active = true;
+        enemy->player_in_view = false;
+        enemy->state_timer = f32_random_number_get(state,
+            ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX);
     }
     else
     {
-        enemy->player_in_view = false;
+        enemy->state_timer -= dt;
 
-        if (state->player.alive)
+        if (enemy->state_timer < 0.0f)
         {
-            enemy->path_length = path_find(enemy->body.position,
-                enemy->player_last_seen, enemy->path, MAX_PATH);
-            path_trim(state, enemy->body.position, enemy->path,
-                &enemy->path_length);
-            enemy->path_index = 0;
+            enemy->state_timer_active = false;
+            enemy->weapon.last_shot = f32_random_number_get(state,
+                ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX);
 
-            enemy->state = ENEMY_STATE_PURSUIT;
+            if (state->player.alive)
+            {
+                enemy->path_length = path_find(enemy->body.position,
+                    enemy->player_last_seen_position, enemy->path, MAX_PATH);
+                path_trim(state, enemy->body.position, enemy->path,
+                    &enemy->path_length);
+                enemy->path_index = 0;
+
+                enemy->state = ENEMY_STATE_PURSUIT;
+            }
+            else
+            {
+                enemy->state = ENEMY_STATE_WANDER;
+            }
         }
-        else
-        {
-            enemy->state = ENEMY_STATE_WANDER;
-        }
-    }
-
-    struct weapon* weapon = &enemy->weapon;
-
-    weapon->direction = enemy->direction_aim;
-    weapon->position = enemy->eye_position;
-    weapon->velocity = enemy->body.velocity;
-
-    weapon_shoot(state, weapon, false);
-
-    if (weapon->fired && enemy->trigger_release <= 0.0f)
-    {
-        enemy->trigger_release = 0.5f;
     }
 }
 
@@ -2574,6 +2598,7 @@ void enemy_pursuit(struct game_state* state, struct enemy* enemy, f32 dt)
 
     if (enemy_sees_player(state, enemy, &state->player))
     {
+        enemy->state_timer_active = false;
         enemy->state = ENEMY_STATE_ATTACK;
         enemy->path_length = 0;
 
@@ -2581,9 +2606,25 @@ void enemy_pursuit(struct game_state* state, struct enemy* enemy, f32 dt)
         enemy->weapon.last_shot = f32_random_number_get(state,
             ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX) * 0.5f;
     }
+    else if (enemy->state_timer_active)
+    {
+        enemy->state_timer -= dt;
+
+        // Todo: the enemy should look around during this stage, the state timer
+        // is a confusing concept but works for now
+
+        enemy->direction_look = enemy->player_last_seen_direction;
+
+        if (enemy->state_timer < 0.0f)
+        {
+            enemy->state_timer_active = false;
+            enemy->state = ENEMY_STATE_WANDER;
+        }
+    }
     else if (!enemy->path_length)
     {
-        enemy->state = ENEMY_STATE_WANDER;
+        enemy->state_timer = 1.0f;
+        enemy->state_timer_active = true;
     }
 }
 
@@ -2642,10 +2683,9 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     }
 
                     enemy->direction_move = direction;
+                    enemy->direction_look = direction;
+                    enemy->direction_aim = direction;
                 }
-
-                enemy->direction_look = enemy->direction_move;
-                enemy->direction_aim = enemy->direction_move;
             }
 
             enemy_move(enemy, dt);
