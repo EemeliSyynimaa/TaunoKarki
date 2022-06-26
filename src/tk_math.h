@@ -799,6 +799,16 @@ struct v2 v2_rotate(struct v2 a, f32 angle)
     return result;
 }
 
+struct v2 v2_flip(struct v2 a)
+{
+    struct v2 result;
+
+    result.x = -a.x;
+    result.y = -a.y;
+
+    return result;
+}
+
 struct m4 m4_perspective(f32 fov, f32 aspect, f32 near, f32 far)
 {
     f32 t = f32_tan(f32_radians(fov) / 2.0f);
