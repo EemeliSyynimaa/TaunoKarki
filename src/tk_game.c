@@ -119,10 +119,14 @@ struct bullet
 
 enum
 {
-    ENEMY_STATE_ATTACK,
-    ENEMY_STATE_WANDER,
-    ENEMY_STATE_PURSUIT,
-    ENEMY_STATE_SLEEP
+    ENEMY_STATE_SHOOT,
+    ENEMY_STATE_WANDER_AROUND,
+    ENEMY_STATE_RUSH_TO_TARGET,
+    ENEMY_STATE_SLEEP,
+    ENEMY_STATE_REACT_TO_PLAYER_SEEN,
+    ENEMY_STATE_REACT_TO_GUN_SHOT,
+    ENEMY_STATE_REACT_TO_BEING_SHOT_AT,
+    ENEMY_STATE_LOOK_AROUND
 };
 
 #define MAX_PATH 256
@@ -138,6 +142,8 @@ struct enemy
     struct v2 player_last_seen_position;
     struct v2 player_last_seen_direction;
     struct v2 gun_shot_position;
+    struct v2 hit_direction;
+    struct v2 target;
     struct weapon weapon;
     struct cube_data cube;
     u32 state;
@@ -151,6 +157,7 @@ struct enemy
     f32 target_angle;
     b32 player_in_view;
     b32 gun_shot_heard;
+    b32 got_hit;
     b32 alive;
     b32 shooting;
     b32 state_timer_active;
@@ -2439,9 +2446,10 @@ b32 enemy_sees_player(struct game_state* state, struct enemy* enemy,
     // Todo: enemy AI goes nuts if two enemies are on top of each other and all
     // collisions are checked. Check collision against static (walls) and player
     // for now
-    result = player->alive && angle_player < ENEMY_LINE_OF_SIGHT_HALF &&
-                ray_cast_body(state, enemy->eye_position, player->body, NULL,
-                    COLLISION_STATIC | COLLISION_PLAYER);
+    result = enemy->state != ENEMY_STATE_SLEEP && player->alive &&
+        angle_player < ENEMY_LINE_OF_SIGHT_HALF && ray_cast_body(state,
+            enemy->eye_position, player->body, NULL,
+            COLLISION_STATIC | COLLISION_PLAYER);
 
     return result;
 }
@@ -2468,267 +2476,56 @@ b32 enemy_hears_gun_shot(struct game_state* state, struct enemy* enemy)
     return result;
 }
 
-void enemy_move(struct enemy* enemy, f32 dt)
+void enemy_state_transition(struct game_state* state, struct enemy* enemy,
+    u32 state_new)
 {
-    struct v2 acceleration = { 0.0f };
-    struct v2 move_delta = { 0.0f };
-
-    acceleration.x = enemy->direction_move.x * enemy->acceleration;
-    acceleration.y = enemy->direction_move.y * enemy->acceleration;
-
-    acceleration.x += -enemy->body.velocity.x * FRICTION;
-    acceleration.y += -enemy->body.velocity.y * FRICTION;
-
-    move_delta.x = 0.5f * acceleration.x * f32_square(dt) +
-        enemy->body.velocity.x * dt;
-    move_delta.y = 0.5f * acceleration.y * f32_square(dt) +
-        enemy->body.velocity.y * dt;
-
-    enemy->body.velocity.x = enemy->body.velocity.x + acceleration.x * dt;
-    enemy->body.velocity.y = enemy->body.velocity.y + acceleration.y * dt;
-
-    check_tile_collisions(&enemy->body.position, &enemy->body.velocity,
-        move_delta, PLAYER_RADIUS, 1);
-}
-
-void enemy_attack(struct game_state* state, struct enemy* enemy, f32 dt)
-{
-    enemy->acceleration = 0.0f;
-
-    if (enemy->player_in_view)
+    if (state_new == enemy->state)
     {
-        enemy->state_timer_active = false;
-        enemy->player_last_seen_position = state->player.body.position;
-        enemy->player_last_seen_direction = v2_normalize(
-            state->player.body.velocity);
-
-        struct v2 target_forward = v2_direction(enemy->body.position,
-            enemy->player_last_seen_position);
-
-        if (v2_length(enemy->body.velocity))
-        {
-            // Todo: calculate right with cross product
-            f32 angle = F64_PI*1.5f;
-            f32 tsin = f32_sin(angle);
-            f32 tcos = f32_cos(angle);
-
-            struct v2 target_right =
-            {
-                target_forward.x * tcos - target_forward.y * tsin,
-                target_forward.x * tsin + target_forward.y * tcos
-            };
-
-            f32 initial_velocity = v2_dot(enemy->body.velocity,
-                target_right);
-
-            struct v2 desired_velocity = { 0.0f };
-
-            if (PROJECTILE_SPEED > initial_velocity)
-            {
-                desired_velocity.x = -initial_velocity;
-            }
-            else
-            {
-                desired_velocity.x = PROJECTILE_SPEED;
-            }
-
-            if (desired_velocity.x)
-            {
-                desired_velocity.y = f32_sqrt(
-                    (PROJECTILE_SPEED * PROJECTILE_SPEED) -
-                    (desired_velocity.x * desired_velocity.x));
-            }
-            else
-            {
-                desired_velocity.y = -PROJECTILE_SPEED;
-            }
-
-            struct v2 target_right_rotate_back =
-            {
-                target_right.x, -target_right.y
-            };
-
-            struct v2 target_forward_rotate_back =
-            {
-                -target_forward.x, target_forward.y
-            };
-
-            struct v2 final_direction =
-            {
-                v2_dot(desired_velocity, target_right_rotate_back),
-                v2_dot(desired_velocity, target_forward_rotate_back)
-            };
-
-            enemy->direction_aim = v2_normalize(final_direction);
-        }
-        else
-        {
-            enemy->direction_aim = target_forward;
-        }
-
-        enemy->direction_look = target_forward;
-
-        // Player in view, stop moving
-        enemy->direction_move.x = 0.0f;
-        enemy->direction_move.y = 0.0f;
-
-        struct weapon* weapon = &enemy->weapon;
-
-        weapon->direction = enemy->direction_aim;
-        weapon->position = enemy->eye_position;
-        weapon->velocity = enemy->body.velocity;
-
-        weapon_shoot(state, weapon, false);
-
-        if (weapon->fired && enemy->trigger_release <= 0.0f)
-        {
-            enemy->trigger_release = 0.5f;
-        }
+        return;
     }
-    else if (!enemy->state_timer_active)
-    {
-        // Todo: the enemy should not start the pursuit immediately but wait
-        // for a reaction time, state_timer is a confusing concept and should
-        // be renamed but works for now
-        enemy->state_timer_active = true;
-        enemy->state_timer = f32_random_number_get(state,
-            ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX);
-    }
-    else
-    {
-        enemy->state_timer -= dt;
 
-        if (enemy->state_timer < 0.0f)
+    LOG("Transition from %u to %u\n", enemy->state, state_new);
+
+    enemy->state_timer = 0.0f;
+    enemy->path_length = 0;
+    enemy->state = state_new;
+
+    switch (state_new)
+    {
+        case ENEMY_STATE_REACT_TO_PLAYER_SEEN:
         {
-            enemy->state_timer_active = false;
-            enemy->weapon.last_shot = f32_random_number_get(state,
+            enemy->acceleration = 0.0f;
+            enemy->state_timer = f32_random_number_get(state,
                 ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX);
-
-            if (state->player.alive)
-            {
-                enemy->path_length = path_find(enemy->body.position,
-                    enemy->player_last_seen_position, enemy->path, MAX_PATH);
-                path_trim(state, enemy->body.position, enemy->path,
-                    &enemy->path_length);
-                enemy->path_index = 0;
-
-                enemy->state = ENEMY_STATE_PURSUIT;
-            }
-            else
-            {
-                enemy->state = ENEMY_STATE_WANDER;
-            }
-        }
-    }
-}
-
-void enemy_wander(struct game_state* state, struct enemy* enemy, f32 dt)
-{
-    enemy->acceleration = ENEMY_ACCELERATION;
-
-    if (enemy->player_in_view)
-    {
-        enemy->state = ENEMY_STATE_ATTACK;
-        enemy->path_length = 0;
-        enemy->weapon.last_shot = f32_random_number_get(state,
-            ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX);
-    }
-    else if (!enemy->path_length)
-    {
-        struct v2 target = tile_random_get(state, TILE_FLOOR);
-
-        enemy->path_length = path_find(enemy->body.position,
-            target, enemy->path, MAX_PATH);
-        path_trim(state, enemy->body.position, enemy->path,
-            &enemy->path_length);
-        enemy->path_index = 0;
-    }
-}
-
-void enemy_pursuit(struct game_state* state, struct enemy* enemy, f32 dt)
-{
-    enemy->acceleration = ENEMY_ACCELERATION * 1.50f;
-
-    if (enemy->player_in_view)
-    {
-        enemy->state_timer_active = false;
-        enemy->state = ENEMY_STATE_ATTACK;
-        enemy->path_length = 0;
-
-        // Reaction time halved during pursuit
-        enemy->weapon.last_shot = f32_random_number_get(state,
-            ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX) * 0.5f;
-    }
-    else if (enemy->state_timer_active)
-    {
-        enemy->state_timer -= dt;
-
-        // Todo: the enemy should look around during this stage, the state timer
-        // is a confusing concept but works for now
-
-        enemy->direction_look = enemy->player_last_seen_direction;
-
-        if (enemy->state_timer < 0.0f)
+        } break;
+        case ENEMY_STATE_REACT_TO_GUN_SHOT:
         {
-            enemy->state_timer_active = false;
-            enemy->state = ENEMY_STATE_WANDER;
-        }
-    }
-    else if (!enemy->path_length)
-    {
-        enemy->state_timer = 1.0f;
-        enemy->state_timer_active = true;
-    }
-}
-
-void enemy_sleep(struct game_state* state, struct enemy* enemy, f32 dt)
-{
-    if (enemy->state_timer_active)
-    {
-        enemy->state_timer -= dt;
-
-        if (enemy->player_in_view)
+            enemy->state_timer = f32_random_number_get(state,
+                ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX);
+            enemy->direction_look = v2_direction(enemy->body.position,
+                enemy->gun_shot_position);
+        } break;
+        case ENEMY_STATE_RUSH_TO_TARGET:
         {
-            enemy->state_timer_active = false;
-            enemy->state = ENEMY_STATE_ATTACK;
-            enemy->path_length = 0;
-
-            // Reaction time halved during pursuit
-            enemy->weapon.last_shot = f32_random_number_get(state,
-                ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX) * 0.5f;
-        }
-        else if (enemy->state_timer < 0.0f)
-        {
-            enemy->state_timer_active = false;
-            enemy->path_length = path_find(enemy->body.position,
-                enemy->gun_shot_position, enemy->path, MAX_PATH);
+            enemy->path_length = path_find(enemy->body.position, enemy->target,
+                enemy->path, MAX_PATH);
             path_trim(state, enemy->body.position, enemy->path,
                 &enemy->path_length);
             enemy->path_index = 0;
-
-            enemy->state = ENEMY_STATE_PURSUIT;
-        }
-    }
-    else if (enemy->gun_shot_heard)
-    {
-        enemy->direction_look = v2_direction(enemy->body.position,
-            enemy->gun_shot_position);
-
-        if (enemy->player_in_view)
+        } break;
+        case ENEMY_STATE_WANDER_AROUND:
         {
-            enemy->state_timer_active = false;
-            enemy->state = ENEMY_STATE_ATTACK;
-            enemy->path_length = 0;
-
-            // Reaction time halved during pursuit
-            enemy->weapon.last_shot = f32_random_number_get(state,
-                ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX) * 0.5f;
-        }
-        else
+            enemy->path_length = path_find(enemy->body.position,
+                tile_random_get(state, TILE_FLOOR), enemy->path, MAX_PATH);
+            path_trim(state, enemy->body.position, enemy->path,
+                &enemy->path_length);
+            enemy->path_index = 0;
+        } break;
+        case ENEMY_STATE_LOOK_AROUND:
         {
-            enemy->state_timer = 1.0f;
-            enemy->state_timer_active = true;
-        }
+            enemy->acceleration = PLAYER_ACCELERATION;
+            enemy->state_timer = 3.0f;
+        } break;
     }
 }
 
@@ -2748,21 +2545,201 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
             enemy->gun_shot_heard = enemy_hears_gun_shot(state, enemy);
 
-            if (enemy->state == ENEMY_STATE_SLEEP)
+            if (enemy->player_in_view)
             {
-                enemy_sleep(state, enemy, dt);
+                enemy->player_last_seen_position = state->player.body.position;
+
+                if (enemy->state != ENEMY_STATE_SHOOT &&
+                    enemy->state != ENEMY_STATE_SLEEP)
+                {
+                    enemy_state_transition(state, enemy,
+                        ENEMY_STATE_REACT_TO_PLAYER_SEEN);
+                }
             }
-            else if (enemy->state == ENEMY_STATE_ATTACK)
+            else if (enemy->gun_shot_heard)
             {
-                enemy_attack(state, enemy, dt);
+                if (enemy->state != ENEMY_STATE_SHOOT)
+                {
+                    enemy_state_transition(state, enemy,
+                        ENEMY_STATE_REACT_TO_GUN_SHOT);
+                }
             }
-            else if (enemy->state == ENEMY_STATE_WANDER)
+
+            switch (enemy->state)
             {
-                enemy_wander(state, enemy, dt);
+                case ENEMY_STATE_SLEEP:
+                {
+                } break;
+                case ENEMY_STATE_REACT_TO_PLAYER_SEEN:
+                {
+                    if (enemy->state_timer < 0.0f)
+                    {
+                        if (enemy->player_in_view)
+                        {
+                            enemy_state_transition(state, enemy,
+                                ENEMY_STATE_SHOOT);
+                        }
+                        else
+                        {
+                            enemy->target = enemy->player_last_seen_position;
+                            enemy->acceleration = ENEMY_ACCELERATION * 1.50f;
+                            enemy_state_transition(state, enemy,
+                                ENEMY_STATE_RUSH_TO_TARGET);
+                        }
+                    }
+                    else if (enemy->player_in_view)
+                    {
+                        enemy->direction_look = v2_direction(
+                            enemy->body.position, state->player.body.position);
+                    }
+                } break;
+                case ENEMY_STATE_REACT_TO_GUN_SHOT:
+                {
+                    if (enemy->state_timer < 0.0f)
+                    {
+                        enemy->target = enemy->gun_shot_position;
+                        enemy->acceleration = ENEMY_ACCELERATION * 1.50f;
+                        enemy_state_transition(state, enemy,
+                            ENEMY_STATE_RUSH_TO_TARGET);
+                    }
+                } break;
+                case ENEMY_STATE_SHOOT:
+                {
+                    enemy->acceleration = 0.0f;
+
+                    if (enemy->player_in_view)
+                    {
+                        enemy->state_timer_active = false;
+                        enemy->player_last_seen_position =
+                            state->player.body.position;
+                        enemy->player_last_seen_direction = v2_normalize(
+                            state->player.body.velocity);
+
+                        struct v2 target_forward = v2_direction(
+                            enemy->body.position,
+                            enemy->player_last_seen_position);
+
+                        if (v2_length(enemy->body.velocity))
+                        {
+                            // Todo: calculate right with cross product
+                            f32 angle = F64_PI*1.5f;
+                            f32 tsin = f32_sin(angle);
+                            f32 tcos = f32_cos(angle);
+
+                            struct v2 target_right =
+                            {
+                                target_forward.x * tcos - target_forward.y *
+                                    tsin,
+                                target_forward.x * tsin + target_forward.y *
+                                    tcos
+                            };
+
+                            f32 initial_velocity = v2_dot(enemy->body.velocity,
+                                target_right);
+
+                            struct v2 desired_velocity = { 0.0f };
+
+                            if (PROJECTILE_SPEED > initial_velocity)
+                            {
+                                desired_velocity.x = -initial_velocity;
+                            }
+                            else
+                            {
+                                desired_velocity.x = PROJECTILE_SPEED;
+                            }
+
+                            if (desired_velocity.x)
+                            {
+                                desired_velocity.y = f32_sqrt(
+                                    (PROJECTILE_SPEED * PROJECTILE_SPEED) -
+                                    (desired_velocity.x * desired_velocity.x));
+                            }
+                            else
+                            {
+                                desired_velocity.y = -PROJECTILE_SPEED;
+                            }
+
+                            struct v2 target_right_rotate_back =
+                            {
+                                target_right.x, -target_right.y
+                            };
+
+                            struct v2 target_forward_rotate_back =
+                            {
+                                -target_forward.x, target_forward.y
+                            };
+
+                            struct v2 final_direction =
+                            {
+                                v2_dot(desired_velocity,
+                                    target_right_rotate_back),
+                                v2_dot(desired_velocity,
+                                    target_forward_rotate_back)
+                            };
+
+                            enemy->direction_aim =
+                                v2_normalize(final_direction);
+                        }
+                        else
+                        {
+                            enemy->direction_aim = target_forward;
+                        }
+
+                        enemy->direction_look = target_forward;
+
+                        // Player in view, stop moving
+                        enemy->direction_move.x = 0.0f;
+                        enemy->direction_move.y = 0.0f;
+
+                        struct weapon* weapon = &enemy->weapon;
+
+                        weapon->direction = enemy->direction_aim;
+                        weapon->position = enemy->eye_position;
+                        weapon->velocity = enemy->body.velocity;
+
+                        weapon_shoot(state, weapon, false);
+
+                        if (weapon->fired && enemy->trigger_release <= 0.0f)
+                        {
+                            enemy->trigger_release = 0.5f;
+                        }
+                    }
+                    else
+                    {
+                        enemy_state_transition(state, enemy,
+                            ENEMY_STATE_REACT_TO_PLAYER_SEEN);
+                    }
+                } break;
+                case ENEMY_STATE_RUSH_TO_TARGET:
+                {
+                    if (!enemy->path_length)
+                    {
+                        enemy_state_transition(state, enemy,
+                            ENEMY_STATE_LOOK_AROUND);
+                    }
+                } break;
+                case ENEMY_STATE_LOOK_AROUND:
+                {
+                    // Todo: look around
+                    if (enemy->state_timer < 0.0f)
+                    {
+                        enemy_state_transition(state, enemy,
+                            ENEMY_STATE_WANDER_AROUND);
+                    }
+                } break;
+                case ENEMY_STATE_WANDER_AROUND:
+                {
+                    if (!enemy->path_length)
+                    {
+                        enemy_state_transition(state, enemy,
+                            ENEMY_STATE_LOOK_AROUND);
+                    }
+                } break;
             }
-            else if (enemy->state == ENEMY_STATE_PURSUIT)
+
+            if (enemy->state_timer > 0.0f)
             {
-                enemy_pursuit(state, enemy, dt);
+                enemy->state_timer -= dt;
             }
 
             if (enemy->path_length)
@@ -2777,7 +2754,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 {
                     if (++enemy->path_index >= enemy->path_length)
                     {
-                        enemy->path_length = 0.0f;
+                        enemy->path_length = 0;
                         enemy->direction_move.x = 0.0f;
                         enemy->direction_move.y = 0.0f;
                     }
@@ -2801,7 +2778,27 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 }
             }
 
-            enemy_move(enemy, dt);
+            struct v2 acceleration = { 0.0f };
+            struct v2 move_delta = { 0.0f };
+
+            acceleration.x = enemy->direction_move.x * enemy->acceleration;
+            acceleration.y = enemy->direction_move.y * enemy->acceleration;
+
+            acceleration.x += -enemy->body.velocity.x * FRICTION;
+            acceleration.y += -enemy->body.velocity.y * FRICTION;
+
+            move_delta.x = 0.5f * acceleration.x * f32_square(dt) +
+                enemy->body.velocity.x * dt;
+            move_delta.y = 0.5f * acceleration.y * f32_square(dt) +
+                enemy->body.velocity.y * dt;
+
+            enemy->body.velocity.x = enemy->body.velocity.x + acceleration.x
+                * dt;
+            enemy->body.velocity.y = enemy->body.velocity.y + acceleration.y
+                * dt;
+
+            check_tile_collisions(&enemy->body.position, &enemy->body.velocity,
+                move_delta, PLAYER_RADIUS, 1);
 
             // Todo: clean this code, try not to use angles... they go wild
             // sometimes
@@ -3540,6 +3537,9 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                     {
                         bullet->alive = false;
                         enemy->health -= bullet->damage;
+                        enemy->got_hit = true;
+                        enemy->hit_direction = v2_flip(v2_normalize(
+                            bullet->body.velocity));
 
                         particle_sphere_create(state, bullet->body.position,
                             (struct v2){ bullet->body.velocity.x * 0.5,
