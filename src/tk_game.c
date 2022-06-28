@@ -2526,6 +2526,12 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
             enemy->acceleration = PLAYER_ACCELERATION;
             enemy->state_timer = 3.0f;
         } break;
+        case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
+        {
+            enemy->direction_look = enemy->hit_direction;
+            enemy->state_timer = f32_random_number_get(state,
+                ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX);
+        } break;
     }
 }
 
@@ -2548,6 +2554,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             if (enemy->player_in_view)
             {
                 enemy->player_last_seen_position = state->player.body.position;
+                enemy->player_last_seen_direction = v2_normalize(
+                    state->player.body.velocity);
 
                 if (enemy->state != ENEMY_STATE_SHOOT &&
                     enemy->state != ENEMY_STATE_SLEEP)
@@ -2558,11 +2566,25 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             }
             else if (enemy->gun_shot_heard)
             {
+                // Todo: enemy should react only to the closest source of noise
                 if (enemy->state != ENEMY_STATE_SHOOT)
                 {
                     enemy_state_transition(state, enemy,
                         ENEMY_STATE_REACT_TO_GUN_SHOT);
                 }
+            }
+            else if (enemy->got_hit)
+            {
+                // Todo: react only if the source of bullet is not visible?
+                if (enemy->state != ENEMY_STATE_SHOOT)
+                {
+                    enemy_state_transition(state, enemy,
+                        ENEMY_STATE_REACT_TO_BEING_SHOT_AT);
+                }
+
+                enemy->got_hit = false;
+                enemy->hit_direction.x = 0.0f;
+                enemy->hit_direction.y = 0.0f;
             }
 
             switch (enemy->state)
@@ -2582,7 +2604,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                         else
                         {
                             enemy->target = enemy->player_last_seen_position;
-                            enemy->acceleration = ENEMY_ACCELERATION * 1.50f;
+                            enemy->acceleration = ENEMY_ACCELERATION;
                             enemy_state_transition(state, enemy,
                                 ENEMY_STATE_RUSH_TO_TARGET);
                         }
@@ -2597,10 +2619,20 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 {
                     if (enemy->state_timer < 0.0f)
                     {
-                        enemy->target = enemy->gun_shot_position;
-                        enemy->acceleration = ENEMY_ACCELERATION * 1.50f;
-                        enemy_state_transition(state, enemy,
-                            ENEMY_STATE_RUSH_TO_TARGET);
+                        if (ray_cast_position(state, enemy->eye_position,
+                            enemy->gun_shot_position, NULL,
+                            COLLISION_STATIC | COLLISION_PLAYER))
+                        {
+                            enemy_state_transition(state, enemy,
+                                ENEMY_STATE_LOOK_AROUND);
+                        }
+                        else
+                        {
+                            enemy->target = enemy->gun_shot_position;
+                            enemy->acceleration = ENEMY_ACCELERATION;
+                            enemy_state_transition(state, enemy,
+                                ENEMY_STATE_RUSH_TO_TARGET);
+                        }
                     }
                 } break;
                 case ENEMY_STATE_SHOOT:
@@ -2735,6 +2767,20 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                             ENEMY_STATE_LOOK_AROUND);
                     }
                 } break;
+                case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
+                {
+                    if (enemy->state_timer < 0.0f)
+                    {
+                        // Todo: verify that this works
+                        ray_cast_position(state, enemy->eye_position,
+                            enemy->gun_shot_position, &enemy->target,
+                            COLLISION_STATIC | COLLISION_PLAYER);
+
+                        enemy->acceleration = ENEMY_ACCELERATION;
+                        enemy_state_transition(state, enemy,
+                            ENEMY_STATE_RUSH_TO_TARGET);
+                    }
+                }
             }
 
             if (enemy->state_timer > 0.0f)
