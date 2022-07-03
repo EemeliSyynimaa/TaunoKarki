@@ -3460,7 +3460,7 @@ void enemies_render(struct game_state* state)
                     state->shader_simple, colors[YELLOW]);
             }
 
-            // Render aim vector
+            // Render look vector
             if (state->render_debug)
             {
                 f32 length = 1.0f;
@@ -4691,7 +4691,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
             enemy->body.position = tile_random_get(state, TILE_FLOOR);
             enemy->alive = true;
             enemy->health = 100.0f;
-            enemy->body.angle = f32_radians(270 - i * 15.0f);
             enemy->vision_cone_size = 0.2f * i;
             enemy->shooting = false;
             enemy->cube.faces[0].texture = 13;
