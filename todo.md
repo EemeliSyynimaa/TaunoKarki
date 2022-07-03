@@ -1,5 +1,86 @@
 # Todo
 
+Development plan for the MVP that's supposed to be available in December 2022.
+
+- [ ] Finish physics (May)
+ - [ ] Entity to entity collisions
+- [ ] Finish AI (June)
+ - [X] Enemy sleeps
+ - [X] Enemy wanders around if bored
+ - [X] Enemy looks around if looking for something
+ - [X] Enemy reacts to player
+  - [X] Enemy shoots at player
+  - [X] Enemy moves to last seen player position
+ - [X] Enemy reacts to sounds
+  - [X] Enemy reacts to gun sounds
+  - [ ] Enemy reacts to foot steps
+  - [X] Enemy moves towards the origin of sound
+  - [ ] Sound distance is rendered as circles
+ - [X] Enemy reacts to being shot at
+  - [X] Enemy looks at the shot direction
+  - [X] Enemy moves in that general direction to find the shooter
+ - [ ] Enemy follows path
+  - [X] Path is trimmed so the enemy doesn't have to visit each node
+  - [ ] Enemy stops exactly at the path end
+  - [ ] Enemy stops if the path is changed during movement
+- [ ] Add collectible items (July)
+ - [ ] Add bullet boxes
+ - [ ] Add weapon boxes
+ - [ ] Add health boxes
+ - [ ] Add weapon level up boxes
+ - [ ] Enemies drop boxes when dead
+  - [ ] The weapon it used
+  - [ ] Some bullets for the weapon
+ - [ ] Bullet, health and level up boxes are picked up automatically
+ - [ ] Player can choose whether to pick up the weapon box
+- [ ] Finish weapons (August)
+ - [ ] Weapons have only limited amount of clips and bullets
+ - [ ] Weapon level ups
+ - [ ] Player can carry two weapons
+- [ ] Level generation (September)
+ - [ ] Level always starts from an elevator
+ - [ ] Create levels that are more like floors in tall buildings, not caves
+ - [ ] Rooms can have different floors
+ - [ ] Rooms can have different walls
+- [ ] Make a game out of it (October)
+ - [ ] Player starts from the ground level
+ - [ ] Player can move between levels via elevator
+ - [ ] Player can see lower levels if there's no ceiling or floors blocking
+ - [ ] Player is required to do kill all enemies before being able to move up
+ - [ ] Game is over when the player dies
+ - [ ] Player gets score based on the level reached and the number of kills
+- [ ] Clean up unfinished code (November)
+ - [ ] All the listed things that couldn't have been done in time
+ - [ ] Clean the code base
+  - [ ] The game source file is bound to be huge at this point
+   - [ ] Remove unused code
+   - [ ] Decide which code to move to own file (make a plan)
+   - [ ] Move the code
+ - [ ] If time
+  - [ ] Build on linux
+  - [ ] Create ECS
+  - [ ] Graphics stuff
+   - [ ] Shadows and lighting
+   - [ ] Screenshake
+   - [ ] Enemy and player faces react to happenings (sleepy, watchful etc)
+   - [ ] Render text
+- [ ] Polish the MVP (December)
+ - [ ] Main menu
+  - [ ] Start game
+  - [ ] Scores
+  - [ ] Exit game
+ - [ ] Pause menu
+  - [ ] Continue
+  - [ ] Exit to menu
+ - [ ] Game over menu
+  - [ ] Start game
+  - [ ] Exit to menu
+ - [ ] Create release package and put it available
+  - [ ] Windows package
+  - [ ] Linux package
+
+# Old list
+
  - [X] Improve build tools
  - [X] Coding conventions
  - [X] Debug logging 
