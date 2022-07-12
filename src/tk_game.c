@@ -101,7 +101,7 @@ struct player
 {
     struct rigid_body body;
     struct v2 eye_position;
-    struct weapon weapons[3];
+    struct weapon weapons[2];
     struct cube_data cube;
     f32 health;
     b32 alive;
@@ -214,9 +214,14 @@ struct mesh
 #define MAX_PARTICLES 1024
 #define MAX_GUN_SHOTS 64
 
-#define WEAPON_PISTOL     0
-#define WEAPON_MACHINEGUN 1
-#define WEAPON_SHOTGUN    2
+enum
+{
+    WEAPON_NONE = 0,
+    WEAPON_SHOTGUN = 1,
+    WEAPON_MACHINEGUN = 2,
+    WEAPON_PISTOL = 3,
+    WEAPON_COUNT = 4
+};
 
 struct memory_block
 {
@@ -2360,6 +2365,59 @@ void gun_shot_register(struct game_state* state, struct v2 position, f32 volume)
     }
 }
 
+struct weapon weapon_create(u32 type)
+{
+    struct weapon weapon = { 0 };
+
+    switch (type)
+    {
+        case WEAPON_PISTOL:
+        {
+            weapon.type = WEAPON_PISTOL;
+            weapon.last_shot = 0.0f;
+            weapon.fired = false;
+            weapon.ammo_max = weapon.ammo = 12;
+            weapon.fire_rate = 0.0f;
+            weapon.reload_time = 0.8f / weapon.ammo;
+            weapon.reloading = false;
+            weapon.spread = 0.0125f;
+            weapon.projectile_size = PROJECTILE_RADIUS;
+            weapon.projectile_speed = PROJECTILE_SPEED;
+            weapon.projectile_damage = 20.0f;
+        } break;
+        case WEAPON_MACHINEGUN:
+        {
+            weapon.type = WEAPON_MACHINEGUN;
+            weapon.last_shot = 0.0f;
+            weapon.fired = false;
+            weapon.ammo_max = weapon.ammo = 40;
+            weapon.fire_rate = 0.075f;
+            weapon.reload_time = 1.1f / weapon.ammo;
+            weapon.reloading = false;
+            weapon.spread = 0.035f;
+            weapon.projectile_size = PROJECTILE_RADIUS * 0.75f;
+            weapon.projectile_speed = PROJECTILE_SPEED;
+            weapon.projectile_damage = 10.0f;
+        } break;
+        case WEAPON_SHOTGUN:
+        {
+            weapon.type = WEAPON_SHOTGUN;
+            weapon.last_shot = 0.0f;
+            weapon.fired = false;
+            weapon.ammo_max = weapon.ammo = 8;
+            weapon.fire_rate = 0.5f;
+            weapon.reload_time = 3.0f / weapon.ammo;
+            weapon.reloading = false;
+            weapon.spread = 0.125f;
+            weapon.projectile_size = PROJECTILE_RADIUS * 0.25f;
+            weapon.projectile_speed = PROJECTILE_SPEED;
+            weapon.projectile_damage = 7.5f;
+        } break;
+    }
+
+    return weapon;
+}
+
 void weapon_shoot(struct game_state* state, struct weapon* weapon, bool player)
 {
     if (weapon->type == WEAPON_PISTOL)
@@ -2601,7 +2659,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             {
                 enemy->alive = false;
 
-                item_create(state, enemy->body.position, ITEM_HEALTH);
+                item_create(state, enemy->body.position,
+                    ITEM_HEALTH + enemy->weapon.type);
 
                 continue;
             }
@@ -3721,20 +3780,6 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 
     if (player->alive)
     {
-        if (player->item_picked)
-        {
-            switch (player->item_picked)
-            {
-                case ITEM_HEALTH:
-                {
-                    player->health += ITEAM_HEALTH_AMOUNT;
-                    player->health = MIN(player->health, PLAYER_HEALTH_MAX);
-                } break;
-            }
-
-            player->item_picked = ITEM_NONE;
-        }
-
         struct v2 direction = { 0.0f };
         struct v2 acceleration = { 0.0f };
         struct v2 move_delta = { 0.0f };
@@ -3803,18 +3848,11 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 
         if (key_times_pressed(&input->weapon_slot_1))
         {
-            LOG("Change weapon to PISTOL\n");
             weapon_next = 0;
         }
         if (key_times_pressed(&input->weapon_slot_2))
         {
-            LOG("Change weapon to MACHINEGUN\n");
             weapon_next = 1;
-        }
-        if (key_times_pressed(&input->weapon_slot_3))
-        {
-            LOG("Change weapon to SHOTGUN\n");
-            weapon_next = 2;
         }
 
         if (weapon_next != player->weapon_current)
@@ -3827,6 +3865,28 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         else if (weapon->last_shot > 0.0f)
         {
             weapon->last_shot -= dt;
+        }
+
+        if (player->item_picked)
+        {
+            switch (player->item_picked)
+            {
+                case ITEM_HEALTH:
+                {
+                    player->health += ITEAM_HEALTH_AMOUNT;
+                    player->health = MIN(player->health, PLAYER_HEALTH_MAX);
+                } break;
+                case ITEM_PISTOL:
+                case ITEM_MACHINEGUN:
+                case ITEM_SHOTGUN:
+                {
+                    *weapon = weapon_create(player->item_picked - 1);
+                    weapon->ammo = 0;
+                    weapon_reload(weapon);
+                } break;
+            }
+
+            player->item_picked = ITEM_NONE;
         }
 
         weapon->direction = dir;
@@ -4850,7 +4910,8 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->player.body.position.y = 3.0f;
         state->player.alive = true;
         state->player.health = PLAYER_HEALTH_MAX;
-        state->player.weapon_current = WEAPON_PISTOL;
+        state->player.weapon_current = 0;
+        state->player.weapons[0] = weapon_create(WEAPON_PISTOL);
         state->player.cube.faces[0].texture = 15;
 
         for (u32 i = 0; i < 6; i++)
@@ -4858,50 +4919,10 @@ void game_init(struct game_memory* memory, struct game_init* init)
             state->player.cube.faces[i].color = color_player;
         }
 
-        struct weapon* weapon = &state->player.weapons[0];
-        weapon->type = WEAPON_PISTOL;
-        weapon->last_shot = 0.0f;
-        weapon->fired = false;
-        weapon->ammo_max = weapon->ammo = 12;
-        weapon->fire_rate = 0.0f;
-        weapon->reload_time = 0.8f / weapon->ammo;
-        weapon->reloading = false;
-        weapon->spread = 0.0125f;
-        weapon->projectile_size = PROJECTILE_RADIUS;
-        weapon->projectile_speed = PROJECTILE_SPEED;
-        weapon->projectile_damage = 20.0f;
-
-        ++weapon;
-        weapon->type = WEAPON_MACHINEGUN;
-        weapon->last_shot = 0.0f;
-        weapon->fired = false;
-        weapon->ammo_max = weapon->ammo = 40;
-        weapon->fire_rate = 0.075f;
-        weapon->reload_time = 1.1f / weapon->ammo;
-        weapon->reloading = false;
-        weapon->spread = 0.035f;
-        weapon->projectile_size = PROJECTILE_RADIUS * 0.75f;
-        weapon->projectile_speed = PROJECTILE_SPEED;
-        weapon->projectile_damage = 10.0f;
-
-        ++weapon;
-        weapon->type = WEAPON_SHOTGUN;
-        weapon->last_shot = 0.0f;
-        weapon->fired = false;
-        weapon->ammo_max = weapon->ammo = 8;
-        weapon->fire_rate = 0.5f;
-        weapon->reload_time = 3.0f / weapon->ammo;
-        weapon->reloading = false;
-        weapon->spread = 0.125f;
-        weapon->projectile_size = PROJECTILE_RADIUS * 0.25f;
-        weapon->projectile_speed = PROJECTILE_SPEED;
-        weapon->projectile_damage = 7.5f;
-
         for (u32 i = 0; i < state->num_enemies; i++)
         {
             struct enemy* enemy = &state->enemies[i];
-
-            enemy->weapon = state->player.weapons[i % 3];
+            enemy->weapon = weapon_create(u32_random_number_get(state, 1, 3));
             enemy->weapon.projectile_damage *= 0.2f;
         }
 
