@@ -24,14 +24,11 @@ Development plan for the MVP that's supposed to be available in December 2022.
   - [ ] Enemy stops exactly at the path end
   - [ ] Enemy stops if the path is changed during movement
 - [ ] Add collectible items (July)
- - [ ] Add bullet boxes
  - [ ] Add weapon boxes
  - [ ] Add health boxes
  - [ ] Add weapon level up boxes
- - [ ] Enemies drop boxes when dead
-  - [ ] The weapon it used
-  - [ ] Some bullets for the weapon
- - [ ] Bullet, health and level up boxes are picked up automatically
+ - [ ] Enemies drops the weapon it used when dead
+ - [ ] Health and level up boxes are picked up automatically
  - [ ] Player can choose whether to pick up the weapon box
 - [ ] Finish weapons (August)
  - [ ] Weapons have only limited amount of clips and bullets

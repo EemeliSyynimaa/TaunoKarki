@@ -106,6 +106,7 @@ struct player
     f32 health;
     b32 alive;
     u32 weapon_current;
+    u32 item_picked;
 };
 
 struct bullet
@@ -115,6 +116,14 @@ struct bullet
     f32 damage;
     b32 alive;
     b32 player_owned;
+};
+
+struct item
+{
+    struct rigid_body body;
+    struct cube_data cube;
+    u32 type;
+    b32 alive;
 };
 
 enum
@@ -198,6 +207,7 @@ struct mesh
 
 #define MAX_BULLETS 64
 #define MAX_ENEMIES 5
+#define MAX_ITEMS 16
 #define MAX_WALL_CORNERS 512
 #define MAX_WALL_FACES 512
 #define MAX_COLLISION_SEGMENTS 1024
@@ -234,6 +244,7 @@ struct game_state
     struct player player;
     struct bullet bullets[MAX_BULLETS];
     struct enemy enemies[MAX_ENEMIES];
+    struct item items[MAX_ITEMS];
     struct particle_line particle_lines[MAX_PARTICLES];
     struct particle_sphere particle_spheres[MAX_PARTICLES];
     struct camera camera;
@@ -258,6 +269,7 @@ struct game_state
     u32 texture_sphere;
     u32 texture_cube;
     u32 free_bullet;
+    u32 free_item;
     u32 free_particle_line;
     u32 free_particle_sphere;
     u32 num_enemies;
@@ -322,12 +334,28 @@ f32 f32_random_number_get(struct game_state* state, f32 min, f32 max)
 
 f32 PLAYER_ACCELERATION = 40.0f;
 f32 PLAYER_RADIUS       = 0.25f;
+f32 PLAYER_HEALTH_MAX   = 100.0f;
 
 f32 ENEMY_ACCELERATION           = 35.0f;
 f32 ENEMY_LINE_OF_SIGHT_HALF     = F64_PI * 0.125f; // 22.5 degrees
 f32 ENEMY_REACTION_TIME_MIN      = 0.25f;
 f32 ENEMY_REACTION_TIME_MAX      = 0.75f;
 f32 ENEMY_GUN_FIRE_HEAR_DISTANCE = 10.0f;
+f32 ENEMY_HEALTH_MAX             = 100.0f;
+
+f32 ITEM_RADIUS = 0.1;
+
+enum
+{
+    ITEM_NONE = 0,
+    ITEM_HEALTH = 1,
+    ITEM_SHOTGUN = 2,
+    ITEM_MACHINEGUN = 3,
+    ITEM_PISTOL = 4,
+    ITEM_COUNT = 5
+};
+
+u32 ITEAM_HEALTH_AMOUNT = 25.0f;
 
 f32 PROJECTILE_RADIUS = 0.035f;
 f32 PROJECTILE_SPEED  = 100.0f;
@@ -2296,6 +2324,31 @@ void bullet_create(struct game_state* state, struct v2 position,
         colors[YELLOW], size, size * 5.0f, 0.10f);
 }
 
+void item_create(struct game_state* state, struct v2 position, u32 type)
+{
+    if (type > ITEM_NONE && type < ITEM_COUNT)
+    {
+        if (++state->free_item == MAX_ITEMS)
+        {
+            state->free_item = 0;
+        }
+
+        struct item* item = &state->items[state->free_item];
+        item->body.position = position;
+        item->alive = true;
+        item->type = type;
+
+        item->cube.faces[0].texture = 4 + type - 1;
+
+        u32 color = (type == ITEM_HEALTH) ? WHITE : OLIVE;
+
+        for (u32 i = 0; i < 6; i++)
+        {
+            item->cube.faces[i].color = color;
+        }
+    }
+}
+
 void gun_shot_register(struct game_state* state, struct v2 position, f32 volume)
 {
     if (state->num_gun_shots < MAX_GUN_SHOTS)
@@ -2542,10 +2595,17 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
     {
         struct enemy* enemy = &state->enemies[i];
 
-        enemy->alive = enemy->health > 0.0f;
-
         if (enemy->alive)
         {
+            if (enemy->health < 0.0f)
+            {
+                enemy->alive = false;
+
+                item_create(state, enemy->body.position, ITEM_HEALTH);
+
+                continue;
+            }
+
             enemy->player_in_view = enemy_sees_player(state, enemy,
                 &state->player);
 
@@ -3405,7 +3465,7 @@ void enemies_render(struct game_state* state)
             }
 
             health_bar_render(state, enemy->body.position, enemy->health,
-                100.0f);
+                ENEMY_HEALTH_MAX);
             ammo_bar_render(state, enemy->body.position, enemy->weapon.ammo,
                 enemy->weapon.ammo_max);
 
@@ -3661,6 +3721,20 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 
     if (player->alive)
     {
+        if (player->item_picked)
+        {
+            switch (player->item_picked)
+            {
+                case ITEM_HEALTH:
+                {
+                    player->health += ITEAM_HEALTH_AMOUNT;
+                    player->health = MIN(player->health, PLAYER_HEALTH_MAX);
+                } break;
+            }
+
+            player->item_picked = ITEM_NONE;
+        }
+
         struct v2 direction = { 0.0f };
         struct v2 acceleration = { 0.0f };
         struct v2 move_delta = { 0.0f };
@@ -3874,9 +3948,69 @@ void player_render(struct game_state* state)
         }
 
         struct weapon* weapon = &player->weapons[player->weapon_current];
-        health_bar_render(state, player->body.position, player->health, 100.0f);
+        health_bar_render(state, player->body.position, player->health,
+            PLAYER_HEALTH_MAX);
         ammo_bar_render(state, player->body.position, weapon->ammo,
             weapon->ammo_max);
+    }
+}
+
+void items_update(struct game_state* state, struct game_input* input, f32 dt)
+{
+    for (u32 i = 0; i < MAX_ITEMS; i++)
+    {
+        struct item* item = &state->items[i];
+        struct player* player = &state->player;
+
+        item->body.angle += F64_PI * dt;
+
+        if (item->alive && player->alive)
+        {
+            f32 target_size = PLAYER_RADIUS + ITEM_RADIUS;
+
+            struct line_segment segments[4] = { 0 };
+
+            get_body_rectangle(player->body, target_size, target_size,
+                segments);
+
+            struct v2 corners[] =
+            {
+                segments[0].start,
+                segments[1].start,
+                segments[2].start,
+                segments[3].start
+            };
+
+            if (player->alive && collision_point_to_obb(item->body.position,
+                corners))
+            {
+                player->item_picked = item->type;
+                item->alive = false;
+            }
+        }
+    }
+}
+
+void items_render(struct game_state* state)
+{
+    for (u32 i = 0; i < MAX_ITEMS; i++)
+    {
+        struct item* item = &state->items[i];
+
+        if (item->alive)
+        {
+            struct m4 transform = m4_translate(item->body.position.x,
+                item->body.position.y, ITEM_RADIUS);
+            struct m4 rotation = m4_rotate_z(item->body.angle);
+            struct m4 scale = m4_scale_all(ITEM_RADIUS);
+            struct m4 model = m4_mul_m4(scale, rotation);
+
+            model = m4_mul_m4(model, transform);
+
+            item->cube.model = model;
+
+            cube_renderer_add(&state->cube_renderer, &item->cube);
+        }
     }
 }
 
@@ -4680,6 +4814,13 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->camera.projection_inverse = m4_inverse(state->camera.projection);
         state->num_enemies = MAX_ENEMIES;
 
+        u32 num_colors = sizeof(colors) / sizeof(struct v4);
+
+        for (u32 i = 0; i < num_colors; i++)
+        {
+            cube_renderer_color_add(&state->cube_renderer, colors[i]);
+        }
+
         u32 color_enemy = cube_renderer_color_add(&state->cube_renderer,
             (struct v4){ 0.7f, 0.90f, 0.1f, 1.0f });
         u32 color_player = cube_renderer_color_add(&state->cube_renderer,
@@ -4690,7 +4831,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
             struct enemy* enemy = &state->enemies[i];
             enemy->body.position = tile_random_get(state, TILE_FLOOR);
             enemy->alive = true;
-            enemy->health = 100.0f;
+            enemy->health = ENEMY_HEALTH_MAX;
             enemy->vision_cone_size = 0.2f * i;
             enemy->shooting = false;
             enemy->cube.faces[0].texture = 13;
@@ -4708,7 +4849,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->player.body.position.x = 3.0f;
         state->player.body.position.y = 3.0f;
         state->player.alive = true;
-        state->player.health = 100.0f;
+        state->player.health = PLAYER_HEALTH_MAX;
         state->player.weapon_current = WEAPON_PISTOL;
         state->player.cube.faces[0].texture = 15;
 
@@ -4836,6 +4977,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
                 player_update(state, input, step);
                 enemies_update(state, input, step);
                 bullets_update(state, input, step);
+                items_update(state, input, step);
                 particle_lines_update(state, input, step);
                 particle_spheres_update(state, input, step);
 
@@ -4876,6 +5018,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
         player_render(state);
         enemies_render(state);
         bullets_render(state);
+        items_render(state);
         particle_lines_render(state);
         particle_spheres_render(state);
 
