@@ -84,6 +84,7 @@ struct weapon
     struct v2 velocity;
     struct v2 direction;
     u32 type;
+    u32 level;
     u32 ammo;
     u32 ammo_max;
     f32 last_shot;
@@ -207,7 +208,7 @@ struct mesh
 
 #define MAX_BULLETS 64
 #define MAX_ENEMIES 5
-#define MAX_ITEMS 16
+#define MAX_ITEMS 256
 #define MAX_WALL_CORNERS 512
 #define MAX_WALL_FACES 512
 #define MAX_COLLISION_SEGMENTS 1024
@@ -357,7 +358,8 @@ enum
     ITEM_SHOTGUN = 2,
     ITEM_MACHINEGUN = 3,
     ITEM_PISTOL = 4,
-    ITEM_COUNT = 5
+    ITEM_WEAPON_LEVEL_UP = 5,
+    ITEM_COUNT = 6
 };
 
 u32 ITEAM_HEALTH_AMOUNT = 25.0f;
@@ -378,6 +380,8 @@ u32 COLLISION_ENEMY   = 4;
 u32 COLLISION_BULLET  = 8;
 u32 COLLISION_DYNAMIC = 14;
 u32 COLLISION_ALL     = 255;
+
+u32 WEAPON_LEVEL_MAX = 10;
 
 // Todo: clean this, not very nice
 struct v4 colors[] =
@@ -1530,7 +1534,7 @@ void health_bar_render(struct game_state* state, struct v2 position,
         0.5f, &state->camera);
 
     f32 x = screen_pos.x - bar_length_max * 0.5f;
-    f32 y = screen_pos.y + 6.0f;
+    f32 y = screen_pos.y + 12.0f;
     f32 width = bar_length;
     f32 height = 10.0f;
     f32 angle = 0.0f;
@@ -1558,7 +1562,7 @@ void ammo_bar_render(struct game_state* state, struct v2 position,
         0.5f, &state->camera);
 
     f32 x = screen_pos.x - bar_length_max * 0.5f;
-    f32 y = screen_pos.y - 6.0f;
+    f32 y = screen_pos.y;
     f32 width = bar_length - 1.0f;
     f32 height = 10.0f;
     f32 angle = 0.0f;
@@ -1566,6 +1570,27 @@ void ammo_bar_render(struct game_state* state, struct v2 position,
     for (u32 i = 0; i < ammo; i++, x += bar_length)
     {
         gui_rect_render(state, x, y, width, height, angle, colors[YELLOW]);
+    }
+}
+
+void weapon_level_bar_render(struct game_state* state, struct v2 position,
+    u32 level, u32 level_max)
+{
+    f32 bar_length_max = 70.0f;
+    f32 bar_length = bar_length_max / level_max;
+
+    struct v2 screen_pos = calculate_screen_pos(position.x, position.y + 0.5f,
+        0.5f, &state->camera);
+
+    f32 x = screen_pos.x - bar_length_max * 0.5f;
+    f32 y = screen_pos.y - 12.0f;
+    f32 width = bar_length - 1.0f;
+    f32 height = 10.0f;
+    f32 angle = 0.0f;
+
+    for (u32 i = 0; i < level; i++, x += bar_length)
+    {
+        gui_rect_render(state, x, y, width, height, angle, colors[LIME]);
     }
 }
 
@@ -2329,8 +2354,10 @@ void bullet_create(struct game_state* state, struct v2 position,
         colors[YELLOW], size, size * 5.0f, 0.10f);
 }
 
-void item_create(struct game_state* state, struct v2 position, u32 type)
+struct item* item_create(struct game_state* state, struct v2 position, u32 type)
 {
+    struct item* result = NULL;
+
     if (type > ITEM_NONE && type < ITEM_COUNT)
     {
         if (++state->free_item == MAX_ITEMS)
@@ -2338,20 +2365,34 @@ void item_create(struct game_state* state, struct v2 position, u32 type)
             state->free_item = 0;
         }
 
-        struct item* item = &state->items[state->free_item];
-        item->body.position = position;
-        item->alive = true;
-        item->type = type;
+        result = &state->items[state->free_item];
+        result->body.position = position;
+        result->alive = true;
+        result->type = type;
 
-        item->cube.faces[0].texture = 4 + type - 1;
+        result->cube.faces[0].texture = 4 + type - 1;
 
-        u32 color = (type == ITEM_HEALTH) ? WHITE : OLIVE;
+        u32 color = OLIVE;
+
+        switch (type)
+        {
+            case ITEM_HEALTH:
+            {
+                color = WHITE;
+            } break;
+            case ITEM_WEAPON_LEVEL_UP:
+            {
+                color = LIME;
+            } break;
+        }
 
         for (u32 i = 0; i < 6; i++)
         {
-            item->cube.faces[i].color = color;
+            result->cube.faces[i].color = color;
         }
     }
+
+    return result;
 }
 
 void gun_shot_register(struct game_state* state, struct v2 position, f32 volume)
@@ -2374,6 +2415,7 @@ struct weapon weapon_create(u32 type)
         case WEAPON_PISTOL:
         {
             weapon.type = WEAPON_PISTOL;
+            weapon.level = 1;
             weapon.last_shot = 0.0f;
             weapon.fired = false;
             weapon.ammo_max = weapon.ammo = 12;
@@ -2388,6 +2430,7 @@ struct weapon weapon_create(u32 type)
         case WEAPON_MACHINEGUN:
         {
             weapon.type = WEAPON_MACHINEGUN;
+            weapon.level = 1;
             weapon.last_shot = 0.0f;
             weapon.fired = false;
             weapon.ammo_max = weapon.ammo = 40;
@@ -2402,6 +2445,7 @@ struct weapon weapon_create(u32 type)
         case WEAPON_SHOTGUN:
         {
             weapon.type = WEAPON_SHOTGUN;
+            weapon.level = 1;
             weapon.last_shot = 0.0f;
             weapon.fired = false;
             weapon.ammo_max = weapon.ammo = 8;
@@ -2538,6 +2582,19 @@ void weapon_reload(struct weapon* weapon)
             weapon->reloading = true;
             weapon->last_shot = weapon->reload_time;
         }
+    }
+}
+
+void weapon_level_up(struct weapon* weapon)
+{
+    if (weapon->level < WEAPON_LEVEL_MAX)
+    {
+        weapon->level++;
+
+        weapon->ammo_max *= 1.1f;
+        weapon->projectile_damage *= 1.1f;
+        weapon->reload_time *= 0.9f;
+        weapon->fire_rate *= 0.9f;
     }
 }
 
@@ -3880,10 +3937,21 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
                 case ITEM_MACHINEGUN:
                 case ITEM_SHOTGUN:
                 {
-                    *weapon = weapon_create(player->item_picked - 1);
-                    weapon->ammo = 0;
-                    weapon_reload(weapon);
+                    u32 weapon_type = player->item_picked - 1;
+
+                    if (weapon->type != weapon_type)
+                    {
+                        *weapon = weapon_create(player->item_picked - 1);
+                        weapon->ammo = 0;
+                        weapon_reload(weapon);
+                    }
+
                 } break;
+                case ITEM_WEAPON_LEVEL_UP:
+                {
+                    weapon_level_up(weapon);
+                    weapon_reload(weapon);
+                }
             }
 
             player->item_picked = ITEM_NONE;
@@ -4012,6 +4080,8 @@ void player_render(struct game_state* state)
             PLAYER_HEALTH_MAX);
         ammo_bar_render(state, player->body.position, weapon->ammo,
             weapon->ammo_max);
+        weapon_level_bar_render(state, player->body.position, weapon->level,
+            WEAPON_LEVEL_MAX);
     }
 }
 
@@ -4901,6 +4971,12 @@ void game_init(struct game_memory* memory, struct game_init* init)
             {
                 enemy->cube.faces[i].color = color_enemy;
             }
+        }
+
+        for (u32 i = 0; i < 100; i++)
+        {
+            struct v2 position = tile_random_get(state, TILE_FLOOR);
+            item_create(state, position, ITEM_WEAPON_LEVEL_UP);
         }
 
         state->level = 2;
