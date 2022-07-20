@@ -26,7 +26,7 @@ Development plan for the MVP that's supposed to be available in December 2022.
 - [ ] Add collectible items (July)
  - [X] Add weapon boxes
  - [X] Add health boxes
- - [ ] Add weapon level up boxes
+ - [X] Add weapon level up boxes
  - [X] Enemies drops the weapon it used when dead
  - [ ] Health and level up boxes are picked up automatically
  - [ ] Player can choose whether to pick up the weapon box

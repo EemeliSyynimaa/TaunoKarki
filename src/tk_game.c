@@ -2555,38 +2555,32 @@ void weapon_shoot(struct game_state* state, struct weapon* weapon, bool player)
     }
 }
 
-void weapon_reload(struct weapon* weapon)
+void weapon_reload(struct weapon* weapon, b32 full_reload)
 {
     if (weapon->type == WEAPON_PISTOL)
     {
-        if (weapon->ammo < weapon->ammo_max && !weapon->reloading)
-        {
-            weapon->ammo = 0;
-            weapon->reloading = true;
-            weapon->last_shot = weapon->reload_time;
-        }
+        weapon->ammo = 0;
+        weapon->reloading = true;
+        weapon->last_shot = weapon->reload_time;
     }
     else if (weapon->type == WEAPON_MACHINEGUN)
     {
-        if (weapon->ammo < weapon->ammo_max && !weapon->reloading)
-        {
-            weapon->ammo = 0;
-            weapon->reloading = true;
-            weapon->last_shot = weapon->reload_time;
-        }
+        weapon->ammo = 0;
+        weapon->reloading = true;
+        weapon->last_shot = weapon->reload_time;
     }
     else if (weapon->type == WEAPON_SHOTGUN)
     {
-        if (weapon->ammo < weapon->ammo_max && !weapon->reloading)
-        {
-            weapon->reloading = true;
-            weapon->last_shot = weapon->reload_time;
-        }
+        weapon->ammo = full_reload ? 0 : weapon->ammo;
+        weapon->reloading = true;
+        weapon->last_shot = weapon->reload_time;
     }
 }
 
-void weapon_level_up(struct weapon* weapon)
+b32 weapon_level_up(struct weapon* weapon)
 {
+    b32 result = false;
+
     if (weapon->level < WEAPON_LEVEL_MAX)
     {
         weapon->level++;
@@ -2595,7 +2589,10 @@ void weapon_level_up(struct weapon* weapon)
         weapon->projectile_damage *= 1.1f;
         weapon->reload_time *= 0.9f;
         weapon->fire_rate *= 0.9f;
+        result = true;
     }
+
+    return result;
 }
 
 b32 enemy_sees_player(struct game_state* state, struct enemy* enemy,
@@ -3943,14 +3940,16 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
                     {
                         *weapon = weapon_create(player->item_picked - 1);
                         weapon->ammo = 0;
-                        weapon_reload(weapon);
+                        weapon_reload(weapon, true);
                     }
 
                 } break;
                 case ITEM_WEAPON_LEVEL_UP:
                 {
-                    weapon_level_up(weapon);
-                    weapon_reload(weapon);
+                    if (weapon_level_up(weapon))
+                    {
+                        weapon_reload(weapon, true);
+                    }
                 }
             }
 
@@ -3961,9 +3960,9 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         weapon->position = player->eye_position;
         weapon->velocity = player->body.velocity;
 
-        if (input->reload.key_down)
+        if (key_times_pressed(&input->reload))
         {
-            weapon_reload(weapon);
+            weapon_reload(weapon, false);
         }
 
         if (input->shoot.key_down)
@@ -4092,7 +4091,7 @@ void items_update(struct game_state* state, struct game_input* input, f32 dt)
         struct item* item = &state->items[i];
         struct player* player = &state->player;
 
-        item->body.angle += F64_PI * dt;
+        item->body.angle -= F64_PI * dt;
 
         if (item->alive && player->alive)
         {
@@ -4129,10 +4128,12 @@ void items_render(struct game_state* state)
 
         if (item->alive)
         {
+            f32 t = f32_sin(item->body.angle) * 0.25f;
+
             struct m4 transform = m4_translate(item->body.position.x,
                 item->body.position.y, ITEM_RADIUS);
             struct m4 rotation = m4_rotate_z(item->body.angle);
-            struct m4 scale = m4_scale_all(ITEM_RADIUS);
+            struct m4 scale = m4_scale_all(ITEM_RADIUS + t * ITEM_RADIUS);
             struct m4 model = m4_mul_m4(scale, rotation);
 
             model = m4_mul_m4(model, transform);
