@@ -102,11 +102,10 @@ struct player
 {
     struct rigid_body body;
     struct v2 eye_position;
-    struct weapon weapons[2];
+    struct weapon weapon;
     struct cube_data cube;
     f32 health;
     b32 alive;
-    u32 weapon_current;
     u32 item_picked;
 };
 
@@ -124,7 +123,9 @@ struct item
     struct rigid_body body;
     struct cube_data cube;
     u32 type;
-    b32 alive;
+    f32 alive;
+    f32 flash_timer;
+    b32 flash_hide;
 };
 
 enum
@@ -350,6 +351,9 @@ f32 ENEMY_GUN_FIRE_HEAR_DISTANCE = 10.0f;
 f32 ENEMY_HEALTH_MAX             = 100.0f;
 
 f32 ITEM_RADIUS = 0.1;
+f32 ITEM_ALIVE_TIME = 10.0f;
+f32 ITEM_FLASH_TIME = 2.0f;
+f32 ITEM_FLASH_SPEED = 0.125f;
 
 enum
 {
@@ -2367,7 +2371,7 @@ struct item* item_create(struct game_state* state, struct v2 position, u32 type)
 
         result = &state->items[state->free_item];
         result->body.position = position;
-        result->alive = true;
+        result->alive = ITEM_ALIVE_TIME;
         result->type = type;
 
         result->cube.faces[0].texture = 4 + type - 1;
@@ -3921,27 +3925,9 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         player->eye_position.x += player->body.position.x;
         player->eye_position.y += player->body.position.y;
 
-        // Todo: maybe update the status of weapon that's changed
-        u32 weapon_next = player->weapon_current;
-        struct weapon* weapon = &player->weapons[player->weapon_current];
+        struct weapon* weapon = &player->weapon;
 
-        if (key_times_pressed(&input->weapon_slot_1))
-        {
-            weapon_next = 0;
-        }
-        if (key_times_pressed(&input->weapon_slot_2))
-        {
-            weapon_next = 1;
-        }
-
-        if (weapon_next != player->weapon_current)
-        {
-            weapon->fired = true;
-
-            player->weapon_current = weapon_next;
-            weapon = &player->weapons[player->weapon_current];
-        }
-        else if (weapon->last_shot > 0.0f)
+        if (weapon->last_shot > 0.0f)
         {
             weapon->last_shot -= dt;
         }
@@ -4099,7 +4085,7 @@ void player_render(struct game_state* state)
                 state->shader_simple, colors[RED]);
         }
 
-        struct weapon* weapon = &player->weapons[player->weapon_current];
+        struct weapon* weapon = &player->weapon;
         health_bar_render(state, player->body.position, player->health,
             PLAYER_HEALTH_MAX);
         ammo_bar_render(state, player->body.position, weapon->ammo,
@@ -4114,29 +4100,33 @@ void items_update(struct game_state* state, struct game_input* input, f32 dt)
     for (u32 i = 0; i < MAX_ITEMS; i++)
     {
         struct item* item = &state->items[i];
-        struct player* player = &state->player;
 
-        item->body.angle -= F64_PI * dt;
-
-        if (item->alive && player->alive)
+        if (item->alive)
         {
-            f32 target_size = PLAYER_RADIUS + ITEM_RADIUS;
+            item->body.angle -= F64_PI * dt;
+            item->alive -= dt;
 
-            struct line_segment segments[4] = { 0 };
-
-            get_body_rectangle(player->body, target_size, target_size,
-                segments);
-
-            struct v2 corners[] =
+            if (item->alive < 0.0f)
             {
-                segments[0].start,
-                segments[1].start,
-                segments[2].start,
-                segments[3].start
-            };
+                item->alive = 0.0f;
+            }
+            else if (item->alive < ITEM_FLASH_TIME)
+            {
+                if (item->flash_timer <= 0.0f)
+                {
+                    item->flash_timer = ITEM_FLASH_SPEED;
+                    item->flash_hide = !item->flash_hide;
+                }
+                else
+                {
+                    item->flash_timer -= dt;
+                }
+            }
 
-            if (player->alive && collision_point_to_obb(item->body.position,
-                corners))
+            struct player* player = &state->player;
+
+            if (player->alive && collision_circle_to_circle(item->body.position,
+                ITEM_RADIUS, player->body.position, PLAYER_RADIUS))
             {
                 if (item->type < ITEM_SHOTGUN || item->type > ITEM_PISTOL ||
                     key_times_pressed(&input->weapon_pick))
@@ -4155,7 +4145,7 @@ void items_render(struct game_state* state)
     {
         struct item* item = &state->items[i];
 
-        if (item->alive)
+        if (item->alive && !item->flash_hide)
         {
             f32 t = f32_sin(item->body.angle) * 0.25f;
 
@@ -5010,8 +5000,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->player.body.position.y = 3.0f;
         state->player.alive = true;
         state->player.health = PLAYER_HEALTH_MAX;
-        state->player.weapon_current = 0;
-        state->player.weapons[0] = weapon_create(WEAPON_PISTOL);
+        state->player.weapon = weapon_create(WEAPON_PISTOL);
         state->player.cube.faces[0].texture = 15;
 
         for (u32 i = 0; i < 6; i++)
