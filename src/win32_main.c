@@ -780,6 +780,12 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                 win32_input_process(&new_input.weapon_slot_5,
                                     is_down);
                             }
+                            else if (msg.wParam == 0x45)
+                            {
+                                LOG("E - %s\n", is_down ? "down" : "up");
+                                win32_input_process(&new_input.weapon_pick,
+                                    is_down);
+                            }
                         }
                     }
                 } break;

@@ -30,22 +30,19 @@ Development plan for the MVP that's supposed to be available in December 2022.
  - [X] Enemies drops the weapon it used when dead
  - [ ] Health and level up boxes are picked up automatically
  - [ ] Player can choose whether to pick up the weapon box
-- [ ] Finish weapons (August)
- - [ ] Weapons have only limited amount of clips and bullets
- - [ ] Weapon level ups
- - [ ] Player can carry two weapons
-- [ ] Level generation (September)
+- [ ] Level generation (August)
  - [ ] Level always starts from an elevator
  - [ ] Create levels that are more like floors in tall buildings, not caves
  - [ ] Rooms can have different floors
  - [ ] Rooms can have different walls
-- [ ] Make a game out of it (October)
+- [ ] Make a game out of it (September)
  - [ ] Player starts from the ground level
  - [ ] Player can move between levels via elevator
  - [ ] Player can see lower levels if there's no ceiling or floors blocking
  - [ ] Player is required to do kill all enemies before being able to move up
  - [ ] Game is over when the player dies
  - [ ] Player gets score based on the level reached and the number of kills
+- [ ] Finish gameplay (October)
 - [ ] Clean up unfinished code (November)
  - [ ] All the listed things that couldn't have been done in time
  - [ ] Clean the code base

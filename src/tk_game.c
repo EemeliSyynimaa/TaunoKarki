@@ -321,7 +321,7 @@ u32 random_number_generate(struct game_state* state)
 
 u32 u32_random_number_get(struct game_state* state, u32 min, u32 max)
 {
-    u32 result = random_number_generate(state) % max + min;
+    u32 result = random_number_generate(state) % (max - min + 1) + min;
 
     return result;
 }
@@ -2716,6 +2716,31 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 item_create(state, enemy->body.position,
                     ITEM_HEALTH + enemy->weapon.type);
 
+                u32 random_item_count = u32_random_number_get(state, 0, 3);
+
+                for (u32 j = 0; j < random_item_count; j++)
+                {
+                    struct v2 position = enemy->body.position;
+
+                    f32 offset_max = 0.25f;
+                    f32 offset_x = f32_random_number_get(state, -offset_max,
+                        offset_max);
+                    f32 offset_y = f32_random_number_get(state, -offset_max,
+                        offset_max);
+
+                    position.x += offset_x;
+                    position.y += offset_y;
+
+                    u32 random_item_type = u32_random_number_get(state, 0, 2);
+                    random_item_type =
+                        random_item_type ? ITEM_HEALTH : ITEM_WEAPON_LEVEL_UP;
+
+                    item_create(state, position, random_item_type);
+                }
+
+                item_create(state, enemy->body.position,
+                    ITEM_HEALTH + enemy->weapon.type);
+
                 continue;
             }
 
@@ -4113,8 +4138,12 @@ void items_update(struct game_state* state, struct game_input* input, f32 dt)
             if (player->alive && collision_point_to_obb(item->body.position,
                 corners))
             {
-                player->item_picked = item->type;
-                item->alive = false;
+                if (item->type < ITEM_SHOTGUN || item->type > ITEM_PISTOL ||
+                    key_times_pressed(&input->weapon_pick))
+                {
+                    player->item_picked = item->type;
+                    item->alive = false;
+                }
             }
         }
     }
@@ -4972,12 +5001,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
             {
                 enemy->cube.faces[i].color = color_enemy;
             }
-        }
-
-        for (u32 i = 0; i < 100; i++)
-        {
-            struct v2 position = tile_random_get(state, TILE_FLOOR);
-            item_create(state, position, ITEM_WEAPON_LEVEL_UP);
         }
 
         state->level = 2;
