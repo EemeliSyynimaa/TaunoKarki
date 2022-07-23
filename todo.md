@@ -23,13 +23,13 @@ Development plan for the MVP that's supposed to be available in December 2022.
   - [X] Path is trimmed so the enemy doesn't have to visit each node
   - [ ] Enemy stops exactly at the path end
   - [ ] Enemy stops if the path is changed during movement
-- [ ] Add collectible items (July)
+- [X] Add collectible items (July)
  - [X] Add weapon boxes
  - [X] Add health boxes
  - [X] Add weapon level up boxes
  - [X] Enemies drops the weapon it used when dead
- - [ ] Health and level up boxes are picked up automatically
- - [ ] Player can choose whether to pick up the weapon box
+ - [X] Health and level up boxes are picked up automatically
+ - [X] Player can choose whether to pick up the weapon box
 - [ ] Level generation (August)
  - [ ] Level always starts from an elevator
  - [ ] Create levels that are more like floors in tall buildings, not caves
