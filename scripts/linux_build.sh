@@ -7,7 +7,7 @@ else
 fi
 
 gcc ../src/tk_game.c -shared -o ../build/game.so -fPIC -std=gnu99 -Wall -Werror -Wno-missing-braces
-gcc ../src/linux_main.c -o ../build/game -lX11 -ldl -L/usr/X11R6/lib -I/opt/X11R6/include -std=gnu99 -Wall -Werror -Wno-missing-braces
+gcc ../src/linux_main.c -o ../build/game -lX11 -lGL -lGLX -ldl -std=gnu99 -Wall -Werror -Wno-missing-braces
 
 # @echo off
 
