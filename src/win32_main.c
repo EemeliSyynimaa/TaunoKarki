@@ -377,18 +377,15 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 }
 
 // Todo: get rid of globals
-struct file_functions file;
-struct opengl_functions gl;
-struct time_functions time;
 struct win32_recorded_inputs record;
 
-#define OPEN_GL_FUNCTION_LOAD(name) gl.name = \
+#define OPEN_GL_FUNCTION_LOAD(name) api.gl.name = \
     (type_##name*)wglGetProcAddress(#name)
 
 #define OPEN_WGL_FUNCTION_LOAD(name) name = \
     (type_##name*)wglGetProcAddress(#name)
 
-#define OPEN_GL_FUNCTION_COPY(name) gl.name = name
+#define OPEN_GL_FUNCTION_COPY(name) api.gl.name = name
 
 s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, 
     LPSTR lpCmdLine, int nCmdShow)
@@ -514,6 +511,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     hrc = wglCreateContextAttribsARB(hdc, 0, attribs);
 
+    struct api api = { 0 };
+
     OPEN_GL_FUNCTION_LOAD(glGetUniformLocation);
     OPEN_GL_FUNCTION_LOAD(glCreateProgram);
     OPEN_GL_FUNCTION_LOAD(glCreateShader);
@@ -573,18 +572,16 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     
     ShowWindow(hwnd, nCmdShow);
 
-    file.file_open = win32_file_open;
-    file.file_close = win32_file_close;
-    file.file_read = win32_file_read;
-    file.file_size_get = win32_file_size_get;
+    api.file.file_open = win32_file_open;
+    api.file.file_close = win32_file_close;
+    api.file.file_read = win32_file_read;
+    api.file.file_size_get = win32_file_size_get;
 
-    time.ticks_current_get = win32_ticks_current_get;
-    time.ticks_frequency_get = win32_ticks_frequency_get;
+    api.time.ticks_current_get = win32_ticks_current_get;
+    api.time.ticks_frequency_get = win32_ticks_frequency_get;
 
     struct game_init init = { 0 };
-    init.file = &file;
-    init.gl = &gl;
-    init.time = &time;
+    init.api = api;
     init.log = win32_log;
     init.screen_width = client_width;
     init.screen_height = client_height;

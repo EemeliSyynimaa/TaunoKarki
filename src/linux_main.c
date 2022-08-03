@@ -6,6 +6,12 @@
 #include <assert.h>
 #include <unistd.h>
 #include <string.h>
+
+#define GL_GLEXT_PROTOTYPES
+
+#include "GL/gl.h"
+#include "GL/glx.h"
+#include "GL/glext.h"
 #include "tk_platform.h"
 
 typedef void type_game_init(struct game_memory*, struct game_init*);
@@ -124,6 +130,24 @@ void linux_file_size_get(file_handle* file, u64* file_size)
     *file_size = (u64)statbuf.st_size;
 }
 
+u64 linux_ticks_current_get()
+{
+    u32 result = 0;
+
+    // Todo: implement
+
+    return result;
+}
+
+u64 linux_ticks_frequency_get()
+{
+    u32 result = 0;
+
+    // Todo: implement
+
+    return result;
+}
+
 // Todo: linux recording
 // - linux_recorded_memory_read
 // - linux_recorded_memory_write
@@ -131,9 +155,7 @@ void linux_file_size_get(file_handle* file, u64* file_size)
 // - linux_recorded_inputs_read
 // - linux_recorded_inputs_write
 
-// Todo: get rid of globals
-struct file_functions file;
-struct opengl_functions gl;
+#define OPEN_GL_FUNCTION_COPY(name) api.gl.name = name
 
 s32 main(s32 argc, char *argv[])
 {
@@ -153,25 +175,81 @@ s32 main(s32 argc, char *argv[])
     }
 
     screen = DefaultScreenOfDisplay(display);
+
+    if (!screen)
+    {
+        return 1;
+    }
+
     screen_id = DefaultScreen(display);
 
     s32 screen_width = 1280;
     s32 screen_height = 720;
 
     window = XCreateSimpleWindow(display, RootWindowOfScreen(screen), 0, 0,
-        screen_width, screen_height, 1, BlackPixel(display, screen_id), 
+        screen_width, screen_height, 10, BlackPixel(display, screen_id),
         WhitePixel(display, screen_id));
 
     XClearWindow(display, window);
     XMapRaised(display, window);
 
-    // Todo: copy opengl function addresses
-    // Todo: copy file io addresses
+    struct api api;
 
-    file.file_open = linux_file_open;
-    file.file_close = linux_file_close;
-    file.file_read = linux_file_read;
-    file.file_size_get = linux_file_size_get;
+    OPEN_GL_FUNCTION_COPY(glGetUniformLocation);
+    OPEN_GL_FUNCTION_COPY(glCreateProgram);
+    OPEN_GL_FUNCTION_COPY(glCreateShader);
+    OPEN_GL_FUNCTION_COPY(glShaderSource);
+    OPEN_GL_FUNCTION_COPY(glCompileShader);
+    OPEN_GL_FUNCTION_COPY(glGetShaderiv);
+    OPEN_GL_FUNCTION_COPY(glAttachShader);
+    OPEN_GL_FUNCTION_COPY(glLinkProgram);
+    OPEN_GL_FUNCTION_COPY(glGetProgramiv);
+    OPEN_GL_FUNCTION_COPY(glDeleteShader);
+    OPEN_GL_FUNCTION_COPY(glDeleteProgram);
+    OPEN_GL_FUNCTION_COPY(glUseProgram);
+    OPEN_GL_FUNCTION_COPY(glDeleteBuffers);
+    OPEN_GL_FUNCTION_COPY(glBindBuffer);
+    OPEN_GL_FUNCTION_COPY(glEnableVertexAttribArray);
+    OPEN_GL_FUNCTION_COPY(glDisableVertexAttribArray);
+    OPEN_GL_FUNCTION_COPY(glVertexAttribPointer);
+    OPEN_GL_FUNCTION_COPY(glVertexAttribIPointer);
+    OPEN_GL_FUNCTION_COPY(glUniform1i);
+    OPEN_GL_FUNCTION_COPY(glUniform4fv);
+    OPEN_GL_FUNCTION_COPY(glUniformMatrix4fv);
+    OPEN_GL_FUNCTION_COPY(glGenBuffers);
+    OPEN_GL_FUNCTION_COPY(glBufferData);
+    OPEN_GL_FUNCTION_COPY(glBufferSubData);
+    OPEN_GL_FUNCTION_COPY(glGenVertexArrays);
+    OPEN_GL_FUNCTION_COPY(glBindVertexArray);
+    OPEN_GL_FUNCTION_COPY(glActiveTexture);
+    OPEN_GL_FUNCTION_COPY(glVertexAttribDivisor);
+    OPEN_GL_FUNCTION_COPY(glDrawElementsInstanced);
+    OPEN_GL_FUNCTION_COPY(glTexImage3D);
+    OPEN_GL_FUNCTION_COPY(glTexSubImage3D);
+    OPEN_GL_FUNCTION_COPY(glGetUniformBlockIndex);
+    OPEN_GL_FUNCTION_COPY(glUniformBlockBinding);
+    OPEN_GL_FUNCTION_COPY(glBindBufferRange);
+
+    OPEN_GL_FUNCTION_COPY(glGetIntegerv);
+    OPEN_GL_FUNCTION_COPY(glEnable);
+    OPEN_GL_FUNCTION_COPY(glDepthFunc);
+    OPEN_GL_FUNCTION_COPY(glClearColor);
+    OPEN_GL_FUNCTION_COPY(glClear);
+    OPEN_GL_FUNCTION_COPY(glBindTexture);
+    OPEN_GL_FUNCTION_COPY(glDrawElements);
+    OPEN_GL_FUNCTION_COPY(glGenTextures);
+    OPEN_GL_FUNCTION_COPY(glTexParameteri);
+    OPEN_GL_FUNCTION_COPY(glTexImage2D);
+    OPEN_GL_FUNCTION_COPY(glBlendFunc);
+    OPEN_GL_FUNCTION_COPY(glGetError);
+
+    api.file.file_open = linux_file_open;
+    api.file.file_close = linux_file_close;
+    api.file.file_read = linux_file_read;
+    api.file.file_size_get = linux_file_size_get;
+
+    api.time.ticks_current_get = linux_ticks_current_get;
+    api.time.ticks_frequency_get = linux_ticks_frequency_get;
     
     // Todo: allocate game memory
     struct game_memory memory = { 0 };
@@ -181,49 +259,11 @@ s32 main(s32 argc, char *argv[])
 
     assert(memory.base);
 
-    // Note: test file io
-    {
-        file_handle ff;
-
-        linux_file_open(&ff, "testink.txt", false);
-
-        LOG("FF IS %d\n", ff);
-
-        char* testi = "THIS IS TESTING ALRIGHT!!!";
-
-        s32 testi_size = strlen(testi);
-
-        // write(file_handle* file, s8* data, u64 bytes)
-        linux_file_write(&ff, (s8*)testi, testi_size);
-        // read(file_handle* file, s8* data, u64 bytes_max, u64* bytes_read)
-
-        linux_file_close(&ff);
-
-        char testi2[32] = { 5 };
-
-
-        // Todo: should file handle be cleared after close?
-        LOG("FF IS %d\n", ff);
-
-        linux_file_open(&ff, "testink.txt", true);
-
-        LOG("FF IS %d\n", ff);
-
-        u64 read_bytes = 0;
-
-        linux_file_read(&ff, (s8*)testi2, 32, &read_bytes);
-
-        LOG("THIS IS WHAT WE GOT: %s\n", testi2);
-
-        linux_file_close(&ff);
-        
-    }
-
     b32 ready = true;
 
     if (!linux_game_lib_load())
     {
-        LOG("Library gmae not found\n");
+        LOG("Library game not found\n");
         ready = false;
     }
 
@@ -243,8 +283,7 @@ s32 main(s32 argc, char *argv[])
     {
         // Todo: fill struct game_init
         struct game_init init = { 0 };
-        init.file = &file;
-        init.gl = &gl;
+        init.api = api;
         init.log = linux_log;
         init.screen_width = screen_width;
         init.screen_height = screen_height;

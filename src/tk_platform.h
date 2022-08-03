@@ -70,11 +70,16 @@ struct game_input
     b32 pause;
 };
 
+struct api
+{
+    struct gl_api gl;
+    struct file_functions file;
+    struct time_functions time;
+};
+
 struct game_init
 {
-    struct opengl_functions* gl;
-    struct file_functions* file;
-    struct time_functions* time;
+    struct api api;
     type_log* log;
     s32 screen_width;
     s32 screen_height;
