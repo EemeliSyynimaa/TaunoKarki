@@ -130,6 +130,16 @@ void linux_file_size_get(file_handle* file, u64* file_size)
     *file_size = (u64)statbuf.st_size;
 }
 
+// Todo: this is not linux specific
+void linux_input_process(struct key_state* state, b32 is_down)
+{
+    if (state->key_down != is_down)
+    {
+        state->key_down = is_down;
+        state->transitions++;
+    }
+}
+
 u64 linux_ticks_current_get()
 {
     u32 result = 0;
@@ -327,6 +337,8 @@ s32 main(s32 argc, char *argv[])
         ready = false;
     }
 
+    struct game_input old_input = { 0 };
+
     if (ready)
     {
         // Todo: fill struct game_init
@@ -346,6 +358,17 @@ s32 main(s32 argc, char *argv[])
         while (running)
         {
             struct game_input new_input = { 0 };
+
+            s32 num_keys = sizeof(new_input.keys)/sizeof(new_input.keys[0]);
+
+            for (s32 i = 0; i < num_keys; i++)
+            {
+                new_input.keys[i].key_down = old_input.keys[i].key_down;
+                new_input.keys[i].transitions = old_input.keys[i].transitions;
+            }
+
+            new_input.enable_debug_rendering = old_input.enable_debug_rendering;
+            new_input.pause = old_input.pause;
 
             // Todo: fill struct game_input
             // Todo: calculate delta time
@@ -370,12 +393,24 @@ s32 main(s32 argc, char *argv[])
                         LOG("Keymap notify event\n");
                     } break;
                     case KeyPress:
-                    {
-                        LOG("Key press event\n");
-                    } break;
                     case KeyRelease:
                     {
-                        LOG("Key release event\n");
+                        b32 is_down = ev.type == KeyPress;
+                        KeySym sym = 0;
+                        char str[25] = { 0 };
+
+                        if (XLookupString(&ev.xkey, str, 25, &sym, NULL))
+                        {
+                            // Todo: continue key processing
+                            LOG("Key %s pressed/released\n", str);
+
+                            if (sym == XK_A || sym == XK_a)
+                            {
+                                LOG("A - %s\n", is_down ? "down" : "up");
+                                linux_input_process(&new_input.move_left, 
+                                    is_down);
+                            }
+                        }
                     } break;
                     default:
                     {
@@ -388,8 +423,9 @@ s32 main(s32 argc, char *argv[])
             game_update(&memory, &new_input);
 
             glXSwapBuffers(display, window);
-        }
 
+            old_input = new_input;
+        }
     }
     else
     {
