@@ -190,6 +190,9 @@ s32 main(s32 argc, char *argv[])
         screen_width, screen_height, 10, BlackPixel(display, screen_id),
         WhitePixel(display, screen_id));
 
+    XSelectInput(display, window, KeyPressMask | KeyReleaseMask |
+        KeymapStateMask);
+
     XClearWindow(display, window);
     XMapRaised(display, window);
 
@@ -301,15 +304,41 @@ s32 main(s32 argc, char *argv[])
 
             // Todo: fill struct game_input
             // Todo: calculate delta time
+
             // Todo: read keyboard events
             // Todo: read mouse events
             // Todo: read other events?
+            u32 events_num = 0;
+            u32 events_processed = 0;
+
+            while ((events_num = XPending(display)))
+            {
+                LOG("Processing event %u of %u\n", ++events_processed,
+                    events_num);
+                XNextEvent(display, &ev);
+
+                switch (ev.type)
+                {
+                    case KeymapNotify:
+                    {
+                        LOG("Keymap notify event\n");
+                    } break;
+                    case KeyPress:
+                    {
+                        LOG("Key press event\n");
+                    } break;
+                    case KeyRelease:
+                    {
+                        LOG("Key release event\n");
+                    } break;
+                    default:
+                    {
+                        LOG("Unknown event\n");
+                    } break;
+                }
+            }
 
             // Todo: recording
-
-            // Todo: game_update
-            XNextEvent(display, &ev);
-
             game_update(&memory, &new_input);
         }
 
