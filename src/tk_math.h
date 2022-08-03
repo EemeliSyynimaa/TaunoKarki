@@ -92,43 +92,37 @@ f32 f32_degrees(f32 radians)
 f32 f32_atan(f32 y, f32 x)
 {
     // Todo: implement own atan(2) function
-    // return atan2(y, x);
-    return 0.0f;
+    return atan2(y, x);
 }
 
 f32 f32_acos(f32 value)
 {
     // Todo: implement own acos function
-    // return acos(value);
-    return 0.0f;
+    return acos(value);
 }
 
 f32 f32_sin(f32 angle)
 {
     // Todo: implement own sin function
-    // return sin(angle);
-    return 0.0f;
+    return sin(angle);
 }
 
 f32 f32_cos(f32 angle)
 {
     // Todo: implement own cos function
-    // return cos(angle);
-    return 0.0f;
+    return cos(angle);
 }
 
 f32 f32_tan(f32 angle)
 {
     // Todo: implement own tan function
-    // return tan(angle);
-    return 0.0f;
+    return tan(angle);
 }
 
 f32 f32_sqrt(f32 value)
 {
     // Todo: implement own sqrt function
-    // return sqrt(value);
-    return 0.0f;
+    return sqrt(value);
 }
 
 f32 f32_square(f32 value)

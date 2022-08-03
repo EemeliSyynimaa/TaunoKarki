@@ -6,7 +6,7 @@ else
 `mkdir ../build`;
 fi
 
-gcc ../src/tk_game.c -shared -o ../build/game.so -fPIC -std=gnu99 -Wall -Werror -Wno-missing-braces
+gcc ../src/tk_game.c -shared -o ../build/game.so -lm -fPIC -std=gnu99 -Wall -Werror -Wno-missing-braces
 gcc ../src/linux_main.c -o ../build/game -lX11 -lGL -lGLX -ldl -std=gnu99 -Wall -Werror -Wno-missing-braces
 
 # @echo off
