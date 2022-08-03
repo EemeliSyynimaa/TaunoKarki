@@ -100,6 +100,7 @@ b32 win32_game_lib_load()
     return false;
 }
 
+// Todo: this is not win32 specific
 void win32_input_process(struct key_state* state, b32 is_down)
 {
     if (state->key_down != is_down)
