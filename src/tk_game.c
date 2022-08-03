@@ -1,8 +1,5 @@
 #include "tk_platform.h"
 #include "tk_math.h"
-#include "tk_opengl.h"
-#include "tk_file.h"
-#include "tk_time.h"
 
 #include <string.h>
 
@@ -300,6 +297,9 @@ struct game_state
     u32 ticks_per_second;
 };
 
+// Todo: global for now
+struct api api;
+
 u32 key_times_pressed(struct key_state* state)
 {
     u32 result = 0;
@@ -489,7 +489,7 @@ struct v2 tile_random_get(struct game_state* state, struct level* level,
 
     u32 max_iterations = 1000;
 
-    while (max_iterations)
+    while (max_iterations--)
     {
         struct v2 position =
         {
@@ -1054,7 +1054,7 @@ struct v2 calculate_screen_pos(f32 pos_x, f32 pos_y, f32 pos_z,
 
 void log_gl_error(char* t)
 {
-    GLenum error = glGetError();
+    GLenum error = api.gl.glGetError();
 
     switch (error)
     {
@@ -1088,33 +1088,33 @@ void log_gl_error(char* t)
 void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
     u32 num_vertices, u32* indices)
 {
-    glGenVertexArrays(1, &mesh->vao);
-    glBindVertexArray(mesh->vao);
+    api.gl.glGenVertexArrays(1, &mesh->vao);
+    api.gl.glBindVertexArray(mesh->vao);
 
-    glGenBuffers(1, &mesh->vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-    glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct vertex),
+    api.gl.glGenBuffers(1, &mesh->vbo);
+    api.gl.glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+    api.gl.glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct vertex),
         vertices, GL_DYNAMIC_DRAW);
 
-    glGenBuffers(1, &mesh->ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->num_indices * sizeof(u32),
-        indices, GL_DYNAMIC_DRAW);
+    api.gl.glGenBuffers(1, &mesh->ibo);
+    api.gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
+    api.gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+        mesh->num_indices * sizeof(u32), indices, GL_DYNAMIC_DRAW);
 
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
-    glEnableVertexAttribArray(3);
+    api.gl.glEnableVertexAttribArray(0);
+    api.gl.glEnableVertexAttribArray(1);
+    api.gl.glEnableVertexAttribArray(2);
+    api.gl.glEnableVertexAttribArray(3);
 
     // Todo: implement offsetof
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
-        (void*)0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
-        (void*)12);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
-        (void*)20);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
-        (void*)32);
+    api.gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void*)0);
+    api.gl.glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void*)12);
+    api.gl.glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void*)20);
+    api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void*)32);
 }
 
 void cube_renderer_init(struct cube_renderer* renderer, u32 shader, u32 texture)
@@ -1282,85 +1282,86 @@ void cube_renderer_init(struct cube_renderer* renderer, u32 shader, u32 texture)
 
     renderer->num_indices = 36;
 
-    glGenVertexArrays(1, &renderer->vao);
-    glBindVertexArray(renderer->vao);
+    api.gl.glGenVertexArrays(1, &renderer->vao);
+    api.gl.glBindVertexArray(renderer->vao);
 
-    glGenBuffers(1, &renderer->vbo_vertices);
-    glGenBuffers(1, &renderer->vbo_cubes);
-    glGenBuffers(1, &renderer->ibo);
-    glGenBuffers(1, &renderer->ubo);
+    api.gl.glGenBuffers(1, &renderer->vbo_vertices);
+    api.gl.glGenBuffers(1, &renderer->vbo_cubes);
+    api.gl.glGenBuffers(1, &renderer->ibo);
+    api.gl.glGenBuffers(1, &renderer->ubo);
 
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
-    glEnableVertexAttribArray(3);
-    glEnableVertexAttribArray(4);
-    glEnableVertexAttribArray(5);
-    glEnableVertexAttribArray(6);
-    glEnableVertexAttribArray(7);
-    glEnableVertexAttribArray(8);
-    glEnableVertexAttribArray(9);
-    glEnableVertexAttribArray(10);
-    glEnableVertexAttribArray(11);
-    glEnableVertexAttribArray(12);
+    api.gl.glEnableVertexAttribArray(0);
+    api.gl.glEnableVertexAttribArray(1);
+    api.gl.glEnableVertexAttribArray(2);
+    api.gl.glEnableVertexAttribArray(3);
+    api.gl.glEnableVertexAttribArray(4);
+    api.gl.glEnableVertexAttribArray(5);
+    api.gl.glEnableVertexAttribArray(6);
+    api.gl.glEnableVertexAttribArray(7);
+    api.gl.glEnableVertexAttribArray(8);
+    api.gl.glEnableVertexAttribArray(9);
+    api.gl.glEnableVertexAttribArray(10);
+    api.gl.glEnableVertexAttribArray(11);
+    api.gl.glEnableVertexAttribArray(12);
 
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_vertices);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+    api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_vertices);
+    api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
+        GL_STATIC_DRAW);
+    api.gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
         sizeof(struct cube_vertex_data), (void*)0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
+    api.gl.glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
         sizeof(struct cube_vertex_data), (void*)12);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE,
+    api.gl.glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE,
         sizeof(struct cube_vertex_data), (void*)24);
 
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_cubes);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->cubes), renderer->cubes,
-        GL_DYNAMIC_DRAW);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(struct cube_data),
-        (void*)0);
-    glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, sizeof(struct cube_data),
-        (void*)sizeof(struct v4));
-    glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, sizeof(struct cube_data),
-        (void*)(sizeof(struct v4) * 2));
-    glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, sizeof(struct cube_data),
-        (void*)(sizeof(struct v4) * 3));
-    glVertexAttribIPointer(7, 3, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
-        (void*)(sizeof(struct v4) * 4));
-    glVertexAttribIPointer(8, 3, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
-        (void*)(sizeof(struct v4) * 4 + 3));
-    glVertexAttribIPointer(9, 3, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
-        (void*)(sizeof(struct v4) * 4 + 6));
-    glVertexAttribIPointer(10, 3, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
-        (void*)(sizeof(struct v4) * 4 + 9));
-    glVertexAttribIPointer(11, 3, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
-        (void*)(sizeof(struct v4) * 4 + 12));
-    glVertexAttribIPointer(12, 3, GL_UNSIGNED_BYTE, sizeof(struct cube_data),
-        (void*)(sizeof(struct v4) * 4 + 15));
+    api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_cubes);
+    api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->cubes),
+        renderer->cubes, GL_DYNAMIC_DRAW);
+    api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
+        sizeof(struct cube_data), (void*)0);
+    api.gl.glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE,
+        sizeof(struct cube_data), (void*)sizeof(struct v4));
+    api.gl.glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE,
+        sizeof(struct cube_data), (void*)(sizeof(struct v4) * 2));
+    api.gl.glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE,
+        sizeof(struct cube_data), (void*)(sizeof(struct v4) * 3));
+    api.gl.glVertexAttribIPointer(7, 3, GL_UNSIGNED_BYTE,
+        sizeof(struct cube_data), (void*)(sizeof(struct v4) * 4));
+    api.gl.glVertexAttribIPointer(8, 3, GL_UNSIGNED_BYTE,
+        sizeof(struct cube_data), (void*)(sizeof(struct v4) * 4 + 3));
+    api.gl.glVertexAttribIPointer(9, 3, GL_UNSIGNED_BYTE,
+        sizeof(struct cube_data), (void*)(sizeof(struct v4) * 4 + 6));
+    api.gl.glVertexAttribIPointer(10, 3, GL_UNSIGNED_BYTE,
+        sizeof(struct cube_data), (void*)(sizeof(struct v4) * 4 + 9));
+    api.gl.glVertexAttribIPointer(11, 3, GL_UNSIGNED_BYTE,
+        sizeof(struct cube_data), (void*)(sizeof(struct v4) * 4 + 12));
+    api.gl.glVertexAttribIPointer(12, 3, GL_UNSIGNED_BYTE,
+        sizeof(struct cube_data), (void*)(sizeof(struct v4) * 4 + 15));
 
-    glVertexAttribDivisor(3, 1);
-    glVertexAttribDivisor(4, 1);
-    glVertexAttribDivisor(5, 1);
-    glVertexAttribDivisor(6, 1);
-    glVertexAttribDivisor(7, 1);
-    glVertexAttribDivisor(8, 1);
-    glVertexAttribDivisor(9, 1);
-    glVertexAttribDivisor(10, 1);
-    glVertexAttribDivisor(11, 1);
-    glVertexAttribDivisor(12, 1);
+    api.gl.glVertexAttribDivisor(3, 1);
+    api.gl.glVertexAttribDivisor(4, 1);
+    api.gl.glVertexAttribDivisor(5, 1);
+    api.gl.glVertexAttribDivisor(6, 1);
+    api.gl.glVertexAttribDivisor(7, 1);
+    api.gl.glVertexAttribDivisor(8, 1);
+    api.gl.glVertexAttribDivisor(9, 1);
+    api.gl.glVertexAttribDivisor(10, 1);
+    api.gl.glVertexAttribDivisor(11, 1);
+    api.gl.glVertexAttribDivisor(12, 1);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, renderer->num_indices * sizeof(u32),
-        indices, GL_STATIC_DRAW);
+    api.gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
+    api.gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+        renderer->num_indices * sizeof(u32), indices, GL_STATIC_DRAW);
 
-    u32 uniform_block_index = glGetUniformBlockIndex(renderer->shader,
+    u32 uniform_block_index = api.gl.glGetUniformBlockIndex(renderer->shader,
         "uniform_colors");
-    glUniformBlockBinding(renderer->shader, uniform_block_index, 0);
+    api.gl.glUniformBlockBinding(renderer->shader, uniform_block_index, 0);
 
-    glBindBuffer(GL_UNIFORM_BUFFER, renderer->ubo);
-    glBufferData(GL_UNIFORM_BUFFER, sizeof(renderer->colors), NULL,
+    api.gl.glBindBuffer(GL_UNIFORM_BUFFER, renderer->ubo);
+    api.gl.glBufferData(GL_UNIFORM_BUFFER, sizeof(renderer->colors), NULL,
         GL_STATIC_DRAW);
 
-    glBindBufferRange(GL_UNIFORM_BUFFER, 0, renderer->ubo, 0,
+    api.gl.glBindBufferRange(GL_UNIFORM_BUFFER, 0, renderer->ubo, 0,
         sizeof(renderer->colors));
 }
 
@@ -1405,16 +1406,17 @@ void cube_renderer_add(struct cube_renderer* renderer, struct cube_data* data)
 void cube_renderer_flush(struct cube_renderer* renderer, struct m4* view,
     struct m4* projection)
 {
-    glBindVertexArray(renderer->vao);
-    glUseProgram(renderer->shader);
+    api.gl.glBindVertexArray(renderer->vao);
+    api.gl.glUseProgram(renderer->shader);
 
-    u32 uniform_texture = glGetUniformLocation(renderer->shader,
+    u32 uniform_texture = api.gl.glGetUniformLocation(renderer->shader,
         "uniform_texture");
-    u32 uniform_vp = glGetUniformLocation(renderer->shader, "uniform_vp");
+    u32 uniform_vp = api.gl.glGetUniformLocation(renderer->shader,
+        "uniform_vp");
 
     if (renderer->update_color_data)
     {
-        glBufferData(GL_UNIFORM_BUFFER, sizeof(renderer->colors),
+        api.gl.glBufferData(GL_UNIFORM_BUFFER, sizeof(renderer->colors),
             &renderer->colors, GL_STATIC_DRAW);
 
         renderer->update_color_data = false;
@@ -1422,21 +1424,21 @@ void cube_renderer_flush(struct cube_renderer* renderer, struct m4* view,
 
     struct m4 vp = m4_mul_m4(*view, *projection);
 
-    glUniform1i(uniform_texture, 0);
-    glUniformMatrix4fv(uniform_vp, 1, GL_FALSE, (GLfloat*)&vp);
+    api.gl.glUniform1i(uniform_texture, 0);
+    api.gl.glUniformMatrix4fv(uniform_vp, 1, GL_FALSE, (GLfloat*)&vp);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, renderer->texture);
+    api.gl.glActiveTexture(GL_TEXTURE0);
+    api.gl.glBindTexture(GL_TEXTURE_2D_ARRAY, renderer->texture);
 
-    glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_cubes);
-    glBufferSubData(GL_ARRAY_BUFFER, 0,
+    api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_cubes);
+    api.gl.glBufferSubData(GL_ARRAY_BUFFER, 0,
         renderer->num_cubes * sizeof(struct cube_data), renderer->cubes);
 
-    glDrawElementsInstanced(GL_TRIANGLES, renderer->num_indices,
+    api.gl.glDrawElementsInstanced(GL_TRIANGLES, renderer->num_indices,
         GL_UNSIGNED_INT, NULL, renderer->num_cubes);
 
-    glUseProgram(0);
-    glBindVertexArray(0);
+    api.gl.glUseProgram(0);
+    api.gl.glBindVertexArray(0);
 
     renderer->num_cubes = 0;
 }
@@ -1469,25 +1471,26 @@ s32 cube_renderer_color_add(struct cube_renderer* renderer, struct v4 color)
 void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader,
     struct v4 color)
 {
-    glBindVertexArray(mesh->vao);
+    api.gl.glBindVertexArray(mesh->vao);
 
-    glUseProgram(shader);
+    api.gl.glUseProgram(shader);
 
-    u32 uniform_mvp = glGetUniformLocation(shader, "MVP");
-    u32 uniform_texture = glGetUniformLocation(shader, "texture");
-    u32 uniform_color = glGetUniformLocation(shader, "uniform_color");
+    u32 uniform_mvp = api.gl.glGetUniformLocation(shader, "MVP");
+    u32 uniform_texture = api.gl.glGetUniformLocation(shader, "texture");
+    u32 uniform_color = api.gl.glGetUniformLocation(shader, "uniform_color");
 
-    glUniform1i(uniform_texture, 0);
-    glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, (GLfloat*)mvp);
-    glUniform4fv(uniform_color, 1, (GLfloat*)&color);
+    api.gl.glUniform1i(uniform_texture, 0);
+    api.gl.glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, (GLfloat*)mvp);
+    api.gl.glUniform4fv(uniform_color, 1, (GLfloat*)&color);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    api.gl.glActiveTexture(GL_TEXTURE0);
+    api.gl.glBindTexture(GL_TEXTURE_2D, texture);
 
-    glDrawElements(GL_TRIANGLES, mesh->num_indices, GL_UNSIGNED_INT, NULL);
+    api.gl.glDrawElements(GL_TRIANGLES, mesh->num_indices, GL_UNSIGNED_INT,
+        NULL);
 
-    glUseProgram(0);
-    glBindVertexArray(0);
+    api.gl.glUseProgram(0);
+    api.gl.glBindVertexArray(0);
 }
 
 void line_render(struct game_state* state, struct v2 start, struct v2 end,
@@ -1642,55 +1645,56 @@ void triangle_render(struct game_state* state, struct v2 a, struct v2 b,
         {{ c.x, c.y, depth }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, color }
     };
 
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
+    api.gl.glGenVertexArrays(1, &vao);
+    api.gl.glBindVertexArray(vao);
 
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct vertex),
+    api.gl.glGenBuffers(1, &vbo);
+    api.gl.glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    api.gl.glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct vertex),
         vertices, GL_DYNAMIC_DRAW);
 
-    glGenBuffers(1, &ibo);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, num_indices * sizeof(u32),
+    api.gl.glGenBuffers(1, &ibo);
+    api.gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+    api.gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, num_indices * sizeof(u32),
         indices, GL_DYNAMIC_DRAW);
 
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-    glEnableVertexAttribArray(2);
-    glEnableVertexAttribArray(3);
+    api.gl.glEnableVertexAttribArray(0);
+    api.gl.glEnableVertexAttribArray(1);
+    api.gl.glEnableVertexAttribArray(2);
+    api.gl.glEnableVertexAttribArray(3);
 
     // Todo: implement offsetof
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
-        (void*)0);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
-        (void*)12);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
-        (void*)20);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(struct vertex),
-        (void*)32);
+    api.gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void*)0);
+    api.gl.glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void*)12);
+    api.gl.glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void*)20);
+    api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void*)32);
 
-    glUseProgram(state->shader_simple);
+    api.gl.glUseProgram(state->shader_simple);
 
-    u32 uniform_mvp = glGetUniformLocation(state->shader_simple, "MVP");
-    u32 uniform_texture = glGetUniformLocation(state->shader_simple, "texture");
-    u32 uniform_color = glGetUniformLocation(state->shader_simple,
+    u32 uniform_mvp = api.gl.glGetUniformLocation(state->shader_simple, "MVP");
+    u32 uniform_texture = api.gl.glGetUniformLocation(state->shader_simple,
+        "texture");
+    u32 uniform_color = api.gl.glGetUniformLocation(state->shader_simple,
         "uniform_color");
 
     struct m4 mvp = state->camera.view;
     mvp = m4_mul_m4(mvp, state->camera.projection);
 
-    glUniform1i(uniform_texture, 0);
-    glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, (GLfloat*)&mvp);
-    glUniform4fv(uniform_color, 1, (GLfloat*)&color);
+    api.gl.glUniform1i(uniform_texture, 0);
+    api.gl.glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, (GLfloat*)&mvp);
+    api.gl.glUniform4fv(uniform_color, 1, (GLfloat*)&color);
 
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture);
+    api.gl.glActiveTexture(GL_TEXTURE0);
+    api.gl.glBindTexture(GL_TEXTURE_2D, texture);
 
-    glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, NULL);
+    api.gl.glDrawElements(GL_TRIANGLES, num_indices, GL_UNSIGNED_INT, NULL);
 
-    glUseProgram(0);
-    glBindVertexArray(0);
+    api.gl.glUseProgram(0);
+    api.gl.glBindVertexArray(0);
 }
 
 void cursor_render(struct game_state* state)
@@ -4589,24 +4593,24 @@ u32 texture_create(struct memory_block* block, char* path)
     s8* file_data = 0;
     s8* pixel_data = 0;
 
-    file_open(&file, path, true);
-    file_size_get(&file, &file_size);
+    api.file.file_open(&file, path, true);
+    api.file.file_size_get(&file, &file_size);
 
     file_data = memory_get(block, file_size);
     pixel_data = memory_get(block, file_size);
 
-    file_read(&file, file_data, file_size, &read_bytes);
-    file_close(&file);
+    api.file.file_read(&file, file_data, file_size, &read_bytes);
+    api.file.file_close(&file);
 
     tga_decode(file_data, read_bytes, pixel_data, &width, &height);
 
-    glGenTextures(1, &id);
-    glBindTexture(target, id);
+    api.gl.glGenTextures(1, &id);
+    api.gl.glBindTexture(target, id);
 
-    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    api.gl.glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    api.gl.glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-    glTexImage2D(target, 0, GL_RGBA, width, height, 0, GL_RGBA,
+    api.gl.glTexImage2D(target, 0, GL_RGBA, width, height, 0, GL_RGBA,
         GL_UNSIGNED_BYTE, pixel_data);
 
     memory_free(block);
@@ -4627,14 +4631,14 @@ u32 texture_array_create(struct memory_block* block, char* path, u32 rows,
     s8* pixel_data = 0;
     s8* tile_data = 0;
 
-    file_open(&file, path, true);
-    file_size_get(&file, &file_size);
+    api.file.file_open(&file, path, true);
+    api.file.file_size_get(&file, &file_size);
 
     file_data = memory_get(block, file_size);
     pixel_data = memory_get(block, file_size);
 
-    file_read(&file, file_data, file_size, &read_bytes);
-    file_close(&file);
+    api.file.file_read(&file, file_data, file_size, &read_bytes);
+    api.file.file_close(&file);
 
     u32 image_width = 0;
     u32 image_height = 0;
@@ -4646,14 +4650,16 @@ u32 texture_array_create(struct memory_block* block, char* path, u32 rows,
     s32 depth = rows * cols;
 
     u32 id = 0;
-    glGenTextures(1, &id);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, id);
+    api.gl.glGenTextures(1, &id);
+    api.gl.glBindTexture(GL_TEXTURE_2D_ARRAY, id);
 
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    api.gl.glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER,
+        GL_LINEAR);
+    api.gl.glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER,
+        GL_LINEAR);
 
-    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, tile_width, tile_height,
-        depth, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+    api.gl.glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, tile_width,
+        tile_height, depth, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
     u32 channels = 4;
     u32 tile_size_bytes = tile_width * tile_height * channels;
@@ -4682,7 +4688,7 @@ u32 texture_array_create(struct memory_block* block, char* path, u32 rows,
             }
 
             u32 i = y * cols + x;
-            glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, tile_width,
+            api.gl.glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, tile_width,
                 tile_height, 1, GL_RGBA, GL_UNSIGNED_BYTE, tile_data);
         }
     }
@@ -4914,13 +4920,13 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
     s8* file_data = 0;
 
     file_handle file;
-    file_open(&file, path, true);
-    file_size_get(&file, &file_size);
+    api.file.file_open(&file, path, true);
+    api.file.file_size_get(&file, &file_size);
 
     file_data = memory_get(block, file_size);
 
-    file_read(&file, file_data, file_size, &read_bytes);
-    file_close(&file);
+    api.file.file_read(&file, file_data, file_size, &read_bytes);
+    api.file.file_close(&file);
 
     char* data = (char*)file_data;
     char str[255] = {0};
@@ -5076,9 +5082,9 @@ u32 program_create(struct memory_block* block, char* vertex_shader_path,
     s8* file_data = 0;
 
     u32 result = 0;
-    u32 program = glCreateProgram();
-    u32 vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-    u32 fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    u32 program = api.gl.glCreateProgram();
+    u32 vertex_shader = api.gl.glCreateShader(GL_VERTEX_SHADER);
+    u32 fragment_shader = api.gl.glCreateShader(GL_FRAGMENT_SHADER);
 
     // Todo: implement assert
     // assert(program);
@@ -5090,19 +5096,19 @@ u32 program_create(struct memory_block* block, char* vertex_shader_path,
     // These should be replaced with 0.
     file_handle file;
 
-    file_open(&file, vertex_shader_path, true);
-    file_size_get(&file, &file_size);
+    api.file.file_open(&file, vertex_shader_path, true);
+    api.file.file_size_get(&file, &file_size);
 
     file_data = memory_get(block, file_size);
 
-    file_read(&file, file_data, file_size, &read_bytes);
-    file_close(&file);
+    api.file.file_read(&file, file_data, file_size, &read_bytes);
+    api.file.file_close(&file);
 
     const GLchar* temp = (const GLchar*)file_data;
 
-    glShaderSource(vertex_shader, 1, &temp, 0);
-    glCompileShader(vertex_shader);
-    glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, (GLint*)&result);
+    api.gl.glShaderSource(vertex_shader, 1, &temp, 0);
+    api.gl.glCompileShader(vertex_shader);
+    api.gl.glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, (GLint*)&result);
     // assert(result);
 
     // Todo: remove memset
@@ -5110,19 +5116,19 @@ u32 program_create(struct memory_block* block, char* vertex_shader_path,
 
     memory_free(block);
 
-    file_open(&file, fragment_shader_path, true);
-    file_size_get(&file, &file_size);
+    api.file.file_open(&file, fragment_shader_path, true);
+    api.file.file_size_get(&file, &file_size);
 
     file_data = memory_get(block, file_size);
 
-    file_read(&file, file_data, file_size, &read_bytes);
-    file_close(&file);
+    api.file.file_read(&file, file_data, file_size, &read_bytes);
+    api.file.file_close(&file);
 
     temp = (const GLchar*)file_data;
 
-    glShaderSource(fragment_shader, 1, &temp, 0);
-    glCompileShader(fragment_shader);
-    glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, (GLint*)&result);
+    api.gl.glShaderSource(fragment_shader, 1, &temp, 0);
+    api.gl.glCompileShader(fragment_shader);
+    api.gl.glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, (GLint*)&result);
     // assert(result);
 
     // Todo: remove memset
@@ -5130,15 +5136,15 @@ u32 program_create(struct memory_block* block, char* vertex_shader_path,
 
     memory_free(block);
 
-    glAttachShader(program, vertex_shader);
-    glAttachShader(program, fragment_shader);
+    api.gl.glAttachShader(program, vertex_shader);
+    api.gl.glAttachShader(program, fragment_shader);
 
-    glLinkProgram(program);
-    glGetProgramiv(program, GL_LINK_STATUS, (GLint*)&result);
+    api.gl.glLinkProgram(program);
+    api.gl.glGetProgramiv(program, GL_LINK_STATUS, (GLint*)&result);
     // assert(result);
 
-    glDeleteShader(vertex_shader);
-    glDeleteShader(fragment_shader);
+    api.gl.glDeleteShader(vertex_shader);
+    api.gl.glDeleteShader(fragment_shader);
 
     log_gl_error("shader_create");
 
@@ -5149,10 +5155,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
 {
     _log = *init->log;
 
-    // Todo: should we check if copied functions are valid before use?
-    opengl_functions_set(init->gl);
-    file_functions_set(init->file);
-    time_functions_set(init->time);
+    api = init->api;
 
     if (!memory->initialized)
     {
@@ -5167,19 +5170,21 @@ void game_init(struct game_memory* memory, struct game_init* init)
         s32 uniform_block_max_size = 0;
         s32 vertex_attribs_max = 0;
 
-        glGetIntegerv(GL_MAJOR_VERSION, &version_major);
-        glGetIntegerv(GL_MINOR_VERSION, &version_minor);
-        glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS, &uniform_blocks_max_vertex);
-        glGetIntegerv(GL_MAX_GEOMETRY_UNIFORM_BLOCKS,
+        api.gl.glGetIntegerv(GL_MAJOR_VERSION, &version_major);
+        api.gl.glGetIntegerv(GL_MINOR_VERSION, &version_minor);
+        api.gl.glGetIntegerv(GL_MAX_VERTEX_UNIFORM_BLOCKS,
+            &uniform_blocks_max_vertex);
+        api.gl.glGetIntegerv(GL_MAX_GEOMETRY_UNIFORM_BLOCKS,
             &uniform_blocks_max_geometry);
-        glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_BLOCKS,
+        api.gl.glGetIntegerv(GL_MAX_FRAGMENT_UNIFORM_BLOCKS,
             &uniform_blocks_max_fragment);
-        glGetIntegerv(GL_MAX_COMBINED_UNIFORM_BLOCKS,
+        api.gl.glGetIntegerv(GL_MAX_COMBINED_UNIFORM_BLOCKS,
             &uniform_blocks_max_combined);
-        glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS,
+        api.gl.glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS,
             &uniform_buffer_max_bindings);
-        glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &uniform_block_max_size);
-        glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &vertex_attribs_max);
+        api.gl.glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE,
+            &uniform_block_max_size);
+        api.gl.glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &vertex_attribs_max);
 
         LOG("OpenGL %i.%i\n", version_major, version_minor);
         LOG("Uniform blocks max vertex: %d\n", uniform_blocks_max_vertex);
@@ -5190,13 +5195,13 @@ void game_init(struct game_memory* memory, struct game_init* init)
         LOG("Uniform block max size: %d\n", uniform_block_max_size);
         LOG("Vertex attribs max: %d\n", vertex_attribs_max);
 
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_BLEND);
-        glEnable(GL_CULL_FACE);
-        glDepthFunc(GL_LESS);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        api.gl.glEnable(GL_DEPTH_TEST);
+        api.gl.glEnable(GL_BLEND);
+        api.gl.glEnable(GL_CULL_FACE);
+        api.gl.glDepthFunc(GL_LESS);
+        api.gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        state->ticks_per_second = ticks_frequency_get();
+        state->ticks_per_second = api.time.ticks_frequency_get();
         state->temporary.base = (s8*)state + sizeof(struct game_state);
         state->temporary.last = state->temporary.base;
         state->temporary.current = state->temporary.base;
@@ -5323,7 +5328,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         LOG("Wall corners: %d/%d\n", state->num_wall_corners, MAX_WALL_CORNERS);
 
-        glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
+        api.gl.glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
         memory->initialized = true;
     }
@@ -5343,8 +5348,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
         state->render_debug = input->enable_debug_rendering;
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+        api.gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         f32 step = 1.0f / 120.0f;
 
         state->mouse.screen.x = input->mouse_x;
@@ -5410,7 +5414,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
             }
         }
 
-        u64 render_start = ticks_current_get();
+        // u64 render_start = ticks_current_get();
         level_render(state, &state->level);
         player_render(state);
         enemies_render(state);
@@ -5421,7 +5425,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
         cube_renderer_flush(&state->cube_renderer, &state->camera.view,
             &state->camera.projection);
-        u64 render_end = ticks_current_get();
+        // u64 render_end = ticks_current_get();
 
         // LOG("Render time: %f\n", time_elapsed_seconds(state, render_start,
         //     render_end));

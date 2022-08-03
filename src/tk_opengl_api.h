@@ -56,8 +56,8 @@
 #define GL_MAX_VERTEX_ATTRIBS             0x8869
 #define GL_UNIFORM_BUFFER                 0x8A11
 
-typedef u64 GLsizeiptr;
-typedef u64 GLintptr;
+typedef s64 GLsizeiptr;
+typedef s64 GLintptr;
 typedef u32 GLenum;
 typedef u32 GLbitfield;
 typedef u32 GLuint;
@@ -139,7 +139,7 @@ typedef void type_glUniformBlockBinding(GLuint program,
 typedef void type_glBindBufferRange(GLenum target, GLuint index, GLuint buffer,
     GLintptr offset, GLsizeiptr size);
 
-struct opengl_functions
+struct gl_api
 {
     OPEN_GL_FUNCTION(glGetUniformLocation);
     OPEN_GL_FUNCTION(glCreateProgram);
