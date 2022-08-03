@@ -162,8 +162,9 @@ s32 main(s32 argc, char *argv[])
     _log = linux_log;
 
     Display* display;
-    Window window;
     Screen* screen;
+    XVisualInfo* visual;
+    Window window;
     s32 screen_id;
     XEvent ev;
 
@@ -171,6 +172,7 @@ s32 main(s32 argc, char *argv[])
 
     if (!display) 
     {
+        LOG("No display, terminating\n");
         return 1;
     }
 
@@ -178,23 +180,66 @@ s32 main(s32 argc, char *argv[])
 
     if (!screen)
     {
+        LOG("No screen, terminating\n");
         return 1;
     }
 
     screen_id = DefaultScreen(display);
 
+    s32 glx_version_major = 0;
+    s32 glx_version_minor = 0;
+
+    glXQueryVersion(display, &glx_version_major, &glx_version_minor);
+
+    LOG("GLX: %d.%d\n", glx_version_major, glx_version_minor);
+
+    s32 visual_attribs[] =
+    {
+        GLX_RGBA,
+        GLX_DOUBLEBUFFER,
+        GLX_DEPTH_SIZE, 24,
+        GLX_RED_SIZE, 8,
+        GLX_GREEN_SIZE, 8,
+        GLX_BLUE_SIZE, 8,
+        GLX_ALPHA_SIZE, 8,
+        GLX_SAMPLE_BUFFERS, 0,
+        GLX_SAMPLES, 0, None
+    };
+
+    visual = glXChooseVisual(display, screen_id, visual_attribs);
+
+    if (!visual)
+    {
+        LOG("No visual, terminating\n");
+        return 1;
+    }
+
     s32 screen_width = 1280;
     s32 screen_height = 720;
 
-    window = XCreateSimpleWindow(display, RootWindowOfScreen(screen), 0, 0,
-        screen_width, screen_height, 10, BlackPixel(display, screen_id),
-        WhitePixel(display, screen_id));
+    // Todo: confirm these attributes
+    XSetWindowAttributes window_attribs = { 0 };
+    window_attribs.border_pixel = BlackPixel(display, screen_id);
+    window_attribs.background_pixel = WhitePixel(display, screen_id);
+    window_attribs.override_redirect = True;
+    window_attribs.event_mask = ExposureMask;
+    window_attribs.colormap = XCreateColormap(display,
+        RootWindowOfScreen(screen), visual->visual, AllocNone);
+
+    window = XCreateWindow(display, RootWindowOfScreen(screen), 0, 0,
+        screen_width, screen_height, 0, visual->depth, InputOutput,
+        visual->visual, CWBackPixel | CWColormap | CWBorderPixel | CWEventMask,
+        &window_attribs);
+
+    GLXContext context = glXCreateContext(display, visual, NULL, GL_TRUE);
+    glXMakeCurrent(display, window, context);
 
     XSelectInput(display, window, KeyPressMask | KeyReleaseMask |
         KeymapStateMask);
 
     XClearWindow(display, window);
     XMapRaised(display, window);
+    XStoreName(display, window, "tk");
 
     struct api api;
 
@@ -311,7 +356,8 @@ s32 main(s32 argc, char *argv[])
             u32 events_num = 0;
             u32 events_processed = 0;
 
-            while ((events_num = XPending(display)))
+            // Todo: how to do this properly?
+            // while ((events_num = XPending(display)))
             {
                 LOG("Processing event %u of %u\n", ++events_processed,
                     events_num);
@@ -340,6 +386,8 @@ s32 main(s32 argc, char *argv[])
 
             // Todo: recording
             game_update(&memory, &new_input);
+
+            glXSwapBuffers(display, window);
         }
 
     }
