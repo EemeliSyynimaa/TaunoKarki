@@ -174,6 +174,15 @@ struct enemy
     b32 state_timer_active;
 };
 
+#define MAX_LEVEL_SIZE 256
+
+struct level
+{
+    u8 data[MAX_LEVEL_SIZE*MAX_LEVEL_SIZE];
+    u32 width;
+    u32 height;
+};
+
 struct camera
 {
     struct m4 projection;
@@ -267,6 +276,7 @@ struct game_state
     struct line_segment cols_dynamic[MAX_COLLISION_SEGMENTS];
     struct cube_renderer cube_renderer;
     struct gun_shot gun_shots[MAX_GUN_SHOTS];
+    struct level level;
     b32 render_debug;
     f32 accumulator;
     u32 shader;
@@ -285,7 +295,6 @@ struct game_state
     u32 num_cols_static;
     u32 num_cols_dynamic;
     u32 num_gun_shots;
-    u32 level;
     u32 random_seed;
     u32 ticks_per_second;
 };
@@ -452,39 +461,40 @@ u8 map_data[] =
     1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 };
 
-b32 tile_inside_map(struct v2 position)
+b32 tile_inside_level_bounds(struct level* level, struct v2 position)
 {
     b32 result = false;
 
     s32 x = f32_round(position.x);
     s32 y = f32_round(position.y);
 
-    result = x >= 0 && x < MAP_WIDTH && y >= 0 && y < MAP_HEIGHT;
+    result = x >= 0 && x < level->width && y >= 0 && y < level->height;
 
     return result;
 }
 
-b32 tile_is_of_type(struct v2 position, u32 type)
+b32 tile_is_of_type(struct level* level, struct v2 position, u32 type)
 {
     b32 result = false;
 
-    if (tile_inside_map(position))
+    if (tile_inside_level_bounds(level, position))
     {
         s32 x = f32_round(position.x);
         s32 y = f32_round(position.y);
 
-        result = map_data[y * MAP_WIDTH + x] == type;
+        result = level->data[y * level->width + x] == type;
     }
 
     return result;
 }
 
-b32 tile_is_free(struct v2 position)
+b32 tile_is_free(struct level* level, struct v2 position)
 {
-    return tile_is_of_type(position, TILE_FLOOR);
+    return tile_is_of_type(level, position, TILE_FLOOR);
 }
 
-struct v2 tile_random_get(struct game_state* state, u32 type)
+struct v2 tile_random_get(struct game_state* state, struct level* level,
+    u32 type)
 {
     struct v2 result = { 0 };
 
@@ -494,11 +504,11 @@ struct v2 tile_random_get(struct game_state* state, u32 type)
     {
         struct v2 position =
         {
-            u32_random_number_get(state, 0, MAP_WIDTH),
-            u32_random_number_get(state, 0, MAP_HEIGHT)
+            u32_random_number_get(state, 0, level->width),
+            u32_random_number_get(state, 0, level->height)
         };
 
-        if (tile_is_of_type(position, type))
+        if (tile_is_of_type(level, position, type))
         {
             result = position;
 
@@ -575,13 +585,14 @@ struct node* node_find(struct v2* node, struct node nodes[], u32 num_nodes)
     return result;
 }
 
-b32 neighbor_check(f32 x, f32 y, struct v2 neighbors[], u32* index)
+b32 neighbor_check(struct level* level, f32 x, f32 y, struct v2 neighbors[],
+    u32* index)
 {
     b32 result = false;
 
     struct v2 neighbor = { x, y };
 
-    if (tile_is_free(neighbor))
+    if (tile_is_free(level, neighbor))
     {
         neighbors[(*index)++] = neighbor;
         result = true;
@@ -590,36 +601,36 @@ b32 neighbor_check(f32 x, f32 y, struct v2 neighbors[], u32* index)
     return result;
 }
 
-u32 neighbors_get(struct node* node, struct v2 neighbors[])
+u32 neighbors_get(struct level* level, struct node* node, struct v2 neighbors[])
 {
     u32 result = 0;
 
     f32 x = node->position.x;
     f32 y = node->position.y;
 
-    b32 left  = neighbor_check(x - 1.0f, y, neighbors, &result);
-    b32 right = neighbor_check(x + 1.0f, y, neighbors, &result);
-    b32 up    = neighbor_check(x, y + 1.0f, neighbors, &result);
-    b32 down  = neighbor_check(x, y - 1.0f, neighbors, &result);
+    b32 left  = neighbor_check(level, x - 1.0f, y, neighbors, &result);
+    b32 right = neighbor_check(level, x + 1.0f, y, neighbors, &result);
+    b32 up    = neighbor_check(level, x, y + 1.0f, neighbors, &result);
+    b32 down  = neighbor_check(level, x, y - 1.0f, neighbors, &result);
 
     if (left && up)
     {
-        neighbor_check(x - 1.0f, y + 1.0f, neighbors, &result);
+        neighbor_check(level, x - 1.0f, y + 1.0f, neighbors, &result);
     }
 
     if (left && down)
     {
-        neighbor_check(x - 1.0f, y - 1.0f, neighbors, &result);
+        neighbor_check(level, x - 1.0f, y - 1.0f, neighbors, &result);
     }
 
     if (right && up)
     {
-        neighbor_check(x + 1.0f, y + 1.0f, neighbors, &result);
+        neighbor_check(level, x + 1.0f, y + 1.0f, neighbors, &result);
     }
 
     if (right && down)
     {
-        neighbor_check(x + 1.0f, y - 1.0f, neighbors, &result);
+        neighbor_check(level, x + 1.0f, y - 1.0f, neighbors, &result);
     }
 
     return result;
@@ -668,11 +679,12 @@ void node_add_to_path(struct node* node, struct v2 path[], u32* index)
     path[(*index)++] = node->position;
 }
 
-u32 path_find(struct v2 start, struct v2 goal, struct v2 path[], u32 path_size)
+u32 path_find(struct level* level, struct v2 start, struct v2 goal,
+    struct v2 path[], u32 path_size)
 {
     u32 result = 0;
 
-    if (!tile_is_free(start) || !tile_is_free(goal))
+    if (!tile_is_free(level, start) || !tile_is_free(level, goal))
     {
         return result;
     }
@@ -708,7 +720,7 @@ u32 path_find(struct v2 start, struct v2 goal, struct v2 path[], u32 path_size)
 
         struct v2 neighbors[8];
 
-        u32 num_neighbors = neighbors_get(current, neighbors);
+        u32 num_neighbors = neighbors_get(level, current, neighbors);
 
         for (u32 i = 0; i < num_neighbors; i++)
         {
@@ -1829,13 +1841,16 @@ b32 tile_ray_cast_to_direction(struct game_state* state, struct v2 start,
 
         f32 epsilon = 0.001f;
 
+        struct level* level = &state->level;
+
         // Todo: these both cases can possibly be merged
         if (check_x)
         {
             struct v2 tile_left = { current.x - epsilon, current.y };
             struct v2 tile_right = { current.x + epsilon, current.y };
 
-            if (!tile_is_free(tile_left) || !tile_is_free(tile_right))
+            if (!tile_is_free(level, tile_left) ||
+                !tile_is_free(level, tile_right))
             {
                 if (collision)
                 {
@@ -1856,7 +1871,8 @@ b32 tile_ray_cast_to_direction(struct game_state* state, struct v2 start,
             struct v2 tile_top = { current.x, current.y + epsilon };
             struct v2 tile_bottom = { current.x, current.y - epsilon };
 
-            if (!tile_is_free(tile_top) || !tile_is_free(tile_bottom))
+            if (!tile_is_free(level, tile_top) ||
+                !tile_is_free(level, tile_bottom))
             {
                 if (collision)
                 {
@@ -1949,17 +1965,17 @@ b32 collision_point_to_obb(struct v2 pos, struct v2 corners[4])
     return result;
 }
 
-void map_render(struct game_state* state)
+void level_render(struct game_state* state, struct level* level)
 {
-    // Todo: fix map rendering glitch (a wall block randomly drawn in a
+    // Todo: fix level rendering glitch (a wall block randomly drawn in a
     //       wrong place)
-    for (u32 y = 0; y < MAP_HEIGHT; y++)
+    for (u32 y = 0; y < level->height; y++)
     {
-        for (u32 x = 0; x < MAP_WIDTH; x++)
+        for (u32 x = 0; x < level->width; x++)
         {
-            u32 index = y * MAP_WIDTH + x;
+            u32 index = y * level->width + x;
 
-            u8 tile = map_data[index];
+            u8 tile = level->data[index];
 
             struct v4 color = colors[WHITE];
 
@@ -1986,23 +2002,19 @@ void map_render(struct game_state* state)
 
             if (tile == TILE_WALL)
             {
-                for (u32 i = 0; i < state->level; i++)
-                {
-                    struct m4 transform = m4_translate(x, y,
-                        0.5f - state->level + i + 1);
-                    struct m4 rotation = m4_rotate_z(0.0f);
-                    struct m4 scale = m4_scale_all(WALL_SIZE * 0.5f);
+                struct m4 transform = m4_translate(x, y, 0.5f);
+                struct m4 rotation = m4_rotate_z(0.0f);
+                struct m4 scale = m4_scale_all(WALL_SIZE * 0.5f);
 
-                    struct m4 model = m4_mul_m4(scale, rotation);
-                    model = m4_mul_m4(model, transform);
+                struct m4 model = m4_mul_m4(scale, rotation);
+                model = m4_mul_m4(model, transform);
 
-                    struct m4 mvp = m4_mul_m4(model, state->camera.view);
-                    mvp = m4_mul_m4(mvp, state->camera.projection);
+                struct m4 mvp = m4_mul_m4(model, state->camera.view);
+                mvp = m4_mul_m4(mvp, state->camera.projection);
 
-                    // cube_renderer_add(&state->cube_renderer, cube);
-                    mesh_render(&state->wall, &mvp, state->texture_tileset,
-                        state->shader, color);
-                }
+                // cube_renderer_add(&state->cube_renderer, cube);
+                mesh_render(&state->wall, &mvp, state->texture_tileset,
+                    state->shader, color);
             }
             else if (tile == TILE_FLOOR)
             {
@@ -2190,8 +2202,8 @@ b32 collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius,
     return result;
 }
 
-b32 check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta,
-    f32 radius, f32 bounce_factor)
+b32 check_tile_collisions(struct level* level, struct v2* pos, struct v2* vel,
+    struct v2 move_delta, f32 radius, f32 bounce_factor)
 {
     b32 result = false;
 
@@ -2220,7 +2232,7 @@ b32 check_tile_collisions(struct v2* pos, struct v2* vel, struct v2 move_delta,
         {
             for (u32 x = start_x; x <= end_x; x++)
             {
-                if (map_data[y * MAP_WIDTH + x] != 1)
+                if (level->data[y * level->width + x] != 1)
                 {
                     continue;
                 }
@@ -2659,6 +2671,8 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
     enemy->path_length = 0;
     enemy->state = state_new;
 
+    struct level* level = &state->level;
+
     switch (state_new)
     {
         case ENEMY_STATE_REACT_TO_PLAYER_SEEN:
@@ -2676,16 +2690,17 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         } break;
         case ENEMY_STATE_RUSH_TO_TARGET:
         {
-            enemy->path_length = path_find(enemy->body.position, enemy->target,
-                enemy->path, MAX_PATH);
+            enemy->path_length = path_find(level, enemy->body.position,
+                enemy->target, enemy->path, MAX_PATH);
             path_trim(state, enemy->body.position, enemy->path,
                 &enemy->path_length);
             enemy->path_index = 0;
         } break;
         case ENEMY_STATE_WANDER_AROUND:
         {
-            enemy->path_length = path_find(enemy->body.position,
-                tile_random_get(state, TILE_FLOOR), enemy->path, MAX_PATH);
+            enemy->path_length = path_find(level, enemy->body.position,
+                tile_random_get(state, level, TILE_FLOOR), enemy->path,
+                MAX_PATH);
             path_trim(state, enemy->body.position, enemy->path,
                 &enemy->path_length);
             enemy->path_index = 0;
@@ -3045,7 +3060,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             enemy->body.velocity.y = enemy->body.velocity.y + acceleration.y
                 * dt;
 
-            check_tile_collisions(&enemy->body.position, &enemy->body.velocity,
+            check_tile_collisions(&state->level, &enemy->body.position,
+                &enemy->body.velocity,
                 move_delta, PLAYER_RADIUS, 1);
 
             // Todo: clean this code, try not to use angles... they go wild
@@ -3186,15 +3202,16 @@ b32 insert_corner(struct v2 corner, struct v2 corners[], u32 max, u32* count)
     return result;
 }
 
-void get_wall_corners(struct v2 corners[], u32 max, u32* count)
+void get_wall_corners(struct level* level, struct v2 corners[], u32 max,
+    u32* count)
 {
-    for (u32 y = 0; y < MAP_HEIGHT; y++)
+    for (u32 y = 0; y < level->height; y++)
     {
-        for (u32 x = 0; x < MAP_WIDTH; x++)
+        for (u32 x = 0; x < level->width; x++)
         {
             struct v2 tile = { x, y };
 
-            if (tile_is_of_type(tile, TILE_WALL))
+            if (tile_is_of_type(level, tile, TILE_WALL))
             {
                 f32 t = WALL_SIZE * 0.5f;
 
@@ -3275,28 +3292,29 @@ b32 insert_face(struct line_segment* face, struct line_segment faces[], u32 max,
     return result;
 }
 
-void collision_map_static_calculate(struct line_segment faces[], u32 max,
-    u32* count)
+void collision_map_static_calculate(struct level* level,
+    struct line_segment faces[], u32 max, u32* count)
 {
-    for (u32 y = 0; y < MAP_HEIGHT; y++)
+    for (u32 y = 0; y < level->height; y++)
     {
         struct line_segment face_top    = { 0.0f };
         struct line_segment face_bottom = { 0.0f };
 
-        for (u32 x = 0; x <= MAP_WIDTH; x++)
+        for (u32 x = 0; x <= level->width; x++)
         {
             struct v2 tile = { x, y };
             face_top.type = COLLISION_STATIC;
             face_bottom.type = COLLISION_STATIC;
 
-            if (tile_is_of_type(tile, TILE_WALL))
+            if (tile_is_of_type(level, tile, TILE_WALL))
             {
                 f32 t = WALL_SIZE * 0.5f;
 
                 struct v2 tile_top    = { tile.x, tile.y + WALL_SIZE };
                 struct v2 tile_bottom = { tile.x, tile.y - WALL_SIZE };
 
-                if (tile_inside_map(tile_bottom) && tile_is_free(tile_bottom))
+                if (tile_inside_level_bounds(level, tile_bottom) &&
+                    tile_is_free(level, tile_bottom))
                 {
                     if (line_segment_empty(face_bottom))
                     {
@@ -3311,7 +3329,8 @@ void collision_map_static_calculate(struct line_segment faces[], u32 max,
                     return;
                 }
 
-                if (tile_inside_map(tile_top) && tile_is_free(tile_top))
+                if (tile_inside_level_bounds(level, tile_top) &&
+                    tile_is_free(level, tile_top))
                 {
                     if (line_segment_empty(face_top))
                     {
@@ -3340,25 +3359,26 @@ void collision_map_static_calculate(struct line_segment faces[], u32 max,
         }
     }
 
-    for (u32 x = 0; x < MAP_WIDTH; x++)
+    for (u32 x = 0; x < level->width; x++)
     {
         struct line_segment face_left  = { 0.0f };
         struct line_segment face_right = { 0.0f };
 
-        for (u32 y = 0; y < MAP_HEIGHT; y++)
+        for (u32 y = 0; y < level->height; y++)
         {
             struct v2 tile = { x, y };
             face_left.type = COLLISION_STATIC;
             face_right.type = COLLISION_STATIC;
 
-            if (tile_is_of_type(tile, TILE_WALL))
+            if (tile_is_of_type(level, tile, TILE_WALL))
             {
                 f32 t = WALL_SIZE * 0.5f;
 
                 struct v2 tile_left  = { tile.x - WALL_SIZE, tile.y };
                 struct v2 tile_right = { tile.x + WALL_SIZE, tile.y };
 
-                if (tile_inside_map(tile_left) && tile_is_free(tile_left))
+                if (tile_inside_level_bounds(level, tile_left) &&
+                    tile_is_free(level, tile_left))
                 {
                     if (line_segment_empty(face_left))
                     {
@@ -3373,7 +3393,8 @@ void collision_map_static_calculate(struct line_segment faces[], u32 max,
                     return;
                 }
 
-                if (tile_inside_map(tile_right) && tile_is_free(tile_right))
+                if (tile_inside_level_bounds(level, tile_right) &&
+                    tile_is_free(level, tile_right))
                 {
                     if (line_segment_empty(face_right))
                     {
@@ -3916,8 +3937,8 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         player->body.velocity.x = player->body.velocity.x + acceleration.x * dt;
         player->body.velocity.y = player->body.velocity.y + acceleration.y * dt;
 
-        check_tile_collisions(&player->body.position, &player->body.velocity,
-            move_delta, PLAYER_RADIUS, 1);
+        check_tile_collisions(&state->level, &player->body.position,
+            &player->body.velocity, move_delta, PLAYER_RADIUS, 1);
 
         struct v2 eye = { PLAYER_RADIUS + 0.0001f, 0.0f };
 
@@ -4976,10 +4997,16 @@ void game_init(struct game_memory* memory, struct game_init* init)
         u32 color_player = cube_renderer_color_add(&state->cube_renderer,
             (struct v4){ 1.0f, 0.4f, 0.9f, 1.0f });
 
+        state->level.width = MAP_WIDTH;
+        state->level.height = MAP_HEIGHT;
+
+        memory_copy(map_data, state->level.data, MAP_WIDTH*MAP_HEIGHT);
+
         for (u32 i = 0; i < state->num_enemies; i++)
         {
             struct enemy* enemy = &state->enemies[i];
-            enemy->body.position = tile_random_get(state, TILE_FLOOR);
+            enemy->body.position = tile_random_get(state, &state->level,
+                TILE_FLOOR);
             enemy->alive = true;
             enemy->health = ENEMY_HEALTH_MAX;
             enemy->vision_cone_size = 0.2f * i;
@@ -4993,7 +5020,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
             }
         }
 
-        state->level = 2;
         state->render_debug = false;
 
         state->player.body.position.x = 3.0f;
@@ -5034,7 +5060,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         state->camera.view_inverse = m4_inverse(state->camera.view);
 
-        collision_map_static_calculate(state->cols_static,
+        collision_map_static_calculate(&state->level, state->cols_static,
             MAX_COLLISION_SEGMENTS, &state->num_cols_static);
 
         LOG("Wall faces: %d/%d\n", state->num_cols_static,
@@ -5124,7 +5150,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
         }
 
         u64 render_start = ticks_current_get();
-        map_render(state);
+        level_render(state, &state->level);
         player_render(state);
         enemies_render(state);
         bullets_render(state);
