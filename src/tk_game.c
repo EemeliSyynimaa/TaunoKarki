@@ -345,9 +345,6 @@ f32 f32_random_number_get(struct game_state* state, f32 min, f32 max)
     return result;
 }
 
-#define MAP_WIDTH  20
-#define MAP_HEIGHT 20
-
 f32 PLAYER_ACCELERATION = 40.0f;
 f32 PLAYER_RADIUS       = 0.25f;
 f32 PLAYER_HEALTH_MAX   = 100.0f;
@@ -1963,6 +1960,75 @@ b32 collision_point_to_obb(struct v2 pos, struct v2 corners[4])
     result = result_top && result_right && result_bottom && result_left;
 
     return result;
+}
+
+void level_generate(struct game_state* state, struct level* level, u32 width,
+    u32 height)
+{
+    u64 size = width * height;
+    u8* data = 0;
+
+    data = memory_get(&state->temporary, size);
+
+    for (u32 y = 0; y < height; y++)
+    {
+        for (u32 x = 0; x < width; x++)
+        {
+            u32 index = y * width + x;
+            data[index] = u32_random_number_get(state, 0, 2);
+            LOG("%d", data[index]);
+        }
+
+        LOG("\n");
+    }
+
+    u32 room_width = 5;
+    u32 room_height = 5;
+
+    level->width = height * room_height;
+    level->height = width * room_width;
+
+    for (u32 y = 0; y < height; y++)
+    {
+        for (u32 x = 0; x < width; x++)
+        {
+            u32 room_type = data[y * width + x];
+
+            for (u32 j = 0; j < room_height; j++)
+            {
+                for (u32 k = 0; k < room_width; k++)
+                {
+                    u32 tile_x = room_width * x + k;
+                    u32 tile_y = room_height * y + j;
+                    u32 tile_type = TILE_FLOOR;
+                    u32 tile_index = tile_y * level->width + tile_x;
+                    u32 prev_tile = tile_index - 1;
+
+                    if (room_type == TILE_NOTHING)
+                    {
+                        tile_type = TILE_NOTHING;
+
+                        if (k == 0 && prev_tile > 0 &&
+                            level->data[prev_tile] != TILE_NOTHING)
+                        {
+                            level->data[tile_index - 1] = TILE_WALL;
+                        }
+                    }
+                    else if (tile_x == 0 ||
+                        level->data[tile_index - 1] == TILE_NOTHING ||
+                        tile_x == level->width - 1 ||
+                        tile_y == 0 || tile_y == level->width - 1)
+                    {
+                        tile_type = TILE_WALL;
+                    }
+
+                    level->data[tile_index] = tile_type;
+                }
+            }
+        }
+    }
+
+    memory_free(&state->temporary);
 }
 
 void level_render(struct game_state* state, struct level* level)
@@ -4997,10 +5063,12 @@ void game_init(struct game_memory* memory, struct game_init* init)
         u32 color_player = cube_renderer_color_add(&state->cube_renderer,
             (struct v4){ 1.0f, 0.4f, 0.9f, 1.0f });
 
-        state->level.width = MAP_WIDTH;
-        state->level.height = MAP_HEIGHT;
+        // state->level.width = MAP_WIDTH;
+        // state->level.height = MAP_HEIGHT;
 
-        memory_copy(map_data, state->level.data, MAP_WIDTH*MAP_HEIGHT);
+        // memory_copy(map_data, state->level.data, MAP_WIDTH*MAP_HEIGHT);
+
+        level_generate(state, &state->level, 8, 8);
 
         for (u32 i = 0; i < state->num_enemies; i++)
         {
