@@ -1982,8 +1982,8 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
         LOG("\n");
     }
 
-    u32 room_width = 5;
-    u32 room_height = 5;
+    u32 room_width = 3;
+    u32 room_height = 3;
 
     level->width = height * room_height;
     level->height = width * room_width;
@@ -1992,6 +1992,7 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
     {
         for (u32 x = 0; x < width; x++)
         {
+            u32 room_index = y * width + x;
             u32 room_type = data[y * width + x];
 
             for (u32 j = 0; j < room_height; j++)
@@ -2002,22 +2003,38 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
                     u32 tile_y = room_height * y + j;
                     u32 tile_type = TILE_FLOOR;
                     u32 tile_index = tile_y * level->width + tile_x;
-                    u32 prev_tile = tile_index - 1;
+                    s32 tile_left = tile_index - 1;
+                    s32 tile_up = tile_index - level->width;
+                    s32 room_left = room_index - 1;
+                    s32 room_up = room_index - width;
 
-                    if (room_type == TILE_NOTHING)
+                    if (j == 0 && k == 0 && tile_left >= 0 && tile_up >= 0 &&
+                        level->data[tile_left] == TILE_WALL &&
+                        level->data[tile_up] == TILE_WALL)
+                    {
+                        tile_type = TILE_WALL;
+                    }
+                    else if (room_type == TILE_NOTHING)
                     {
                         tile_type = TILE_NOTHING;
 
-                        if (k == 0 && prev_tile > 0 &&
-                            level->data[prev_tile] != TILE_NOTHING)
+                        if (k == 0 && room_left >= 0 && x != 0 &&
+                            data[room_left] != TILE_NOTHING)
                         {
-                            level->data[tile_index - 1] = TILE_WALL;
+                            tile_type = TILE_WALL;
+                        }
+
+                        if (j == 0 && room_up >= 0 && y != 0 &&
+                            data[room_up] != TILE_NOTHING)
+                        {
+                            tile_type = TILE_WALL;
                         }
                     }
                     else if (tile_x == 0 ||
-                        level->data[tile_index - 1] == TILE_NOTHING ||
-                        tile_x == level->width - 1 ||
-                        tile_y == 0 || tile_y == level->width - 1)
+                        (k == 0 && data[room_left] == TILE_NOTHING) ||
+                        tile_x == level->width - 1 || tile_y == 0 ||
+                        (j == 0 && data[room_up] == TILE_NOTHING) ||
+                        tile_y == level->width - 1)
                     {
                         tile_type = TILE_WALL;
                     }
@@ -5090,8 +5107,8 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         state->render_debug = false;
 
-        state->player.body.position.x = 3.0f;
-        state->player.body.position.y = 3.0f;
+        state->player.body.position = tile_random_get(state, &state->level,
+                TILE_FLOOR);
         state->player.alive = true;
         state->player.health = PLAYER_HEALTH_MAX;
         state->player.weapon = weapon_create(WEAPON_PISTOL);
