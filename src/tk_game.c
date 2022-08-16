@@ -217,7 +217,7 @@ struct mesh
 };
 
 #define MAX_BULLETS 64
-#define MAX_ENEMIES 5
+#define MAX_ENEMIES 64
 #define MAX_ITEMS 256
 #define MAX_WALL_CORNERS 512
 #define MAX_WALL_FACES 512
@@ -432,30 +432,6 @@ enum
     FUCHSIA,
     YELLOW,
     WHITE
-};
-
-u8 map_data[] =
-{
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0,
-    1, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 0,
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1, 0,
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 0,
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1, 0,
-    1, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 2, 1, 0,
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1, 0,
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 1, 0,
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 1, 2, 1, 0,
-    1, 1, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 1, 0,
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0,
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1,
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1,
-    1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1,
-    1, 1, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 1,
-    1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 1,
-    1, 2, 2, 2, 2, 1, 0, 0, 0, 0, 0, 1, 2, 2, 2, 2, 2, 2, 2, 1,
-    1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 };
 
 b32 tile_inside_level_bounds(struct level* level, struct v2 position)
@@ -2671,8 +2647,12 @@ void weapon_reload(struct weapon* weapon, b32 full_reload)
     else if (weapon->type == WEAPON_SHOTGUN)
     {
         weapon->ammo = full_reload ? 0 : weapon->ammo;
-        weapon->reloading = true;
-        weapon->last_shot = weapon->reload_time;
+
+        if (weapon->ammo < weapon->ammo_max)
+        {
+            weapon->reloading = true;
+            weapon->last_shot = weapon->reload_time;
+        }
     }
 }
 
@@ -5066,7 +5046,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         // state->camera.projection = m4_orthographic(-10.0f, 10.0f, -10.0f,
         //     10.0f, 0.1f, 100.0f);
         state->camera.projection_inverse = m4_inverse(state->camera.projection);
-        state->num_enemies = MAX_ENEMIES;
+        state->num_enemies = 32;
 
         u32 num_colors = sizeof(colors) / sizeof(struct v4);
 
@@ -5080,12 +5060,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         u32 color_player = cube_renderer_color_add(&state->cube_renderer,
             (struct v4){ 1.0f, 0.4f, 0.9f, 1.0f });
 
-        // state->level.width = MAP_WIDTH;
-        // state->level.height = MAP_HEIGHT;
-
-        // memory_copy(map_data, state->level.data, MAP_WIDTH*MAP_HEIGHT);
-
-        level_generate(state, &state->level, 8, 8);
+        level_generate(state, &state->level, 16, 16);
 
         for (u32 i = 0; i < state->num_enemies; i++)
         {
@@ -5103,6 +5078,9 @@ void game_init(struct game_memory* memory, struct game_init* init)
             {
                 enemy->cube.faces[i].color = color_enemy;
             }
+
+            enemy->weapon = weapon_create(u32_random_number_get(state, 1, 3));
+            enemy->weapon.projectile_damage *= 0.2f;
         }
 
         state->render_debug = false;
@@ -5117,13 +5095,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
         for (u32 i = 0; i < 6; i++)
         {
             state->player.cube.faces[i].color = color_player;
-        }
-
-        for (u32 i = 0; i < state->num_enemies; i++)
-        {
-            struct enemy* enemy = &state->enemies[i];
-            enemy->weapon = weapon_create(u32_random_number_get(state, 1, 3));
-            enemy->weapon.projectile_damage *= 0.2f;
         }
 
         state->mouse.world = state->player.body.position;
@@ -5203,8 +5174,8 @@ void game_update(struct game_memory* memory, struct game_input* input)
                 particle_spheres_update(state, input, step);
 
                 camera->position.x = state->player.body.position.x;
-                camera->position.y = state->player.body.position.y - 5.0f;
-                camera->position.z = 7.5f;
+                camera->position.y = state->player.body.position.y;
+                camera->position.z = 12.5f;
 
                 struct v3 target =
                 {
