@@ -314,10 +314,9 @@ u32 key_times_pressed(struct key_state* state)
     return result;
 }
 
-f32 time_elapsed_seconds(struct game_state* state, u32 ticks_start,
-    u32 ticks_end)
+f32 time_elapsed_seconds(u64 ticks_start, u64 ticks_end)
 {
-    f32 result =  (f32)(ticks_end - ticks_start) / (f32)state->ticks_per_second;
+    f32 result = (ticks_end - ticks_start) / 1000000000.0f;
 
     return result;
 }
@@ -5201,7 +5200,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
         api.gl.glDepthFunc(GL_LESS);
         api.gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        state->ticks_per_second = api.time.ticks_frequency_get();
         state->temporary.base = (s8*)state + sizeof(struct game_state);
         state->temporary.last = state->temporary.base;
         state->temporary.current = state->temporary.base;
