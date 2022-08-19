@@ -1,9 +1,13 @@
 #!/bin/bash
 
-if [ -d "../build" ]; then
-    echo "Directory already exists";
-else
-`mkdir ../build`;
+if [ ! -d "../build" ]; then
+    mkdir ../build
+    echo "Build directory created"
+fi
+
+if [ ! -L $PWD/../build/assets ]; then
+    ln -s $PWD/../assets $PWD/../build/assets
+    echo "Symbolic asset link created"
 fi
 
 gcc ../src/tk_game.c -shared -o ../build/game.so -lm -fPIC -std=gnu99 -Wall -Werror -Wno-missing-braces
