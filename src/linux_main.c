@@ -404,10 +404,75 @@ s32 main(s32 argc, char *argv[])
                             // Todo: continue key processing
                             LOG("Key %s pressed/released\n", str);
 
-                            if (sym == XK_A || sym == XK_a)
+                            if (sym == XK_Escape)
+                            {
+                                LOG("ESCAPE - %s\n", is_down ? "down" : "up");
+                                running = false;
+                            }
+                            else if (sym == XK_A || sym == XK_a)
                             {
                                 LOG("A - %s\n", is_down ? "down" : "up");
                                 linux_input_process(&new_input.move_left, 
+                                    is_down);
+                            }
+                            else if (sym == XK_S || sym == XK_s)
+                            {
+                                LOG("S - %s\n", is_down ? "down" : "up");
+                                linux_input_process(&new_input.move_down,
+                                    is_down);
+                            }
+                            else if (sym == XK_D || sym == XK_d)
+                            {
+                                LOG("D - %s\n", is_down ? "down" : "up");
+                                linux_input_process(&new_input.move_right,
+                                    is_down);
+                            }
+                            else if (sym == XK_W || sym == XK_w)
+                            {
+                                LOG("W - %s\n", is_down ? "down" : "up");
+                                linux_input_process(&new_input.move_up,
+                                    is_down);
+                            }
+                            else if (sym == XK_R || sym == XK_r)
+                            {
+                                LOG("R - %s\n", is_down ? "down" : "up");
+                                linux_input_process(&new_input.reload,
+                                    is_down);
+                            }
+                            else if (sym == XK_KP_1)
+                            {
+                                LOG("1 - %s\n", is_down ? "down" : "up");
+                                linux_input_process(&new_input.weapon_slot_1,
+                                    is_down);
+                            }
+                            else if (sym == XK_KP_2)
+                            {
+                                LOG("2 - %s\n", is_down ? "down" : "up");
+                                linux_input_process(&new_input.weapon_slot_2,
+                                    is_down);
+                            }
+                            else if (sym == XK_KP_3)
+                            {
+                                LOG("3 - %s\n", is_down ? "down" : "up");
+                                linux_input_process(&new_input.weapon_slot_3,
+                                    is_down);
+                            }
+                            else if (sym == XK_KP_4)
+                            {
+                                LOG("4 - %s\n", is_down ? "down" : "up");
+                                linux_input_process(&new_input.weapon_slot_4,
+                                    is_down);
+                            }
+                            else if (sym == XK_KP_5)
+                            {
+                                LOG("5 - %s\n", is_down ? "down" : "up");
+                                linux_input_process(&new_input.weapon_slot_5,
+                                    is_down);
+                            }
+                            else if (sym == XK_E || sym == XK_e)
+                            {
+                                LOG("E - %s\n", is_down ? "down" : "up");
+                                linux_input_process(&new_input.weapon_pick,
                                     is_down);
                             }
                         }
