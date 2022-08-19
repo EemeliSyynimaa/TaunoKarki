@@ -119,6 +119,7 @@ LARGE_INTEGER win32_current_time_get()
     return result;
 }
 
+// Todo: maybe support using these functions after all, no rounding
 u64 win32_ticks_current_get()
 {
     LARGE_INTEGER result;
@@ -135,6 +136,23 @@ u64 win32_ticks_frequency_get()
     QueryPerformanceFrequency(&result);
 
     return result.QuadPart;
+}
+
+// Todo: global for now
+u64 win32_ticks_frequency = 0;
+
+
+// Todo: in nanoseconds, eh
+u64 win32_ticks_get()
+{
+    u64 result = 0;
+
+    result = win32_ticks_current_get();
+
+    result *= 1000000000;
+    result /= win32_ticks_frequency;
+
+    return result;
 }
 
 f32 win32_elapsed_time_get(LARGE_INTEGER frequency, LARGE_INTEGER start,
@@ -578,8 +596,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     api.file.file_read = win32_file_read;
     api.file.file_size_get = win32_file_size_get;
 
-    api.time.ticks_current_get = win32_ticks_current_get;
-    api.time.ticks_frequency_get = win32_ticks_frequency_get;
+    api.time.ticks_get = win32_ticks_get;
 
     struct game_init init = { 0 };
     init.api = api;
@@ -589,6 +606,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     LARGE_INTEGER query_performance_frequency;
     QueryPerformanceFrequency(&query_performance_frequency);
+
+    win32_ticks_frequency = query_performance_frequency.QuadPart;
 
     struct game_memory memory = { 0 };
     memory.size = 1024*1024*1024;

@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
 
 #define GL_GLEXT_PROTOTYPES
 
@@ -37,7 +38,8 @@ b32 linux_game_lib_load()
 {
     static void* game_lib = 0;
 
-    // Todo: check if library modified since load
+    // Todo: check if library modified since load, now it's reloaded at every
+    // frame :(
 
     if (game_lib)
     {
@@ -60,10 +62,6 @@ b32 linux_game_lib_load()
 
     return false;
 }
-
-// Todo: linux high performance timer get
-// - linux_current_time_get
-// - linux_elapsed_time_get
 
 // Todo: linux file io
 // - linux_file_size_get
@@ -140,20 +138,23 @@ void linux_input_process(struct key_state* state, b32 is_down)
     }
 }
 
-u64 linux_ticks_current_get()
+u64 linux_ticks_get()
 {
-    u32 result = 0;
+    u64 result = 0;
 
-    // Todo: implement
+    struct timespec tp = { 0 };
 
-    return result;
-}
+    // Todo: currently in nano resolution, is it necessary?
+    if (!clock_gettime(CLOCK_REALTIME, &tp))
+    {
+        LOG("Time: %u secs, %u nsecs\n", tp.tv_sec, tp.tv_nsec);
 
-u64 linux_ticks_frequency_get()
-{
-    u32 result = 0;
+        result = tp.tv_sec;
+        result *= 1000000000;
+        result += tp.tv_nsec;
 
-    // Todo: implement
+        LOG(" ==> %u\n", result);
+    }
 
     return result;
 }
@@ -306,8 +307,7 @@ s32 main(s32 argc, char *argv[])
     api.file.file_read = linux_file_read;
     api.file.file_size_get = linux_file_size_get;
 
-    api.time.ticks_current_get = linux_ticks_current_get;
-    api.time.ticks_frequency_get = linux_ticks_frequency_get;
+    api.time.ticks_get = linux_ticks_get;
     
     // Todo: allocate game memory
     struct game_memory memory = { 0 };
@@ -337,8 +337,6 @@ s32 main(s32 argc, char *argv[])
         ready = false;
     }
 
-    struct game_input old_input = { 0 };
-
     if (ready)
     {
         // Todo: fill struct game_init
@@ -347,17 +345,23 @@ s32 main(s32 argc, char *argv[])
         init.log = linux_log;
         init.screen_width = screen_width;
         init.screen_height = screen_height;
+        init.init_time = linux_ticks_get();
 
-        // Todo: crashes for now
-        game_init(&memory, &init);
-
-        // struct game_input old_input = { 0 };
+        struct game_input old_input = { 0 };
+        u64 old_time = linux_ticks_get();
         
         b32 running = true;
 
         while (running)
         {
             struct game_input new_input = { 0 };
+
+            u64 new_time = linux_ticks_get();
+            f32 delta_time = (new_time - old_time) / 1000000000.0f;
+
+            LOG("%f\n", delta_time);
+
+            old_time = new_time;
 
             s32 num_keys = sizeof(new_input.keys)/sizeof(new_input.keys[0]);
 
@@ -370,10 +374,6 @@ s32 main(s32 argc, char *argv[])
             new_input.enable_debug_rendering = old_input.enable_debug_rendering;
             new_input.pause = old_input.pause;
 
-            // Todo: fill struct game_input
-            // Todo: calculate delta time
-
-            // Todo: read keyboard events
             // Todo: read mouse events
             // Todo: read other events?
             u32 events_num = 0;
@@ -484,7 +484,13 @@ s32 main(s32 argc, char *argv[])
                 }
             }
 
-            // Todo: recording
+            if (linux_game_lib_load())
+            {
+                game_init(&memory, &init);
+            }
+
+            new_input.delta_time = delta_time;
+
             game_update(&memory, &new_input);
 
             glXSwapBuffers(display, window);
