@@ -1951,7 +1951,7 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
         for (u32 x = 0; x < width; x++)
         {
             u32 index = y * width + x;
-            data[index] = u32_random_number_get(state, 0, 2);
+            data[index] = u32_random_number_get(state, 0, 1);
             LOG("%d", data[index]);
         }
 
@@ -1961,8 +1961,9 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
     u32 room_width = 3;
     u32 room_height = 3;
 
-    level->width = height * room_height;
-    level->height = width * room_width;
+    // +1 for outer wall
+    level->width = height * room_height + 1;
+    level->height = width * room_width + 1;
 
     for (u32 y = 0; y < height; y++)
     {
@@ -2007,10 +2008,8 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
                         }
                     }
                     else if (tile_x == 0 ||
-                        (k == 0 && data[room_left] == TILE_NOTHING) ||
-                        tile_x == level->width - 1 || tile_y == 0 ||
-                        (j == 0 && data[room_up] == TILE_NOTHING) ||
-                        tile_y == level->width - 1)
+                        (k == 0 && data[room_left] != room_type) ||
+                        tile_y == 0 || (j == 0 && data[room_up] != room_type))
                     {
                         tile_type = TILE_WALL;
                     }
@@ -2019,6 +2018,26 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
                 }
             }
         }
+    }
+
+    // Set outer wall
+    for (u32 x = 0, y = level->height - 1; x < level->width; x++)
+    {
+        u32 tile_index = y * level->width + x;
+        u32 tile_prev = tile_index - level->width;
+        u32 tile_type =
+            level->data[tile_prev] == TILE_NOTHING ? TILE_NOTHING : TILE_WALL;
+
+        level->data[tile_index] = tile_type;
+    }
+    for (u32 y = 0, x = level->width - 1; y < level->height; y++)
+    {
+        u32 tile_index = y * level->width + x;
+        u32 tile_prev = tile_index - 1;
+        u32 tile_type =
+            level->data[tile_prev] == TILE_NOTHING ? TILE_NOTHING : TILE_WALL;
+
+        level->data[tile_index] = tile_type;
     }
 
     memory_free(&state->temporary);
@@ -2728,8 +2747,6 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         return;
     }
 
-    LOG("Transition from %u to %u\n", enemy->state, state_new);
-
     enemy->state_timer = 0.0f;
     enemy->path_length = 0;
     enemy->state = state_new;
@@ -2794,6 +2811,17 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             if (enemy->health < 0.0f)
             {
                 enemy->alive = false;
+
+                {
+                    u32 count = 0;
+
+                    for (u32 i = 0; i < state->num_enemies; i++)
+                    {
+                        count += state->enemies[i].alive;
+                    }
+
+                    LOG("Enemies: %u of %u\n", count, state->num_enemies);
+                }
 
                 item_create(state, enemy->body.position,
                     ITEM_HEALTH + enemy->weapon.type);
@@ -5175,7 +5203,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
                 camera->position.x = state->player.body.position.x;
                 camera->position.y = state->player.body.position.y;
-                camera->position.z = 12.5f;
+                camera->position.z = 75.5f;
 
                 struct v3 target =
                 {
