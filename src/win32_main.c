@@ -642,6 +642,11 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                     running = false;
                 } break;
             
+                case WM_MOUSEWHEEL:
+                {
+                    s32 delta = GET_WHEEL_DELTA_WPARAM(msg.wParam);
+                    new_input.mouse_wheel_delta = delta;
+                } break;
                 case WM_KEYDOWN:
                 case WM_KEYUP:
                 case WM_SYSKEYDOWN:

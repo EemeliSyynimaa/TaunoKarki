@@ -1938,28 +1938,260 @@ b32 collision_point_to_obb(struct v2 pos, struct v2 corners[4])
     return result;
 }
 
+void level_random_direction(struct game_state* state, s32* dir_x, s32* dir_y)
+{
+    u32 new_dir = u32_random_number_get(state, 0, 10);
+
+    LOG("%d ", new_dir);
+
+    switch (new_dir)
+    {
+        case 0:
+        {
+            LOG("STOP\n");
+            *dir_x = 0;
+            *dir_y = 0;
+        } break;
+        case 6:
+        case 7:
+        {
+            LOG("LEFT\n");
+            // Turn left
+            //  1,  0 ==>  0,  1
+            //  0,  1 ==> -1,  0
+            // -1,  0 ==>  0, -1
+            //  0, -1 ==>  1,  0
+
+            if (*dir_x)
+            {
+                *dir_y = *dir_x;
+                *dir_x = 0;
+            }
+            else if (*dir_y)
+            {
+                *dir_x = -*dir_y;
+                *dir_y = 0;
+            }
+        } break;
+        case 8:
+        case 9:
+        {
+            LOG("RIGHT\n");
+            // Turn right
+            //  1,  0 ==>  0, -1
+            //  0, -1 ==> -1,  0
+            // -1,  0 ==>  0,  1
+            //  0,  1 ==>  1,  0
+
+            if (*dir_x)
+            {
+                *dir_y = -*dir_x;
+                *dir_x = 0;
+            }
+            else if (*dir_y)
+            {
+                *dir_x = *dir_y;
+                *dir_y = 0;
+            }
+        } break;
+    }
+}
+
+void level_hallway_grow(struct game_state* state, u8* data, u32 width,
+    u32 height, u32 x, u32 y, s32 dir_x, u32 dir_y)
+{
+    b32 continue_hallway = true;
+
+    for (u32 i = 0; i < 2; i++)
+    {
+        x += dir_x;
+        y += dir_y;
+
+        u32 tile_index = y * width + x;
+
+        if (!data[tile_index])
+        {
+            data[tile_index] = TILE_FLOOR;
+
+            if (x == 0 || x == width - 1 ||
+                y == 0 || y == height - 1)
+            {
+                LOG("Level bounds reached\n");
+                continue_hallway = false;
+                break;
+            }
+        }
+        else
+        {
+            LOG("Tile already set!\n");
+            continue_hallway = false;
+            break;
+        }
+    }
+
+    if (continue_hallway)
+    {
+        // Grow maze forward
+        if (u32_random_number_get(state, 0, 10) < 9)
+        {
+            level_hallway_grow(state, data, width, height, x, y, dir_x, dir_y);
+        }
+
+        // Grow maze left
+        if (u32_random_number_get(state, 0, 10) < 5)
+        {
+            u32 new_dir_x = dir_x;
+            u32 new_dir_y = dir_y;
+
+            // Turn left
+            //  1,  0 ==>  0,  1
+            //  0,  1 ==> -1,  0
+            // -1,  0 ==>  0, -1
+            //  0, -1 ==>  1,  0
+
+            if (new_dir_x)
+            {
+                new_dir_y = new_dir_x;
+                new_dir_x = 0;
+            }
+            else if (new_dir_y)
+            {
+                new_dir_x = -new_dir_y;
+                new_dir_y = 0;
+            }
+
+            level_hallway_grow(state, data, width, height, x, y, new_dir_x,
+                new_dir_y);
+        }
+
+        // Grow maze right
+        if (u32_random_number_get(state, 0, 10) < 7)
+        {
+            u32 new_dir_x = dir_x;
+            u32 new_dir_y = dir_y;
+
+            // Turn right
+            //  1,  0 ==>  0, -1
+            //  0, -1 ==> -1,  0
+            // -1,  0 ==>  0,  1
+            //  0,  1 ==>  1,  0
+
+            if (new_dir_x)
+            {
+                new_dir_y = -new_dir_x;
+                new_dir_x = 0;
+            }
+            else if (new_dir_y)
+            {
+                new_dir_x = new_dir_y;
+                new_dir_y = 0;
+            }
+
+            level_hallway_grow(state, data, width, height, x, y, new_dir_x,
+                new_dir_y);
+        }
+    }
+}
+
+void level_hallway_generate(struct game_state* state, u8* data, u32 width,
+    u32 height, u32 x, u32 y, s32 dir_x, s32 dir_y)
+{
+    // Grow maze forward
+    if (u32_random_number_get(state, 0, 10) < 6)
+    {
+        level_hallway_grow(state, data, width, height, x, y, dir_x, dir_y);
+    }
+
+    // Grow maze left
+    if (u32_random_number_get(state, 0, 10) < 6)
+    {
+        // Turn left
+        //  1,  0 ==>  0,  1
+        //  0,  1 ==> -1,  0
+        // -1,  0 ==>  0, -1
+        //  0, -1 ==>  1,  0
+
+        if (dir_x)
+        {
+            dir_y = dir_x;
+            dir_x = 0;
+        }
+        else if (dir_y)
+        {
+            dir_x = -dir_y;
+            dir_y = 0;
+        }
+
+        level_hallway_grow(state, data, width, height, x, y, dir_x, dir_y);
+    }
+
+    // Grow maze right
+    if (u32_random_number_get(state, 0, 10) < 6)
+    {
+        // Turn right
+        //  1,  0 ==>  0, -1
+        //  0, -1 ==> -1,  0
+        // -1,  0 ==>  0,  1
+        //  0,  1 ==>  1,  0
+
+        if (dir_x)
+        {
+            dir_y = -dir_x;
+            dir_x = 0;
+        }
+        else if (dir_y)
+        {
+            dir_x = dir_y;
+            dir_y = 0;
+        }
+
+        level_hallway_grow(state, data, width, height, x, y, dir_x, dir_y);
+    }
+}
+
 void level_generate(struct game_state* state, struct level* level, u32 width,
-    u32 height)
+    u32 height, u32 start_x, u32 start_y, s8 dir_x, s8 dir_y)
 {
     u64 size = width * height;
     u8* data = 0;
 
     data = memory_get(&state->temporary, size);
+    memory_set(data, size, 0);
+
+    // for (u32 y = 0; y < height; y++)
+    // {
+    //     for (u32 x = 0; x < width; x++)
+    //     {
+    //         u32 index = y * width + x;
+    //         data[index] = u32_random_number_get(state, 0, 2);
+    //     }
+    // }
+
+    u32 x = start_x;
+    u32 y = start_y;
+
+    data[y * width + x] = TILE_FLOOR;
+
+    x += dir_x;
+    y += dir_y;
+
+    data[y * width + x] = TILE_FLOOR;
+
+    // level_hallway_generate(state, data, width, height, x, y, dir_x, dir_y);
+    level_hallway_grow(state, data, width, height, x, y, dir_x, dir_y);
 
     for (u32 y = 0; y < height; y++)
     {
         for (u32 x = 0; x < width; x++)
         {
-            u32 index = y * width + x;
-            data[index] = u32_random_number_get(state, 0, 1);
-            LOG("%d", data[index]);
+            LOG("%d", data[y * width + x]);
         }
 
         LOG("\n");
     }
 
-    u32 room_width = 3;
-    u32 room_height = 3;
+    u32 room_width = 4;
+    u32 room_height = 4;
 
     // +1 for outer wall
     level->width = height * room_height + 1;
@@ -5088,7 +5320,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         u32 color_player = cube_renderer_color_add(&state->cube_renderer,
             (struct v4){ 1.0f, 0.4f, 0.9f, 1.0f });
 
-        level_generate(state, &state->level, 16, 16);
+        level_generate(state, &state->level, 16, 16, 3, 3, 1, 0);
 
         for (u32 i = 0; i < state->num_enemies; i++)
         {
@@ -5177,13 +5409,13 @@ void game_update(struct game_memory* memory, struct game_input* input)
         state->render_debug = input->enable_debug_rendering;
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+
         f32 step = 1.0f / 120.0f;
 
         state->mouse.screen.x = input->mouse_x;
         state->mouse.screen.y = input->mouse_y;
 
-        state->mouse.world = calculate_world_pos(input->mouse_x, 
+        state->mouse.world = calculate_world_pos(input->mouse_x,
             input->mouse_y, camera);
 
         if (!input->pause)
@@ -5203,7 +5435,17 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
                 camera->position.x = state->player.body.position.x;
                 camera->position.y = state->player.body.position.y;
-                camera->position.z = 75.5f;
+
+                if (input->mouse_wheel_delta > 0)
+                {
+                    camera->position.z -= 2.0f;
+                    LOG("Zoom in: %f\n", camera->position.z);
+                }
+                else if (input->mouse_wheel_delta < 0)
+                {
+                    camera->position.z += 2.0f;
+                    LOG("Zoom out: %f\n", camera->position.z);
+                }
 
                 struct v3 target =
                 {

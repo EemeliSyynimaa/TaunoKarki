@@ -63,6 +63,7 @@ struct game_input
 
     s32 mouse_x;
     s32 mouse_y;
+    s32 mouse_wheel_delta;
 
     // Debug stuff
     b32 enable_debug_rendering;
