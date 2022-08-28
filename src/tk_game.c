@@ -1997,99 +1997,159 @@ void level_random_direction(struct game_state* state, s32* dir_x, s32* dir_y)
     }
 }
 
-void level_hallway_grow(struct game_state* state, u8* data, u32 width,
-    u32 height, u32 x, u32 y, s32 dir_x, u32 dir_y)
+b32 pos_in_bounds(u32 x, u32 y, u32 width, u32 height)
 {
-    b32 continue_hallway = true;
+    return x >= 0 && x < width && y >= 0 && y < height;
+}
 
-    for (u32 i = 0; i < 2; i++)
+b32 pos_free(u8* data, u32 x, u32 y, u32 width)
+{
+    return !data[y * width + x];
+}
+
+void level_hallway_grow(struct game_state* state, u8* data, u32 width,
+    u32 height, u32 x, u32 y, s32 dir_x, s32 dir_y)
+{
+    u32 length = u32_random_number_get(state, 2, 4);
+
+    LOG("Length: %d\n", length);
+
+    for (u32 i = 0; i < length; i++)
     {
-        x += dir_x;
-        y += dir_y;
-
-        u32 tile_index = y * width + x;
-
-        if (!data[tile_index])
+        if (pos_in_bounds(x + dir_x, y + dir_y, width, height))
         {
-            data[tile_index] = TILE_FLOOR;
+            x += dir_x;
+            y += dir_y;
 
-            if (x == 0 || x == width - 1 ||
-                y == 0 || y == height - 1)
+            u32 tile_index = y * width + x;
+
+            if (!data[tile_index])
             {
-                LOG("Level bounds reached\n");
-                continue_hallway = false;
+                data[tile_index] = TILE_FLOOR;
+            }
+            else
+            {
+                LOG("Tile already set!\n");
                 break;
             }
         }
         else
         {
-            LOG("Tile already set!\n");
-            continue_hallway = false;
+            LOG("Level bounds reached\n");
             break;
         }
     }
 
-    if (continue_hallway)
+    // Grow maze forward
+    if (u32_random_number_get(state, 0, 10) < 9)
     {
-        // Grow maze forward
-        if (u32_random_number_get(state, 0, 10) < 9)
+        LOG("Go forward: ");
+
+        u32 new_x = x + dir_x;
+        u32 new_y = y + dir_y;
+
+        if (pos_in_bounds(new_x, new_y, width, height) &&
+            pos_free(data, new_x, new_y, width))
         {
+            LOG("OK\n");
             level_hallway_grow(state, data, width, height, x, y, dir_x, dir_y);
         }
-
-        // Grow maze left
-        if (u32_random_number_get(state, 0, 10) < 5)
+        else
         {
-            u32 new_dir_x = dir_x;
-            u32 new_dir_y = dir_y;
+            LOG("BLOCKED: pos(%d,%d) dir(%d,%d)\n", x, y, dir_x, dir_y);
+        }
+    }
+    else
+    {
+        LOG("Don't go forward\n");
+    }
 
-            // Turn left
-            //  1,  0 ==>  0,  1
-            //  0,  1 ==> -1,  0
-            // -1,  0 ==>  0, -1
-            //  0, -1 ==>  1,  0
+    // Grow maze left
+    if (u32_random_number_get(state, 0, 10) < 8)
+    {
+        LOG("Go left: ");
+        u32 new_dir_x = dir_x;
+        u32 new_dir_y = dir_y;
 
-            if (new_dir_x)
-            {
-                new_dir_y = new_dir_x;
-                new_dir_x = 0;
-            }
-            else if (new_dir_y)
-            {
-                new_dir_x = -new_dir_y;
-                new_dir_y = 0;
-            }
+        // Turn left
+        //  1,  0 ==>  0,  1
+        //  0,  1 ==> -1,  0
+        // -1,  0 ==>  0, -1
+        //  0, -1 ==>  1,  0
 
+        if (new_dir_x)
+        {
+            new_dir_y = new_dir_x;
+            new_dir_x = 0;
+        }
+        else if (new_dir_y)
+        {
+            new_dir_x = -new_dir_y;
+            new_dir_y = 0;
+        }
+
+        u32 new_x = x + new_dir_x;
+        u32 new_y = y + new_dir_y;
+
+        if (pos_in_bounds(new_x, new_y, width, height) &&
+            pos_free(data, new_x, new_y, width))
+        {
+            LOG("OK\n");
             level_hallway_grow(state, data, width, height, x, y, new_dir_x,
                 new_dir_y);
         }
-
-        // Grow maze right
-        if (u32_random_number_get(state, 0, 10) < 7)
+        else
         {
-            u32 new_dir_x = dir_x;
-            u32 new_dir_y = dir_y;
+            LOG("BLOCKED: pos(%d,%d) dir(%d,%d)\n", x, y, new_dir_x, new_dir_y);
+        }
+    }
+    else
+    {
+        LOG("Don't go left\n");
+    }
 
-            // Turn right
-            //  1,  0 ==>  0, -1
-            //  0, -1 ==> -1,  0
-            // -1,  0 ==>  0,  1
-            //  0,  1 ==>  1,  0
+    // Grow maze right
+    if (u32_random_number_get(state, 0, 10) < 8)
+    {
+        LOG("Go right: ");
+        u32 new_dir_x = dir_x;
+        u32 new_dir_y = dir_y;
 
-            if (new_dir_x)
-            {
-                new_dir_y = -new_dir_x;
-                new_dir_x = 0;
-            }
-            else if (new_dir_y)
-            {
-                new_dir_x = new_dir_y;
-                new_dir_y = 0;
-            }
+        // Turn right
+        //  1,  0 ==>  0, -1
+        //  0, -1 ==> -1,  0
+        // -1,  0 ==>  0,  1
+        //  0,  1 ==>  1,  0
 
+        if (new_dir_x)
+        {
+            new_dir_y = -new_dir_x;
+            new_dir_x = 0;
+        }
+        else if (new_dir_y)
+        {
+            new_dir_x = new_dir_y;
+            new_dir_y = 0;
+        }
+
+        u32 new_x = x + new_dir_x;
+        u32 new_y = y + new_dir_y;
+
+        if (pos_in_bounds(new_x, new_y, width, height) &&
+            pos_free(data, new_x, new_y, width))
+        {
+            LOG("OK\n");
             level_hallway_grow(state, data, width, height, x, y, new_dir_x,
                 new_dir_y);
         }
+        else
+        {
+            LOG("BLOCKED: pos(%d,%d) dir(%d,%d)\n", x, y, new_dir_x, new_dir_y);
+        }
+    }
+    else
+    {
+        LOG("Don't go right\n");
     }
 }
 
@@ -5320,7 +5380,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         u32 color_player = cube_renderer_color_add(&state->cube_renderer,
             (struct v4){ 1.0f, 0.4f, 0.9f, 1.0f });
 
-        level_generate(state, &state->level, 16, 16, 3, 3, 1, 0);
+        level_generate(state, &state->level, 8, 8, 3, 3, 1, 0);
 
         for (u32 i = 0; i < state->num_enemies; i++)
         {
