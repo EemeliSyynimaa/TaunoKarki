@@ -2146,47 +2146,44 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
             struct v2 tile_i = tile_random_get(state, level, i);
             struct v2 tile_j = tile_random_get(state, level, j);
 
-            // Todo: this is slow as heck, optimize
-            if (!path_find(level, tile_i, tile_j, NULL, 0))
+            u32 walls[256] = { 0 };
+            u32 wall_count = 0;
+
+            // Find each wall block between rooms i and j
+            for (u32 y = 1; y < level->height - 1; y++)
             {
-                u32 walls[256] = { 0 };
-                u32 wall_count = 0;
-
-                // Find each wall block between rooms i and j
-                for (u32 y = 1; y < level->height - 1; y++)
+                for (u32 x = 1; x < level->width - 1; x++)
                 {
-                    for (u32 x = 1; x < level->width - 1; x++)
+                    u32 tile_index = y * level->width + x;
+
+                    if (level->data[tile_index] == TILE_WALL)
                     {
-                        u32 tile_index = y * level->width + x;
+                        u32 tile_prev = level->data[tile_index - 1];
+                        u32 tile_next = level->data[tile_index + 1];
+                        u32 tile_up   = level->data[tile_index -
+                            level->width];
+                        u32 tile_down = level->data[tile_index +
+                            level->width];
 
-                        if (level->data[tile_index] == TILE_WALL)
+                        if ((i == tile_prev && j == tile_next) ||
+                            (i == tile_next && j == tile_prev) ||
+                            (i == tile_up && j == tile_down) ||
+                            (i == tile_down && j == tile_up))
                         {
-                            u32 tile_prev = level->data[tile_index - 1];
-                            u32 tile_next = level->data[tile_index + 1];
-                            u32 tile_up   = level->data[tile_index -
-                                level->width];
-                            u32 tile_down = level->data[tile_index +
-                                level->width];
-
-                            if ((i == tile_prev && j == tile_next) ||
-                                (i == tile_next && j == tile_prev) ||
-                                (i == tile_up && j == tile_down) ||
-                                (i == tile_down && j == tile_up))
-                            {
-                                walls[wall_count++] = tile_index;
-                            }
+                            walls[wall_count++] = tile_index;
                         }
                     }
                 }
+            }
 
-                // Pick a random block and mark it as door
-                if (wall_count)
-                {
-                    u32 random_door = u32_random_number_get(state, 0,
-                        wall_count - 1);
+            // Todo: path find still takes a bit too much time
+            // Pick a random block and mark it as door
+            if (wall_count && !path_find(level, tile_i, tile_j, NULL, 0))
+            {
+                u32 random_door = u32_random_number_get(state, 0,
+                    wall_count - 1);
 
-                    level->data[walls[random_door]] = TILE_FLOOR;
-                }
+                level->data[walls[random_door]] = TILE_FLOOR;
             }
         }
     }
