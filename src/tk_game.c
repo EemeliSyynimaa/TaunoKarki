@@ -2010,7 +2010,7 @@ b32 pos_free(u8* data, u32 x, u32 y, u32 width)
 void level_hallway_grow(struct game_state* state, u8* data, u32 width,
     u32 height, u32 x, u32 y, s32 dir_x, s32 dir_y)
 {
-    u32 length = u32_random_number_get(state, 2, 4);
+    u32 length = u32_random_number_get(state, 1, 3) * 2;
 
     LOG("Length: %d\n", length);
 
@@ -2216,17 +2216,69 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
     u8* data = 0;
 
     data = memory_get(&state->temporary, size);
-    memory_set(data, size, 0);
+    memory_set(data, size, 1);
 
-    // for (u32 y = 0; y < height; y++)
-    // {
-    //     for (u32 x = 0; x < width; x++)
-    //     {
-    //         u32 index = y * width + x;
-    //         data[index] = u32_random_number_get(state, 0, 2);
-    //     }
-    // }
+#if 1
+    u32 room_index = 1;
 
+    {
+        // Todo: create an empty area at fixed location to make each level have
+        // a structurally same layout
+        data[4 * width + 3] = 0;
+        data[4 * width + 4] = 0;
+        data[5 * width + 3] = 0;
+        data[5 * width + 4] = 0;
+    }
+
+    for (u32 y = 0; y < height; y++)
+    {
+        for (u32 x = 0; x < width; x++)
+        {
+            u32 index = y * width + x;
+
+            if (!data[index])
+            {
+                continue;
+            }
+
+            while (true)
+            {
+                u32 action = u32_random_number_get(state, 0, 2);
+
+                // Continue left room
+                if (action == 0)
+                {
+                    u32 prev = index - 1;
+
+                    if (x == 0 || !data[prev])
+                    {
+                        continue;
+                    }
+
+                    data[index] = data[prev];
+                }
+                // Continue upper room
+                else if (action == 1)
+                {
+                    u32 prev = index - width;
+
+                    if (y == 0 || !data[prev])
+                    {
+                        continue;
+                    }
+
+                    data[index] = data[prev];
+                }
+                else
+                {
+                    data[index] = room_index++;
+                }
+
+                break;
+            }
+        }
+    }
+#else
     u32 x = start_x;
     u32 y = start_y;
 
@@ -2237,14 +2289,14 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
 
     data[y * width + x] = TILE_FLOOR;
 
-    // level_hallway_generate(state, data, width, height, x, y, dir_x, dir_y);
     level_hallway_grow(state, data, width, height, x, y, dir_x, dir_y);
+#endif
 
     for (u32 y = 0; y < height; y++)
     {
         for (u32 x = 0; x < width; x++)
         {
-            LOG("%d", data[y * width + x]);
+            LOG("%d, ", data[y * width + x]);
         }
 
         LOG("\n");
@@ -2263,6 +2315,14 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
         {
             u32 room_index = y * width + x;
             u32 room_type = data[y * width + x];
+
+            // Todo: open a door to each neighbouring room
+
+            // u32 room_open_left = u32_random_number_get(state, 1, 3);
+            // u32 room_open_up = u32_random_number_get(state, 1, 3);
+
+            // b32 room_opened_left = false;
+            // b32 room_opened_up = false;
 
             for (u32 j = 0; j < room_height; j++)
             {
@@ -2299,11 +2359,35 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
                             tile_type = TILE_WALL;
                         }
                     }
-                    else if (tile_x == 0 ||
-                        (k == 0 && data[room_left] != room_type) ||
-                        tile_y == 0 || (j == 0 && data[room_up] != room_type))
+                    else if (tile_x == 0 || tile_y == 0)
                     {
                         tile_type = TILE_WALL;
+                    }
+                    else if (k == 0 && data[room_left] != room_type)
+                    {
+                        // if (j == room_open_left && !room_opened_left &&
+                        //     data[room_left] != TILE_NOTHING)
+                        // {
+                        //     tile_type = TILE_FLOOR;
+                        //     room_opened_left = true;
+                        // }
+                        // else
+                        {
+                            tile_type = TILE_WALL;
+                        }
+                    }
+                    else if (j == 0 && data[room_up] != room_type)
+                    {
+                        // if (k == room_open_up && !room_opened_up &&
+                        //     data[room_up] != TILE_NOTHING)
+                        // {
+                        //     tile_type = TILE_FLOOR;
+                        //     room_opened_up = true;
+                        // }
+                        // else
+                        {
+                            tile_type = TILE_WALL;
+                        }
                     }
 
                     level->data[tile_index] = tile_type;
