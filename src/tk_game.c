@@ -461,9 +461,24 @@ b32 tile_is_of_type(struct level* level, struct v2 position, u32 type)
     return result;
 }
 
+u8 tile_type_get(struct level* level, struct v2 position)
+{
+    u8 result = 0;
+
+    if (tile_inside_level_bounds(level, position))
+    {
+        s32 x = f32_round(position.x);
+        s32 y = f32_round(position.y);
+
+        result = level->data[y * level->width + x];
+    }
+
+    return result;
+}
+
 b32 tile_is_free(struct level* level, struct v2 position)
 {
-    return tile_is_of_type(level, position, TILE_FLOOR);
+    return tile_type_get(level, position) > TILE_WALL;
 }
 
 struct v2 tile_random_get(struct game_state* state, struct level* level,
@@ -503,7 +518,8 @@ struct node
     b32 in_use;
 };
 
-#define MAX_NODES 512
+// Todo: this really depends on the level size
+#define MAX_NODES 1024
 
 struct node* node_insert(struct node* node, struct node nodes[], u32 num_nodes)
 {
@@ -735,7 +751,14 @@ u32 path_find(struct level* level, struct v2 start, struct v2 goal,
 
     if (lowest)
     {
-        node_add_to_path(lowest, path, &result);
+        if (path)
+        {
+            node_add_to_path(lowest, path, &result);
+        }
+        else
+        {
+            result = 1;
+        }
     }
 
     return result;
@@ -2115,51 +2138,54 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
     }
 
     // Find doors
-    u32 doors[256] = { 0 };
-    u32 door_count = 0;
-
     for (u32 i = 3; i < room_index - 1; i++)
     {
         for (u32 j = i + 1; j < room_index; j++)
         {
-            // Todo: maybe we can improve this by first looking if a path
-            // exists between these rooms, that should reduce the number of
-            // doors
-            u32 walls[256] = { 0 };
-            u32 wall_count = 0;
+            struct v2 tile_i = tile_random_get(state, level, i);
+            struct v2 tile_j = tile_random_get(state, level, j);
 
-            // Find each wall block between rooms i and j
-            for (u32 y = 1; y < level->height - 1; y++)
+            // Todo: this is slow as heck, optimize
+            if (!path_find(level, tile_i, tile_j, NULL, 0))
             {
-                for (u32 x = 1; x < level->width - 1; x++)
+                u32 walls[256] = { 0 };
+                u32 wall_count = 0;
+
+                // Find each wall block between rooms i and j
+                for (u32 y = 1; y < level->height - 1; y++)
                 {
-                    u32 tile_index = y * level->width + x;
-
-                    if (level->data[tile_index] == TILE_WALL)
+                    for (u32 x = 1; x < level->width - 1; x++)
                     {
-                        u32 tile_prev = level->data[tile_index - 1];
-                        u32 tile_next = level->data[tile_index + 1];
-                        u32 tile_up   = level->data[tile_index - level->width];
-                        u32 tile_down = level->data[tile_index + level->width];
+                        u32 tile_index = y * level->width + x;
 
-                        if ((i == tile_prev && j == tile_next) ||
-                            (i == tile_next && j == tile_prev) ||
-                            (i == tile_up && j == tile_down) ||
-                            (i == tile_down && j == tile_up))
+                        if (level->data[tile_index] == TILE_WALL)
                         {
-                            walls[wall_count++] = tile_index;
+                            u32 tile_prev = level->data[tile_index - 1];
+                            u32 tile_next = level->data[tile_index + 1];
+                            u32 tile_up   = level->data[tile_index -
+                                level->width];
+                            u32 tile_down = level->data[tile_index +
+                                level->width];
+
+                            if ((i == tile_prev && j == tile_next) ||
+                                (i == tile_next && j == tile_prev) ||
+                                (i == tile_up && j == tile_down) ||
+                                (i == tile_down && j == tile_up))
+                            {
+                                walls[wall_count++] = tile_index;
+                            }
                         }
                     }
                 }
-            }
 
-            // Pick a random block and mark it as door
-            if (wall_count)
-            {
-                u32 random_door = u32_random_number_get(state, 0,
-                    wall_count - 1);
+                // Pick a random block and mark it as door
+                if (wall_count)
+                {
+                    u32 random_door = u32_random_number_get(state, 0,
+                        wall_count - 1);
 
-                doors[door_count++] = walls[random_door];
+                    level->data[walls[random_door]] = TILE_FLOOR;
+                }
             }
         }
     }
@@ -2168,15 +2194,9 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
     u32 room_center_x = (u32)(room_width * 0.5f);
     u32 room_center_y = (u32)(room_height * 0.5f);
 
-    doors[door_count++] = (start_y * room_height + room_center_y +
+    level->data[(start_y * room_height + room_center_y +
         room_center_y * dir_y) * level->width + start_x * room_width +
-        room_center_x + room_center_x * dir_x;
-
-    // Open doors
-    for (u32 i = 0; i < door_count; i++)
-    {
-        level->data[doors[i]] = TILE_FLOOR;
-    }
+        room_center_x + room_center_x * dir_x] = TILE_FLOOR;
 
     // Create floors
     for (u32 i = 0; i < level->width * level->height; i++)
