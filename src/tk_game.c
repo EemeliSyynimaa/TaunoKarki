@@ -1950,15 +1950,19 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
     {
         // Todo: create an empty area at fixed location to make each level have
         // a structurally same layout
-        data[4 * width + 3] = 0;
-        data[4 * width + 4] = 0;
         data[5 * width + 3] = 0;
         data[5 * width + 4] = 0;
+        data[6 * width + 3] = 0;
+        data[6 * width + 4] = 0;
     }
 
+    // Temporarily reserve space for the starting room
+    u32 start_index = start_y * width + start_x;
+    data[start_index] = 0;
+
     // Generate randomized level
-    // Each room will be numbered, starting from two
-    u32 room_index = 2;
+    // Each room will be numbered, starting from three
+    u32 room_index = 3;
 
     for (u32 y = 0; y < height; y++)
     {
@@ -2012,6 +2016,9 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
         }
     }
 
+    // Start room
+    data[start_index] = 2;
+
     for (u32 y = 0; y < height; y++)
     {
         for (u32 x = 0; x < width; x++)
@@ -2022,6 +2029,7 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
         LOG("\n");
     }
 
+    // Room dimensions, always multiple of two!
     u32 room_width = 4;
     u32 room_height = 4;
 
@@ -2110,10 +2118,13 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
     u32 doors[256] = { 0 };
     u32 door_count = 0;
 
-    for (u32 i = 2; i < room_index - 1; i++)
+    for (u32 i = 3; i < room_index - 1; i++)
     {
         for (u32 j = i + 1; j < room_index; j++)
         {
+            // Todo: maybe we can improve this by first looking if a path
+            // exists between these rooms, that should reduce the number of
+            // doors
             u32 walls[256] = { 0 };
             u32 wall_count = 0;
 
@@ -2152,6 +2163,14 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
             }
         }
     }
+
+    // Open start room door
+    u32 room_center_x = (u32)(room_width * 0.5f);
+    u32 room_center_y = (u32)(room_height * 0.5f);
+
+    doors[door_count++] = (start_y * room_height + room_center_y +
+        room_center_y * dir_y) * level->width + start_x * room_width +
+        room_center_x + room_center_x * dir_x;
 
     // Open doors
     for (u32 i = 0; i < door_count; i++)
@@ -5216,7 +5235,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         u32 color_player = cube_renderer_color_add(&state->cube_renderer,
             (struct v4){ 1.0f, 0.4f, 0.9f, 1.0f });
 
-        level_generate(state, &state->level, 8, 8, 3, 3, 1, 0);
+        level_generate(state, &state->level, 8, 8, 3, 3, 0, 1);
 
         for (u32 i = 0; i < state->num_enemies; i++)
         {
