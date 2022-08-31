@@ -181,6 +181,7 @@ struct level
     u8 data[MAX_LEVEL_SIZE*MAX_LEVEL_SIZE];
     u32 width;
     u32 height;
+    struct v2 start_pos;
 };
 
 struct camera
@@ -2193,6 +2194,9 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
     // Open start room door
     u32 room_center_x = (u32)(room_width * 0.5f);
     u32 room_center_y = (u32)(room_height * 0.5f);
+
+    level->start_pos.x = start_x * room_width + room_center_x;
+    level->start_pos.y = start_y * room_height + room_center_y;
 
     level->data[(start_y * room_height + room_center_y +
         room_center_y * dir_y) * level->width + start_x * room_width +
@@ -5280,8 +5284,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         state->render_debug = false;
 
-        state->player.body.position = tile_random_get(state, &state->level,
-                TILE_FLOOR);
+        state->player.body.position = state->level.start_pos;
         state->player.alive = true;
         state->player.health = PLAYER_HEALTH_MAX;
         state->player.weapon = weapon_create(WEAPON_PISTOL);
