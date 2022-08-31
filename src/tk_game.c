@@ -1938,277 +1938,6 @@ b32 collision_point_to_obb(struct v2 pos, struct v2 corners[4])
     return result;
 }
 
-void level_random_direction(struct game_state* state, s32* dir_x, s32* dir_y)
-{
-    u32 new_dir = u32_random_number_get(state, 0, 10);
-
-    LOG("%d ", new_dir);
-
-    switch (new_dir)
-    {
-        case 0:
-        {
-            LOG("STOP\n");
-            *dir_x = 0;
-            *dir_y = 0;
-        } break;
-        case 6:
-        case 7:
-        {
-            LOG("LEFT\n");
-            // Turn left
-            //  1,  0 ==>  0,  1
-            //  0,  1 ==> -1,  0
-            // -1,  0 ==>  0, -1
-            //  0, -1 ==>  1,  0
-
-            if (*dir_x)
-            {
-                *dir_y = *dir_x;
-                *dir_x = 0;
-            }
-            else if (*dir_y)
-            {
-                *dir_x = -*dir_y;
-                *dir_y = 0;
-            }
-        } break;
-        case 8:
-        case 9:
-        {
-            LOG("RIGHT\n");
-            // Turn right
-            //  1,  0 ==>  0, -1
-            //  0, -1 ==> -1,  0
-            // -1,  0 ==>  0,  1
-            //  0,  1 ==>  1,  0
-
-            if (*dir_x)
-            {
-                *dir_y = -*dir_x;
-                *dir_x = 0;
-            }
-            else if (*dir_y)
-            {
-                *dir_x = *dir_y;
-                *dir_y = 0;
-            }
-        } break;
-    }
-}
-
-b32 pos_in_bounds(u32 x, u32 y, u32 width, u32 height)
-{
-    return x >= 0 && x < width && y >= 0 && y < height;
-}
-
-b32 pos_free(u8* data, u32 x, u32 y, u32 width)
-{
-    return !data[y * width + x];
-}
-
-void level_hallway_grow(struct game_state* state, u8* data, u32 width,
-    u32 height, u32 x, u32 y, s32 dir_x, s32 dir_y)
-{
-    u32 length = u32_random_number_get(state, 1, 3) * 2;
-
-    LOG("Length: %d\n", length);
-
-    for (u32 i = 0; i < length; i++)
-    {
-        if (pos_in_bounds(x + dir_x, y + dir_y, width, height))
-        {
-            x += dir_x;
-            y += dir_y;
-
-            u32 tile_index = y * width + x;
-
-            if (!data[tile_index])
-            {
-                data[tile_index] = TILE_FLOOR;
-            }
-            else
-            {
-                LOG("Tile already set!\n");
-                break;
-            }
-        }
-        else
-        {
-            LOG("Level bounds reached\n");
-            break;
-        }
-    }
-
-    // Grow maze forward
-    if (u32_random_number_get(state, 0, 10) < 9)
-    {
-        LOG("Go forward: ");
-
-        u32 new_x = x + dir_x;
-        u32 new_y = y + dir_y;
-
-        if (pos_in_bounds(new_x, new_y, width, height) &&
-            pos_free(data, new_x, new_y, width))
-        {
-            LOG("OK\n");
-            level_hallway_grow(state, data, width, height, x, y, dir_x, dir_y);
-        }
-        else
-        {
-            LOG("BLOCKED: pos(%d,%d) dir(%d,%d)\n", x, y, dir_x, dir_y);
-        }
-    }
-    else
-    {
-        LOG("Don't go forward\n");
-    }
-
-    // Grow maze left
-    if (u32_random_number_get(state, 0, 10) < 8)
-    {
-        LOG("Go left: ");
-        u32 new_dir_x = dir_x;
-        u32 new_dir_y = dir_y;
-
-        // Turn left
-        //  1,  0 ==>  0,  1
-        //  0,  1 ==> -1,  0
-        // -1,  0 ==>  0, -1
-        //  0, -1 ==>  1,  0
-
-        if (new_dir_x)
-        {
-            new_dir_y = new_dir_x;
-            new_dir_x = 0;
-        }
-        else if (new_dir_y)
-        {
-            new_dir_x = -new_dir_y;
-            new_dir_y = 0;
-        }
-
-        u32 new_x = x + new_dir_x;
-        u32 new_y = y + new_dir_y;
-
-        if (pos_in_bounds(new_x, new_y, width, height) &&
-            pos_free(data, new_x, new_y, width))
-        {
-            LOG("OK\n");
-            level_hallway_grow(state, data, width, height, x, y, new_dir_x,
-                new_dir_y);
-        }
-        else
-        {
-            LOG("BLOCKED: pos(%d,%d) dir(%d,%d)\n", x, y, new_dir_x, new_dir_y);
-        }
-    }
-    else
-    {
-        LOG("Don't go left\n");
-    }
-
-    // Grow maze right
-    if (u32_random_number_get(state, 0, 10) < 8)
-    {
-        LOG("Go right: ");
-        u32 new_dir_x = dir_x;
-        u32 new_dir_y = dir_y;
-
-        // Turn right
-        //  1,  0 ==>  0, -1
-        //  0, -1 ==> -1,  0
-        // -1,  0 ==>  0,  1
-        //  0,  1 ==>  1,  0
-
-        if (new_dir_x)
-        {
-            new_dir_y = -new_dir_x;
-            new_dir_x = 0;
-        }
-        else if (new_dir_y)
-        {
-            new_dir_x = new_dir_y;
-            new_dir_y = 0;
-        }
-
-        u32 new_x = x + new_dir_x;
-        u32 new_y = y + new_dir_y;
-
-        if (pos_in_bounds(new_x, new_y, width, height) &&
-            pos_free(data, new_x, new_y, width))
-        {
-            LOG("OK\n");
-            level_hallway_grow(state, data, width, height, x, y, new_dir_x,
-                new_dir_y);
-        }
-        else
-        {
-            LOG("BLOCKED: pos(%d,%d) dir(%d,%d)\n", x, y, new_dir_x, new_dir_y);
-        }
-    }
-    else
-    {
-        LOG("Don't go right\n");
-    }
-}
-
-void level_hallway_generate(struct game_state* state, u8* data, u32 width,
-    u32 height, u32 x, u32 y, s32 dir_x, s32 dir_y)
-{
-    // Grow maze forward
-    if (u32_random_number_get(state, 0, 10) < 6)
-    {
-        level_hallway_grow(state, data, width, height, x, y, dir_x, dir_y);
-    }
-
-    // Grow maze left
-    if (u32_random_number_get(state, 0, 10) < 6)
-    {
-        // Turn left
-        //  1,  0 ==>  0,  1
-        //  0,  1 ==> -1,  0
-        // -1,  0 ==>  0, -1
-        //  0, -1 ==>  1,  0
-
-        if (dir_x)
-        {
-            dir_y = dir_x;
-            dir_x = 0;
-        }
-        else if (dir_y)
-        {
-            dir_x = -dir_y;
-            dir_y = 0;
-        }
-
-        level_hallway_grow(state, data, width, height, x, y, dir_x, dir_y);
-    }
-
-    // Grow maze right
-    if (u32_random_number_get(state, 0, 10) < 6)
-    {
-        // Turn right
-        //  1,  0 ==>  0, -1
-        //  0, -1 ==> -1,  0
-        // -1,  0 ==>  0,  1
-        //  0,  1 ==>  1,  0
-
-        if (dir_x)
-        {
-            dir_y = -dir_x;
-            dir_x = 0;
-        }
-        else if (dir_y)
-        {
-            dir_x = dir_y;
-            dir_y = 0;
-        }
-
-        level_hallway_grow(state, data, width, height, x, y, dir_x, dir_y);
-    }
-}
-
 void level_generate(struct game_state* state, struct level* level, u32 width,
     u32 height, u32 start_x, u32 start_y, s8 dir_x, s8 dir_y)
 {
@@ -2217,9 +1946,6 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
 
     data = memory_get(&state->temporary, size);
     memory_set(data, size, 1);
-
-#if 1
-    u32 room_index = 1;
 
     {
         // Todo: create an empty area at fixed location to make each level have
@@ -2230,12 +1956,17 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
         data[5 * width + 4] = 0;
     }
 
+    // Generate randomized level
+    // Each room will be numbered, starting from two
+    u32 room_index = 2;
+
     for (u32 y = 0; y < height; y++)
     {
         for (u32 x = 0; x < width; x++)
         {
             u32 index = y * width + x;
 
+            // Don't create room on an empty space (zeroed)
             if (!data[index])
             {
                 continue;
@@ -2245,11 +1976,12 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
             {
                 u32 action = u32_random_number_get(state, 0, 2);
 
-                // Continue left room
+                // Continue previous room
                 if (action == 0)
                 {
                     u32 prev = index - 1;
 
+                    // Skip check if previous room is an empty space
                     if (x == 0 || !data[prev])
                     {
                         continue;
@@ -2262,6 +1994,7 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
                 {
                     u32 prev = index - width;
 
+                    // Skip check if upper room is an empty space
                     if (y == 0 || !data[prev])
                     {
                         continue;
@@ -2278,19 +2011,6 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
             }
         }
     }
-#else
-    u32 x = start_x;
-    u32 y = start_y;
-
-    data[y * width + x] = TILE_FLOOR;
-
-    x += dir_x;
-    y += dir_y;
-
-    data[y * width + x] = TILE_FLOOR;
-
-    level_hallway_grow(state, data, width, height, x, y, dir_x, dir_y);
-#endif
 
     for (u32 y = 0; y < height; y++)
     {
@@ -2305,10 +2025,11 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
     u32 room_width = 4;
     u32 room_height = 4;
 
-    // +1 for outer wall
+    // Calculate level dimensions; +1 for outer wall
     level->width = height * room_height + 1;
     level->height = width * room_width + 1;
 
+    // Create walls around rooms
     for (u32 y = 0; y < height; y++)
     {
         for (u32 x = 0; x < width; x++)
@@ -2316,21 +2037,13 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
             u32 room_index = y * width + x;
             u32 room_type = data[y * width + x];
 
-            // Todo: open a door to each neighbouring room
-
-            // u32 room_open_left = u32_random_number_get(state, 1, 3);
-            // u32 room_open_up = u32_random_number_get(state, 1, 3);
-
-            // b32 room_opened_left = false;
-            // b32 room_opened_up = false;
-
             for (u32 j = 0; j < room_height; j++)
             {
                 for (u32 k = 0; k < room_width; k++)
                 {
                     u32 tile_x = room_width * x + k;
                     u32 tile_y = room_height * y + j;
-                    u32 tile_type = TILE_FLOOR;
+                    u32 tile_type = room_type;
                     u32 tile_index = tile_y * level->width + tile_x;
                     s32 tile_left = tile_index - 1;
                     s32 tile_up = tile_index - level->width;
@@ -2359,35 +2072,11 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
                             tile_type = TILE_WALL;
                         }
                     }
-                    else if (tile_x == 0 || tile_y == 0)
+                    else if (tile_x == 0 || tile_y == 0 ||
+                        k == 0 && data[room_left] != room_type ||
+                        j == 0 && data[room_up] != room_type)
                     {
                         tile_type = TILE_WALL;
-                    }
-                    else if (k == 0 && data[room_left] != room_type)
-                    {
-                        // if (j == room_open_left && !room_opened_left &&
-                        //     data[room_left] != TILE_NOTHING)
-                        // {
-                        //     tile_type = TILE_FLOOR;
-                        //     room_opened_left = true;
-                        // }
-                        // else
-                        {
-                            tile_type = TILE_WALL;
-                        }
-                    }
-                    else if (j == 0 && data[room_up] != room_type)
-                    {
-                        // if (k == room_open_up && !room_opened_up &&
-                        //     data[room_up] != TILE_NOTHING)
-                        // {
-                        //     tile_type = TILE_FLOOR;
-                        //     room_opened_up = true;
-                        // }
-                        // else
-                        {
-                            tile_type = TILE_WALL;
-                        }
                     }
 
                     level->data[tile_index] = tile_type;
@@ -2406,6 +2095,7 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
 
         level->data[tile_index] = tile_type;
     }
+
     for (u32 y = 0, x = level->width - 1; y < level->height; y++)
     {
         u32 tile_index = y * level->width + x;
@@ -2414,6 +2104,68 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
             level->data[tile_prev] == TILE_NOTHING ? TILE_NOTHING : TILE_WALL;
 
         level->data[tile_index] = tile_type;
+    }
+
+    // Find doors
+    u32 doors[256] = { 0 };
+    u32 door_count = 0;
+
+    for (u32 i = 2; i < room_index - 1; i++)
+    {
+        for (u32 j = i + 1; j < room_index; j++)
+        {
+            u32 walls[256] = { 0 };
+            u32 wall_count = 0;
+
+            // Find each wall block between rooms i and j
+            for (u32 y = 1; y < level->height - 1; y++)
+            {
+                for (u32 x = 1; x < level->width - 1; x++)
+                {
+                    u32 tile_index = y * level->width + x;
+
+                    if (level->data[tile_index] == TILE_WALL)
+                    {
+                        u32 tile_prev = level->data[tile_index - 1];
+                        u32 tile_next = level->data[tile_index + 1];
+                        u32 tile_up   = level->data[tile_index - level->width];
+                        u32 tile_down = level->data[tile_index + level->width];
+
+                        if ((i == tile_prev && j == tile_next) ||
+                            (i == tile_next && j == tile_prev) ||
+                            (i == tile_up && j == tile_down) ||
+                            (i == tile_down && j == tile_up))
+                        {
+                            walls[wall_count++] = tile_index;
+                        }
+                    }
+                }
+            }
+
+            // Pick a random block and mark it as door
+            if (wall_count)
+            {
+                u32 random_door = u32_random_number_get(state, 0,
+                    wall_count - 1);
+
+                doors[door_count++] = walls[random_door];
+            }
+        }
+    }
+
+    // Open doors
+    for (u32 i = 0; i < door_count; i++)
+    {
+        level->data[doors[i]] = TILE_FLOOR;
+    }
+
+    // Create floors
+    for (u32 i = 0; i < level->width * level->height; i++)
+    {
+        if (level->data[i] > 1)
+        {
+            level->data[i] = TILE_FLOOR;
+        }
     }
 
     memory_free(&state->temporary);
