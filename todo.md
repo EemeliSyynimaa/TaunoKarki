@@ -31,15 +31,17 @@ Development plan for the MVP that's supposed to be available in December 2022.
  - [X] Health and level up boxes are picked up automatically
  - [X] Player can choose whether to pick up the weapon box
 - [ ] Level generation (August)
- - [ ] Level always starts from an elevator
- - [ ] Create levels that are more like floors in tall buildings, not caves
+ - [X] Level always starts from an elevator
+ - [X] Create levels that are more like floors in tall buildings, not caves
  - [ ] Rooms can have different floors
  - [ ] Rooms can have different walls
 - [ ] Make a game out of it (September)
  - [ ] Player starts from the ground level
  - [ ] Player can move between levels via elevator
  - [ ] Player can see lower levels if there's no ceiling or floors blocking
- - [ ] Player is required to do kill all enemies before being able to move up
+ - [ ] Player is required to kill all enemies before being able to move up
+ - [ ] Enemies spawn with some logic, not just at random places
+ - [ ] Enemies can spawn in different AI states
  - [ ] Game is over when the player dies
  - [ ] Player gets score based on the level reached and the number of kills
 - [ ] Finish gameplay (October)
@@ -54,6 +56,8 @@ Development plan for the MVP that's supposed to be available in December 2022.
   - [ ] Build on linux
   - [ ] Create ECS
   - [ ] Graphics stuff
+   - [ ] Window blocks (blocks movement, can be seen through)
+   - [ ] Door blocks (blocks view, can be opened)
    - [ ] Shadows and lighting
    - [ ] Screenshake
    - [ ] Enemy and player faces react to happenings (sleepy, watchful etc)
