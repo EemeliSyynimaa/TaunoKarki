@@ -1107,6 +1107,7 @@ void log_gl_error(char* t)
 void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
     u32 num_vertices, u32* indices)
 {
+    LOG("Vertices: %d Indices: %d\n", num_vertices, mesh->num_indices);
     api.gl.glGenVertexArrays(1, &mesh->vao);
     api.gl.glBindVertexArray(mesh->vao);
 
@@ -2281,7 +2282,6 @@ void level_render(struct game_state* state, struct level* level)
                 struct m4 mvp = m4_mul_m4(model, state->camera.view);
                 mvp = m4_mul_m4(mvp, state->camera.projection);
 
-                // cube_renderer_add(&state->cube_renderer, cube);
                 mesh_render(&state->wall, &mvp, state->texture_tileset,
                     state->shader, color);
             }
@@ -4942,7 +4942,11 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
     api.file.file_open(&file, path, true);
     api.file.file_size_get(&file, &file_size);
 
-    file_data = stack_alloc(block, file_size);
+    // Todo: haxy way, but +1 for the ending \0, otherwise following loops may
+    // fail if there's already something in the memory. Fix the loop to not go
+    // beyond reserved memory!
+    file_data = stack_alloc(block, file_size + 1);
+    *(file_data + file_size + 1) = '\0';
 
     api.file.file_read(&file, file_data, file_size, &read_bytes);
     api.file.file_close(&file);
