@@ -255,7 +255,8 @@ s32 main(s32 argc, char *argv[])
     glXMakeCurrent(display, window, context);
 
     XSelectInput(display, window, KeyPressMask | KeyReleaseMask |
-        KeymapStateMask);
+        KeymapStateMask | ButtonPressMask | ButtonReleaseMask |
+        PointerMotionMask);
 
     XClearWindow(display, window);
     XMapRaised(display, window);
@@ -358,9 +359,9 @@ s32 main(s32 argc, char *argv[])
 
         new_input.enable_debug_rendering = old_input.enable_debug_rendering;
         new_input.pause = old_input.pause;
+        new_input.mouse_x = old_input.mouse_x;
+        new_input.mouse_y = old_input.mouse_y;
 
-        // Todo: read mouse events
-        // Todo: read other events?
         u32 events_num = 0;
 
         while ((events_num = XPending(display)))
@@ -372,6 +373,32 @@ s32 main(s32 argc, char *argv[])
                 case KeymapNotify:
                 {
                 } break;
+                case ButtonPress:
+                case ButtonRelease:
+                {
+                    b32 is_down = ev.type == ButtonPress;
+
+                    if (ev.xbutton.button == Button1)
+                    {
+                        LOG("Mouse left - %s\n", is_down ? "down" : "up");
+                        linux_input_process(&new_input.shoot, is_down);
+                    }
+                    else if (ev.xbutton.button == Button4)
+                    {
+                        LOG("Mouse scroll up\n");
+                        new_input.mouse_wheel_delta += 1;
+                    }
+                    else if (ev.xbutton.button == Button5)
+                    {
+                        LOG("Mouse scroll down\n");
+                        new_input.mouse_wheel_delta -= 1;
+                    }
+                } break;
+                case MotionNotify:
+                {
+                    new_input.mouse_x = ev.xmotion.x;
+                    new_input.mouse_y = ev.xmotion.y;
+                } break;
                 case KeyPress:
                 case KeyRelease:
                 {
@@ -382,8 +409,6 @@ s32 main(s32 argc, char *argv[])
                     if (XLookupString(&ev.xkey, str, 25, &sym, NULL))
                     {
                         // Todo: continue key processing
-                        LOG("Key %s pressed/released\n", str);
-
                         if (sym == XK_Escape)
                         {
                             LOG("ESCAPE - %s\n", is_down ? "down" : "up");
@@ -392,32 +417,27 @@ s32 main(s32 argc, char *argv[])
                         else if (sym == XK_A || sym == XK_a)
                         {
                             LOG("A - %s\n", is_down ? "down" : "up");
-                            linux_input_process(&new_input.move_left,
-                                is_down);
+                            linux_input_process(&new_input.move_left, is_down);
                         }
                         else if (sym == XK_S || sym == XK_s)
                         {
                             LOG("S - %s\n", is_down ? "down" : "up");
-                            linux_input_process(&new_input.move_down,
-                                is_down);
+                            linux_input_process(&new_input.move_down, is_down);
                         }
                         else if (sym == XK_D || sym == XK_d)
                         {
                             LOG("D - %s\n", is_down ? "down" : "up");
-                            linux_input_process(&new_input.move_right,
-                                is_down);
+                            linux_input_process(&new_input.move_right, is_down);
                         }
                         else if (sym == XK_W || sym == XK_w)
                         {
                             LOG("W - %s\n", is_down ? "down" : "up");
-                            linux_input_process(&new_input.move_up,
-                                is_down);
+                            linux_input_process(&new_input.move_up, is_down);
                         }
                         else if (sym == XK_R || sym == XK_r)
                         {
                             LOG("R - %s\n", is_down ? "down" : "up");
-                            linux_input_process(&new_input.reload,
-                                is_down);
+                            linux_input_process(&new_input.reload, is_down);
                         }
                         else if (sym == XK_KP_1)
                         {
@@ -456,10 +476,6 @@ s32 main(s32 argc, char *argv[])
                                 is_down);
                         }
                     }
-                } break;
-                default:
-                {
-                    LOG("Unknown event\n");
                 } break;
             }
         }
