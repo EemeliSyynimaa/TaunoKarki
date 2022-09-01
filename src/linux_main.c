@@ -7,6 +7,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
+#include <errno.h>
 
 #define GL_GLEXT_PROTOTYPES
 
@@ -37,34 +38,55 @@ void linux_log(char* format, ...)
 b32 linux_game_lib_load()
 {
     static void* game_lib = 0;
+    static struct timespec game_lib_write_time_last = { 0 };
+    char game_lib_name[] = "./game.so";
+    struct timespec game_lib_write_time = { 0 };
 
-    // Todo: check if library modified since load, now it's reloaded at every
-    // frame :(
-
-    if (game_lib)
+    s32 fd = open(game_lib_name, O_RDONLY);
+    if (!fd)
     {
-        printf("Close existing lib\n"); 
-        dlclose(game_lib);
-        game_lib = 0;
-        game_init = 0;
-        game_update = 0;
+        s32 error = errno;
+        LOG("Error: cannot open file: %d (%s)\n", error, strerror(error));
+    }
+    else
+    {
+        struct stat statbuf;
+        fstat(fd, &statbuf);
+        game_lib_write_time = statbuf.st_mtim;
+        close(fd);
     }
 
-    game_lib = dlopen("./game.so", RTLD_LAZY);
-
-    if (game_lib)
+    if (game_lib_write_time.tv_sec != game_lib_write_time_last.tv_sec ||
+        game_lib_write_time.tv_nsec != game_lib_write_time_last.tv_nsec)
     {
-        game_init = dlsym(game_lib, "game_init");
-        game_update = dlsym(game_lib, "game_update");
+        game_lib_write_time_last = game_lib_write_time;
 
-        return true;
+        LOG("Trying to load new game lib...");
+
+        if (game_lib)
+        {
+            dlclose(game_lib);
+            game_lib = 0;
+            game_init = 0;
+            game_update = 0;
+        }
+
+        game_lib = dlopen(game_lib_name, RTLD_LAZY);
+
+        if (game_lib)
+        {
+            game_init = dlsym(game_lib, "game_init");
+            game_update = dlsym(game_lib, "game_update");
+
+            LOG("done\n");
+
+            return true;
+        }
     }
 
     return false;
 }
 
-// Todo: linux file io
-// - linux_file_size_get
 void linux_file_open(file_handle* file, char* path, b32 read)
 {
     s32 fd;
@@ -93,19 +115,10 @@ void linux_file_read(file_handle* file, s8* data, u64 bytes_max,
 {
     *bytes_read = 0;
     s32* fd = (s32*)file;
-    
+
     *bytes_read = read(*fd, data, bytes_max);
 
     LOG("Read %llu/%llu bytes\n", *bytes_read, bytes_max)
-
-    // Todo: see if this is required
-    // Note: add zero to end
-    if (*bytes_read < bytes_max)
-    {
-        data += *bytes_read;
-        *data = '\0';
-        (*bytes_read)++;
-    }
 }
 
 void linux_file_write(file_handle* file, s8* data, u64 bytes)
@@ -147,13 +160,9 @@ u64 linux_ticks_get()
     // Todo: currently in nano resolution, is it necessary?
     if (!clock_gettime(CLOCK_REALTIME, &tp))
     {
-        LOG("Time: %u secs, %u nsecs\n", tp.tv_sec, tp.tv_nsec);
-
         result = tp.tv_sec;
         result *= 1000000000;
         result += tp.tv_nsec;
-
-        LOG(" ==> %u\n", result);
     }
 
     return result;
@@ -317,192 +326,164 @@ s32 main(s32 argc, char *argv[])
 
     assert(memory.base);
 
-    b32 ready = true;
+    // Todo: fill struct game_init
+    struct game_init init = { 0 };
+    init.api = api;
+    init.log = linux_log;
+    init.screen_width = screen_width;
+    init.screen_height = screen_height;
+    init.init_time = linux_ticks_get();
 
-    if (!linux_game_lib_load())
+    struct game_input old_input = { 0 };
+    u64 old_time = linux_ticks_get();
+
+    b32 running = true;
+
+    while (running)
     {
-        LOG("Library game not found\n");
-        ready = false;
-    }
+        struct game_input new_input = { 0 };
 
-    if (!game_init)
-    {
-        LOG("Function game init not found\n");
-        ready = false;
-    }
+        u64 new_time = linux_ticks_get();
+        f32 delta_time = (new_time - old_time) / 1000000000.0f;
 
-    if (!game_update)
-    {
-        LOG("Function game update not found\n");
-        ready = false;
-    }
+        LOG("%f\n", delta_time);
 
-    if (ready)
-    {
-        // Todo: fill struct game_init
-        struct game_init init = { 0 };
-        init.api = api;
-        init.log = linux_log;
-        init.screen_width = screen_width;
-        init.screen_height = screen_height;
-        init.init_time = linux_ticks_get();
+        old_time = new_time;
 
-        struct game_input old_input = { 0 };
-        u64 old_time = linux_ticks_get();
-        
-        b32 running = true;
+        s32 num_keys = sizeof(new_input.keys)/sizeof(new_input.keys[0]);
 
-        while (running)
+        for (s32 i = 0; i < num_keys; i++)
         {
-            struct game_input new_input = { 0 };
-
-            u64 new_time = linux_ticks_get();
-            f32 delta_time = (new_time - old_time) / 1000000000.0f;
-
-            LOG("%f\n", delta_time);
-
-            old_time = new_time;
-
-            s32 num_keys = sizeof(new_input.keys)/sizeof(new_input.keys[0]);
-
-            for (s32 i = 0; i < num_keys; i++)
-            {
-                new_input.keys[i].key_down = old_input.keys[i].key_down;
-                new_input.keys[i].transitions = old_input.keys[i].transitions;
-            }
-
-            new_input.enable_debug_rendering = old_input.enable_debug_rendering;
-            new_input.pause = old_input.pause;
-
-            // Todo: read mouse events
-            // Todo: read other events?
-            u32 events_num = 0;
-            u32 events_processed = 0;
-
-            // Todo: how to do this properly?
-            // while ((events_num = XPending(display)))
-            {
-                LOG("Processing event %u of %u\n", ++events_processed,
-                    events_num);
-                XNextEvent(display, &ev);
-
-                switch (ev.type)
-                {
-                    case KeymapNotify:
-                    {
-                        LOG("Keymap notify event\n");
-                    } break;
-                    case KeyPress:
-                    case KeyRelease:
-                    {
-                        b32 is_down = ev.type == KeyPress;
-                        KeySym sym = 0;
-                        char str[25] = { 0 };
-
-                        if (XLookupString(&ev.xkey, str, 25, &sym, NULL))
-                        {
-                            // Todo: continue key processing
-                            LOG("Key %s pressed/released\n", str);
-
-                            if (sym == XK_Escape)
-                            {
-                                LOG("ESCAPE - %s\n", is_down ? "down" : "up");
-                                running = false;
-                            }
-                            else if (sym == XK_A || sym == XK_a)
-                            {
-                                LOG("A - %s\n", is_down ? "down" : "up");
-                                linux_input_process(&new_input.move_left, 
-                                    is_down);
-                            }
-                            else if (sym == XK_S || sym == XK_s)
-                            {
-                                LOG("S - %s\n", is_down ? "down" : "up");
-                                linux_input_process(&new_input.move_down,
-                                    is_down);
-                            }
-                            else if (sym == XK_D || sym == XK_d)
-                            {
-                                LOG("D - %s\n", is_down ? "down" : "up");
-                                linux_input_process(&new_input.move_right,
-                                    is_down);
-                            }
-                            else if (sym == XK_W || sym == XK_w)
-                            {
-                                LOG("W - %s\n", is_down ? "down" : "up");
-                                linux_input_process(&new_input.move_up,
-                                    is_down);
-                            }
-                            else if (sym == XK_R || sym == XK_r)
-                            {
-                                LOG("R - %s\n", is_down ? "down" : "up");
-                                linux_input_process(&new_input.reload,
-                                    is_down);
-                            }
-                            else if (sym == XK_KP_1)
-                            {
-                                LOG("1 - %s\n", is_down ? "down" : "up");
-                                linux_input_process(&new_input.weapon_slot_1,
-                                    is_down);
-                            }
-                            else if (sym == XK_KP_2)
-                            {
-                                LOG("2 - %s\n", is_down ? "down" : "up");
-                                linux_input_process(&new_input.weapon_slot_2,
-                                    is_down);
-                            }
-                            else if (sym == XK_KP_3)
-                            {
-                                LOG("3 - %s\n", is_down ? "down" : "up");
-                                linux_input_process(&new_input.weapon_slot_3,
-                                    is_down);
-                            }
-                            else if (sym == XK_KP_4)
-                            {
-                                LOG("4 - %s\n", is_down ? "down" : "up");
-                                linux_input_process(&new_input.weapon_slot_4,
-                                    is_down);
-                            }
-                            else if (sym == XK_KP_5)
-                            {
-                                LOG("5 - %s\n", is_down ? "down" : "up");
-                                linux_input_process(&new_input.weapon_slot_5,
-                                    is_down);
-                            }
-                            else if (sym == XK_E || sym == XK_e)
-                            {
-                                LOG("E - %s\n", is_down ? "down" : "up");
-                                linux_input_process(&new_input.weapon_pick,
-                                    is_down);
-                            }
-                        }
-                    } break;
-                    default:
-                    {
-                        LOG("Unknown event\n");
-                    } break;
-                }
-            }
-
-            if (linux_game_lib_load())
-            {
-                game_init(&memory, &init);
-            }
-
-            new_input.delta_time = delta_time;
-
-            game_update(&memory, &new_input);
-
-            glXSwapBuffers(display, window);
-
-            old_input = new_input;
+            new_input.keys[i].key_down = old_input.keys[i].key_down;
+            new_input.keys[i].transitions = old_input.keys[i].transitions;
         }
-    }
-    else
-    {
-        LOG("Initialization not ready, cannot run game\n");
-    }
 
+        new_input.enable_debug_rendering = old_input.enable_debug_rendering;
+        new_input.pause = old_input.pause;
+
+        // Todo: read mouse events
+        // Todo: read other events?
+        u32 events_num = 0;
+        u32 events_processed = 0;
+
+        // Todo: how to do this properly?
+        // while ((events_num = XPending(display)))
+        {
+            LOG("Processing event %u of %u\n", ++events_processed,
+                events_num);
+            XNextEvent(display, &ev);
+
+            switch (ev.type)
+            {
+                case KeymapNotify:
+                {
+                    LOG("Keymap notify event\n");
+                } break;
+                case KeyPress:
+                case KeyRelease:
+                {
+                    b32 is_down = ev.type == KeyPress;
+                    KeySym sym = 0;
+                    char str[25] = { 0 };
+
+                    if (XLookupString(&ev.xkey, str, 25, &sym, NULL))
+                    {
+                        // Todo: continue key processing
+                        LOG("Key %s pressed/released\n", str);
+
+                        if (sym == XK_Escape)
+                        {
+                            LOG("ESCAPE - %s\n", is_down ? "down" : "up");
+                            running = false;
+                        }
+                        else if (sym == XK_A || sym == XK_a)
+                        {
+                            LOG("A - %s\n", is_down ? "down" : "up");
+                            linux_input_process(&new_input.move_left,
+                                is_down);
+                        }
+                        else if (sym == XK_S || sym == XK_s)
+                        {
+                            LOG("S - %s\n", is_down ? "down" : "up");
+                            linux_input_process(&new_input.move_down,
+                                is_down);
+                        }
+                        else if (sym == XK_D || sym == XK_d)
+                        {
+                            LOG("D - %s\n", is_down ? "down" : "up");
+                            linux_input_process(&new_input.move_right,
+                                is_down);
+                        }
+                        else if (sym == XK_W || sym == XK_w)
+                        {
+                            LOG("W - %s\n", is_down ? "down" : "up");
+                            linux_input_process(&new_input.move_up,
+                                is_down);
+                        }
+                        else if (sym == XK_R || sym == XK_r)
+                        {
+                            LOG("R - %s\n", is_down ? "down" : "up");
+                            linux_input_process(&new_input.reload,
+                                is_down);
+                        }
+                        else if (sym == XK_KP_1)
+                        {
+                            LOG("1 - %s\n", is_down ? "down" : "up");
+                            linux_input_process(&new_input.weapon_slot_1,
+                                is_down);
+                        }
+                        else if (sym == XK_KP_2)
+                        {
+                            LOG("2 - %s\n", is_down ? "down" : "up");
+                            linux_input_process(&new_input.weapon_slot_2,
+                                is_down);
+                        }
+                        else if (sym == XK_KP_3)
+                        {
+                            LOG("3 - %s\n", is_down ? "down" : "up");
+                            linux_input_process(&new_input.weapon_slot_3,
+                                is_down);
+                        }
+                        else if (sym == XK_KP_4)
+                        {
+                            LOG("4 - %s\n", is_down ? "down" : "up");
+                            linux_input_process(&new_input.weapon_slot_4,
+                                is_down);
+                        }
+                        else if (sym == XK_KP_5)
+                        {
+                            LOG("5 - %s\n", is_down ? "down" : "up");
+                            linux_input_process(&new_input.weapon_slot_5,
+                                is_down);
+                        }
+                        else if (sym == XK_E || sym == XK_e)
+                        {
+                            LOG("E - %s\n", is_down ? "down" : "up");
+                            linux_input_process(&new_input.weapon_pick,
+                                is_down);
+                        }
+                    }
+                } break;
+                default:
+                {
+                    LOG("Unknown event\n");
+                } break;
+            }
+        }
+
+        if (linux_game_lib_load())
+        {
+            game_init(&memory, &init);
+        }
+
+        new_input.delta_time = delta_time;
+
+        game_update(&memory, &new_input);
+
+        glXSwapBuffers(display, window);
+
+        old_input = new_input;
+    }
 
     return 0;
 }
