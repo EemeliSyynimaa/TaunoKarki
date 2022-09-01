@@ -346,8 +346,6 @@ s32 main(s32 argc, char *argv[])
         u64 new_time = linux_ticks_get();
         f32 delta_time = (new_time - old_time) / 1000000000.0f;
 
-        LOG("%f\n", delta_time);
-
         old_time = new_time;
 
         s32 num_keys = sizeof(new_input.keys)/sizeof(new_input.keys[0]);
@@ -364,20 +362,15 @@ s32 main(s32 argc, char *argv[])
         // Todo: read mouse events
         // Todo: read other events?
         u32 events_num = 0;
-        u32 events_processed = 0;
 
-        // Todo: how to do this properly?
-        // while ((events_num = XPending(display)))
+        while ((events_num = XPending(display)))
         {
-            LOG("Processing event %u of %u\n", ++events_processed,
-                events_num);
             XNextEvent(display, &ev);
 
             switch (ev.type)
             {
                 case KeymapNotify:
                 {
-                    LOG("Keymap notify event\n");
                 } break;
                 case KeyPress:
                 case KeyRelease:
