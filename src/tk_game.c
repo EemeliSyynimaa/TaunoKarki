@@ -2128,8 +2128,8 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
                         }
                     }
                     else if (tile_x == 0 || tile_y == 0 ||
-                        k == 0 && data[room_left] != room_type ||
-                        j == 0 && data[room_up] != room_type)
+                        (k == 0 && data[room_left] != room_type) ||
+                        (j == 0 && data[room_up] != room_type))
                     {
                         tile_type = TILE_WALL;
                     }
