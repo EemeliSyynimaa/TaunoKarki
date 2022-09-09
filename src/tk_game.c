@@ -6,6 +6,51 @@
 
 #include <string.h>
 
+struct allocator
+{
+    u64 size;
+    s8* base;
+    s8* current;
+};
+
+void* stack_alloc(struct allocator* stack, u64 size)
+{
+    // Todo: add alignment
+    u64 bytes_left = (stack->base + stack->size) - stack->current;
+    u64 bytes_needed = size + sizeof(s8*);
+
+    if (bytes_needed > bytes_left)
+    {
+        LOG("Not enough memory\n");
+
+        return 0;
+    }
+
+    s8* result = stack->current;
+
+    stack->current += size;
+
+    *((u64*)stack->current) = size;
+
+    stack->current += sizeof(u64);
+
+    return result;
+}
+
+void* stack_free(struct allocator* stack)
+{
+    if (stack->current > stack->base)
+    {
+        stack->current -= sizeof(u64);
+
+        u64 size = *((u64*)stack->current);
+
+        stack->current -= size;
+    }
+
+    return stack->current;
+}
+
 #define MAX_CUBES 1024
 #define MAX_CUBE_COLORS 2048
 
@@ -270,7 +315,7 @@ struct game_state
     struct mesh wall;
     struct mesh floor;
     struct mesh triangle;
-    struct memory_block temporary;
+    struct allocator stack;
     struct v2 wall_corners[MAX_WALL_CORNERS];
     struct line_segment wall_faces[MAX_WALL_FACES];
     struct line_segment cols_static[MAX_COLLISION_SEGMENTS];
@@ -1968,7 +2013,7 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
     u64 size = width * height;
     u8* data = 0;
 
-    data = memory_get(&state->temporary, size);
+    data = stack_alloc(&state->stack, size);
     memory_set(data, size, 1);
 
     {
@@ -2208,7 +2253,7 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
         }
     }
 
-    memory_free(&state->temporary);
+    stack_free(&state->stack);
 }
 
 void level_render(struct game_state* state, struct level* level)
@@ -4576,7 +4621,7 @@ void tga_decode(s8* input, u64 out_size, s8* output, u32* width, u32* height)
     *height = i_spec->height;
 }
 
-u32 texture_create(struct memory_block* block, char* path)
+u32 texture_create(struct allocator* allocator, char* path)
 {
     u64 read_bytes = 0;
     u32 target = GL_TEXTURE_2D;
@@ -4592,8 +4637,8 @@ u32 texture_create(struct memory_block* block, char* path)
     file_open(&file, path, true);
     file_size_get(&file, &file_size);
 
-    file_data = memory_get(block, file_size);
-    pixel_data = memory_get(block, file_size);
+    file_data = stack_alloc(allocator, file_size);
+    pixel_data = stack_alloc(allocator, file_size);
 
     file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
@@ -4609,15 +4654,15 @@ u32 texture_create(struct memory_block* block, char* path)
     glTexImage2D(target, 0, GL_RGBA, width, height, 0, GL_RGBA,
         GL_UNSIGNED_BYTE, pixel_data);
 
-    memory_free(block);
-    memory_free(block);
+    stack_free(allocator);
+    stack_free(allocator);
 
     log_gl_error("texture_create");
 
     return id;
 }
 
-u32 texture_array_create(struct memory_block* block, char* path, u32 rows,
+u32 texture_array_create(struct allocator* allocator, char* path, u32 rows,
     u32 cols)
 {
     file_handle file;
@@ -4630,8 +4675,8 @@ u32 texture_array_create(struct memory_block* block, char* path, u32 rows,
     file_open(&file, path, true);
     file_size_get(&file, &file_size);
 
-    file_data = memory_get(block, file_size);
-    pixel_data = memory_get(block, file_size);
+    file_data = stack_alloc(allocator, file_size);
+    pixel_data = stack_alloc(allocator, file_size);
 
     file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
@@ -4658,7 +4703,7 @@ u32 texture_array_create(struct memory_block* block, char* path, u32 rows,
     u32 channels = 4;
     u32 tile_size_bytes = tile_width * tile_height * channels;
 
-    tile_data = memory_get(block, tile_size_bytes);
+    tile_data = stack_alloc(allocator, tile_size_bytes);
 
     for (u32 y = 0; y < rows; y++)
     {
@@ -4687,9 +4732,9 @@ u32 texture_array_create(struct memory_block* block, char* path, u32 rows,
         }
     }
 
-    memory_free(block);
-    memory_free(block);
-    memory_free(block);
+    stack_free(allocator);
+    stack_free(allocator);
+    stack_free(allocator);
 
     log_gl_error("texture_array_create");
 
@@ -4883,7 +4928,7 @@ u64 string_read(char* data, char* str, u64 max_size)
     return bytes_read;
 }
 
-void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
+void mesh_create(struct allocator* allocator, char* path, struct mesh* mesh)
 {
     // Todo: remove statics
     static struct v3 in_vertices[4096];
@@ -4917,7 +4962,7 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
     file_open(&file, path, true);
     file_size_get(&file, &file_size);
 
-    file_data = memory_get(block, file_size);
+    file_data = stack_alloc(allocator, file_size);
 
     file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
@@ -5061,14 +5106,14 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
         }
     }
 
-    memory_free(block);
+    stack_free(allocator);
 
     generate_vertex_array(mesh, vertices, num_vertices, indices);
 
     log_gl_error("mesh_create");
 }
 
-u32 program_create(struct memory_block* block, char* vertex_shader_path,
+u32 program_create(struct allocator* allocator, char* vertex_shader_path,
     char* fragment_shader_path)
 {
     u64 read_bytes = 0;
@@ -5093,7 +5138,7 @@ u32 program_create(struct memory_block* block, char* vertex_shader_path,
     file_open(&file, vertex_shader_path, true);
     file_size_get(&file, &file_size);
 
-    file_data = memory_get(block, file_size);
+    file_data = stack_alloc(allocator, file_size);
 
     file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
@@ -5108,12 +5153,12 @@ u32 program_create(struct memory_block* block, char* vertex_shader_path,
     // Todo: remove memset
     memset((void*)file_data, 0, file_size);
 
-    memory_free(block);
+    stack_free(allocator);
 
     file_open(&file, fragment_shader_path, true);
     file_size_get(&file, &file_size);
 
-    file_data = memory_get(block, file_size);
+    file_data = stack_alloc(allocator, file_size);
 
     file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
@@ -5128,7 +5173,7 @@ u32 program_create(struct memory_block* block, char* vertex_shader_path,
     // Todo: remove memset
     memset((void*)file_data, 0, file_size);
 
-    memory_free(block);
+    stack_free(allocator);
 
     glAttachShader(program, vertex_shader);
     glAttachShader(program, fragment_shader);
@@ -5197,41 +5242,42 @@ void game_init(struct game_memory* memory, struct game_init* init)
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         state->ticks_per_second = ticks_frequency_get();
-        state->temporary.base = (s8*)state + sizeof(struct game_state);
-        state->temporary.last = state->temporary.base;
-        state->temporary.current = state->temporary.base;
-        state->temporary.size = 100*1024*1024;
+        state->stack.base = (s8*)state + sizeof(struct game_state);
+        state->stack.current = state->stack.base;
+        state->stack.size = 100*1024*1024;
         state->random_seed = init->init_time;
 
-        state->shader = program_create(&state->temporary,
+        struct allocator stack;
+
+        state->shader = program_create(&state->stack,
             "assets/shaders/vertex.glsl",
             "assets/shaders/fragment.glsl");
 
-        state->shader_simple = program_create(&state->temporary,
+        state->shader_simple = program_create(&state->stack,
             "assets/shaders/vertex.glsl",
             "assets/shaders/fragment_simple.glsl");
 
-        state->shader_cube = program_create(&state->temporary,
+        state->shader_cube = program_create(&state->stack,
             "assets/shaders/vertex_cube.glsl",
             "assets/shaders/fragment_cube.glsl");
 
-        state->texture_tileset = texture_create(&state->temporary,
+        state->texture_tileset = texture_create(&state->stack,
             "assets/textures/tileset.tga");
-        state->texture_sphere = texture_create(&state->temporary,
+        state->texture_sphere = texture_create(&state->stack,
             "assets/textures/sphere.tga");
-        state->texture_cube = texture_array_create(&state->temporary,
+        state->texture_cube = texture_array_create(&state->stack,
             "assets/textures/cube.tga", 4, 4);
 
         cube_renderer_init(&state->cube_renderer, state->shader_cube,
             state->texture_cube);
 
-        mesh_create(&state->temporary, "assets/meshes/sphere.mesh",
+        mesh_create(&state->stack, "assets/meshes/sphere.mesh",
             &state->sphere);
-        mesh_create(&state->temporary, "assets/meshes/wall.mesh",
+        mesh_create(&state->stack, "assets/meshes/wall.mesh",
             &state->wall);
-        mesh_create(&state->temporary, "assets/meshes/floor.mesh",
+        mesh_create(&state->stack, "assets/meshes/floor.mesh",
             &state->floor);
-        mesh_create(&state->temporary, "assets/meshes/triangle.mesh",
+        mesh_create(&state->stack, "assets/meshes/triangle.mesh",
             &state->triangle);
 
         state->camera.screen_width = init->screen_width;
