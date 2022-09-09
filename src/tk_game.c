@@ -6,17 +6,17 @@
 
 #include <string.h>
 
-struct allocator
+struct memory_block
 {
     u64 size;
     s8* base;
     s8* current;
 };
 
-void* stack_alloc(struct allocator* stack, u64 size)
+void* stack_alloc(struct memory_block* block, u64 size)
 {
     // Todo: add alignment
-    u64 bytes_left = (stack->base + stack->size) - stack->current;
+    u64 bytes_left = (block->base + block->size) - block->current;
     u64 bytes_needed = size + sizeof(s8*);
 
     if (bytes_needed > bytes_left)
@@ -26,29 +26,33 @@ void* stack_alloc(struct allocator* stack, u64 size)
         return 0;
     }
 
-    s8* result = stack->current;
+    s8* result = block->current;
 
-    stack->current += size;
+    block->current += size;
 
-    *((u64*)stack->current) = size;
+    *((u64*)block->current) = size;
 
-    stack->current += sizeof(u64);
+    block->current += sizeof(u64);
 
     return result;
 }
 
-void* stack_free(struct allocator* stack)
+void* stack_free(struct memory_block* block)
 {
-    if (stack->current > stack->base)
+    if (block->current > block->base)
     {
-        stack->current -= sizeof(u64);
+        block->current -= sizeof(u64);
 
-        u64 size = *((u64*)stack->current);
+        u64 size = *((u64*)block->current);
 
-        stack->current -= size;
+        block->current -= size;
+    }
+    else
+    {
+        LOG("Nothing to free in memory\n");
     }
 
-    return stack->current;
+    return block->current;
 }
 
 #define MAX_CUBES 1024
@@ -280,14 +284,6 @@ enum
     WEAPON_COUNT = 4
 };
 
-struct memory_block
-{
-    s8* base;
-    s8* current;
-    s8* last;
-    u64 size;
-};
-
 struct line_segment
 {
     struct v2 start;
@@ -315,7 +311,7 @@ struct game_state
     struct mesh wall;
     struct mesh floor;
     struct mesh triangle;
-    struct allocator stack;
+    struct memory_block stack;
     struct v2 wall_corners[MAX_WALL_CORNERS];
     struct line_segment wall_faces[MAX_WALL_FACES];
     struct line_segment cols_static[MAX_COLLISION_SEGMENTS];
@@ -808,27 +804,6 @@ u32 path_find(struct level* level, struct v2 start, struct v2 goal,
     }
 
     return result;
-}
-
-void* memory_get(struct memory_block* block, u64 size)
-{
-    if (block->current + size > block->base + block->size)
-    {
-        LOG("Not enough memory\n");
-
-        return 0;
-    }
-
-    // Todo: check alignment
-    block->last = block->current;
-    block->current += size;
-
-    return (void*)block->last;
-}
-
-void memory_free(struct memory_block* block)
-{
-    block->current = block->last;
 }
 
 void memory_set(void* data, u64 size, u8 value)
@@ -4621,7 +4596,7 @@ void tga_decode(s8* input, u64 out_size, s8* output, u32* width, u32* height)
     *height = i_spec->height;
 }
 
-u32 texture_create(struct allocator* allocator, char* path)
+u32 texture_create(struct memory_block* block, char* path)
 {
     u64 read_bytes = 0;
     u32 target = GL_TEXTURE_2D;
@@ -4637,8 +4612,8 @@ u32 texture_create(struct allocator* allocator, char* path)
     file_open(&file, path, true);
     file_size_get(&file, &file_size);
 
-    file_data = stack_alloc(allocator, file_size);
-    pixel_data = stack_alloc(allocator, file_size);
+    file_data = stack_alloc(block, file_size);
+    pixel_data = stack_alloc(block, file_size);
 
     file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
@@ -4654,15 +4629,15 @@ u32 texture_create(struct allocator* allocator, char* path)
     glTexImage2D(target, 0, GL_RGBA, width, height, 0, GL_RGBA,
         GL_UNSIGNED_BYTE, pixel_data);
 
-    stack_free(allocator);
-    stack_free(allocator);
+    stack_free(block);
+    stack_free(block);
 
     log_gl_error("texture_create");
 
     return id;
 }
 
-u32 texture_array_create(struct allocator* allocator, char* path, u32 rows,
+u32 texture_array_create(struct memory_block* block, char* path, u32 rows,
     u32 cols)
 {
     file_handle file;
@@ -4675,8 +4650,8 @@ u32 texture_array_create(struct allocator* allocator, char* path, u32 rows,
     file_open(&file, path, true);
     file_size_get(&file, &file_size);
 
-    file_data = stack_alloc(allocator, file_size);
-    pixel_data = stack_alloc(allocator, file_size);
+    file_data = stack_alloc(block, file_size);
+    pixel_data = stack_alloc(block, file_size);
 
     file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
@@ -4703,7 +4678,7 @@ u32 texture_array_create(struct allocator* allocator, char* path, u32 rows,
     u32 channels = 4;
     u32 tile_size_bytes = tile_width * tile_height * channels;
 
-    tile_data = stack_alloc(allocator, tile_size_bytes);
+    tile_data = stack_alloc(block, tile_size_bytes);
 
     for (u32 y = 0; y < rows; y++)
     {
@@ -4732,9 +4707,9 @@ u32 texture_array_create(struct allocator* allocator, char* path, u32 rows,
         }
     }
 
-    stack_free(allocator);
-    stack_free(allocator);
-    stack_free(allocator);
+    stack_free(block);
+    stack_free(block);
+    stack_free(block);
 
     log_gl_error("texture_array_create");
 
@@ -4928,7 +4903,7 @@ u64 string_read(char* data, char* str, u64 max_size)
     return bytes_read;
 }
 
-void mesh_create(struct allocator* allocator, char* path, struct mesh* mesh)
+void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
 {
     // Todo: remove statics
     static struct v3 in_vertices[4096];
@@ -4962,7 +4937,7 @@ void mesh_create(struct allocator* allocator, char* path, struct mesh* mesh)
     file_open(&file, path, true);
     file_size_get(&file, &file_size);
 
-    file_data = stack_alloc(allocator, file_size);
+    file_data = stack_alloc(block, file_size);
 
     file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
@@ -5106,14 +5081,14 @@ void mesh_create(struct allocator* allocator, char* path, struct mesh* mesh)
         }
     }
 
-    stack_free(allocator);
+    stack_free(block);
 
     generate_vertex_array(mesh, vertices, num_vertices, indices);
 
     log_gl_error("mesh_create");
 }
 
-u32 program_create(struct allocator* allocator, char* vertex_shader_path,
+u32 program_create(struct memory_block* block, char* vertex_shader_path,
     char* fragment_shader_path)
 {
     u64 read_bytes = 0;
@@ -5138,7 +5113,7 @@ u32 program_create(struct allocator* allocator, char* vertex_shader_path,
     file_open(&file, vertex_shader_path, true);
     file_size_get(&file, &file_size);
 
-    file_data = stack_alloc(allocator, file_size);
+    file_data = stack_alloc(block, file_size);
 
     file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
@@ -5153,12 +5128,12 @@ u32 program_create(struct allocator* allocator, char* vertex_shader_path,
     // Todo: remove memset
     memset((void*)file_data, 0, file_size);
 
-    stack_free(allocator);
+    stack_free(block);
 
     file_open(&file, fragment_shader_path, true);
     file_size_get(&file, &file_size);
 
-    file_data = stack_alloc(allocator, file_size);
+    file_data = stack_alloc(block, file_size);
 
     file_read(&file, file_data, file_size, &read_bytes);
     file_close(&file);
@@ -5173,7 +5148,7 @@ u32 program_create(struct allocator* allocator, char* vertex_shader_path,
     // Todo: remove memset
     memset((void*)file_data, 0, file_size);
 
-    stack_free(allocator);
+    stack_free(block);
 
     glAttachShader(program, vertex_shader);
     glAttachShader(program, fragment_shader);
@@ -5246,8 +5221,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->stack.current = state->stack.base;
         state->stack.size = 100*1024*1024;
         state->random_seed = init->init_time;
-
-        struct allocator stack;
 
         state->shader = program_create(&state->stack,
             "assets/shaders/vertex.glsl",
