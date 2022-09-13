@@ -316,6 +316,7 @@ struct game_state
     struct cube_renderer cube_renderer;
     struct gun_shot gun_shots[MAX_GUN_SHOTS];
     struct level level;
+    u8 level_layout_mask[MAX_LEVEL_SIZE*MAX_LEVEL_SIZE];
     b32 render_debug;
     f32 accumulator;
     u32 shader;
@@ -1987,26 +1988,13 @@ b32 collision_point_to_obb(struct v2 pos, struct v2 corners[4])
 }
 
 void level_generate(struct game_state* state, struct level* level, u32 width,
-    u32 height, u32 start_x, u32 start_y, s8 dir_x, s8 dir_y)
+    u32 height, u32 start_x, u32 start_y, s8 dir_x, s8 dir_y, u8* layout_mask)
 {
     u64 size = width * height;
     u8* data = 0;
 
     data = stack_alloc(&state->stack, size);
-    memory_set(data, size, 1);
-
-    {
-        // Todo: create an empty area at fixed location to make each level have
-        // a structurally same layout
-        data[5 * width + 3] = 0;
-        data[5 * width + 4] = 0;
-        data[6 * width + 3] = 0;
-        data[6 * width + 4] = 0;
-    }
-
-    // Temporarily reserve space for the starting room
-    u32 start_index = start_y * width + start_x;
-    data[start_index] = 0;
+    memory_copy(layout_mask, data, size);
 
     // Generate randomized level
     // Each room will be numbered, starting from three
@@ -2065,7 +2053,7 @@ void level_generate(struct game_state* state, struct level* level, u32 width,
     }
 
     // Start room
-    data[start_index] = 2;
+    data[start_y * width + start_x] = 2;
 
     for (u32 y = 0; y < height; y++)
     {
@@ -5282,7 +5270,34 @@ void game_init(struct game_memory* memory, struct game_init* init)
         u32 color_player = cube_renderer_color_add(&state->cube_renderer,
             (struct v4){ 1.0f, 0.4f, 0.9f, 1.0f });
 
-        level_generate(state, &state->level, 8, 8, 3, 3, 0, 1);
+        u32 level_width = 8;
+        u32 level_height = 8;
+        u32 level_start_x = 3;
+        u32 level_start_y = 3;
+
+        // Level layout mask is used to make each level structurally compatible.
+        // The outer walls and start room location will be the same for each
+        // level but the inner walls may differ.
+        {
+            u64 size = level_width * level_height;
+            u8* data = state->level_layout_mask;
+
+            memory_set(data, size, 1);
+
+            {
+                data[5 * level_width + 3] = 0;
+                data[5 * level_width + 4] = 0;
+                data[6 * level_width + 3] = 0;
+                data[6 * level_width + 4] = 0;
+            }
+
+            // Reserve space for the starting room
+            u32 start_index = level_start_y * level_width + level_start_x;
+            data[start_index] = 0;
+        }
+
+        level_generate(state, &state->level, level_width, level_height, 3, 3,
+            0, 1, state->level_layout_mask);
 
         for (u32 i = 0; i < state->num_enemies; i++)
         {
