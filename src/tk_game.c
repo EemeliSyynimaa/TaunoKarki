@@ -316,8 +316,9 @@ struct game_state
     struct cube_renderer cube_renderer;
     struct gun_shot gun_shots[MAX_GUN_SHOTS];
     struct level level;
-    u8 level_layout_mask[MAX_LEVEL_SIZE*MAX_LEVEL_SIZE];
+    struct level level_mask;
     b32 render_debug;
+    b32 level_change;
     f32 accumulator;
     u32 shader;
     u32 shader_simple;
@@ -337,6 +338,7 @@ struct game_state
     u32 num_gun_shots;
     u32 random_seed;
     u32 ticks_per_second;
+    u32 level_current;
 };
 
 // Todo: global for now
@@ -1987,9 +1989,20 @@ b32 collision_point_to_obb(struct v2 pos, struct v2 corners[4])
     return result;
 }
 
-void level_generate(struct game_state* state, struct level* level, u32 width,
-    u32 height, u32 start_x, u32 start_y, s8 dir_x, s8 dir_y, u8* layout_mask)
+void level_generate(struct game_state* state, struct level* level,
+    struct level* layout_mask, s8 dir_x, s8 dir_y)
 {
+    u32 width = layout_mask->width;
+    u32 height = layout_mask->height;
+    u32 start_x = layout_mask->start_pos.x;
+    u32 start_y = layout_mask->start_pos.y;
+
+    if (!width || !height)
+    {
+        LOG("Error: no level width or height set: %u x %u\n", width, height);
+        return;
+    }
+
     u64 size = width * height;
     u8* data = 0;
 
@@ -2999,7 +3012,14 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                         count += state->enemies[i].alive;
                     }
 
-                    LOG("Enemies: %u of %u\n", count, state->num_enemies);
+                    if (count)
+                    {
+                        LOG("Enemies left %u of %u\n", count, state->num_enemies);
+                    }
+                    else
+                    {
+                        state->level_change = true;
+                    }
                 }
 
                 item_create(state, enemy->body.position,
@@ -5162,6 +5182,160 @@ u32 program_create(struct memory_block* block, char* vertex_shader_path,
     return program;
 }
 
+void level_mask_init(struct game_state* state)
+{
+    // Inited once per game round e.g. until the player has died
+
+    struct level* mask = &state->level_mask;
+
+    // Todo: now hard coded, randomize in the future
+    mask->width = 8;
+    mask->height = 8;
+    mask->start_pos = (struct v2) { 3.0f, 3.0f };
+
+    // Level mask mask is used to make each level structurally compatible.
+    // The outer walls and start room location will be the same for each
+    // level but the inner walls may differ.
+    {
+        u32 width = mask->width;
+        u32 height = mask->height;
+        u32 start_x = mask->start_pos.x;
+        u32 start_y = mask->start_pos.y;
+
+        u64 size = width * height;
+        u8* data = mask->data;
+
+        memory_set(data, size, 1);
+
+        {
+            data[5 * width + 3] = 0;
+            data[5 * width + 4] = 0;
+            data[6 * width + 3] = 0;
+            data[6 * width + 4] = 0;
+        }
+
+        // Reserve space for the starting room
+        data[start_y * width + start_x] = 0;
+    }
+}
+
+void level_init(struct game_state* state)
+{
+    // Clear everything
+    memory_set(state->bullets,
+        sizeof(struct bullet) * MAX_BULLETS, 0);
+    memory_set(state->enemies,
+        sizeof(struct enemy) * MAX_ENEMIES, 0);
+    memory_set(state->items,
+        sizeof(struct item) * MAX_ITEMS, 0);
+    memory_set(state->particle_lines,
+        sizeof(struct particle_line) * MAX_PARTICLES, 0);
+    memory_set(state->particle_spheres,
+        sizeof(struct particle_sphere) * MAX_PARTICLES, 0);
+    memory_set(state->wall_corners,
+        sizeof(struct v2) * MAX_WALL_CORNERS, 0);
+    memory_set(state->wall_faces,
+        sizeof(struct line_segment) * MAX_WALL_FACES, 0);
+    memory_set(state->cols_static,
+        sizeof(struct line_segment) * MAX_COLLISION_SEGMENTS, 0);
+    memory_set(state->cols_dynamic,
+        sizeof(struct line_segment) * MAX_COLLISION_SEGMENTS, 0);
+    memory_set(state->gun_shots,
+        sizeof(struct gun_shot) * MAX_GUN_SHOTS, 0);
+
+    state->num_enemies = 0;
+    state->num_wall_corners = 0;
+    state->num_wall_faces = 0;
+    state->num_cols_static = 0;
+    state->num_cols_dynamic = 0;
+    state->num_gun_shots = 0;
+    state->free_bullet = 0;
+    state->free_item = 0;
+    state->free_particle_line = 0;
+    state->free_particle_sphere = 0;
+
+    // Inited once per level
+    u32 enemies_min = state->level_current;
+    u32 enemies_max =  MIN(enemies_min * 4, MAX_ENEMIES);
+    state->num_enemies = u32_random_number_get(state, enemies_min, enemies_max);
+
+    LOG("%u enemies\n", state->num_enemies);
+
+    level_generate(state, &state->level, &state->level_mask, 0, 1);
+
+    u32 color_enemy = cube_renderer_color_add(&state->cube_renderer,
+        (struct v4){ 0.7f, 0.90f, 0.1f, 1.0f });
+    u32 color_player = cube_renderer_color_add(&state->cube_renderer,
+        (struct v4){ 1.0f, 0.4f, 0.9f, 1.0f });
+
+    for (u32 i = 0; i < state->num_enemies; i++)
+    {
+        struct enemy* enemy = &state->enemies[i];
+        enemy->body.position = tile_random_get(state, &state->level,
+            TILE_FLOOR);
+        enemy->alive = true;
+        enemy->health = ENEMY_HEALTH_MAX;
+        enemy->vision_cone_size = 0.2f * i;
+        enemy->shooting = false;
+        enemy->cube.faces[0].texture = 13;
+        enemy->state = ENEMY_STATE_SLEEP;
+
+        for (u32 i = 0; i < 6; i++)
+        {
+            enemy->cube.faces[i].color = color_enemy;
+        }
+
+        enemy->weapon = weapon_create(u32_random_number_get(state, 1, 3));
+        enemy->weapon.projectile_damage *= 0.2f;
+    }
+
+    if (state->level_current == 1)
+    {
+        state->player.weapon = weapon_create(WEAPON_PISTOL);
+    }
+
+    state->player.body.position = state->level.start_pos;
+    state->player.alive = true;
+    state->player.health = PLAYER_HEALTH_MAX;
+    state->player.cube.faces[0].texture = 15;
+
+    for (u32 i = 0; i < 6; i++)
+    {
+        state->player.cube.faces[i].color = color_player;
+    }
+
+    state->mouse.world = state->player.body.position;
+
+    struct v2 temp =
+    {
+        state->mouse.world.x - state->player.body.position.x,
+        state->mouse.world.y - state->player.body.position.y
+    };
+
+    state->camera.position.x = state->player.body.position.x +
+        temp.x * 0.5f;
+    state->camera.position.y = state->player.body.position.y +
+        temp.y * 0.5f;
+    state->camera.position.z = 10.0f;
+
+    state->camera.view = m4_translate(-state->camera.position.x,
+        -state->camera.position.y, -state->camera.position.z);
+
+    state->camera.view_inverse = m4_inverse(state->camera.view);
+
+    collision_map_static_calculate(&state->level, state->cols_static,
+        MAX_COLLISION_SEGMENTS, &state->num_cols_static);
+
+    LOG("Wall faces: %d/%d\n", state->num_cols_static,
+        MAX_COLLISION_SEGMENTS);
+
+    get_wall_corners_from_faces(state->wall_corners, MAX_WALL_CORNERS,
+        &state->num_wall_corners, state->cols_static,
+        state->num_cols_static);
+
+    LOG("Wall corners: %d/%d\n", state->num_wall_corners, MAX_WALL_CORNERS);
+}
+
 void game_init(struct game_memory* memory, struct game_init* init)
 {
     _log = *init->log;
@@ -5256,7 +5430,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         // state->camera.projection = m4_orthographic(-10.0f, 10.0f, -10.0f,
         //     10.0f, 0.1f, 100.0f);
         state->camera.projection_inverse = m4_inverse(state->camera.projection);
-        state->num_enemies = 32;
+        state->render_debug = false;
 
         u32 num_colors = sizeof(colors) / sizeof(struct v4);
 
@@ -5265,104 +5439,10 @@ void game_init(struct game_memory* memory, struct game_init* init)
             cube_renderer_color_add(&state->cube_renderer, colors[i]);
         }
 
-        u32 color_enemy = cube_renderer_color_add(&state->cube_renderer,
-            (struct v4){ 0.7f, 0.90f, 0.1f, 1.0f });
-        u32 color_player = cube_renderer_color_add(&state->cube_renderer,
-            (struct v4){ 1.0f, 0.4f, 0.9f, 1.0f });
+        state->level_current = 1;
 
-        u32 level_width = 8;
-        u32 level_height = 8;
-        u32 level_start_x = 3;
-        u32 level_start_y = 3;
-
-        // Level layout mask is used to make each level structurally compatible.
-        // The outer walls and start room location will be the same for each
-        // level but the inner walls may differ.
-        {
-            u64 size = level_width * level_height;
-            u8* data = state->level_layout_mask;
-
-            memory_set(data, size, 1);
-
-            {
-                data[5 * level_width + 3] = 0;
-                data[5 * level_width + 4] = 0;
-                data[6 * level_width + 3] = 0;
-                data[6 * level_width + 4] = 0;
-            }
-
-            // Reserve space for the starting room
-            u32 start_index = level_start_y * level_width + level_start_x;
-            data[start_index] = 0;
-        }
-
-        level_generate(state, &state->level, level_width, level_height, 3, 3,
-            0, 1, state->level_layout_mask);
-
-        for (u32 i = 0; i < state->num_enemies; i++)
-        {
-            struct enemy* enemy = &state->enemies[i];
-            enemy->body.position = tile_random_get(state, &state->level,
-                TILE_FLOOR);
-            enemy->alive = true;
-            enemy->health = ENEMY_HEALTH_MAX;
-            enemy->vision_cone_size = 0.2f * i;
-            enemy->shooting = false;
-            enemy->cube.faces[0].texture = 13;
-            enemy->state = ENEMY_STATE_SLEEP;
-
-            for (u32 i = 0; i < 6; i++)
-            {
-                enemy->cube.faces[i].color = color_enemy;
-            }
-
-            enemy->weapon = weapon_create(u32_random_number_get(state, 1, 3));
-            enemy->weapon.projectile_damage *= 0.2f;
-        }
-
-        state->render_debug = false;
-
-        state->player.body.position = state->level.start_pos;
-        state->player.alive = true;
-        state->player.health = PLAYER_HEALTH_MAX;
-        state->player.weapon = weapon_create(WEAPON_PISTOL);
-        state->player.cube.faces[0].texture = 15;
-
-        for (u32 i = 0; i < 6; i++)
-        {
-            state->player.cube.faces[i].color = color_player;
-        }
-
-        state->mouse.world = state->player.body.position;
-
-        struct v2 temp =
-        {
-            state->mouse.world.x - state->player.body.position.x,
-            state->mouse.world.y - state->player.body.position.y
-        };
-
-        state->camera.position.x = state->player.body.position.x +
-            temp.x * 0.5f;
-        state->camera.position.y = state->player.body.position.y +
-            temp.y * 0.5f;
-        state->camera.position.z = 10.0f;
-
-        state->camera.view = m4_translate(-state->camera.position.x,
-            -state->camera.position.y, -state->camera.position.z);
-
-        state->camera.view_inverse = m4_inverse(state->camera.view);
-
-        collision_map_static_calculate(&state->level, state->cols_static,
-            MAX_COLLISION_SEGMENTS, &state->num_cols_static);
-
-        LOG("Wall faces: %d/%d\n", state->num_cols_static,
-            MAX_COLLISION_SEGMENTS);
-
-        get_wall_corners_from_faces(state->wall_corners, MAX_WALL_CORNERS,
-            &state->num_wall_corners, state->cols_static,
-            state->num_cols_static);
-
-        LOG("Wall corners: %d/%d\n", state->num_wall_corners, MAX_WALL_CORNERS);
+        level_mask_init(state);
+        level_init(state);
 
         api.gl.glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
 
@@ -5471,6 +5551,14 @@ void game_update(struct game_memory* memory, struct game_input* input)
             collision_map_render(state);
         }
         // cursor_render(state);
+
+        if (state->level_change)
+        {
+            state->level_change = false;
+            state->accumulator = 0;
+            state->level_current++;
+            level_init(state);
+        }
     }
     else
     {
