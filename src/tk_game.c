@@ -225,7 +225,8 @@ struct enemy
 
 struct level
 {
-    u8 data[MAX_LEVEL_SIZE*MAX_LEVEL_SIZE];
+    u8 tile_sprites[MAX_LEVEL_SIZE*MAX_LEVEL_SIZE];
+    u8 tile_types[MAX_LEVEL_SIZE*MAX_LEVEL_SIZE];
     u32 width;
     u32 height;
     struct v2 start_pos;
@@ -500,7 +501,7 @@ b32 tile_is_of_type(struct level* level, struct v2 position, u32 type)
         s32 x = f32_round(position.x);
         s32 y = f32_round(position.y);
 
-        result = level->data[y * level->width + x] == type;
+        result = level->tile_types[y * level->width + x] == type;
     }
 
     return result;
@@ -515,7 +516,7 @@ u8 tile_type_get(struct level* level, struct v2 position)
         s32 x = f32_round(position.x);
         s32 y = f32_round(position.y);
 
-        result = level->data[y * level->width + x];
+        result = level->tile_types[y * level->width + x];
     }
 
     return result;
@@ -2024,7 +2025,7 @@ void level_generate(struct game_state* state, struct level* level,
     u8* data = 0;
 
     data = stack_alloc(&state->stack, size);
-    memory_copy(layout_mask, data, size);
+    memory_copy(layout_mask->tile_types, data, size);
 
     // Generate randomized level
     // Each room will be numbered, starting from three
@@ -2125,8 +2126,8 @@ void level_generate(struct game_state* state, struct level* level,
                     s32 room_up = room_index - width;
 
                     if (j == 0 && k == 0 && tile_left >= 0 && tile_up >= 0 &&
-                        level->data[tile_left] == TILE_WALL &&
-                        level->data[tile_up] == TILE_WALL)
+                        level->tile_types[tile_left] == TILE_WALL &&
+                        level->tile_types[tile_up] == TILE_WALL)
                     {
                         tile_type = TILE_WALL;
                     }
@@ -2153,7 +2154,7 @@ void level_generate(struct game_state* state, struct level* level,
                         tile_type = TILE_WALL;
                     }
 
-                    level->data[tile_index] = tile_type;
+                    level->tile_types[tile_index] = tile_type;
                 }
             }
         }
@@ -2164,20 +2165,20 @@ void level_generate(struct game_state* state, struct level* level,
     {
         u32 tile_index = y * level->width + x;
         u32 tile_prev = tile_index - level->width;
-        u32 tile_type =
-            level->data[tile_prev] == TILE_NOTHING ? TILE_NOTHING : TILE_WALL;
+        u32 tile_type = level->tile_types[tile_prev] == TILE_NOTHING ?
+            TILE_NOTHING : TILE_WALL;
 
-        level->data[tile_index] = tile_type;
+        level->tile_types[tile_index] = tile_type;
     }
 
     for (u32 y = 0, x = level->width - 1; y < level->height; y++)
     {
         u32 tile_index = y * level->width + x;
         u32 tile_prev = tile_index - 1;
-        u32 tile_type =
-            level->data[tile_prev] == TILE_NOTHING ? TILE_NOTHING : TILE_WALL;
+        u32 tile_type = level->tile_types[tile_prev] == TILE_NOTHING ?
+            TILE_NOTHING : TILE_WALL;
 
-        level->data[tile_index] = tile_type;
+        level->tile_types[tile_index] = tile_type;
     }
 
     // Find doors
@@ -2198,13 +2199,13 @@ void level_generate(struct game_state* state, struct level* level,
                 {
                     u32 tile_index = y * level->width + x;
 
-                    if (level->data[tile_index] == TILE_WALL)
+                    if (level->tile_types[tile_index] == TILE_WALL)
                     {
-                        u32 tile_prev = level->data[tile_index - 1];
-                        u32 tile_next = level->data[tile_index + 1];
-                        u32 tile_up   = level->data[tile_index -
+                        u32 tile_prev = level->tile_types[tile_index - 1];
+                        u32 tile_next = level->tile_types[tile_index + 1];
+                        u32 tile_up   = level->tile_types[tile_index -
                             level->width];
-                        u32 tile_down = level->data[tile_index +
+                        u32 tile_down = level->tile_types[tile_index +
                             level->width];
 
                         if ((i == tile_prev && j == tile_next) ||
@@ -2225,7 +2226,7 @@ void level_generate(struct game_state* state, struct level* level,
                 u32 random_door = u32_random_number_get(state, 0,
                     wall_count - 1);
 
-                level->data[walls[random_door]] = TILE_FLOOR;
+                level->tile_types[walls[random_door]] = TILE_FLOOR;
             }
         }
     }
@@ -2237,17 +2238,34 @@ void level_generate(struct game_state* state, struct level* level,
     level->start_pos.x = start_x * room_width + room_center_x;
     level->start_pos.y = start_y * room_height + room_center_y;
 
-    level->data[(start_y * room_height + room_center_y +
+    level->tile_types[(start_y * room_height + room_center_y +
         room_center_y * dir_y) * level->width + start_x * room_width +
         room_center_x + room_center_x * dir_x] = TILE_FLOOR;
 
     // Create floors
     for (u32 i = 0; i < level->width * level->height; i++)
     {
-        if (level->data[i] > 1)
+        u8 type = level->tile_types[i];
+
+        if (type == TILE_WALL)
         {
-            level->data[i] = TILE_FLOOR;
+            level->tile_sprites[i] = 8;
         }
+        else if (type > 1)
+        {
+            level->tile_types[i] = TILE_FLOOR;
+            level->tile_sprites[i] = type % 8;
+        }
+    }
+
+    for (u32 y = 0; y < level->height; y++)
+    {
+        for (u32 x = 0; x < level->width; x++)
+        {
+            LOG("%d, ", level->tile_sprites[y * level->width + x]);
+        }
+
+        LOG("\n");
     }
 
     stack_free(&state->stack);
@@ -2261,10 +2279,6 @@ void level_render(struct game_state* state, struct level* level)
     {
         for (u32 x = 0; x < level->width; x++)
         {
-            u32 index = y * level->width + x;
-
-            u8 tile = level->data[index];
-
             struct v4 color = colors[WHITE];
 
             f32 top = y + TILE_WALL * 0.5f;
@@ -2288,7 +2302,9 @@ void level_render(struct game_state* state, struct level* level)
                 color = colors[RED];
             }
 
-            if (tile == TILE_WALL)
+            u8 tile_type = level->tile_types[ y * level->width + x];
+
+            if (tile_type == TILE_WALL)
             {
                 struct m4 transform = m4_translate(x, y, 0.5f);
                 struct m4 rotation = m4_rotate_z(0.0f);
@@ -2303,7 +2319,7 @@ void level_render(struct game_state* state, struct level* level)
                 mesh_render(&state->wall, &mvp, state->texture_tileset,
                     state->shader, color);
             }
-            else if (tile == TILE_FLOOR)
+            else if (tile_type == TILE_FLOOR)
             {
                 struct m4 transform = m4_translate(x, y, 0.0f);
                 struct m4 rotation = m4_rotate_z(0.0f);
@@ -2519,7 +2535,7 @@ b32 check_tile_collisions(struct level* level, struct v2* pos, struct v2* vel,
         {
             for (u32 x = start_x; x <= end_x; x++)
             {
-                if (level->data[y * level->width + x] != 1)
+                if (level->tile_types[y * level->width + x] != 1)
                 {
                     continue;
                 }
@@ -3031,7 +3047,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
                     if (count)
                     {
-                        LOG("Enemies left %u of %u\n", count, state->num_enemies);
+                        LOG("Enemies left %u of %u\n", count,
+                            state->num_enemies);
                     }
                     else
                     {
@@ -5218,7 +5235,7 @@ void level_mask_init(struct game_state* state)
         u32 start_y = mask->start_pos.y;
 
         u64 size = width * height;
-        u8* data = mask->data;
+        u8* data = mask->tile_types;
 
         memory_set(data, size, 1);
 
