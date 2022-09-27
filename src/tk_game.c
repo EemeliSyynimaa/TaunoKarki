@@ -325,6 +325,7 @@ struct game_state
     u32 shader;
     u32 shader_simple;
     u32 shader_cube;
+    u32 shader_sprite;
     u32 texture_tileset;
     u32 texture_sphere;
     u32 texture_cube;
@@ -5434,6 +5435,10 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->shader_cube = program_create(&state->stack,
             "assets/shaders/vertex_cube.glsl",
             "assets/shaders/fragment_cube.glsl");
+
+        state->shader_sprite = program_create(&state->stack,
+            "assets/shaders/vertex_sprite.glsl",
+            "assets/shaders/fragment_sprite.glsl");
 
         state->texture_tileset = texture_create(&state->stack,
             "assets/textures/tileset.tga");
