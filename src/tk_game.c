@@ -52,6 +52,36 @@ void* stack_free(struct memory_block* block)
     return block->current;
 }
 
+#define MAX_SPRITES 1024
+
+struct sprite_vertex_data
+{
+    struct v3 position;
+    struct v3 normal;
+    struct v2 uv;
+};
+
+struct sprite_data
+{
+    struct m4 model;
+    struct v4 color;
+    u32 texture;
+};
+
+struct sprite_renderer
+{
+    struct sprite_data sprites[MAX_SPRITES];
+    u32 vao;
+    u32 vbo_vertices;
+    u32 vbo_sprites;
+    u32 ibo;
+    u32 num_indices;
+    u32 num_sprites;
+    u32 shader;
+    u32 texture;
+    b32 initialized;
+};
+
 #define MAX_CUBES 1024
 #define MAX_CUBE_COLORS 2048
 
@@ -316,6 +346,7 @@ struct game_state
     struct line_segment cols_static[MAX_COLLISION_SEGMENTS];
     struct line_segment cols_dynamic[MAX_COLLISION_SEGMENTS];
     struct cube_renderer cube_renderer;
+    struct sprite_renderer sprite_renderer;
     struct gun_shot gun_shots[MAX_GUN_SHOTS];
     struct level level;
     struct level level_mask;
@@ -329,6 +360,7 @@ struct game_state
     u32 texture_tileset;
     u32 texture_sphere;
     u32 texture_cube;
+    u32 texture_sprite;
     u32 free_bullet;
     u32 free_item;
     u32 free_particle_line;
@@ -1086,7 +1118,7 @@ bool gl_check_error(char* t)
     switch (error)
     {
         case GL_NO_ERROR:
-            // LOG("glGetError(): NO ERRORS (%s)\n", t);
+            LOG("glGetError(): NO ERRORS (%s)\n", t);
             result = false;
             break;
         case GL_INVALID_ENUM:
@@ -1146,6 +1178,152 @@ void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
         sizeof(struct vertex), (void*)20);
     api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
         sizeof(struct vertex), (void*)32);
+}
+
+void sprite_renderer_init(struct sprite_renderer* renderer, u32 shader,
+    u32 texture)
+{
+    renderer->shader = shader;
+    renderer->texture = texture;
+
+    struct sprite_vertex_data vertices[] =
+    {
+        // Top right
+        {
+            { 1.0f, 1.0f, 0.0f },
+            { 0.0f, 0.0f, 1.0f },
+            { 0.0f, 1.0f }
+        },
+        // Top left
+        {
+            { -1.0f, 1.0f, 0.0f },
+            { 0.0f, 0.0f, 1.0f },
+            { 0.0f, 0.0f }
+        },
+        // Bottom left
+        {
+            { -1.0f, -1.0f, 0.0f },
+            { 0.0f, 0.0f, 1.0f },
+            { 1.0f, 0.0f }
+        },
+        // Bottom right
+        {
+            { 1.0f, -1.0f, 0.0f },
+            { 0.0f, 0.0f, 1.0f },
+            { 1.0f, 1.0f }
+        }
+    };
+
+    u32 indices[] =
+    {
+        0, 1, 2, 0, 2, 3
+    };
+
+    renderer->num_indices = 6;
+
+    api.gl.glGenVertexArrays(1, &renderer->vao);
+    api.gl.glBindVertexArray(renderer->vao);
+
+    api.gl.glGenBuffers(1, &renderer->vbo_vertices);
+    api.gl.glGenBuffers(1, &renderer->vbo_sprites);
+    api.gl.glGenBuffers(1, &renderer->ibo);
+
+    api.gl.glEnableVertexAttribArray(0);
+    api.gl.glEnableVertexAttribArray(1);
+    api.gl.glEnableVertexAttribArray(2);
+    api.gl.glEnableVertexAttribArray(3);
+    api.gl.glEnableVertexAttribArray(4);
+    api.gl.glEnableVertexAttribArray(5);
+    api.gl.glEnableVertexAttribArray(6);
+    api.gl.glEnableVertexAttribArray(7);
+    api.gl.glEnableVertexAttribArray(8);
+
+    api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_vertices);
+    api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
+        GL_STATIC_DRAW);
+    api.gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+        sizeof(struct sprite_vertex_data), (void*)0);
+    api.gl.glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
+        sizeof(struct sprite_vertex_data), (void*)12);
+    api.gl.glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE,
+        sizeof(struct sprite_vertex_data), (void*)24);
+
+    api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_sprites);
+    api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->sprites),
+        renderer->sprites, GL_DYNAMIC_DRAW);
+    api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
+        sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 0));
+    api.gl.glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE,
+        sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 1));
+    api.gl.glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE,
+        sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 2));
+    api.gl.glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE,
+        sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 3));
+    api.gl.glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE,
+        sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 4));
+    api.gl.glVertexAttribIPointer(8, 1, GL_UNSIGNED_BYTE,
+        sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 5));
+
+    api.gl.glVertexAttribDivisor(3, 1);
+    api.gl.glVertexAttribDivisor(4, 1);
+    api.gl.glVertexAttribDivisor(5, 1);
+    api.gl.glVertexAttribDivisor(6, 1);
+    api.gl.glVertexAttribDivisor(7, 1);
+    api.gl.glVertexAttribDivisor(8, 1);
+
+    api.gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
+    api.gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+        renderer->num_indices * sizeof(u32), indices, GL_STATIC_DRAW);
+
+    renderer->initialized = !gl_check_error("sprite_renderer_init");
+}
+
+void sprite_renderer_add(struct sprite_renderer* renderer,
+    struct sprite_data* data)
+{
+    if (renderer->initialized)
+    {
+        if (renderer->num_sprites < MAX_SPRITES)
+        {
+            renderer->sprites[renderer->num_sprites++] = *data;
+        }
+    }
+}
+
+void sprite_renderer_flush(struct sprite_renderer* renderer, struct m4* view,
+    struct m4* projection)
+{
+    if (renderer->initialized)
+    {
+        api.gl.glBindVertexArray(renderer->vao);
+        api.gl.glUseProgram(renderer->shader);
+
+        u32 uniform_texture = api.gl.glGetUniformLocation(renderer->shader,
+            "uniform_texture");
+        u32 uniform_vp = api.gl.glGetUniformLocation(renderer->shader,
+            "uniform_vp");
+
+        struct m4 vp = m4_mul_m4(*view, *projection);
+
+        api.gl.glUniform1i(uniform_texture, 0);
+        api.gl.glUniformMatrix4fv(uniform_vp, 1, GL_FALSE, (GLfloat*)&vp);
+
+        api.gl.glActiveTexture(GL_TEXTURE0);
+        api.gl.glBindTexture(GL_TEXTURE_2D_ARRAY, renderer->texture);
+
+        api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_sprites);
+        api.gl.glBufferSubData(GL_ARRAY_BUFFER, 0,
+            renderer->num_sprites * sizeof(struct sprite_data),
+            renderer->sprites);
+
+        api.gl.glDrawElementsInstanced(GL_TRIANGLES, renderer->num_indices,
+            GL_UNSIGNED_INT, NULL, renderer->num_sprites);
+
+        api.gl.glUseProgram(0);
+        api.gl.glBindVertexArray(0);
+
+        renderer->num_sprites = 0;
+    }
 }
 
 void cube_renderer_init(struct cube_renderer* renderer, u32 shader, u32 texture)
@@ -1398,36 +1576,6 @@ void cube_renderer_init(struct cube_renderer* renderer, u32 shader, u32 texture)
     renderer->initialized = !gl_check_error("cube_renderer_init");
 }
 
-void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
-{
-    struct v2 temp_b = { b->x - a.x, b->y - a.y };
-    struct v2 temp_c = { c->x - a.x, c->y - a.y };
-    struct v2 forward =
-    {
-        (temp_b.x + temp_c.x) * 0.5f,
-        (temp_b.y + temp_c.y) * 0.5f
-    };
-
-    // Todo: use cross product
-    f32 angle = F64_PI*1.5f;
-    f32 tsin = f32_sin(angle);
-    f32 tcos = f32_cos(angle);
-
-    struct v2 right =
-    {
-        forward.x * tcos - forward.y * tsin,
-        forward.x * tsin + forward.y * tcos
-    };
-
-    f32 diff_b = v2_dot(right, temp_b);
-    f32 diff_c = v2_dot(right, temp_c);
-
-    if (diff_c > diff_b)
-    {
-        v2_swap(b, c);
-    }
-}
-
 void cube_renderer_add(struct cube_renderer* renderer, struct cube_data* data)
 {
     if (renderer->initialized)
@@ -1508,6 +1656,36 @@ s32 cube_renderer_color_add(struct cube_renderer* renderer, struct v4 color)
     }
 
     return result;
+}
+
+void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
+{
+    struct v2 temp_b = { b->x - a.x, b->y - a.y };
+    struct v2 temp_c = { c->x - a.x, c->y - a.y };
+    struct v2 forward =
+    {
+        (temp_b.x + temp_c.x) * 0.5f,
+        (temp_b.y + temp_c.y) * 0.5f
+    };
+
+    // Todo: use cross product
+    f32 angle = F64_PI*1.5f;
+    f32 tsin = f32_sin(angle);
+    f32 tcos = f32_cos(angle);
+
+    struct v2 right =
+    {
+        forward.x * tcos - forward.y * tsin,
+        forward.x * tsin + forward.y * tcos
+    };
+
+    f32 diff_b = v2_dot(right, temp_b);
+    f32 diff_c = v2_dot(right, temp_c);
+
+    if (diff_c > diff_b)
+    {
+        v2_swap(b, c);
+    }
 }
 
 void mesh_render(struct mesh* mesh, struct m4* mvp, u32 texture, u32 shader,
@@ -5446,9 +5624,13 @@ void game_init(struct game_memory* memory, struct game_init* init)
             "assets/textures/sphere.tga");
         state->texture_cube = texture_array_create(&state->stack,
             "assets/textures/cube.tga", 4, 4);
+        state->texture_sprite = texture_array_create(&state->stack,
+            "assets/textures/tileset.tga", 8, 8);
 
         cube_renderer_init(&state->cube_renderer, state->shader_cube,
             state->texture_cube);
+        sprite_renderer_init(&state->sprite_renderer, state->shader_sprite,
+            state->texture_sprite);
 
         mesh_create(&state->stack, "assets/meshes/sphere.mesh",
             &state->sphere);
@@ -5578,6 +5760,9 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
         cube_renderer_flush(&state->cube_renderer, &state->camera.view,
             &state->camera.projection);
+        sprite_renderer_flush(&state->sprite_renderer, &state->camera.view,
+            &state->camera.projection);
+
         // u64 render_end = ticks_current_get();
 
         // LOG("Render time: %f\n", time_elapsed_seconds(state, render_start,
