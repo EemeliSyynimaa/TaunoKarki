@@ -8,11 +8,6 @@ uniform sampler2DArray uniform_texture;
 
 void main()
 {
-    vec4 texture_color = texture(uniform_texture,
-        vec3(texcoords.x, -texcoords.y, texture_index));
-
-    if (texture_color.a == 0.0)
-        fragColor = color;
-    else
-        fragColor = texture_color;
+    fragColor = texture(uniform_texture, vec3(texcoords.x, -texcoords.y,
+        texture_index)) * color;
 }

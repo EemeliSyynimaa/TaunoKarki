@@ -352,6 +352,7 @@ struct game_state
     struct level level_mask;
     b32 render_debug;
     b32 level_change;
+    b32 level_cleared;
     f32 accumulator;
     u32 shader;
     u32 shader_simple;
@@ -462,6 +463,8 @@ f32 WALL_SIZE = 1.0f;
 u32 TILE_NOTHING = 0;
 u32 TILE_WALL    = 1;
 u32 TILE_FLOOR   = 2;
+u32 TILE_DOOR    = 3;
+u32 TILE_START   = 4;
 
 u32 COLLISION_STATIC  = 1;
 u32 COLLISION_PLAYER  = 2;
@@ -2334,11 +2337,6 @@ void level_generate(struct game_state* state, struct level* level,
                     {
                         tile_type = TILE_WALL;
                     }
-                    // Use specific tile for start room
-                    else if (tile_type == 2)
-                    {
-                        level->tile_sprites[tile_index] = 17;
-                    }
 
                     level->tile_types[tile_index] = tile_type;
                 }
@@ -2443,7 +2441,13 @@ void level_generate(struct game_state* state, struct level* level,
             {
                 level->tile_sprites[i] = 8;
             }
-            else if (type > 1)
+            else if (type == 2)
+            {
+                // Use specific tile for start room
+                level->tile_types[i] = TILE_START;
+                level->tile_sprites[i] = 17;
+            }
+            else if (type > 2)
             {
                 level->tile_types[i] = TILE_FLOOR;
                 level->tile_sprites[i] = 8 + type % 8;
@@ -2517,7 +2521,7 @@ void level_render(struct game_state* state, struct level* level)
                 mesh_render(&state->wall, &mvp, state->texture_tileset,
                     state->shader, color);
             }
-            else if (tile_type == TILE_FLOOR)
+            else if (tile_type != TILE_NOTHING)
             {
                 struct m4 transform = m4_translate(x, y, 0.0f);
                 struct m4 rotation = m4_rotate_z(0.0f);
@@ -2528,6 +2532,23 @@ void level_render(struct game_state* state, struct level* level)
 
                 data.model = model;
                 data.texture = level->tile_sprites[tile_index];
+                data.color = colors[WHITE];
+
+                if (tile_type == TILE_START)
+                {
+                    if (state->level_cleared)
+                    {
+                        data.color = colors[LIME];
+                    }
+                    else
+                    {
+                        data.color = colors[RED];
+                    }
+                }
+                else
+                {
+                    data.color = colors[WHITE];
+                }
 
                 sprite_renderer_add(&state->sprite_renderer, &data);
             }
@@ -3249,7 +3270,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     }
                     else
                     {
-                        state->level_change = true;
+                        state->level_cleared = true;
                     }
                 }
 
@@ -4516,6 +4537,17 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         if (key_times_pressed(&input->reload))
         {
             weapon_reload(weapon, false);
+        }
+
+        if (state->level_cleared)
+        {
+            if (key_times_pressed(&input->weapon_pick) &&
+                tile_type_get(&state->level, player->body.position) ==
+                TILE_START)
+            {
+                LOG("Changing level...\n");
+                state->level_change = true;
+            }
         }
 
         if (input->shoot.key_down)
@@ -5795,6 +5827,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
         if (state->level_change)
         {
+            state->level_cleared = false;
             state->level_change = false;
             state->accumulator = 0;
             state->level_current++;
