@@ -14,7 +14,7 @@ void* stack_alloc(struct memory_block* block, u64 size)
 {
     // Todo: add alignment
     u64 bytes_left = (block->base + block->size) - block->current;
-    u64 bytes_needed = size + sizeof(s8*);
+    u64 bytes_needed = size + sizeof(u64);
 
     if (bytes_needed > bytes_left)
     {
@@ -90,6 +90,7 @@ struct cube_renderer
     u32 shader;
     u32 texture;
     b32 update_color_data;
+    b32 initialized;
 };
 
 struct particle_line
@@ -1074,14 +1075,17 @@ struct v2 calculate_screen_pos(f32 pos_x, f32 pos_y, f32 pos_z,
     return result;
 }
 
-void log_gl_error(char* t)
+bool gl_check_error(char* t)
 {
+    bool result = true;
+
     GLenum error = api.gl.glGetError();
 
     switch (error)
     {
         case GL_NO_ERROR:
-            // LOG("glGetError(): NO ERROR (%s)\n", t);
+            // LOG("glGetError(): NO ERRORS (%s)\n", t);
+            result = false;
             break;
         case GL_INVALID_ENUM:
             LOG("glGetError(): INVALID ENUM (%s)\n", t);
@@ -1105,6 +1109,8 @@ void log_gl_error(char* t)
             LOG("glGetError(): UNKNOWN ERROR (%s)\n", t);
             break;
     };
+
+    return result;
 }
 
 void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
@@ -1386,6 +1392,8 @@ void cube_renderer_init(struct cube_renderer* renderer, u32 shader, u32 texture)
 
     api.gl.glBindBufferRange(GL_UNIFORM_BUFFER, 0, renderer->ubo, 0,
         sizeof(renderer->colors));
+
+    renderer->initialized = !gl_check_error("cube_renderer_init");
 }
 
 void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
@@ -1420,72 +1428,81 @@ void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
 
 void cube_renderer_add(struct cube_renderer* renderer, struct cube_data* data)
 {
-    if (renderer->num_cubes < MAX_CUBES)
+    if (renderer->initialized)
     {
-        renderer->cubes[renderer->num_cubes++] = *data;
+        if (renderer->num_cubes < MAX_CUBES)
+        {
+            renderer->cubes[renderer->num_cubes++] = *data;
+        }
     }
 }
 
 void cube_renderer_flush(struct cube_renderer* renderer, struct m4* view,
     struct m4* projection)
 {
-    api.gl.glBindVertexArray(renderer->vao);
-    api.gl.glUseProgram(renderer->shader);
-
-    u32 uniform_texture = api.gl.glGetUniformLocation(renderer->shader,
-        "uniform_texture");
-    u32 uniform_vp = api.gl.glGetUniformLocation(renderer->shader,
-        "uniform_vp");
-
-    if (renderer->update_color_data)
+    if (renderer->initialized)
     {
-        api.gl.glBufferData(GL_UNIFORM_BUFFER, sizeof(renderer->colors),
-            &renderer->colors, GL_STATIC_DRAW);
+        api.gl.glBindVertexArray(renderer->vao);
+        api.gl.glUseProgram(renderer->shader);
 
-        renderer->update_color_data = false;
+        u32 uniform_texture = api.gl.glGetUniformLocation(renderer->shader,
+            "uniform_texture");
+        u32 uniform_vp = api.gl.glGetUniformLocation(renderer->shader,
+            "uniform_vp");
+
+        if (renderer->update_color_data)
+        {
+            api.gl.glBufferData(GL_UNIFORM_BUFFER, sizeof(renderer->colors),
+                &renderer->colors, GL_STATIC_DRAW);
+
+            renderer->update_color_data = false;
+        }
+
+        struct m4 vp = m4_mul_m4(*view, *projection);
+
+        api.gl.glUniform1i(uniform_texture, 0);
+        api.gl.glUniformMatrix4fv(uniform_vp, 1, GL_FALSE, (GLfloat*)&vp);
+
+        api.gl.glActiveTexture(GL_TEXTURE0);
+        api.gl.glBindTexture(GL_TEXTURE_2D_ARRAY, renderer->texture);
+
+        api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_cubes);
+        api.gl.glBufferSubData(GL_ARRAY_BUFFER, 0,
+            renderer->num_cubes * sizeof(struct cube_data), renderer->cubes);
+
+        api.gl.glDrawElementsInstanced(GL_TRIANGLES, renderer->num_indices,
+            GL_UNSIGNED_INT, NULL, renderer->num_cubes);
+
+        api.gl.glUseProgram(0);
+        api.gl.glBindVertexArray(0);
+
+        renderer->num_cubes = 0;
     }
-
-    struct m4 vp = m4_mul_m4(*view, *projection);
-
-    api.gl.glUniform1i(uniform_texture, 0);
-    api.gl.glUniformMatrix4fv(uniform_vp, 1, GL_FALSE, (GLfloat*)&vp);
-
-    api.gl.glActiveTexture(GL_TEXTURE0);
-    api.gl.glBindTexture(GL_TEXTURE_2D_ARRAY, renderer->texture);
-
-    api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_cubes);
-    api.gl.glBufferSubData(GL_ARRAY_BUFFER, 0,
-        renderer->num_cubes * sizeof(struct cube_data), renderer->cubes);
-
-    api.gl.glDrawElementsInstanced(GL_TRIANGLES, renderer->num_indices,
-        GL_UNSIGNED_INT, NULL, renderer->num_cubes);
-
-    api.gl.glUseProgram(0);
-    api.gl.glBindVertexArray(0);
-
-    renderer->num_cubes = 0;
 }
 
 s32 cube_renderer_color_add(struct cube_renderer* renderer, struct v4 color)
 {
     s32 result = -1;
 
-    // Todo: we should figure out what to do when the color buffer is full
-    for (u32 i = 0; i < renderer->num_colors; i++)
+    if (renderer->initialized)
     {
-        if (v4_equals(renderer->colors[i], color))
+        // Todo: we should figure out what to do when the color buffer is full
+        for (u32 i = 0; i < renderer->num_colors; i++)
         {
-            result = i;
-            renderer->update_color_data = true;
-            break;
+            if (v4_equals(renderer->colors[i], color))
+            {
+                result = i;
+                renderer->update_color_data = true;
+                break;
+            }
         }
-    }
 
-    if (result == -1 && renderer->num_colors < MAX_CUBE_COLORS)
-    {
-        result = renderer->num_colors++;
-        renderer->colors[result] = color;
-        renderer->update_color_data = true;
+        if (result == -1 && renderer->num_colors < MAX_CUBE_COLORS)
+        {
+            result = renderer->num_colors++;
+            renderer->colors[result] = color;
+            renderer->update_color_data = true;
+        }
     }
 
     return result;
@@ -4643,7 +4660,7 @@ u32 texture_create(struct memory_block* block, char* path)
     stack_free(block);
     stack_free(block);
 
-    log_gl_error("texture_create");
+    gl_check_error("texture_create");
 
     return id;
 }
@@ -4724,7 +4741,7 @@ u32 texture_array_create(struct memory_block* block, char* path, u32 rows,
     stack_free(block);
     stack_free(block);
 
-    log_gl_error("texture_array_create");
+    gl_check_error("texture_array_create");
 
     return id;
 }
@@ -4954,7 +4971,7 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
     // fail if there's already something in the memory. Fix the loop to not go
     // beyond reserved memory!
     file_data = stack_alloc(block, file_size + 1);
-    *(file_data + file_size + 1) = '\0';
+    *(file_data + file_size) = '\0';
 
     api.file.file_read(&file, file_data, file_size, &read_bytes);
     api.file.file_close(&file);
@@ -5102,7 +5119,7 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
 
     generate_vertex_array(mesh, vertices, num_vertices, indices);
 
-    log_gl_error("mesh_create");
+    gl_check_error("mesh_create");
 }
 
 u32 program_create(struct memory_block* block, char* vertex_shader_path,
@@ -5130,7 +5147,9 @@ u32 program_create(struct memory_block* block, char* vertex_shader_path,
     api.file.file_open(&file, vertex_shader_path, true);
     api.file.file_size_get(&file, &file_size);
 
-    file_data = stack_alloc(block, file_size);
+    // Reserve space for 0 at the end of shader data.
+    file_data = stack_alloc(block, file_size + 1);
+    *(file_data + file_size) = 0;
 
     api.file.file_read(&file, file_data, file_size, &read_bytes);
     api.file.file_close(&file);
@@ -5142,15 +5161,14 @@ u32 program_create(struct memory_block* block, char* vertex_shader_path,
     api.gl.glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, (GLint*)&result);
     // assert(result);
 
-    // Todo: remove memset
-    memset((void*)file_data, 0, file_size);
-
     stack_free(block);
 
     api.file.file_open(&file, fragment_shader_path, true);
     api.file.file_size_get(&file, &file_size);
 
-    file_data = stack_alloc(block, file_size);
+    // Reserve space for 0 at the end of shader data.
+    file_data = stack_alloc(block, file_size + 1);
+    *(file_data + file_size) = 0;
 
     api.file.file_read(&file, file_data, file_size, &read_bytes);
     api.file.file_close(&file);
@@ -5161,9 +5179,6 @@ u32 program_create(struct memory_block* block, char* vertex_shader_path,
     api.gl.glCompileShader(fragment_shader);
     api.gl.glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, (GLint*)&result);
     // assert(result);
-
-    // Todo: remove memset
-    memset((void*)file_data, 0, file_size);
 
     stack_free(block);
 
@@ -5177,7 +5192,7 @@ u32 program_create(struct memory_block* block, char* vertex_shader_path,
     api.gl.glDeleteShader(vertex_shader);
     api.gl.glDeleteShader(fragment_shader);
 
-    log_gl_error("shader_create");
+    gl_check_error("shader_create");
 
     return program;
 }
