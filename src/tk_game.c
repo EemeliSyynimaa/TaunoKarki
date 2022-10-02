@@ -1118,7 +1118,7 @@ bool gl_check_error(char* t)
     switch (error)
     {
         case GL_NO_ERROR:
-            LOG("glGetError(): NO ERRORS (%s)\n", t);
+            // LOG("glGetError(): NO ERRORS (%s)\n", t);
             result = false;
             break;
         case GL_INVALID_ENUM:
@@ -2206,6 +2206,8 @@ void level_generate(struct game_state* state, struct level* level,
     data = stack_alloc(&state->stack, size);
     memory_copy(layout_mask->tile_types, data, size);
 
+    memory_set(level, sizeof(struct level), 0);
+
     // Generate randomized level
     // Each room will be numbered, starting from three
     u32 room_index = 3;
@@ -2332,6 +2334,11 @@ void level_generate(struct game_state* state, struct level* level,
                     {
                         tile_type = TILE_WALL;
                     }
+                    // Use specific tile for start room
+                    else if (tile_type == 2)
+                    {
+                        level->tile_sprites[tile_index] = 17;
+                    }
 
                     level->tile_types[tile_index] = tile_type;
                 }
@@ -2406,6 +2413,7 @@ void level_generate(struct game_state* state, struct level* level,
                     wall_count - 1);
 
                 level->tile_types[walls[random_door]] = TILE_FLOOR;
+                level->tile_sprites[walls[random_door]] = 16;
             }
         }
     }
@@ -2417,23 +2425,29 @@ void level_generate(struct game_state* state, struct level* level,
     level->start_pos.x = start_x * room_width + room_center_x;
     level->start_pos.y = start_y * room_height + room_center_y;
 
-    level->tile_types[(start_y * room_height + room_center_y +
+    u32 start_door_index = (start_y * room_height + room_center_y +
         room_center_y * dir_y) * level->width + start_x * room_width +
-        room_center_x + room_center_x * dir_x] = TILE_FLOOR;
+        room_center_x + room_center_x * dir_x;
+
+    level->tile_types[start_door_index] = TILE_FLOOR;
+    level->tile_sprites[start_door_index] = 16;
 
     // Create floors
     for (u32 i = 0; i < level->width * level->height; i++)
     {
         u8 type = level->tile_types[i];
 
-        if (type == TILE_WALL)
+        if (!level->tile_sprites[i])
         {
-            level->tile_sprites[i] = 8;
-        }
-        else if (type > 1)
-        {
-            level->tile_types[i] = TILE_FLOOR;
-            level->tile_sprites[i] = type % 8;
+            if (type == TILE_WALL)
+            {
+                level->tile_sprites[i] = 8;
+            }
+            else if (type > 1)
+            {
+                level->tile_types[i] = TILE_FLOOR;
+                level->tile_sprites[i] = 8 + type % 8;
+            }
         }
     }
 
@@ -2454,6 +2468,10 @@ void level_render(struct game_state* state, struct level* level)
 {
     // Todo: fix level rendering glitch (a wall block randomly drawn in a
     //       wrong place)
+
+    struct sprite_data data;
+    data.color = colors[WHITE];
+
     for (u32 y = 0; y < level->height; y++)
     {
         for (u32 x = 0; x < level->width; x++)
@@ -2481,7 +2499,8 @@ void level_render(struct game_state* state, struct level* level)
                 color = colors[RED];
             }
 
-            u8 tile_type = level->tile_types[ y * level->width + x];
+            u64 tile_index = y * level->width + x;
+            u8 tile_type = level->tile_types[tile_index];
 
             if (tile_type == TILE_WALL)
             {
@@ -2507,11 +2526,10 @@ void level_render(struct game_state* state, struct level* level)
                 struct m4 model = m4_mul_m4(scale, rotation);
                 model = m4_mul_m4(model, transform);
 
-                struct m4 mvp = m4_mul_m4(model, state->camera.view);
-                mvp = m4_mul_m4(mvp, state->camera.projection);
+                data.model = model;
+                data.texture = level->tile_sprites[tile_index];
 
-                mesh_render(&state->floor, &mvp, state->texture_tileset,
-                    state->shader, color);
+                sprite_renderer_add(&state->sprite_renderer, &data);
             }
         }
     }
@@ -5755,13 +5773,14 @@ void game_update(struct game_memory* memory, struct game_input* input)
         enemies_render(state);
         bullets_render(state);
         items_render(state);
-        particle_lines_render(state);
-        particle_spheres_render(state);
 
         cube_renderer_flush(&state->cube_renderer, &state->camera.view,
             &state->camera.projection);
         sprite_renderer_flush(&state->sprite_renderer, &state->camera.view,
             &state->camera.projection);
+
+        particle_lines_render(state);
+        particle_spheres_render(state);
 
         // u64 render_end = ticks_current_get();
 
