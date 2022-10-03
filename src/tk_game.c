@@ -747,7 +747,12 @@ void node_add_to_path(struct node* node, struct v2 path[], u32* index)
     // Todo: this overflows stack sometimes
     node_add_to_path(node->parent, path, index);
 
-    path[(*index)++] = node->position;
+    (*index)++;
+
+    if (path)
+    {
+        path[*index] = node->position;
+    }
 }
 
 u32 path_find(struct level* level, struct v2 start, struct v2 goal,
@@ -833,14 +838,7 @@ u32 path_find(struct level* level, struct v2 start, struct v2 goal,
 
     if (lowest)
     {
-        if (path)
-        {
-            node_add_to_path(lowest, path, &result);
-        }
-        else
-        {
-            result = 1;
-        }
+        node_add_to_path(lowest, path, &result);
     }
 
     return result;
@@ -2403,15 +2401,55 @@ void level_generate(struct game_state* state, struct level* level,
                 }
             }
 
-            // Todo: path find still takes a bit too much time
             // Pick a random block and mark it as door
-            if (wall_count && !path_find(level, tile_i, tile_j, NULL, 0))
+            if (wall_count)
             {
-                u32 random_door = u32_random_number_get(state, 0,
-                    wall_count - 1);
+                u32 path_max_length = 20;
+                u32 path_length = path_find(level, tile_i, tile_j, NULL, 0);
 
-                level->tile_types[walls[random_door]] = TILE_FLOOR;
-                level->tile_sprites[walls[random_door]] = 16;
+                LOG("PATH: %d/%d\n", path_length, path_max_length);
+
+                if (!path_length || path_length > path_max_length)
+                {
+                    u32 num_doors_to_open = 1;
+
+                    if (wall_count > 8)
+                    {
+                        num_doors_to_open = 3;
+                    }
+                    else if (wall_count > 4)
+                    {
+                        num_doors_to_open = 2;
+                    }
+
+                    u32 random_doors[3];
+
+                    for (u32 k = 0; k < num_doors_to_open; k++)
+                    {
+                        u32 random_door = u32_random_number_get(state, 0,
+                            wall_count - 1);
+                        b32 door_picked_already = false;
+
+                        for (u32 l = 0; l < k; l++)
+                        {
+                            s32 difference = random_door - random_doors[l];
+
+                            if (difference <= 1 && difference >= -1)
+                            {
+                                door_picked_already = true;
+                                break;
+                            }
+                        }
+
+                        if (!door_picked_already)
+                        {
+                            random_doors[k] = random_door;
+
+                            level->tile_types[walls[random_door]] = TILE_FLOOR;
+                            level->tile_sprites[walls[random_door]] = 16;
+                        }
+                    }
+                }
             }
         }
     }
