@@ -786,6 +786,16 @@ struct v2 v2_mul(struct v2 a, struct v2 b)
     return result;
 }
 
+struct v2 v2_average(struct v2 a, struct v2 b)
+{
+    struct v2 result;
+
+    result.x = (a.x + b.x) / 2.0f;
+    result.y = (a.y + b.y) / 2.0f;
+
+    return result;
+}
+
 struct v2 v2_rotate(struct v2 a, f32 angle)
 {
     struct v2 result;

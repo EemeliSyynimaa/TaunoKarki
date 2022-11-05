@@ -2188,7 +2188,7 @@ b32 collision_point_to_obb(struct v2 pos, struct v2 corners[4])
 }
 
 void level_generate(struct game_state* state, struct level* level,
-    struct level* layout_mask, s8 dir_x, s8 dir_y)
+    struct level* layout_mask)
 {
     u32 width = layout_mask->width;
     u32 height = layout_mask->height;
@@ -2461,9 +2461,9 @@ void level_generate(struct game_state* state, struct level* level,
     level->start_pos.x = start_x * room_width + room_center_x;
     level->start_pos.y = start_y * room_height + room_center_y;
 
+    // Always pointing south
     u32 start_door_index = (start_y * room_height + room_center_y +
-        room_center_y * dir_y) * level->width + start_x * room_width +
-        room_center_x + room_center_x * dir_x;
+        -room_center_y) * level->width + start_x * room_width + room_center_x;
 
     level->tile_types[start_door_index] = TILE_FLOOR;
     level->tile_sprites[start_door_index] = 16;
@@ -5560,7 +5560,7 @@ void level_init(struct game_state* state)
 
     LOG("%u enemies\n", state->num_enemies);
 
-    level_generate(state, &state->level, &state->level_mask, 0, 1);
+    level_generate(state, &state->level, &state->level_mask);
 
     u32 color_enemy = cube_renderer_color_add(&state->cube_renderer,
         (struct v4){ 0.7f, 0.90f, 0.1f, 1.0f });
@@ -5795,8 +5795,35 @@ void game_update(struct game_memory* memory, struct game_input* input)
                 particle_lines_update(state, input, step);
                 particle_spheres_update(state, input, step);
 
-                camera->position.x = state->player.body.position.x;
-                camera->position.y = state->player.body.position.y;
+                {
+                    f32 distance_to_mouse =  v2_distance(state->mouse.world,
+                        state->player.body.position);
+                    f32 distance_to_activate = 0.0f;
+
+                    struct v2 direction_to_mouse = v2_normalize(v2_direction(
+                        state->player.body.position, state->mouse.world));
+
+                    struct v2 target_pos = v2_average(state->mouse.world,
+                        state->player.body.position);
+
+                    f32 distance_to_target = v2_distance(target_pos,
+                        state->player.body.position);
+
+                    distance_to_target -= distance_to_activate;
+
+                    if (distance_to_target > 0)
+                    {
+                        camera->position.x = state->player.body.position.x +
+                            direction_to_mouse.x * distance_to_target;
+                        camera->position.y = state->player.body.position.y +
+                            direction_to_mouse.y * distance_to_target;
+                    }
+                    else
+                    {
+                        camera->position.x = state->player.body.position.x;
+                        camera->position.y = state->player.body.position.y;
+                    }
+                }
 
                 if (input->mouse_wheel_delta > 0)
                 {
@@ -5811,8 +5838,8 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
                 struct v3 target =
                 {
-                    state->player.body.position.x,
-                    state->player.body.position.y,
+                    camera->position.x,
+                    camera->position.y,
                     0.0f
                 };
 
