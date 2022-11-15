@@ -22,8 +22,17 @@ struct v3
     {
         struct
         {
-            f32 x;
-            f32 y;
+            union
+            {
+                struct v2 xy;
+
+                struct
+                {
+                    f32 x;
+                    f32 y;
+                };
+            };
+
             f32 z;
         };
 
@@ -42,9 +51,17 @@ struct v4
     {
         struct
         {
-            f32 x;
-            f32 y;
-            f32 z;
+            union
+            {
+                struct v3 xyz;
+
+                struct
+                {
+                    f32 x;
+                    f32 y;
+                    f32 z;
+                };
+            };
             f32 w;
         };
 

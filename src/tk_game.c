@@ -441,6 +441,8 @@ f32 ITEM_ALIVE_TIME = 10.0f;
 f32 ITEM_FLASH_TIME = 2.0f;
 f32 ITEM_FLASH_SPEED = 0.125f;
 
+f32 CAMERA_ACCELERATION = 15.0f;
+
 enum
 {
     ITEM_NONE = 0,
@@ -5811,18 +5813,20 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
                     distance_to_target -= distance_to_activate;
 
+                    struct v2 target = state->player.body.position;
+
                     if (distance_to_target > 0)
                     {
-                        camera->position.x = state->player.body.position.x +
+                        target.x = state->player.body.position.x +
                             direction_to_mouse.x * distance_to_target;
-                        camera->position.y = state->player.body.position.y +
+                        target.y = state->player.body.position.y +
                             direction_to_mouse.y * distance_to_target;
                     }
-                    else
-                    {
-                        camera->position.x = state->player.body.position.x;
-                        camera->position.y = state->player.body.position.y;
-                    }
+
+                    struct v2 dir = v2_direction(camera->position.xy, target);
+
+                    camera->position.x += dir.x * CAMERA_ACCELERATION * step;
+                    camera->position.y += dir.y * CAMERA_ACCELERATION * step;
                 }
 
                 if (input->mouse_wheel_delta > 0)
@@ -5838,8 +5842,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
                 struct v3 target =
                 {
-                    camera->position.x,
-                    camera->position.y,
+                    camera->position.xy,
                     0.0f
                 };
 
