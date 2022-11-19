@@ -269,6 +269,7 @@ struct camera
     struct m4 projection_inverse;
     struct m4 view_inverse;
     struct v3 position;
+    struct v3 target;
     f32 screen_width;
     f32 screen_height;
 };
@@ -5812,8 +5813,8 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
                 if (plr_in_start_room)
                 {
-                    camera->position.xy = state->level.start_pos;
-                    camera->position.z = 3.75f;
+                    camera->target.xy = state->level.start_pos;
+                    camera->target.z = 3.75f;
                 }
                 else
                 {
@@ -5842,30 +5843,37 @@ void game_update(struct game_memory* memory, struct game_input* input)
                             direction_to_mouse.y * distance_to_target;
                     }
 
-                    struct v2 dir = v2_direction(camera->position.xy, target);
+                    camera->target.xy = target;
+                    camera->target.z = 10.0f;
+
+                    // if (input->mouse_wheel_delta > 0)
+                    // {
+                    //     camera->position.z -= 2.0f;
+                    //     LOG("Zoom in: %f\n", camera->position.z);
+                    // }
+                    // else if (input->mouse_wheel_delta < 0)
+                    // {
+                    //     camera->position.z += 2.0f;
+                    //     LOG("Zoom out: %f\n", camera->position.z);
+                    // }
+                }
+
+                {
+                    struct v2 dir = v2_direction(camera->position.xy,
+                        camera->target.xy);
 
                     camera->position.x += dir.x * CAMERA_ACCELERATION * step;
                     camera->position.y += dir.y * CAMERA_ACCELERATION * step;
 
-                    if (input->mouse_wheel_delta > 0)
-                    {
-                        camera->position.z -= 2.0f;
-                        LOG("Zoom in: %f\n", camera->position.z);
-                    }
-                    else if (input->mouse_wheel_delta < 0)
-                    {
-                        camera->position.z += 2.0f;
-                        LOG("Zoom out: %f\n", camera->position.z);
-                    }
+                    // Todo: lerp z as well
+                    camera->position.z = camera->target.z;
 
-                    camera->position.z = 10.0f;
+                    struct v3 up = { 0.0f, 1.0f, 0.0f };
+
+                    camera->view = m4_look_at(camera->position,
+                        (struct v3) { camera->position.xy, 0.0f }, up);
+                    camera->view_inverse = m4_inverse(camera->view);
                 }
-
-                struct v3 up = { 0.0f, 1.0f, 0.0f };
-
-                camera->view = m4_look_at(camera->position,
-                    (struct v3) { camera->position.xy, 0.0f }, up);
-                camera->view_inverse = m4_inverse(camera->view);
 
                 state->mouse.world = calculate_world_pos(input->mouse_x,
                     input->mouse_y, camera);
