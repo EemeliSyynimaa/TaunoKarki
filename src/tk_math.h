@@ -766,6 +766,26 @@ struct v2 v2_mul_f32(struct v2 a, f32 b)
     return result;
 }
 
+struct v2 v2_add_f32(struct v2 a, f32 b)
+{
+    struct v2 result;
+
+    result.x = a.x + b;
+    result.y = a.y + b;
+
+    return result;
+}
+
+struct v2 v2_sub_f32(struct v2 a, f32 b)
+{
+    struct v2 result;
+
+    result.x = a.x - b;
+    result.y = a.y - b;
+
+    return result;
+}
+
 void v2_swap(struct v2* a, struct v2* b)
 {
     struct v2 t = *a;
