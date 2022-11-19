@@ -5800,12 +5800,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
                 struct v2 start_min = v2_sub_f32(state->level.start_pos, 2.0f);
                 struct v2 start_max = v2_add_f32(state->level.start_pos, 2.0f);
-
                 struct v2 plr_pos = state->player.body.position;
-
-                LOG("Start: %.1f %.1f, Plr: %.1f %.1f\n",
-                    state->level.start_pos.x, state->level.start_pos.y,
-                    plr_pos.x, plr_pos.y);
 
                 b32 plr_in_start_room = plr_pos.x > start_min.x &&
                     plr_pos.x < start_max.x && plr_pos.y > start_min.y &&
@@ -5859,14 +5854,12 @@ void game_update(struct game_memory* memory, struct game_input* input)
                 }
 
                 {
-                    struct v2 dir = v2_direction(camera->position.xy,
-                        camera->target.xy);
+                    struct v3 dir = v3_direction(camera->position,
+                        camera->target);
 
                     camera->position.x += dir.x * CAMERA_ACCELERATION * step;
                     camera->position.y += dir.y * CAMERA_ACCELERATION * step;
-
-                    // Todo: lerp z as well
-                    camera->position.z = camera->target.z;
+                    camera->position.z += dir.z * CAMERA_ACCELERATION * step;
 
                     struct v3 up = { 0.0f, 1.0f, 0.0f };
 

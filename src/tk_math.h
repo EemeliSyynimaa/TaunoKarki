@@ -653,6 +653,17 @@ b32 v3_equals(struct v3 a, struct v3 b)
     return a.x == b.x && a.y == b.y && a.z == b.z;
 }
 
+struct v3 v3_direction(struct v3 start, struct v3 end)
+{
+    struct v3 result;
+
+    result.x = end.x - start.x;
+    result.y = end.y - start.y;
+    result.z = end.z - start.z;
+
+    return result;
+}
+
 f32 v2_length(struct v2 v)
 {
     f32 result = f32_sqrt(v.x * v.x + v.y * v.y);
