@@ -5839,6 +5839,17 @@ void game_update(struct game_memory* memory, struct game_input* input)
                             direction_to_mouse.y * distance_to_target;
                     }
 
+                    // Todo: hard coded values, calculate from current
+                    // aspect ratio, camera zoom etc.
+                    struct v2 camera_max = { 23.25f, 27.25f };
+                    struct v2 camera_min = { 8.75f, 4.75f };
+
+                    target.x = MIN(camera_max.x, target.x);
+                    target.y = MIN(camera_max.y, target.y);
+
+                    target.x = MAX(camera_min.x, target.x);
+                    target.y = MAX(camera_min.y, target.y);
+
                     camera->target.xy = target;
                     camera->target.z = 10.0f;
 
