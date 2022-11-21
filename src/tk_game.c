@@ -2547,6 +2547,15 @@ void level_render(struct game_state* state, struct level* level)
             u64 tile_index = y * level->width + x;
             u8 tile_type = level->tile_types[tile_index];
 
+            if (tile_index % 2)
+            {
+                color = colors[RED];
+            }
+            else
+            {
+                color = colors[BLUE];
+            }
+
             if (tile_type == TILE_WALL)
             {
                 struct m4 transform = m4_translate(x, y, 0.5f);
@@ -5841,6 +5850,8 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
                     // Todo: hard coded values, calculate from current
                     // aspect ratio, camera zoom etc.
+                    LOG("%f %f\n", state->mouse.world.x, state->mouse.world.y);
+
                     struct v2 camera_max = { 23.25f, 27.25f };
                     struct v2 camera_min = { 8.75f, 4.75f };
 
@@ -5878,6 +5889,20 @@ void game_update(struct game_memory* memory, struct game_input* input)
                     camera->view = m4_look_at(camera->position,
                         (struct v3) { camera->position.xy, 0.0f }, up);
                     camera->view_inverse = m4_inverse(camera->view);
+
+                    struct m4 transform = m4_translate(camera->position.x,
+                        camera->position.y, 1.0f);
+                    struct m4 rotation = m4_rotate_z(0.0f);
+                    struct m4 scale = m4_scale_all(PROJECTILE_RADIUS);
+
+                    struct m4 model = m4_mul_m4(scale, rotation);
+                    model = m4_mul_m4(model, transform);
+
+                    struct m4 mvp = m4_mul_m4(model, state->camera.view);
+                    mvp = m4_mul_m4(mvp, state->camera.projection);
+
+                    mesh_render(&state->sphere, &mvp, state->texture_sphere,
+                        state->shader, colors[WHITE]);
                 }
 
                 state->mouse.world = calculate_world_pos(input->mouse_x,
