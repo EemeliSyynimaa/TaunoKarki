@@ -5596,10 +5596,13 @@ void level_init(struct game_state* state)
         state->player.weapon = weapon_create(WEAPON_PISTOL);
     }
 
-    state->player.body.position = state->level.start_pos;
-    state->player.alive = true;
-    state->player.health = PLAYER_HEALTH_MAX;
-    state->player.cube.faces[0].texture = 15;
+    if (!state->player.alive)
+    {
+        state->player.body.position = state->level.start_pos;
+        state->player.alive = true;
+        state->player.health = PLAYER_HEALTH_MAX;
+        state->player.cube.faces[0].texture = 15;
+    }
 
     for (u32 i = 0; i < 6; i++)
     {
@@ -5813,8 +5816,6 @@ void game_update(struct game_memory* memory, struct game_input* input)
                 }
                 else
                 {
-                    f32 distance_to_mouse =  v2_distance(state->mouse.world,
-                        state->player.body.position);
                     f32 distance_to_activate = 0.0f;
 
                     struct v2 direction_to_mouse = v2_normalize(v2_direction(
