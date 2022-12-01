@@ -5617,11 +5617,9 @@ void level_init(struct game_state* state)
         state->mouse.world.y - state->player.body.position.y
     };
 
-    state->camera.position.x = state->player.body.position.x +
-        temp.x * 0.5f;
-    state->camera.position.y = state->player.body.position.y +
-        temp.y * 0.5f;
-    state->camera.position.z = 10.0f;
+    state->camera.position.xy = state->level.start_pos;
+    state->camera.target.xy = state->level.start_pos;
+    state->camera.target.z = 3.75f;
 
     state->camera.view = m4_translate(-state->camera.position.x,
         -state->camera.position.y, -state->camera.position.z);
