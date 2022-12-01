@@ -2547,15 +2547,6 @@ void level_render(struct game_state* state, struct level* level)
             u64 tile_index = y * level->width + x;
             u8 tile_type = level->tile_types[tile_index];
 
-            if (tile_index % 2)
-            {
-                color = colors[RED];
-            }
-            else
-            {
-                color = colors[BLUE];
-            }
-
             if (tile_type == TILE_WALL)
             {
                 struct m4 transform = m4_translate(x, y, 0.5f);
@@ -5848,41 +5839,62 @@ void game_update(struct game_memory* memory, struct game_input* input)
                             direction_to_mouse.y * distance_to_target;
                     }
 
-                    struct m4 vp = m4_mul_m4(camera->view, camera->projection);
+                    // struct m4 vp = m4_mul_m4(camera->view,
+                    //     camera->projection);
 
-                    struct v4 top_left = { -0.5f, state->level.height - 0.5f,
-                        1.0f, 1.0f };
-                    struct v4 bottom_right = { state->level.width - 0.5f, -0.5f,
-                        1.0f, 1.0f };
+                    // struct v4 top_left =
+                    // {
+                    //     -0.5f, state->level.height - 0.5f,
+                    //     1.0f, 1.0f
+                    // };
 
-                    top_left = m4_mul_v4(vp, top_left);
-                    bottom_right = m4_mul_v4(vp, bottom_right);
+                    // struct v4 bottom_right =
+                    // {
+                    //     state->level.width - 0.5f, -0.5f,
+                    //     1.0f, 1.0f
+                    // };
 
-                    top_left.x /= top_left.w;
-                    top_left.y /= top_left.w;
-                    bottom_right.x /= bottom_right.w;
-                    bottom_right.y /= bottom_right.w;
+                    // top_left = m4_mul_v4(vp, top_left);
+                    // bottom_right = m4_mul_v4(vp, bottom_right);
 
-                    if (top_left.x > -1.0f)
-                    {
-                        LOG("LEFT EDGE!!! %.2f\n", top_left.x);
-                    }
-                    if (top_left.y < 1.0f)
-                    {
-                        LOG("TOP EDGE!!! %.2f\n", top_left.y);
-                    }
+                    // top_left.x /= top_left.w;
+                    // top_left.y /= top_left.w;
+                    // bottom_right.x /= bottom_right.w;
+                    // bottom_right.y /= bottom_right.w;
 
-                    if (bottom_right.y > -1.0f)
-                    {
-                        LOG("BOTTOM EDGE!!! %.2f\n", bottom_right.y);
-                    }
-                    if (bottom_right.x < 1.0f)
-                    {
-                        LOG("RIGHT EDGE!!! %.2f\n", bottom_right.x);
-                    }
+                    // if (top_left.x > -1.0f)
+                    // {
+                    //     LOG("LEFT EDGE!!! %.2f\n", top_left.x);
+                    // }
+                    // if (top_left.y < 1.0f)
+                    // {
+                    //     LOG("TOP EDGE!!! %.2f\n", top_left.y);
+                    // }
 
-                    struct v2 camera_max = { 23.25f, 27.25f };
-                    struct v2 camera_min = { 1.75f, 4.75f };
+                    // if (bottom_right.y > -1.0f)
+                    // {
+                    //     LOG("BOTTOM EDGE!!! %.2f\n", bottom_right.y);
+                    // }
+                    // if (bottom_right.x < 1.0f)
+                    // {
+                    //     LOG("RIGHT EDGE!!! %.2f\n", bottom_right.x);
+                    // }
+
+                    // // 4.80
+
+                    // struct v2 min = calculate_world_pos(0, 0, camera);
+                    // struct v2 max = calculate_world_pos(
+                    //     camera->screen_width, camera->screen_height, camera);
+
+                    // struct v2 diff = { max.x - min.x, min.y - max.y };
+                    // struct v2 half = { diff.x / 2.0f, diff.y / 2.0f };
+
+                    // struct v2 camera_max = { 23.25f, 27.25f };
+                    // struct v2 camera_min = { 1.75f, 4.75f };
+
+                    // LOG("Camera: poss %.2f %.2f size: %.2f %.2f\n",
+                    //     camera->position.x, camera->position.y, diff.x,
+                    //     diff.y);
 
                     // target.x = MIN(camera_max.x, target.x);
                     // target.y = MIN(camera_max.y, target.y);
@@ -5918,20 +5930,6 @@ void game_update(struct game_memory* memory, struct game_input* input)
                     camera->view = m4_look_at(camera->position,
                         (struct v3) { camera->position.xy, 0.0f }, up);
                     camera->view_inverse = m4_inverse(camera->view);
-
-                    struct m4 transform = m4_translate(camera->position.x,
-                        camera->position.y, 1.0f);
-                    struct m4 rotation = m4_rotate_z(0.0f);
-                    struct m4 scale = m4_scale_all(PROJECTILE_RADIUS);
-
-                    struct m4 model = m4_mul_m4(scale, rotation);
-                    model = m4_mul_m4(model, transform);
-
-                    struct m4 mvp = m4_mul_m4(model, state->camera.view);
-                    mvp = m4_mul_m4(mvp, state->camera.projection);
-
-                    mesh_render(&state->sphere, &mvp, state->texture_sphere,
-                        state->shader, colors[WHITE]);
                 }
 
                 state->mouse.world = calculate_world_pos(input->mouse_x,
