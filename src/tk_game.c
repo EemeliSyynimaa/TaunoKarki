@@ -1105,7 +1105,7 @@ struct v2 calculate_screen_pos(f32 pos_x, f32 pos_y, f32 pos_z,
 
     struct v4 view = m4_mul_v4(camera->view, world);
     struct v4 clip = m4_mul_v4(camera->projection, view);
-    struct v2 ndc = { clip.x / clip.z, clip.y / clip.z };
+    struct v2 ndc = { clip.x / clip.w, clip.y / clip.w };
 
     result.x = (ndc.x + 1.0f) * camera->screen_width * 0.5f;
     result.y = (ndc.y + 1.0f) * camera->screen_height * 0.5f;
@@ -5748,7 +5748,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->camera.screen_height = init->screen_height;
         state->camera.projection = m4_perspective(60.0f,
             (f32)state->camera.screen_width/(f32)state->camera.screen_height,
-            0.1f, 100.0f);
+            0.1f, 15.0f);
         // state->camera.projection = m4_orthographic(-10.0f, 10.0f, -10.0f,
         //     10.0f, 0.1f, 100.0f);
         state->camera.projection_inverse = m4_inverse(state->camera.projection);
@@ -5848,18 +5848,47 @@ void game_update(struct game_memory* memory, struct game_input* input)
                             direction_to_mouse.y * distance_to_target;
                     }
 
-                    // Todo: hard coded values, calculate from current
-                    // aspect ratio, camera zoom etc.
-                    LOG("%f %f\n", state->mouse.world.x, state->mouse.world.y);
+                    struct m4 vp = m4_mul_m4(camera->view, camera->projection);
+
+                    struct v4 top_left = { -0.5f, state->level.height - 0.5f,
+                        1.0f, 1.0f };
+                    struct v4 bottom_right = { state->level.width - 0.5f, -0.5f,
+                        1.0f, 1.0f };
+
+                    top_left = m4_mul_v4(vp, top_left);
+                    bottom_right = m4_mul_v4(vp, bottom_right);
+
+                    top_left.x /= top_left.w;
+                    top_left.y /= top_left.w;
+                    bottom_right.x /= bottom_right.w;
+                    bottom_right.y /= bottom_right.w;
+
+                    if (top_left.x > -1.0f)
+                    {
+                        LOG("LEFT EDGE!!! %.2f\n", top_left.x);
+                    }
+                    if (top_left.y < 1.0f)
+                    {
+                        LOG("TOP EDGE!!! %.2f\n", top_left.y);
+                    }
+
+                    if (bottom_right.y > -1.0f)
+                    {
+                        LOG("BOTTOM EDGE!!! %.2f\n", bottom_right.y);
+                    }
+                    if (bottom_right.x < 1.0f)
+                    {
+                        LOG("RIGHT EDGE!!! %.2f\n", bottom_right.x);
+                    }
 
                     struct v2 camera_max = { 23.25f, 27.25f };
-                    struct v2 camera_min = { 8.75f, 4.75f };
+                    struct v2 camera_min = { 1.75f, 4.75f };
 
-                    target.x = MIN(camera_max.x, target.x);
-                    target.y = MIN(camera_max.y, target.y);
+                    // target.x = MIN(camera_max.x, target.x);
+                    // target.y = MIN(camera_max.y, target.y);
 
-                    target.x = MAX(camera_min.x, target.x);
-                    target.y = MAX(camera_min.y, target.y);
+                    // target.x = MAX(camera_min.x, target.x);
+                    // target.y = MAX(camera_min.y, target.y);
 
                     camera->target.xy = target;
                     camera->target.z = 10.0f;

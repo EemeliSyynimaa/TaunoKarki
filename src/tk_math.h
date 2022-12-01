@@ -871,14 +871,14 @@ struct v2 v2_flip(struct v2 a)
 
 struct m4 m4_perspective(f32 fov, f32 aspect, f32 near, f32 far)
 {
-    f32 t = f32_tan(f32_radians(fov) / 2.0f);
+    f32 c = 1.0f / f32_tan(f32_radians(fov) / 2.0f);
 
     // Todo: check if n-f is not zero
     // Todo: check if t*aspect is not zero
     struct m4 result =
     {{
-        { 1.0f / (t * aspect), 0.0f, 0.0f, 0.0f },
-        { 0.0f, 1.0f / t, 0.0f, 0.0f },
+        { c / aspect, 0.0f, 0.0f, 0.0f },
+        { 0.0f, c, 0.0f, 0.0f },
         { 0.0f, 0.0f, (far + near) / (near - far), -1.0f },
         { 0.0f, 0.0f, (2.0f * far * near) / (near - far), 0.0f }
     }};
