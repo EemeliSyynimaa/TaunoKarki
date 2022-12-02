@@ -3226,6 +3226,40 @@ b32 enemy_hears_gun_shot(struct game_state* state, struct enemy* enemy)
     return result;
 }
 
+f32 enemy_reaction_time_get(struct game_state* state, u32 state_enemy)
+{
+    f32 result = 0.0f;
+    f32 reaction_multiplier = 1.0f;
+
+    switch (state_enemy)
+    {
+        case ENEMY_STATE_SHOOT:
+        case ENEMY_STATE_RUSH_TO_TARGET:
+        case ENEMY_STATE_REACT_TO_PLAYER_SEEN:
+        case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
+        case ENEMY_STATE_REACT_TO_GUN_SHOT:
+        {
+            // Lower reaction time
+            reaction_multiplier = 0.5f;
+        } break;
+        case ENEMY_STATE_SLEEP:
+        {
+            // Higher reaction time
+            reaction_multiplier = 2.0f;
+        } break;
+        default:
+        {
+            // Normal reaction time
+            reaction_multiplier = 1.0f;
+        } break;
+    }
+
+    result = f32_random_number_get(state, ENEMY_REACTION_TIME_MIN,
+        ENEMY_REACTION_TIME_MAX) * reaction_multiplier;
+
+    return result;
+}
+
 void enemy_state_transition(struct game_state* state, struct enemy* enemy,
     u32 state_new)
 {
@@ -3233,6 +3267,8 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
     {
         return;
     }
+
+    u32 state_old = enemy->state;
 
     enemy->state_timer = 0.0f;
     enemy->path_length = 0;
@@ -3245,14 +3281,12 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         case ENEMY_STATE_REACT_TO_PLAYER_SEEN:
         {
             enemy->acceleration = 0.0f;
-            enemy->state_timer = f32_random_number_get(state,
-                ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX);
+            enemy->state_timer = enemy_reaction_time_get(state, state_old);
         } break;
         case ENEMY_STATE_REACT_TO_GUN_SHOT:
         {
             enemy->acceleration = 0.0f;
-            enemy->state_timer = f32_random_number_get(state,
-                ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX);
+            enemy->state_timer = enemy_reaction_time_get(state, state_old);
             enemy->direction_look = v2_direction(enemy->body.position,
                 enemy->gun_shot_position);
         } break;
@@ -3281,8 +3315,7 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
         {
             enemy->direction_look = enemy->hit_direction;
-            enemy->state_timer = f32_random_number_get(state,
-                ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX);
+            enemy->state_timer = enemy_reaction_time_get(state, state_old);
         } break;
     }
 }
