@@ -3309,7 +3309,7 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         } break;
         case ENEMY_STATE_LOOK_AROUND:
         {
-            enemy->acceleration = PLAYER_ACCELERATION;
+            enemy->acceleration = ENEMY_ACCELERATION * 0.5f;
             enemy->state_timer = 3.0f;
         } break;
         case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
