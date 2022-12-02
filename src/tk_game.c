@@ -4227,6 +4227,31 @@ void enemies_render(struct game_state* state)
 
         if (enemy->alive)
         {
+            switch (enemy->state)
+            {
+                case ENEMY_STATE_SHOOT:
+                {
+                    enemy->cube.faces[0].texture = 15;
+                } break;
+                case ENEMY_STATE_WANDER_AROUND:
+                {
+                    enemy->cube.faces[0].texture = 13;
+                } break;
+                case ENEMY_STATE_SLEEP:
+                {
+                    enemy->cube.faces[0].texture = 12;
+                } break;
+                case ENEMY_STATE_RUSH_TO_TARGET:
+                case ENEMY_STATE_REACT_TO_PLAYER_SEEN:
+                case ENEMY_STATE_REACT_TO_GUN_SHOT:
+                case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
+                case ENEMY_STATE_LOOK_AROUND:
+                default:
+                {
+                    enemy->cube.faces[0].texture = 14;
+                } break;
+            }
+
             struct m4 transform = m4_translate(enemy->body.position.x,
                 enemy->body.position.y, PLAYER_RADIUS);
             struct m4 rotation = m4_rotate_z(enemy->body.angle);
@@ -5642,7 +5667,7 @@ void level_init(struct game_state* state)
         state->player.body.position = state->level.start_pos;
         state->player.alive = true;
         state->player.health = PLAYER_HEALTH_MAX;
-        state->player.cube.faces[0].texture = 15;
+        state->player.cube.faces[0].texture = 11;
     }
 
     for (u32 i = 0; i < 6; i++)
