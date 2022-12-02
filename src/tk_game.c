@@ -5617,7 +5617,11 @@ void level_init(struct game_state* state)
         enemy->vision_cone_size = 0.2f * i;
         enemy->shooting = false;
         enemy->cube.faces[0].texture = 13;
-        enemy->state = ENEMY_STATE_SLEEP;
+        enemy->state = u32_random_number_get(state, 0, 1) ? ENEMY_STATE_SLEEP :
+            ENEMY_STATE_WANDER_AROUND;
+
+        LOG("Enemy %u is %s\n", i,
+            enemy->state == ENEMY_STATE_SLEEP ? "sleeping" : "wandering");
 
         for (u32 i = 0; i < 6; i++)
         {
