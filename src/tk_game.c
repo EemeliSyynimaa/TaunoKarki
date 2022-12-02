@@ -432,6 +432,7 @@ f32 PLAYER_HEALTH_MAX   = 100.0f;
 
 f32 ENEMY_ACCELERATION           = 35.0f;
 f32 ENEMY_LINE_OF_SIGHT_HALF     = F64_PI * 0.125f; // 22.5 degrees
+f32 ENEMY_LINE_OF_SIGHT_DISTANCE = 8.0f;
 f32 ENEMY_REACTION_TIME_MIN      = 0.25f;
 f32 ENEMY_REACTION_TIME_MAX      = 0.75f;
 f32 ENEMY_GUN_FIRE_HEAR_DISTANCE = 10.0f;
@@ -3193,10 +3194,12 @@ b32 enemy_sees_player(struct game_state* state, struct enemy* enemy,
     // Todo: enemy AI goes nuts if two enemies are on top of each other and all
     // collisions are checked. Check collision against static (walls) and player
     // for now
+    f32 player_ray_cast = ray_cast_body(state, enemy->eye_position,
+        player->body, NULL, COLLISION_STATIC | COLLISION_PLAYER);
+
     result = enemy->state != ENEMY_STATE_SLEEP && player->alive &&
-        angle_player < ENEMY_LINE_OF_SIGHT_HALF && ray_cast_body(state,
-            enemy->eye_position, player->body, NULL,
-            COLLISION_STATIC | COLLISION_PLAYER);
+        angle_player < ENEMY_LINE_OF_SIGHT_HALF && player_ray_cast > 0.0f &&
+        player_ray_cast < ENEMY_LINE_OF_SIGHT_DISTANCE;
 
     return result;
 }
