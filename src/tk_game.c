@@ -3250,6 +3250,7 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         } break;
         case ENEMY_STATE_REACT_TO_GUN_SHOT:
         {
+            enemy->acceleration = 0.0f;
             enemy->state_timer = f32_random_number_get(state,
                 ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX);
             enemy->direction_look = v2_direction(enemy->body.position,
