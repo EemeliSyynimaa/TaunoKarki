@@ -4459,6 +4459,8 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                             (struct v2){ bullet->body.velocity.x * 0.5,
                                 bullet->body.velocity.y * 0.5 }, colors[RED],
                             PROJECTILE_RADIUS, PROJECTILE_RADIUS * 2.5f, 0.15f);
+
+                        break;
                     }
                 }
             }
