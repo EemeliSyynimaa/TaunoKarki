@@ -3573,6 +3573,11 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                             enemy->trigger_release = 0.5f;
                         }
                     }
+                    else if (!state->player.alive)
+                    {
+                        enemy_state_transition(state, enemy,
+                            ENEMY_STATE_LOOK_AROUND);
+                    }
                     else
                     {
                         enemy_state_transition(state, enemy,
