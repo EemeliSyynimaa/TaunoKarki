@@ -22,7 +22,7 @@ Development plan for the MVP that's supposed to be available in December 2022.
  - [ ] Enemy follows path
   - [X] Path is trimmed so the enemy doesn't have to visit each node
   - [ ] Enemy stops exactly at the path end
-  - [ ] Enemy stops if the path is changed during movement
+  - [X] Enemy stops if the path is changed during movement
 - [X] Add collectible items (July)
  - [X] Add weapon boxes
  - [X] Add health boxes
@@ -33,16 +33,16 @@ Development plan for the MVP that's supposed to be available in December 2022.
 - [ ] Level generation (August)
  - [X] Level always starts from an elevator
  - [X] Create levels that are more like floors in tall buildings, not caves
- - [ ] Rooms can have different floors
+ - [X] Rooms can have different floors
  - [ ] Rooms can have different walls
 - [ ] Make a game out of it (September)
- - [ ] Player starts from the ground level
- - [ ] Player can move between levels via elevator
+ - [X] Player starts from the ground level
+ - [X] Player can move between levels via elevator
  - [ ] Player can see lower levels if there's no ceiling or floors blocking
- - [ ] Player is required to kill all enemies before being able to move up
+ - [X] Player is required to kill all enemies before being able to move up
  - [ ] Enemies spawn with some logic, not just at random places
- - [ ] Enemies can spawn in different AI states
- - [ ] Game is over when the player dies
+ - [X] Enemies can spawn in different AI states
+ - [X] Game is over when the player dies
  - [ ] Player gets score based on the level reached and the number of kills
 - [ ] Finish gameplay (October)
 - [ ] Clean up unfinished code (November)
