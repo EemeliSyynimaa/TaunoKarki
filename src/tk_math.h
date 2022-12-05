@@ -90,6 +90,8 @@ struct m4
     f32 m[4][4];
 };
 
+struct v2 v2_zero = { 0.0f };
+
 f32 f32_radians(f32 degrees)
 {
     f32 result = degrees * F64_PI / 180.0;

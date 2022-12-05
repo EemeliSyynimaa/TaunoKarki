@@ -3589,7 +3589,20 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 } break;
                 case ENEMY_STATE_LOOK_AROUND:
                 {
-                    // Todo: look around
+                    // If seen player, start by looking into the direction it
+                    // went
+                    if (!v2_is_zero(enemy->player_last_seen_direction))
+                    {
+                        enemy->direction_look =
+                            enemy->player_last_seen_direction;
+                        enemy->player_last_seen_direction = v2_zero;
+                    }
+                    else
+                    {
+                        // Otherwise just look around
+                        // Todo: look around
+                    }
+
                     if (enemy->state_timer < 0.0f)
                     {
                         enemy_state_transition(state, enemy,
