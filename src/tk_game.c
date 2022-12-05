@@ -242,7 +242,7 @@ struct enemy
     f32 vision_cone_size;
     f32 acceleration;
     f32 state_timer;
-    f32 target_angle;
+    f32 turn_amount;
     b32 player_in_view;
     b32 gun_shot_heard;
     b32 got_hit;
@@ -3260,6 +3260,87 @@ f32 enemy_reaction_time_get(struct game_state* state, u32 state_enemy)
     return result;
 }
 
+void enemy_look_towards_angle(struct enemy* enemy, f32 angle)
+{
+    f32 circle = F64_PI * 2.0f;
+
+    if (angle < 0.0f)
+    {
+        angle += circle;
+    }
+
+    f32 diff_clockwise = 0.0f;
+    f32 diff_counter_clockwise = 0.0f;
+
+    if (angle < enemy->body.angle)
+    {
+        diff_clockwise = angle + circle - enemy->body.angle;
+        diff_counter_clockwise = enemy->body.angle - angle;
+    }
+    else
+    {
+        diff_clockwise = angle - enemy->body.angle;
+        diff_counter_clockwise = enemy->body.angle + circle -
+            angle;
+    }
+
+    enemy->turn_amount = MIN(diff_clockwise, diff_counter_clockwise);
+    enemy->turn_amount *=
+        diff_clockwise > diff_counter_clockwise ? 1.0f : -1.0f;
+}
+
+void enemy_look_towards_direction(struct enemy* enemy, struct v2 direction)
+{
+    enemy_look_towards_angle(enemy, f32_atan(direction.y, direction.x));
+}
+
+void enemy_look_towards_position(struct enemy* enemy, struct v2 position)
+{
+    struct v2 direction = v2_direction(enemy->body.position, position);
+
+    enemy_look_towards_angle(enemy, f32_atan(direction.y, direction.x));
+}
+
+f32 enemy_turn_speed_get(struct enemy* enemy)
+{
+    f32 result = 0.0f;
+    f32 speed_multiplier = 1.0f;
+
+    switch (enemy->state)
+    {
+        case ENEMY_STATE_SHOOT:
+        case ENEMY_STATE_RUSH_TO_TARGET:
+        case ENEMY_STATE_REACT_TO_PLAYER_SEEN:
+        case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
+        case ENEMY_STATE_REACT_TO_GUN_SHOT:
+        {
+            // Fast turning
+            speed_multiplier = 1.5f;
+        } break;
+        case ENEMY_STATE_SLEEP:
+        {
+            // Don't turn when sleeping
+            speed_multiplier = 0.0f;
+        } break;
+        case ENEMY_STATE_LOOK_AROUND:
+        case ENEMY_STATE_WANDER_AROUND:
+        {
+            // Chilling speed
+            speed_multiplier = 0.5f;
+        } break;
+        default:
+        {
+            // Normal turn speed
+            speed_multiplier = 1.0f;
+        } break;
+    };
+
+    // One full turn per second * multiplier
+    result = F64_PI * 2.0f * speed_multiplier;
+
+    return result;
+}
+
 void enemy_state_transition(struct game_state* state, struct enemy* enemy,
     u32 state_new)
 {
@@ -3287,8 +3368,7 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         {
             enemy->acceleration = 0.0f;
             enemy->state_timer = enemy_reaction_time_get(state, state_old);
-            enemy->direction_look = v2_direction(enemy->body.position,
-                enemy->gun_shot_position);
+            enemy_look_towards_position(enemy, enemy->gun_shot_position);
         } break;
         case ENEMY_STATE_RUSH_TO_TARGET:
         {
@@ -3296,25 +3376,27 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
                 enemy->target, enemy->path, MAX_PATH);
             path_trim(state, enemy->body.position, enemy->path,
                 &enemy->path_length);
+            enemy_look_towards_position(enemy, enemy->path[0]);
             enemy->path_index = 0;
         } break;
         case ENEMY_STATE_WANDER_AROUND:
         {
+            enemy->acceleration = ENEMY_ACCELERATION * 0.5f;
             enemy->path_length = path_find(level, enemy->body.position,
                 tile_random_get(state, level, TILE_FLOOR), enemy->path,
                 MAX_PATH);
             path_trim(state, enemy->body.position, enemy->path,
                 &enemy->path_length);
+            enemy_look_towards_position(enemy, enemy->path[0]);
             enemy->path_index = 0;
         } break;
         case ENEMY_STATE_LOOK_AROUND:
         {
-            enemy->acceleration = ENEMY_ACCELERATION * 0.5f;
             enemy->state_timer = 3.0f;
         } break;
         case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
         {
-            enemy->direction_look = enemy->hit_direction;
+            enemy_look_towards_direction(enemy, enemy->hit_direction);
             enemy->state_timer = enemy_reaction_time_get(state, state_old);
         } break;
     }
@@ -3448,8 +3530,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     }
                     else if (enemy->player_in_view)
                     {
-                        enemy->direction_look = v2_direction(
-                            enemy->body.position, state->player.body.position);
+                        enemy_look_towards_position(enemy,
+                            state->player.body.position);
                     }
                 } break;
                 case ENEMY_STATE_REACT_TO_GUN_SHOT:
@@ -3554,11 +3636,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                             enemy->direction_aim = target_forward;
                         }
 
-                        enemy->direction_look = target_forward;
-
-                        // Player in view, stop moving
-                        enemy->direction_move.x = 0.0f;
-                        enemy->direction_move.y = 0.0f;
+                        enemy_look_towards_direction(enemy, target_forward);
 
                         struct weapon* weapon = &enemy->weapon;
 
@@ -3598,8 +3676,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     // went
                     if (!v2_is_zero(enemy->player_last_seen_direction))
                     {
-                        enemy->direction_look =
-                            enemy->player_last_seen_direction;
+                        enemy_look_towards_direction(enemy,
+                            enemy->player_last_seen_direction);
                         enemy->player_last_seen_direction = v2_zero;
                     }
                     else
@@ -3656,8 +3734,12 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     if (++enemy->path_index >= enemy->path_length)
                     {
                         enemy->path_length = 0;
-                        enemy->direction_move.x = 0.0f;
-                        enemy->direction_move.y = 0.0f;
+                        enemy->acceleration = 0.0f;
+                    }
+                    else
+                    {
+                        enemy_look_towards_position(enemy,
+                            enemy->path[enemy->path_index]);
                     }
                 }
                 else
@@ -3674,7 +3756,6 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     }
 
                     enemy->direction_move = direction;
-                    enemy->direction_look = direction;
                     enemy->direction_aim = direction;
                 }
             }
@@ -3702,48 +3783,20 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 &enemy->body.velocity,
                 move_delta, PLAYER_RADIUS, 1);
 
-            // Todo: clean this code, try not to use angles... they go wild
-            // sometimes
+            if (enemy->turn_amount)
             {
-                f32 target_angle = f32_atan(enemy->direction_look.y,
-                    enemy->direction_look.x);
+                f32 speed = enemy_turn_speed_get(enemy) * dt;
+                f32 remaining = MIN(f32_abs(enemy->turn_amount), speed);
 
-                f32 circle = F64_PI * 2.0f;
-
-                if (target_angle < 0.0f)
+                if (enemy->turn_amount > 0)
                 {
-                    target_angle += circle;
-                }
-
-                f32 diff_clockwise = 0.0f;
-                f32 diff_counter_clockwise = 0.0f;
-
-                if (target_angle < enemy->body.angle)
-                {
-                    diff_clockwise = target_angle + circle - enemy->body.angle;
-                    diff_counter_clockwise = enemy->body.angle - target_angle;
+                    enemy->body.angle -= remaining;
+                    enemy->turn_amount = MAX(enemy->turn_amount - remaining, 0);
                 }
                 else
                 {
-                    diff_clockwise = target_angle - enemy->body.angle;
-                    diff_counter_clockwise = enemy->body.angle + circle -
-                        target_angle;
-                }
-
-                f32 speed = F64_PI * 2.0f * dt;
-
-                if (f32_abs(MIN(diff_clockwise, diff_counter_clockwise))
-                    < (speed + 0.2f))
-                {
-                    enemy->body.angle = target_angle;
-                }
-                else if (diff_clockwise > diff_counter_clockwise)
-                {
-                    enemy->body.angle -= speed;
-                }
-                else
-                {
-                    enemy->body.angle += speed;
+                    enemy->body.angle += remaining;
+                    enemy->turn_amount = MIN(enemy->turn_amount + remaining, 0);
                 }
             }
 
