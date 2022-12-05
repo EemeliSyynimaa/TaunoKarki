@@ -214,7 +214,8 @@ enum
     ENEMY_STATE_REACT_TO_PLAYER_SEEN,
     ENEMY_STATE_REACT_TO_GUN_SHOT,
     ENEMY_STATE_REACT_TO_BEING_SHOT_AT,
-    ENEMY_STATE_LOOK_AROUND
+    ENEMY_STATE_LOOK_AROUND,
+    ENEMY_STATE_LOOK_FOR_PLAYER
 };
 
 #define MAX_PATH 256
@@ -3313,6 +3314,7 @@ f32 enemy_turn_speed_get(struct enemy* enemy)
         case ENEMY_STATE_REACT_TO_PLAYER_SEEN:
         case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
         case ENEMY_STATE_REACT_TO_GUN_SHOT:
+        case ENEMY_STATE_LOOK_FOR_PLAYER:
         {
             // Fast turning
             speed_multiplier = 1.5f;
@@ -3372,6 +3374,7 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         } break;
         case ENEMY_STATE_RUSH_TO_TARGET:
         {
+            enemy->acceleration = ENEMY_ACCELERATION;
             enemy->path_length = path_find(level, enemy->body.position,
                 enemy->target, enemy->path, MAX_PATH);
             path_trim(state, enemy->body.position, enemy->path,
@@ -3398,6 +3401,10 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         {
             enemy_look_towards_direction(enemy, enemy->hit_direction);
             enemy->state_timer = enemy_reaction_time_get(state, state_old);
+        } break;
+        case ENEMY_STATE_LOOK_FOR_PLAYER:
+        {
+            enemy->state_timer = 3.0f;
         } break;
     }
 }
@@ -3523,7 +3530,6 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                         else
                         {
                             enemy->target = enemy->player_last_seen_position;
-                            enemy->acceleration = ENEMY_ACCELERATION;
                             enemy_state_transition(state, enemy,
                                 ENEMY_STATE_RUSH_TO_TARGET);
                         }
@@ -3543,12 +3549,11 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                             COLLISION_STATIC | COLLISION_PLAYER))
                         {
                             enemy_state_transition(state, enemy,
-                                ENEMY_STATE_LOOK_AROUND);
+                                ENEMY_STATE_LOOK_FOR_PLAYER);
                         }
                         else
                         {
                             enemy->target = enemy->gun_shot_position;
-                            enemy->acceleration = ENEMY_ACCELERATION;
                             enemy_state_transition(state, enemy,
                                 ENEMY_STATE_RUSH_TO_TARGET);
                         }
@@ -3654,7 +3659,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     else if (!state->player.alive)
                     {
                         enemy_state_transition(state, enemy,
-                            ENEMY_STATE_LOOK_AROUND);
+                            ENEMY_STATE_LOOK_FOR_PLAYER);
                     }
                     else
                     {
@@ -3667,25 +3672,12 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     if (!enemy->path_length)
                     {
                         enemy_state_transition(state, enemy,
-                            ENEMY_STATE_LOOK_AROUND);
+                            ENEMY_STATE_LOOK_FOR_PLAYER);
                     }
                 } break;
                 case ENEMY_STATE_LOOK_AROUND:
                 {
-                    // If seen player, start by looking into the direction it
-                    // went
-                    if (!v2_is_zero(enemy->player_last_seen_direction))
-                    {
-                        enemy_look_towards_direction(enemy,
-                            enemy->player_last_seen_direction);
-                        enemy->player_last_seen_direction = v2_zero;
-                    }
-                    else
-                    {
-                        // Otherwise just look around
-                        // Todo: look around
-                    }
-
+                    // Todo: look around
                     if (enemy->state_timer < 0.0f)
                     {
                         enemy_state_transition(state, enemy,
@@ -3709,11 +3701,29 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                             enemy->gun_shot_position, &enemy->target,
                             COLLISION_STATIC | COLLISION_PLAYER);
 
-                        enemy->acceleration = ENEMY_ACCELERATION;
                         enemy_state_transition(state, enemy,
                             ENEMY_STATE_RUSH_TO_TARGET);
                     }
-                }
+                } break;
+                case ENEMY_STATE_LOOK_FOR_PLAYER:
+                {
+                    if (!v2_is_zero(enemy->player_last_seen_direction))
+                    {
+                        enemy_look_towards_direction(enemy,
+                                enemy->player_last_seen_direction);
+                        enemy->player_last_seen_direction = v2_zero;
+                    }
+                    else
+                    {
+                        // Todo: look around
+                    }
+
+                    if (enemy->state_timer < 0.0f)
+                    {
+                        enemy_state_transition(state, enemy,
+                            ENEMY_STATE_WANDER_AROUND);
+                    }
+                } break;
             }
 
             if (enemy->state_timer > 0.0f)
@@ -4305,6 +4315,7 @@ void enemies_render(struct game_state* state)
                     enemy->cube.faces[0].texture = 15;
                 } break;
                 case ENEMY_STATE_WANDER_AROUND:
+                case ENEMY_STATE_LOOK_AROUND:
                 {
                     enemy->cube.faces[0].texture = 13;
                 } break;
@@ -4316,7 +4327,7 @@ void enemies_render(struct game_state* state)
                 case ENEMY_STATE_REACT_TO_PLAYER_SEEN:
                 case ENEMY_STATE_REACT_TO_GUN_SHOT:
                 case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
-                case ENEMY_STATE_LOOK_AROUND:
+                case ENEMY_STATE_LOOK_FOR_PLAYER:
                 default:
                 {
                     enemy->cube.faces[0].texture = 14;
