@@ -3519,7 +3519,6 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 }
 
                 enemy->got_hit = false;
-                enemy->hit_direction = v2_zero;
             }
 
             switch (enemy->state)
@@ -3705,13 +3704,20 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 {
                     if (enemy->state_timer < 0.0f)
                     {
-                        // Todo: verify that this works
-                        ray_cast_position(state, enemy->eye_position,
-                            enemy->gun_shot_position, &enemy->target,
-                            COLLISION_STATIC | COLLISION_PLAYER);
+                        f32 length = ray_cast_direction(state,
+                            enemy->eye_position, enemy->hit_direction, NULL,
+                            COLLISION_STATIC);
+
+                        // Skip one tile so we don't find a path into a wall
+                        length = MAX(0, length - 1.0f);
+
+                        enemy->target = v2_add(enemy->eye_position,
+                            v2_mul_f32(enemy->hit_direction, length));
 
                         enemy_state_transition(state, enemy,
                             ENEMY_STATE_RUSH_TO_TARGET);
+
+                        enemy->hit_direction = v2_zero;
                     }
                 } break;
                 case ENEMY_STATE_LOOK_FOR_PLAYER:
