@@ -3493,7 +3493,12 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             else if (enemy->gun_shot_heard)
             {
                 // Todo: enemy should react only to the closest source of noise
-                if (enemy->state != ENEMY_STATE_SHOOT)
+                if (enemy->state == ENEMY_STATE_SLEEP)
+                {
+                    enemy_state_transition(state, enemy,
+                        ENEMY_STATE_LOOK_FOR_PLAYER);
+                }
+                else if (enemy->state != ENEMY_STATE_SHOOT)
                 {
                     enemy_state_transition(state, enemy,
                         ENEMY_STATE_REACT_TO_GUN_SHOT);
@@ -3502,15 +3507,19 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             else if (enemy->got_hit)
             {
                 // Todo: react only if the source of bullet is not visible?
-                if (enemy->state != ENEMY_STATE_SHOOT)
+                if (enemy->state == ENEMY_STATE_SLEEP)
+                {
+                    enemy_state_transition(state, enemy,
+                        ENEMY_STATE_LOOK_FOR_PLAYER);
+                }
+                else if (enemy->state != ENEMY_STATE_SHOOT)
                 {
                     enemy_state_transition(state, enemy,
                         ENEMY_STATE_REACT_TO_BEING_SHOT_AT);
                 }
 
                 enemy->got_hit = false;
-                enemy->hit_direction.x = 0.0f;
-                enemy->hit_direction.y = 0.0f;
+                enemy->hit_direction = v2_zero;
             }
 
             switch (enemy->state)
