@@ -3302,6 +3302,17 @@ void enemy_look_towards_position(struct enemy* enemy, struct v2 position)
     enemy_look_towards_angle(enemy, f32_atan(direction.y, direction.x));
 }
 
+void enemy_calculate_path_to_target(struct game_state* state,
+    struct level* level, struct enemy* enemy)
+{
+    enemy->path_length = path_find(level, enemy->body.position,
+        enemy->target, enemy->path, MAX_PATH);
+    path_trim(state, enemy->body.position, enemy->path,
+        &enemy->path_length);
+    enemy_look_towards_position(enemy, enemy->path[0]);
+    enemy->path_index = 0;
+}
+
 f32 enemy_turn_speed_get(struct enemy* enemy)
 {
     f32 result = 0.0f;
@@ -3375,23 +3386,13 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         case ENEMY_STATE_RUSH_TO_TARGET:
         {
             enemy->acceleration = ENEMY_ACCELERATION;
-            enemy->path_length = path_find(level, enemy->body.position,
-                enemy->target, enemy->path, MAX_PATH);
-            path_trim(state, enemy->body.position, enemy->path,
-                &enemy->path_length);
-            enemy_look_towards_position(enemy, enemy->path[0]);
-            enemy->path_index = 0;
+            enemy_calculate_path_to_target(state, level, enemy);
         } break;
         case ENEMY_STATE_WANDER_AROUND:
         {
             enemy->acceleration = ENEMY_ACCELERATION * 0.5f;
-            enemy->path_length = path_find(level, enemy->body.position,
-                tile_random_get(state, level, TILE_FLOOR), enemy->path,
-                MAX_PATH);
-            path_trim(state, enemy->body.position, enemy->path,
-                &enemy->path_length);
-            enemy_look_towards_position(enemy, enemy->path[0]);
-            enemy->path_index = 0;
+            enemy->target = tile_random_get(state, level, TILE_FLOOR);
+            enemy_calculate_path_to_target(state, level, enemy);
         } break;
         case ENEMY_STATE_LOOK_AROUND:
         {
@@ -3497,6 +3498,11 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 {
                     enemy_state_transition(state, enemy,
                         ENEMY_STATE_LOOK_FOR_PLAYER);
+                }
+                else if (enemy->state == ENEMY_STATE_RUSH_TO_TARGET)
+                {
+                    enemy->target = enemy->gun_shot_position;
+                    enemy_calculate_path_to_target(state, &state->level, enemy);
                 }
                 else if (enemy->state != ENEMY_STATE_SHOOT)
                 {
@@ -5775,12 +5781,6 @@ void level_init(struct game_state* state)
     }
 
     state->mouse.world = state->player.body.position;
-
-    struct v2 temp =
-    {
-        state->mouse.world.x - state->player.body.position.x,
-        state->mouse.world.y - state->player.body.position.y
-    };
 
     state->camera.position.xy = state->level.start_pos;
     state->camera.target.xy = state->level.start_pos;
