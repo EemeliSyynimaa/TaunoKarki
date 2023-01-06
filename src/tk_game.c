@@ -3262,33 +3262,47 @@ f32 enemy_reaction_time_get(struct game_state* state, u32 state_enemy)
     return result;
 }
 
-void enemy_look_towards_angle(struct enemy* enemy, f32 angle)
+f32 turn_amount_calculate(f32 angle_from, f32 angle_to)
 {
     f32 circle = F64_PI * 2.0f;
+    f32 result = 0.0f;
+    f32 original_from = angle_from;
+    f32 original_to = angle_to;
 
-    if (angle < 0.0f)
+    while (angle_to < 0.0f)
     {
-        angle += circle;
+        angle_to += circle;
+    }
+
+    while (angle_from < 0.0f)
+    {
+        angle_from += circle;
     }
 
     f32 diff_clockwise = 0.0f;
     f32 diff_counter_clockwise = 0.0f;
 
-    if (angle < enemy->body.angle)
+    if (angle_to < angle_from)
     {
-        diff_clockwise = angle + circle - enemy->body.angle;
-        diff_counter_clockwise = enemy->body.angle - angle;
+        diff_clockwise = angle_to + circle - angle_from;
+        diff_counter_clockwise = angle_from - angle_to;
     }
     else
     {
-        diff_clockwise = angle - enemy->body.angle;
-        diff_counter_clockwise = enemy->body.angle + circle -
-            angle;
+        diff_clockwise = angle_to - angle_from;
+        diff_counter_clockwise = angle_from + circle -
+            angle_to;
     }
 
-    enemy->turn_amount = MIN(diff_clockwise, diff_counter_clockwise);
-    enemy->turn_amount *=
-        diff_clockwise > diff_counter_clockwise ? 1.0f : -1.0f;
+    result = MIN(diff_clockwise, diff_counter_clockwise);
+    result *= diff_clockwise > diff_counter_clockwise ? 1.0f : -1.0f;
+
+    return result;
+}
+
+void enemy_look_towards_angle(struct enemy* enemy, f32 angle)
+{
+    enemy->turn_amount = turn_amount_calculate(enemy->body.angle, angle);
 }
 
 void enemy_look_towards_direction(struct enemy* enemy, struct v2 direction)
