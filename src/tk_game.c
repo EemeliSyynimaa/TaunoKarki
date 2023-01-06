@@ -844,6 +844,7 @@ u32 path_find(struct level* level, struct v2 start, struct v2 goal,
     if (lowest)
     {
         node_add_to_path(lowest, path, &result);
+        result++;
     }
 
     return result;
