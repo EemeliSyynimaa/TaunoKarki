@@ -741,70 +741,105 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                         }
                         else if (!playing)
                         {
+                            b32 debug = false;
+
                             // read input only if we are not playing
                             if (msg.wParam == 0x57)
                             {
-                                LOG("W - %s\n", is_down ? "down" : "up");
+                                if (debug)
+                                {
+                                    LOG("W - %s\n", is_down ? "down" : "up");
+                                }
                                 win32_input_process(&new_input.move_up, 
                                     is_down);
                             }
                             else if (msg.wParam == 0x41)
                             {
-                                LOG("A - %s\n", is_down ? "down" : "up");
+                                if (debug)
+                                {
+                                    LOG("A - %s\n", is_down ? "down" : "up");
+                                }
                                 win32_input_process(&new_input.move_left, 
                                     is_down);
                             }
                             else if (msg.wParam == 0x53)
                             {
-                                LOG("S - %s\n", is_down ? "down" : "up");
+                                if (debug)
+                                {
+                                    LOG("S - %s\n", is_down ? "down" : "up");
+                                }
                                 win32_input_process(&new_input.move_down, 
                                     is_down);
                             }
                             else if (msg.wParam == 0x44)
                             {
-                                LOG("D - %s\n", is_down ? "down" : "up");
+                                if (debug)
+                                {
+                                    LOG("D - %s\n", is_down ? "down" : "up");
+                                }
                                 win32_input_process(&new_input.move_right, 
                                     is_down);
                             }
                             else if (msg.wParam == 0x52)
                             {
-                                LOG("R - %s\n", is_down ? "down" : "up");
+                                if (debug)
+                                {
+                                    LOG("R - %s\n", is_down ? "down" : "up");
+                                }
                                 win32_input_process(&new_input.reload, 
                                     is_down);
                             }
                             else if (msg.wParam == 0x31)
                             {
-                                LOG("1 - %s\n", is_down ? "down" : "up");
+                                if (debug)
+                                {
+                                    LOG("1 - %s\n", is_down ? "down" : "up");
+                                }
                                 win32_input_process(&new_input.weapon_slot_1,
                                     is_down);
                             }
                             else if (msg.wParam == 0x32)
                             {
-                                LOG("2 - %s\n", is_down ? "down" : "up");
+                                if (debug)
+                                {
+                                    LOG("2 - %s\n", is_down ? "down" : "up");
+                                }
                                 win32_input_process(&new_input.weapon_slot_2,
                                     is_down);
                             }
                             else if (msg.wParam == 0x33)
                             {
-                                LOG("3 - %s\n", is_down ? "down" : "up");
+                                if (debug)
+                                {
+                                    LOG("3 - %s\n", is_down ? "down" : "up");
+                                }
                                 win32_input_process(&new_input.weapon_slot_3,
                                     is_down);
                             }
                             else if (msg.wParam == 0x34)
                             {
-                                LOG("4 - %s\n", is_down ? "down" : "up");
+                                if (debug)
+                                {
+                                    LOG("4 - %s\n", is_down ? "down" : "up");
+                                }
                                 win32_input_process(&new_input.weapon_slot_4,
                                     is_down);
                             }
                             else if (msg.wParam == 0x35)
                             {
-                                LOG("5 - %s\n", is_down ? "down" : "up");
+                                if (debug)
+                                {
+                                    LOG("5 - %s\n", is_down ? "down" : "up");
+                                }
                                 win32_input_process(&new_input.weapon_slot_5,
                                     is_down);
                             }
                             else if (msg.wParam == 0x45)
                             {
-                                LOG("E - %s\n", is_down ? "down" : "up");
+                                if (debug)
+                                {
+                                    LOG("E - %s\n", is_down ? "down" : "up");
+                                }
                                 win32_input_process(&new_input.weapon_pick,
                                     is_down);
                             }
