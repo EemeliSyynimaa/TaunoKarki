@@ -116,6 +116,9 @@ f32 f32_atan(f32 y, f32 x)
 
 f32 f32_acos(f32 value)
 {
+    value = MAX(-1.0f, value);
+    value = MIN(1.0f, value);
+
     // Todo: implement own acos function
     return acos(value);
 }
