@@ -3402,6 +3402,11 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         {
             enemy->acceleration = ENEMY_ACCELERATION;
             enemy_calculate_path_to_target(state, level, enemy);
+
+            if (enemy->path_length > 0)
+            {
+                enemy->path_length--;
+            }
         } break;
         case ENEMY_STATE_WANDER_AROUND:
         {
@@ -3700,6 +3705,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 {
                     if (!enemy->path_length)
                     {
+                        enemy_look_towards_position(enemy, enemy->target);
                         enemy_state_transition(state, enemy,
                             ENEMY_STATE_LOOK_FOR_PLAYER);
                     }
