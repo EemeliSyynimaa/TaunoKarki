@@ -5935,7 +5935,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         level_mask_init(state);
         level_init(state);
 
-        api.gl.glClearColor(0.2f, 0.65f, 0.4f, 0.0f);
+        api.gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
         memory->initialized = true;
     }
@@ -6017,82 +6017,8 @@ void game_update(struct game_memory* memory, struct game_input* input)
                             direction_to_mouse.y * distance_to_target;
                     }
 
-                    // struct m4 vp = m4_mul_m4(camera->view,
-                    //     camera->projection);
-
-                    // struct v4 top_left =
-                    // {
-                    //     -0.5f, state->level.height - 0.5f,
-                    //     1.0f, 1.0f
-                    // };
-
-                    // struct v4 bottom_right =
-                    // {
-                    //     state->level.width - 0.5f, -0.5f,
-                    //     1.0f, 1.0f
-                    // };
-
-                    // top_left = m4_mul_v4(vp, top_left);
-                    // bottom_right = m4_mul_v4(vp, bottom_right);
-
-                    // top_left.x /= top_left.w;
-                    // top_left.y /= top_left.w;
-                    // bottom_right.x /= bottom_right.w;
-                    // bottom_right.y /= bottom_right.w;
-
-                    // if (top_left.x > -1.0f)
-                    // {
-                    //     LOG("LEFT EDGE!!! %.2f\n", top_left.x);
-                    // }
-                    // if (top_left.y < 1.0f)
-                    // {
-                    //     LOG("TOP EDGE!!! %.2f\n", top_left.y);
-                    // }
-
-                    // if (bottom_right.y > -1.0f)
-                    // {
-                    //     LOG("BOTTOM EDGE!!! %.2f\n", bottom_right.y);
-                    // }
-                    // if (bottom_right.x < 1.0f)
-                    // {
-                    //     LOG("RIGHT EDGE!!! %.2f\n", bottom_right.x);
-                    // }
-
-                    // // 4.80
-
-                    // struct v2 min = calculate_world_pos(0, 0, camera);
-                    // struct v2 max = calculate_world_pos(
-                    //     camera->screen_width, camera->screen_height, camera);
-
-                    // struct v2 diff = { max.x - min.x, min.y - max.y };
-                    // struct v2 half = { diff.x / 2.0f, diff.y / 2.0f };
-
-                    // struct v2 camera_max = { 23.25f, 27.25f };
-                    // struct v2 camera_min = { 1.75f, 4.75f };
-
-                    // LOG("Camera: poss %.2f %.2f size: %.2f %.2f\n",
-                    //     camera->position.x, camera->position.y, diff.x,
-                    //     diff.y);
-
-                    // target.x = MIN(camera_max.x, target.x);
-                    // target.y = MIN(camera_max.y, target.y);
-
-                    // target.x = MAX(camera_min.x, target.x);
-                    // target.y = MAX(camera_min.y, target.y);
-
                     camera->target.xy = target;
                     camera->target.z = 10.0f;
-
-                    // if (input->mouse_wheel_delta > 0)
-                    // {
-                    //     camera->position.z -= 2.0f;
-                    //     LOG("Zoom in: %f\n", camera->position.z);
-                    // }
-                    // else if (input->mouse_wheel_delta < 0)
-                    // {
-                    //     camera->position.z += 2.0f;
-                    //     LOG("Zoom out: %f\n", camera->position.z);
-                    // }
                 }
 
                 {
