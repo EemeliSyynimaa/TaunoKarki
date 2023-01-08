@@ -2435,8 +2435,6 @@ void level_generate(struct game_state* state, struct level* level,
                 u32 path_max_length = 20;
                 u32 path_length = path_find(level, tile_i, tile_j, NULL, 0);
 
-                LOG("PATH: %d/%d\n", path_length, path_max_length);
-
                 if (!path_length || path_length > path_max_length)
                 {
                     u32 num_doors_to_open = 1;
@@ -2518,6 +2516,10 @@ void level_generate(struct game_state* state, struct level* level,
                 level->tile_types[i] = TILE_FLOOR;
                 level->tile_sprites[i] = 8 + type % 8;
             }
+        }
+        else if (level->tile_sprites[i] == 16)
+        {
+            level->tile_types[i] = TILE_DOOR;
         }
     }
 
