@@ -274,6 +274,7 @@ struct level
     u32 width;
     u32 height;
     struct v2 start_pos;
+    struct cube_data elevator_light;
 };
 
 struct camera
@@ -1678,6 +1679,14 @@ s32 cube_renderer_color_add(struct cube_renderer* renderer, struct v4 color)
     return result;
 }
 
+void cube_data_color_update(struct cube_data* cube, u32 color)
+{
+    for (u32 i = 0; i < 6; i++)
+    {
+        cube->faces[i].color = color;
+    }
+}
+
 void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
 {
     struct v2 temp_b = { b->x - a.x, b->y - a.y };
@@ -2591,26 +2600,17 @@ void level_render(struct game_state* state, struct level* level)
                 data.texture = level->tile_sprites[tile_index];
                 data.color = colors[WHITE];
 
-                if (tile_type == TILE_START)
-                {
-                    if (state->level_cleared)
-                    {
-                        data.color = colors[LIME];
-                    }
-                    else
-                    {
-                        data.color = colors[RED];
-                    }
-                }
-                else
-                {
-                    data.color = colors[WHITE];
-                }
-
                 sprite_renderer_add(&state->sprite_renderer, &data);
             }
         }
     }
+
+    if (state->level_cleared)
+    {
+        cube_data_color_update(&level->elevator_light, LIME);
+    }
+
+    cube_renderer_add(&state->cube_renderer, &level->elevator_light);
 }
 
 void collision_map_render(struct game_state* state)
@@ -5796,10 +5796,7 @@ void level_init(struct game_state* state)
         LOG("Enemy %u is %s\n", i,
             enemy->state == ENEMY_STATE_SLEEP ? "sleeping" : "wandering");
 
-        for (u32 i = 0; i < 6; i++)
-        {
-            enemy->cube.faces[i].color = color_enemy;
-        }
+        cube_data_color_update(&enemy->cube, color_enemy);
 
         enemy->weapon = weapon_create(u32_random_number_get(state, 1, 3));
         enemy->weapon.projectile_damage *= 0.2f;
@@ -5818,10 +5815,7 @@ void level_init(struct game_state* state)
         state->player.cube.faces[0].texture = 11;
     }
 
-    for (u32 i = 0; i < 6; i++)
-    {
-        state->player.cube.faces[i].color = color_player;
-    }
+    cube_data_color_update(&state->player.cube, color_player);
 
     state->mouse.world = state->player.body.position;
 
@@ -5845,6 +5839,19 @@ void level_init(struct game_state* state)
         state->num_cols_static);
 
     LOG("Wall corners: %d/%d\n", state->num_wall_corners, MAX_WALL_CORNERS);
+
+    {
+        struct m4 transform = m4_translate(state->level.start_pos.x,
+            state->level.start_pos.y + 1.5f, 0.5f);
+        struct m4 rotation = m4_rotate_z(0.0f);
+        struct m4 scale = m4_scale_xyz(0.25f, 0.125f, 0.125f);
+        struct m4 model = m4_mul_m4(scale, rotation);
+        model = m4_mul_m4(model, transform);
+
+        state->level.elevator_light.model = model;
+
+        cube_data_color_update(&state->level.elevator_light, RED);
+    }
 }
 
 void game_init(struct game_memory* memory, struct game_init* init)
