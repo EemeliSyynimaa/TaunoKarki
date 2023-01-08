@@ -218,6 +218,19 @@ enum
     ENEMY_STATE_LOOK_FOR_PLAYER
 };
 
+char enemy_state_str[][256] =
+{
+    "SHOOT",
+    "WANDER AROUND",
+    "RUSH TO TARGET",
+    "SLEEP",
+    "REACT_TO_PLAYER_SEEN",
+    "REACT_TO_GUN_SHOT",
+    "REACT_TO_BEING_SHOT_AT",
+    "LOOK_AROUND",
+    "LOOK_FOR_PLAYER"
+};
+
 #define MAX_PATH 256
 
 struct enemy
@@ -3385,6 +3398,9 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
 
     struct level* level = &state->level;
 
+    // LOG("Enemy transition from %s to %s\n", enemy_state_str[state_old],
+    //     enemy_state_str[state_new]);
+
     switch (state_new)
     {
         case ENEMY_STATE_REACT_TO_PLAYER_SEEN:
@@ -3402,11 +3418,6 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         {
             enemy->acceleration = ENEMY_ACCELERATION;
             enemy_calculate_path_to_target(state, level, enemy);
-
-            if (enemy->path_length > 0)
-            {
-                enemy->path_length--;
-            }
         } break;
         case ENEMY_STATE_WANDER_AROUND:
         {
@@ -3416,6 +3427,7 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         } break;
         case ENEMY_STATE_LOOK_AROUND:
         {
+            enemy->acceleration = 0.0f;
             enemy->state_timer = 3.0f;
         } break;
         case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
@@ -3425,6 +3437,7 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         } break;
         case ENEMY_STATE_LOOK_FOR_PLAYER:
         {
+            enemy->acceleration = 0.0f;
             enemy->state_timer = 3.0f;
         } break;
     }
@@ -3590,6 +3603,13 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                             enemy->target = enemy->gun_shot_position;
                             enemy_state_transition(state, enemy,
                                 ENEMY_STATE_RUSH_TO_TARGET);
+
+                            // Here we can skip the last node since we only need
+                            // to see the location where gun shot occured
+                            if (enemy->path_length > 0)
+                            {
+                                enemy->path_length--;
+                            }
                         }
                     }
                 } break;
@@ -5748,6 +5768,7 @@ void level_init(struct game_state* state)
     u32 enemies_min = state->level_current;
     u32 enemies_max =  MIN(enemies_min * 4, MAX_ENEMIES);
     state->num_enemies = u32_random_number_get(state, enemies_min, enemies_max);
+    // state->num_enemies = 1;
 
     LOG("%u enemies\n", state->num_enemies);
 
@@ -5770,6 +5791,7 @@ void level_init(struct game_state* state)
         enemy->cube.faces[0].texture = 13;
         enemy->state = u32_random_number_get(state, 0, 1) ? ENEMY_STATE_SLEEP :
             ENEMY_STATE_WANDER_AROUND;
+        // enemy->state = ENEMY_STATE_WANDER_AROUND;
 
         LOG("Enemy %u is %s\n", i,
             enemy->state == ENEMY_STATE_SLEEP ? "sleeping" : "wandering");
