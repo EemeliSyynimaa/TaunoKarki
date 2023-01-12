@@ -251,6 +251,7 @@ struct enemy
     u32 state;
     u32 path_index;
     u32 path_length;
+    u32 turns_left; // For looking around
     f32 health;
     f32 trigger_release;
     f32 vision_cone_size;
@@ -262,7 +263,7 @@ struct enemy
     b32 got_hit;
     b32 alive;
     b32 shooting;
-    b32 state_timer_active;
+    b32 state_timer_finished;
 };
 
 #define MAX_LEVEL_SIZE 256
@@ -452,6 +453,8 @@ f32 ENEMY_REACTION_TIME_MIN      = 0.25f;
 f32 ENEMY_REACTION_TIME_MAX      = 0.75f;
 f32 ENEMY_GUN_FIRE_HEAR_DISTANCE = 10.0f;
 f32 ENEMY_HEALTH_MAX             = 100.0f;
+f32 ENEMY_LOOK_AROUND_DELAY_MIN  = 0.5f;
+f32 ENEMY_LOOK_AROUND_DELAY_MAX  = 2.0f;
 
 f32 ITEM_RADIUS = 0.1;
 f32 ITEM_ALIVE_TIME = 10.0f;
@@ -3384,6 +3387,19 @@ f32 enemy_turn_speed_get(struct enemy* enemy)
     return result;
 }
 
+f32 enemy_look_around_delay_get(struct game_state* state, struct enemy* enemy)
+{
+    f32 result = f32_random_number_get(state, ENEMY_LOOK_AROUND_DELAY_MIN,
+        ENEMY_LOOK_AROUND_DELAY_MAX);
+
+    if (enemy->state == ENEMY_STATE_LOOK_FOR_PLAYER)
+    {
+        result *= 0.5f;
+    }
+
+    return result;
+}
+
 void enemy_state_transition(struct game_state* state, struct enemy* enemy,
     u32 state_new)
 {
@@ -3430,7 +3446,7 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         case ENEMY_STATE_LOOK_AROUND:
         {
             enemy->acceleration = 0.0f;
-            enemy->state_timer = 3.0f;
+            enemy->turns_left = 3;
         } break;
         case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
         {
@@ -3440,7 +3456,7 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         case ENEMY_STATE_LOOK_FOR_PLAYER:
         {
             enemy->acceleration = 0.0f;
-            enemy->state_timer = 3.0f;
+            enemy->turns_left = 5;
         } break;
     }
 }
@@ -3569,7 +3585,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 } break;
                 case ENEMY_STATE_REACT_TO_PLAYER_SEEN:
                 {
-                    if (enemy->state_timer < 0.0f)
+                    if (enemy->state_timer_finished)
                     {
                         if (enemy->player_in_view)
                         {
@@ -3591,7 +3607,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 } break;
                 case ENEMY_STATE_REACT_TO_GUN_SHOT:
                 {
-                    if (enemy->state_timer < 0.0f)
+                    if (enemy->state_timer_finished)
                     {
                         if (ray_cast_position(state, enemy->eye_position,
                             enemy->gun_shot_position, NULL,
@@ -3621,7 +3637,6 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
                     if (enemy->player_in_view)
                     {
-                        enemy->state_timer_active = false;
                         enemy->player_last_seen_position =
                             state->player.body.position;
                         enemy->player_last_seen_direction = v2_normalize(
@@ -3734,11 +3749,28 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 } break;
                 case ENEMY_STATE_LOOK_AROUND:
                 {
-                    // Todo: look around
-                    if (enemy->state_timer < 0.0f)
+                    if (enemy->state_timer_finished)
                     {
-                        enemy_state_transition(state, enemy,
-                            ENEMY_STATE_WANDER_AROUND);
+                        if (enemy->turns_left)
+                        {
+                            f32 diff = f32_random_number_get(state, -F64_PI,
+                                F64_PI);
+                            f32 angle_new = enemy->body.angle + diff;
+
+                            enemy_look_towards_angle(enemy, angle_new);
+
+                            enemy->turns_left--;
+                        }
+                        else
+                        {
+                            enemy_state_transition(state, enemy,
+                                ENEMY_STATE_WANDER_AROUND);
+                        }
+                    }
+                    else if (enemy->state_timer <= 0.0f && !enemy->turn_amount)
+                    {
+                        enemy->state_timer =
+                            enemy_look_around_delay_get(state, enemy);
                     }
                 } break;
                 case ENEMY_STATE_WANDER_AROUND:
@@ -3751,7 +3783,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 } break;
                 case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
                 {
-                    if (enemy->state_timer < 0.0f)
+                    if (enemy->state_timer_finished)
                     {
                         f32 length = ray_cast_direction(state,
                             enemy->eye_position, enemy->hit_direction, NULL,
@@ -3776,23 +3808,49 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                         enemy_look_towards_direction(enemy,
                                 enemy->player_last_seen_direction);
                         enemy->player_last_seen_direction = v2_zero;
+                        enemy->state_timer =
+                            enemy_look_around_delay_get(state, enemy);
                     }
                     else
                     {
-                        // Todo: look around
-                    }
+                        if (enemy->state_timer_finished)
+                        {
+                            if (enemy->turns_left)
+                            {
+                                f32 diff = f32_random_number_get(state, -F64_PI,
+                                    F64_PI);
+                                f32 angle_new = enemy->body.angle + diff;
 
-                    if (enemy->state_timer < 0.0f)
-                    {
-                        enemy_state_transition(state, enemy,
-                            ENEMY_STATE_WANDER_AROUND);
+                                enemy_look_towards_angle(enemy, angle_new);
+
+                                enemy->turns_left--;
+                            }
+                            else
+                            {
+                                enemy_state_transition(state, enemy,
+                                    ENEMY_STATE_WANDER_AROUND);
+                            }
+                        }
+                        else if (enemy->state_timer <= 0.0f &&
+                            !enemy->turn_amount)
+                        {
+                            enemy->state_timer =
+                                enemy_look_around_delay_get(state, enemy);
+                        }
                     }
                 } break;
             }
 
+            enemy->state_timer_finished = false;
+
             if (enemy->state_timer > 0.0f)
             {
                 enemy->state_timer -= dt;
+
+                if (enemy->state_timer < 0.0f)
+                {
+                    enemy->state_timer_finished = true;
+                }
             }
 
             if (enemy->path_length)
