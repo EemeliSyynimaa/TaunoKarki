@@ -370,7 +370,9 @@ struct game_state
     b32 render_debug;
     b32 level_change;
     b32 level_cleared;
+    b32 player_in_start_room;
     f32 accumulator;
+    f32 level_clear_notify;
     u32 shader;
     u32 shader_simple;
     u32 shader_cube;
@@ -3490,6 +3492,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     else
                     {
                         state->level_cleared = true;
+                        state->level_clear_notify = 2.5f;
                     }
                 }
 
@@ -4859,7 +4862,7 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
             }
         }
 
-        if (input->shoot.key_down)
+        if (input->shoot.key_down && !state->player_in_start_room)
         {
             weapon_shoot(state, weapon, true);
         }
@@ -6067,22 +6070,33 @@ void game_update(struct game_memory* memory, struct game_input* input)
             {
                 state->accumulator -= step;
 
-                player_update(state, input, step);
-                enemies_update(state, input, step);
-                bullets_update(state, input, step);
-                items_update(state, input, step);
-                particle_lines_update(state, input, step);
-                particle_spheres_update(state, input, step);
+                if (state->level_clear_notify <= 0.0f)
+                {
+                    player_update(state, input, step);
+                    enemies_update(state, input, step);
+                    bullets_update(state, input, step);
+                    items_update(state, input, step);
+                    particle_lines_update(state, input, step);
+                    particle_spheres_update(state, input, step);
+                }
 
                 struct v2 start_min = v2_sub_f32(state->level.start_pos, 2.0f);
                 struct v2 start_max = v2_add_f32(state->level.start_pos, 2.0f);
                 struct v2 plr_pos = state->player.body.position;
 
-                b32 plr_in_start_room = plr_pos.x > start_min.x &&
+                state->player_in_start_room = plr_pos.x > start_min.x &&
                     plr_pos.x < start_max.x && plr_pos.y > start_min.y &&
                     plr_pos.y < start_max.y;
 
-                if (plr_in_start_room)
+                if (state->level_clear_notify > 0.0f)
+                {
+                    camera->target.x = state->level.start_pos.x;
+                    camera->target.y = state->level.start_pos.y + 1.0f;
+                    camera->target.z = 3.75f;
+
+                    state->level_clear_notify -= step;
+                }
+                else if (state->player_in_start_room)
                 {
                     camera->target.xy = state->level.start_pos;
                     camera->target.z = 3.75f;
