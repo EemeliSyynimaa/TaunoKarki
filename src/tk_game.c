@@ -123,7 +123,7 @@ struct cube_renderer
     b32 initialized;
 };
 
-#define MAX_PARTICLES 8192
+#define MAX_PARTICLES 1024*32
 
 struct particle_vertex_data
 {
@@ -140,6 +140,7 @@ struct particle_data
 {
     struct v2 position;
     struct v2 velocity;
+    struct v4 color;
     f32 size;
     f32 time;
 };
@@ -155,6 +156,7 @@ struct particle_renderer
     u32 ubo;
     u32 num_indices;
     u32 num_particles;
+    u32 num_rendered;
     u32 shader;
     b32 initialized;
 };
@@ -174,26 +176,13 @@ void particle_emitter_circle(struct particle_renderer* renderer, u32 count,
     for (u32 i = 0; i < count; i++, angle += angle_inc)
     {
         struct particle_data* data =
-            &renderer->particles[renderer->num_particles];
-        struct particle_render_data* render_data =
-            &renderer->render_data[renderer->num_particles];
+            &renderer->particles[renderer->num_particles++];
         data->position = position;
         data->velocity = v2_mul_f32(v2_direction_from_angle(angle), velocity);
         data->size = size;
         data->time = time;
-
-        struct m4 transform = m4_translate(position.x, position.y, 0.0f);
-        struct m4 rotation = m4_rotate_z(0.0f);
-        struct m4 scale = m4_scale_all(size * 0.5f);
-
-        render_data->model = m4_mul_m4(scale, rotation);
-        render_data->model = m4_mul_m4(render_data->model, transform);
-        render_data->color = color;
-
-        renderer->num_particles++;
+        data->color = color;
     }
-
-    LOG("Particles: %d of %d\n", renderer->num_particles, MAX_PARTICLES);
 }
 
 struct particle_line
@@ -1359,11 +1348,11 @@ void particle_renderer_init(struct particle_renderer* renderer, u32 shader)
 
 void particle_renderer_update(struct particle_renderer* renderer, f32 dt)
 {
-    for (u32 i = 0; i < renderer->num_particles; i++)
+    for (u32 i = 0; i < MAX_PARTICLES; i++)
     {
         struct particle_data* particle = &renderer->particles[i];
-        struct particle_render_data* render_data = &renderer->render_data[i];
 
+        // Todo: don't update particles that were spawned in current frame
         if (particle->time > 0)
         {
             f32 step = MIN(particle->time, dt);
@@ -1377,8 +1366,12 @@ void particle_renderer_update(struct particle_renderer* renderer, f32 dt)
             struct m4 rotation = m4_rotate_z(0.0f);
             struct m4 scale = m4_scale_all(particle->size * 0.5f);
 
+            struct particle_render_data* render_data =
+                &renderer->render_data[renderer->num_rendered++];
+
             render_data->model = m4_mul_m4(scale, rotation);
             render_data->model = m4_mul_m4(render_data->model, transform);
+            render_data->color = particle->color;
         }
     }
 }
@@ -1386,7 +1379,7 @@ void particle_renderer_update(struct particle_renderer* renderer, f32 dt)
 void particle_renderer_flush(struct particle_renderer* renderer, struct m4* view,
     struct m4* projection)
 {
-    if (renderer->initialized)
+    if (renderer->initialized && renderer->num_rendered)
     {
         api.gl.glBindVertexArray(renderer->vao);
         api.gl.glUseProgram(renderer->shader);
@@ -1400,14 +1393,16 @@ void particle_renderer_flush(struct particle_renderer* renderer, struct m4* view
 
         api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_particles);
         api.gl.glBufferSubData(GL_ARRAY_BUFFER, 0,
-            renderer->num_particles * sizeof(struct particle_render_data),
+            renderer->num_rendered * sizeof(struct particle_render_data),
             renderer->render_data);
 
         api.gl.glDrawElementsInstanced(GL_TRIANGLES, renderer->num_indices,
-            GL_UNSIGNED_INT, NULL, renderer->num_particles);
+            GL_UNSIGNED_INT, NULL, renderer->num_rendered);
 
         api.gl.glUseProgram(0);
         api.gl.glBindVertexArray(0);
+
+        renderer->num_rendered = 0;
     }
 }
 
@@ -1524,7 +1519,7 @@ void sprite_renderer_add(struct sprite_renderer* renderer,
 void sprite_renderer_flush(struct sprite_renderer* renderer, struct m4* view,
     struct m4* projection)
 {
-    if (renderer->initialized)
+    if (renderer->initialized && renderer->num_sprites)
     {
         api.gl.glBindVertexArray(renderer->vao);
         api.gl.glUseProgram(renderer->shader);
@@ -1821,7 +1816,7 @@ void cube_renderer_add(struct cube_renderer* renderer, struct cube_data* data)
 void cube_renderer_flush(struct cube_renderer* renderer, struct m4* view,
     struct m4* projection)
 {
-    if (renderer->initialized)
+    if (renderer->initialized && renderer->num_cubes)
     {
         api.gl.glBindVertexArray(renderer->vao);
         api.gl.glUseProgram(renderer->shader);
@@ -6287,6 +6282,10 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
                 if (state->level_clear_notify <= 0.0f)
                 {
+                    state->cube_renderer.num_cubes = 0;
+                    state->sprite_renderer.num_sprites = 0;
+                    state->particle_renderer.num_rendered = 0;
+
                     player_update(state, input, step);
                     enemies_update(state, input, step);
                     bullets_update(state, input, step);
