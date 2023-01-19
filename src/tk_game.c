@@ -123,6 +123,53 @@ struct cube_renderer
     b32 initialized;
 };
 
+struct particle_data
+{
+    struct v2 velocity;
+    struct v4 color;
+    struct v2 tl;
+    struct v2 tr;
+    struct v2 br;
+    struct v2 bl;
+    f32 time;
+};
+
+#define MAX_PARTICLES 8192
+
+struct particle_storage
+{
+    struct particle_data data[MAX_PARTICLES];
+    u32 num_particles;
+};
+
+void particle_emitter_circle(struct particle_storage* storage, u32 count,
+    struct v2 position, f32 velocity, f32 size, struct v4 color, f32 time)
+{
+    if (count > MAX_PARTICLES - storage->num_particles)
+    {
+        storage->num_particles = 0;
+    }
+
+    f32 angle = 0.0f;
+    f32 angle_inc = F64_PI * 2.0f / count;
+    f32 size_half = size * 0.5f;
+
+    for (u32 i = 0; i < count; i++, angle += angle_inc)
+    {
+        struct particle_data data;
+        data.tl = (struct v2){ position.x - size_half, position.y + size_half };
+        data.tr = (struct v2){ position.x + size_half, position.y + size_half };
+        data.br = (struct v2){ position.x + size_half, position.y - size_half };
+        data.bl = (struct v2){ position.x - size_half, position.y - size_half };
+        data.velocity = v2_mul_f32(v2_direction_from_angle(angle), velocity);
+        data.color = color;
+        data.time = time;
+        storage->data[storage->num_particles++] = data;
+    }
+
+    LOG("Particles: %d of %d\n", storage->num_particles, MAX_PARTICLES);
+}
+
 struct particle_line
 {
     struct v2 start;
@@ -318,7 +365,6 @@ struct mesh
 #define MAX_WALL_CORNERS 512
 #define MAX_WALL_FACES 512
 #define MAX_COLLISION_SEGMENTS 1024
-#define MAX_PARTICLES 1024
 #define MAX_GUN_SHOTS 64
 
 enum
@@ -367,6 +413,7 @@ struct game_state
     struct gun_shot gun_shots[MAX_GUN_SHOTS];
     struct level level;
     struct level level_mask;
+    struct particle_storage particles;
     b32 render_debug;
     b32 level_change;
     b32 level_cleared;
@@ -4623,10 +4670,14 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
 
             if (distance < distance_target)
             {
-                particle_sphere_create(state, bullet->body.position,
-                    (struct v2){ 0.0f, 0.0f }, colors[GREY], PROJECTILE_RADIUS,
-                    PROJECTILE_RADIUS * 5.0f, 0.15f);
+                // particle_sphere_create(state, bullet->body.position,
+                //     (struct v2){ 0.0f, 0.0f }, colors[GREY], PROJECTILE_RADIUS,
+                //     PROJECTILE_RADIUS * 5.0f, 0.15f);
                 bullet->alive = false;
+
+
+                particle_emitter_circle(&state->particles, 360,
+                    bullet->body.position, 1.0f, 0.05f, colors[RED], 1.0f);
             }
 
             particle_line_create(state, bullet->start, bullet->body.position,
@@ -5134,6 +5185,46 @@ void particle_spheres_render(struct game_state* state)
         {
             sphere_render(state, particle->position, particle->radius_current,
                 particle->color, PLAYER_RADIUS);
+        }
+    }
+}
+
+void particles_render(struct game_state* state,
+    struct particle_storage* storage)
+{
+    for (u32 i = 0; i < storage->num_particles; i++)
+    {
+        struct particle_data* particle = &storage->data[i];
+
+        if (particle->time > 0)
+        {
+            triangle_render(state, particle->tl, particle->bl, particle->tr,
+                particle->color, 1.0f);
+            triangle_render(state, particle->bl, particle->br, particle->tr,
+                particle->color, 1.0f);
+        }
+    }
+}
+
+void particles_update(struct particle_storage* storage, f32 dt)
+{
+    for (u32 i = 0; i < storage->num_particles; i++)
+    {
+        struct particle_data* particle = &storage->data[i];
+
+        if (particle->time > 0)
+        {
+            f32 step = MIN(particle->time, dt);
+
+            particle->time -= dt;
+            particle->tl.x += particle->velocity.x * step;
+            particle->tl.y += particle->velocity.y * step;
+            particle->tr.x += particle->velocity.x * step;
+            particle->tr.y += particle->velocity.y * step;
+            particle->br.x += particle->velocity.x * step;
+            particle->br.y += particle->velocity.y * step;
+            particle->bl.x += particle->velocity.x * step;
+            particle->bl.y += particle->velocity.y * step;
         }
     }
 }
@@ -6078,6 +6169,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
                     items_update(state, input, step);
                     particle_lines_update(state, input, step);
                     particle_spheres_update(state, input, step);
+                    particles_update(&state->particles, step);
                 }
 
                 struct v2 start_min = v2_sub_f32(state->level.start_pos, 2.0f);
@@ -6175,6 +6267,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
         particle_lines_render(state);
         particle_spheres_render(state);
+        particles_render(state, &state->particles);
 
         // u64 render_end = ticks_current_get();
 
