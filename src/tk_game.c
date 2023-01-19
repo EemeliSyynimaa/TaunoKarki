@@ -123,31 +123,48 @@ struct cube_renderer
     b32 initialized;
 };
 
+#define MAX_PARTICLES 8192
+
+struct particle_vertex_data
+{
+    struct v3 position;
+};
+
+struct particle_render_data
+{
+    struct m4 model;
+    struct v4 color;
+};
+
 struct particle_data
 {
+    struct v2 position;
     struct v2 velocity;
-    struct v4 color;
-    struct v2 tl;
-    struct v2 tr;
-    struct v2 br;
-    struct v2 bl;
+    f32 size;
     f32 time;
 };
 
-#define MAX_PARTICLES 8192
-
-struct particle_storage
+struct particle_renderer
 {
-    struct particle_data data[MAX_PARTICLES];
+    struct particle_render_data render_data[MAX_PARTICLES];
+    struct particle_data particles[MAX_PARTICLES];
+    u32 vao;
+    u32 vbo_vertices;
+    u32 vbo_particles;
+    u32 ibo;
+    u32 ubo;
+    u32 num_indices;
     u32 num_particles;
+    u32 shader;
+    b32 initialized;
 };
 
-void particle_emitter_circle(struct particle_storage* storage, u32 count,
+void particle_emitter_circle(struct particle_renderer* renderer, u32 count,
     struct v2 position, f32 velocity, f32 size, struct v4 color, f32 time)
 {
-    if (count > MAX_PARTICLES - storage->num_particles)
+    if (count > MAX_PARTICLES - renderer->num_particles)
     {
-        storage->num_particles = 0;
+        renderer->num_particles = 0;
     }
 
     f32 angle = 0.0f;
@@ -156,18 +173,27 @@ void particle_emitter_circle(struct particle_storage* storage, u32 count,
 
     for (u32 i = 0; i < count; i++, angle += angle_inc)
     {
-        struct particle_data data;
-        data.tl = (struct v2){ position.x - size_half, position.y + size_half };
-        data.tr = (struct v2){ position.x + size_half, position.y + size_half };
-        data.br = (struct v2){ position.x + size_half, position.y - size_half };
-        data.bl = (struct v2){ position.x - size_half, position.y - size_half };
-        data.velocity = v2_mul_f32(v2_direction_from_angle(angle), velocity);
-        data.color = color;
-        data.time = time;
-        storage->data[storage->num_particles++] = data;
+        struct particle_data* data =
+            &renderer->particles[renderer->num_particles];
+        struct particle_render_data* render_data =
+            &renderer->render_data[renderer->num_particles];
+        data->position = position;
+        data->velocity = v2_mul_f32(v2_direction_from_angle(angle), velocity);
+        data->size = size;
+        data->time = time;
+
+        struct m4 transform = m4_translate(position.x, position.y, 0.0f);
+        struct m4 rotation = m4_rotate_z(0.0f);
+        struct m4 scale = m4_scale_all(size * 0.5f);
+
+        render_data->model = m4_mul_m4(scale, rotation);
+        render_data->model = m4_mul_m4(render_data->model, transform);
+        render_data->color = color;
+
+        renderer->num_particles++;
     }
 
-    LOG("Particles: %d of %d\n", storage->num_particles, MAX_PARTICLES);
+    LOG("Particles: %d of %d\n", renderer->num_particles, MAX_PARTICLES);
 }
 
 struct particle_line
@@ -410,10 +436,10 @@ struct game_state
     struct line_segment cols_dynamic[MAX_COLLISION_SEGMENTS];
     struct cube_renderer cube_renderer;
     struct sprite_renderer sprite_renderer;
+    struct particle_renderer particle_renderer;
     struct gun_shot gun_shots[MAX_GUN_SHOTS];
     struct level level;
     struct level level_mask;
-    struct particle_storage particles;
     b32 render_debug;
     b32 level_change;
     b32 level_cleared;
@@ -424,6 +450,7 @@ struct game_state
     u32 shader_simple;
     u32 shader_cube;
     u32 shader_sprite;
+    u32 shader_particle;
     u32 texture_tileset;
     u32 texture_sphere;
     u32 texture_cube;
@@ -1251,6 +1278,137 @@ void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
         sizeof(struct vertex), (void*)20);
     api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
         sizeof(struct vertex), (void*)32);
+}
+void particle_renderer_init(struct particle_renderer* renderer, u32 shader)
+{
+    renderer->shader = shader;
+
+    struct sprite_vertex_data vertices[] =
+    {
+        // Top right
+        {
+            { 1.0f, 1.0f, 0.0f },
+        },
+        // Top left
+        {
+            { -1.0f, 1.0f, 0.0f },
+        },
+        // Bottom left
+        {
+            { -1.0f, -1.0f, 0.0f },
+        },
+        // Bottom right
+        {
+            { 1.0f, -1.0f, 0.0f },
+        }
+    };
+
+    u32 indices[] =
+    {
+        0, 1, 2, 0, 2, 3
+    };
+
+    renderer->num_indices = 6;
+
+    api.gl.glGenVertexArrays(1, &renderer->vao);
+    api.gl.glBindVertexArray(renderer->vao);
+
+    api.gl.glGenBuffers(1, &renderer->vbo_vertices);
+    api.gl.glGenBuffers(1, &renderer->vbo_particles);
+    api.gl.glGenBuffers(1, &renderer->ibo);
+
+    api.gl.glEnableVertexAttribArray(0);
+    api.gl.glEnableVertexAttribArray(1);
+    api.gl.glEnableVertexAttribArray(2);
+    api.gl.glEnableVertexAttribArray(3);
+    api.gl.glEnableVertexAttribArray(4);
+    api.gl.glEnableVertexAttribArray(5);
+
+    api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_vertices);
+    api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
+        GL_STATIC_DRAW);
+    api.gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+        sizeof(struct particle_vertex_data), (void*)0);
+
+    api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_particles);
+    api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->render_data),
+        renderer->render_data, GL_DYNAMIC_DRAW);
+    api.gl.glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE,
+        sizeof(struct particle_render_data), (void*)(sizeof(struct v4) * 0));
+    api.gl.glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE,
+        sizeof(struct particle_render_data), (void*)(sizeof(struct v4) * 1));
+    api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
+        sizeof(struct particle_render_data), (void*)(sizeof(struct v4) * 2));
+    api.gl.glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE,
+        sizeof(struct particle_render_data), (void*)(sizeof(struct v4) * 3));
+    api.gl.glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE,
+        sizeof(struct particle_render_data), (void*)(sizeof(struct v4) * 4));
+
+    api.gl.glVertexAttribDivisor(1, 1);
+    api.gl.glVertexAttribDivisor(2, 1);
+    api.gl.glVertexAttribDivisor(3, 1);
+    api.gl.glVertexAttribDivisor(4, 1);
+    api.gl.glVertexAttribDivisor(5, 1);
+
+    api.gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
+    api.gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+        renderer->num_indices * sizeof(u32), indices, GL_STATIC_DRAW);
+
+    renderer->initialized = !gl_check_error("particle_renderer_init");
+}
+
+void particle_renderer_update(struct particle_renderer* renderer, f32 dt)
+{
+    for (u32 i = 0; i < renderer->num_particles; i++)
+    {
+        struct particle_data* particle = &renderer->particles[i];
+        struct particle_render_data* render_data = &renderer->render_data[i];
+
+        if (particle->time > 0)
+        {
+            f32 step = MIN(particle->time, dt);
+
+            particle->time -= dt;
+            particle->position.x += particle->velocity.x * step;
+            particle->position.y += particle->velocity.y * step;
+
+            struct m4 transform = m4_translate(
+                particle->position.x, particle->position.y, 0.5f);
+            struct m4 rotation = m4_rotate_z(0.0f);
+            struct m4 scale = m4_scale_all(particle->size * 0.5f);
+
+            render_data->model = m4_mul_m4(scale, rotation);
+            render_data->model = m4_mul_m4(render_data->model, transform);
+        }
+    }
+}
+
+void particle_renderer_flush(struct particle_renderer* renderer, struct m4* view,
+    struct m4* projection)
+{
+    if (renderer->initialized)
+    {
+        api.gl.glBindVertexArray(renderer->vao);
+        api.gl.glUseProgram(renderer->shader);
+
+        u32 uniform_vp = api.gl.glGetUniformLocation(renderer->shader,
+            "uniform_vp");
+
+        struct m4 vp = m4_mul_m4(*view, *projection);
+
+        api.gl.glUniformMatrix4fv(uniform_vp, 1, GL_FALSE, (GLfloat*)&vp);
+
+        api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_particles);
+        api.gl.glBufferSubData(GL_ARRAY_BUFFER, 0,
+            renderer->num_particles * sizeof(struct particle_render_data),
+            renderer->render_data);
+
+        api.gl.glDrawElementsInstanced(GL_TRIANGLES, renderer->num_indices,
+            GL_UNSIGNED_INT, NULL, renderer->num_particles);
+
+        api.gl.glUseProgram(0);
+        api.gl.glBindVertexArray(0);
+    }
 }
 
 void sprite_renderer_init(struct sprite_renderer* renderer, u32 shader,
@@ -4676,7 +4834,7 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                 bullet->alive = false;
 
 
-                particle_emitter_circle(&state->particles, 360,
+                particle_emitter_circle(&state->particle_renderer, 360,
                     bullet->body.position, 1.0f, 0.05f, colors[RED], 1.0f);
             }
 
@@ -5185,46 +5343,6 @@ void particle_spheres_render(struct game_state* state)
         {
             sphere_render(state, particle->position, particle->radius_current,
                 particle->color, PLAYER_RADIUS);
-        }
-    }
-}
-
-void particles_render(struct game_state* state,
-    struct particle_storage* storage)
-{
-    for (u32 i = 0; i < storage->num_particles; i++)
-    {
-        struct particle_data* particle = &storage->data[i];
-
-        if (particle->time > 0)
-        {
-            triangle_render(state, particle->tl, particle->bl, particle->tr,
-                particle->color, 1.0f);
-            triangle_render(state, particle->bl, particle->br, particle->tr,
-                particle->color, 1.0f);
-        }
-    }
-}
-
-void particles_update(struct particle_storage* storage, f32 dt)
-{
-    for (u32 i = 0; i < storage->num_particles; i++)
-    {
-        struct particle_data* particle = &storage->data[i];
-
-        if (particle->time > 0)
-        {
-            f32 step = MIN(particle->time, dt);
-
-            particle->time -= dt;
-            particle->tl.x += particle->velocity.x * step;
-            particle->tl.y += particle->velocity.y * step;
-            particle->tr.x += particle->velocity.x * step;
-            particle->tr.y += particle->velocity.y * step;
-            particle->br.x += particle->velocity.x * step;
-            particle->br.y += particle->velocity.y * step;
-            particle->bl.x += particle->velocity.x * step;
-            particle->bl.y += particle->velocity.y * step;
         }
     }
 }
@@ -6079,6 +6197,10 @@ void game_init(struct game_memory* memory, struct game_init* init)
             "assets/shaders/vertex_sprite.glsl",
             "assets/shaders/fragment_sprite.glsl");
 
+        state->shader_particle = program_create(&state->stack,
+            "assets/shaders/vertex_particle.glsl",
+            "assets/shaders/fragment_particle.glsl");
+
         state->texture_tileset = texture_create(&state->stack,
             "assets/textures/tileset.tga");
         state->texture_sphere = texture_create(&state->stack,
@@ -6092,6 +6214,8 @@ void game_init(struct game_memory* memory, struct game_init* init)
             state->texture_cube);
         sprite_renderer_init(&state->sprite_renderer, state->shader_sprite,
             state->texture_sprite);
+        particle_renderer_init(&state->particle_renderer,
+            state->shader_particle);
 
         mesh_create(&state->stack, "assets/meshes/sphere.mesh",
             &state->sphere);
@@ -6169,7 +6293,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
                     items_update(state, input, step);
                     particle_lines_update(state, input, step);
                     particle_spheres_update(state, input, step);
-                    particles_update(&state->particles, step);
+                    particle_renderer_update(&state->particle_renderer, step);
                 }
 
                 struct v2 start_min = v2_sub_f32(state->level.start_pos, 2.0f);
@@ -6264,10 +6388,11 @@ void game_update(struct game_memory* memory, struct game_input* input)
             &state->camera.projection);
         sprite_renderer_flush(&state->sprite_renderer, &state->camera.view,
             &state->camera.projection);
+        particle_renderer_flush(&state->particle_renderer, &state->camera.view,
+            &state->camera.projection);
 
         particle_lines_render(state);
         particle_spheres_render(state);
-        particles_render(state, &state->particles);
 
         // u64 render_end = ticks_current_get();
 
