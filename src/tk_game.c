@@ -1376,8 +1376,8 @@ void particle_renderer_update(struct particle_renderer* renderer, f32 dt)
     }
 }
 
-void particle_renderer_flush(struct particle_renderer* renderer, struct m4* view,
-    struct m4* projection)
+void particle_renderer_flush(struct particle_renderer* renderer,
+    struct m4* view, struct m4* projection)
 {
     if (renderer->initialized && renderer->num_rendered)
     {
@@ -4824,8 +4824,8 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
             if (distance < distance_target)
             {
                 // particle_sphere_create(state, bullet->body.position,
-                //     (struct v2){ 0.0f, 0.0f }, colors[GREY], PROJECTILE_RADIUS,
-                //     PROJECTILE_RADIUS * 5.0f, 0.15f);
+                //     (struct v2){ 0.0f, 0.0f }, colors[GREY],
+                //     PROJECTILE_RADIUS, PROJECTILE_RADIUS * 5.0f, 0.15f);
                 bullet->alive = false;
 
 
