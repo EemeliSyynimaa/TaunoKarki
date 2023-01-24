@@ -56,8 +56,7 @@ void* stack_free(struct memory_block* block)
 
 struct sprite_vertex_data
 {
-    struct v3 position;
-    struct v3 normal;
+    struct v2 position;
     struct v2 uv;
 };
 
@@ -127,7 +126,7 @@ struct cube_renderer
 
 struct particle_vertex_data
 {
-    struct v3 position;
+    struct v2 position;
 };
 
 struct particle_render_data
@@ -1272,23 +1271,23 @@ void particle_renderer_init(struct particle_renderer* renderer, u32 shader)
 {
     renderer->shader = shader;
 
-    struct sprite_vertex_data vertices[] =
+    struct particle_vertex_data vertices[] =
     {
         // Top right
         {
-            { 1.0f, 1.0f, 0.0f },
+            { 1.0f, 1.0f },
         },
         // Top left
         {
-            { -1.0f, 1.0f, 0.0f },
+            { -1.0f, 1.0f },
         },
         // Bottom left
         {
-            { -1.0f, -1.0f, 0.0f },
+            { -1.0f, -1.0f },
         },
         // Bottom right
         {
-            { 1.0f, -1.0f, 0.0f },
+            { 1.0f, -1.0f },
         }
     };
 
@@ -1316,7 +1315,7 @@ void particle_renderer_init(struct particle_renderer* renderer, u32 shader)
     api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_vertices);
     api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
         GL_STATIC_DRAW);
-    api.gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+    api.gl.glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
         sizeof(struct particle_vertex_data), (void*)0);
 
     api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_particles);
@@ -1416,26 +1415,22 @@ void sprite_renderer_init(struct sprite_renderer* renderer, u32 shader,
     {
         // Top right
         {
-            { 1.0f, 1.0f, 0.0f },
-            { 0.0f, 0.0f, 1.0f },
+            { 1.0f, 1.0f },
             { 0.0f, 1.0f }
         },
         // Top left
         {
-            { -1.0f, 1.0f, 0.0f },
-            { 0.0f, 0.0f, 1.0f },
+            { -1.0f, 1.0f },
             { 0.0f, 0.0f }
         },
         // Bottom left
         {
-            { -1.0f, -1.0f, 0.0f },
-            { 0.0f, 0.0f, 1.0f },
+            { -1.0f, -1.0f },
             { 1.0f, 0.0f }
         },
         // Bottom right
         {
-            { 1.0f, -1.0f, 0.0f },
-            { 0.0f, 0.0f, 1.0f },
+            { 1.0f, -1.0f },
             { 1.0f, 1.0f }
         }
     };
@@ -1462,32 +1457,29 @@ void sprite_renderer_init(struct sprite_renderer* renderer, u32 shader,
     api.gl.glEnableVertexAttribArray(5);
     api.gl.glEnableVertexAttribArray(6);
     api.gl.glEnableVertexAttribArray(7);
-    api.gl.glEnableVertexAttribArray(8);
 
     api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_vertices);
     api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
         GL_STATIC_DRAW);
-    api.gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+    api.gl.glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
         sizeof(struct sprite_vertex_data), (void*)0);
-    api.gl.glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
-        sizeof(struct sprite_vertex_data), (void*)12);
-    api.gl.glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE,
-        sizeof(struct sprite_vertex_data), (void*)24);
+    api.gl.glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
+        sizeof(struct sprite_vertex_data), (void*)8);
 
     api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_sprites);
     api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->sprites),
         renderer->sprites, GL_DYNAMIC_DRAW);
-    api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
+    api.gl.glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE,
         sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 0));
-    api.gl.glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE,
+    api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
         sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 1));
-    api.gl.glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE,
+    api.gl.glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE,
         sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 2));
-    api.gl.glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE,
+    api.gl.glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE,
         sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 3));
-    api.gl.glVertexAttribPointer(7, 4, GL_FLOAT, GL_FALSE,
+    api.gl.glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE,
         sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 4));
-    api.gl.glVertexAttribIPointer(8, 1, GL_UNSIGNED_BYTE,
+    api.gl.glVertexAttribIPointer(7, 1, GL_UNSIGNED_BYTE,
         sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 5));
 
     api.gl.glVertexAttribDivisor(3, 1);
@@ -1495,7 +1487,6 @@ void sprite_renderer_init(struct sprite_renderer* renderer, u32 shader,
     api.gl.glVertexAttribDivisor(5, 1);
     api.gl.glVertexAttribDivisor(6, 1);
     api.gl.glVertexAttribDivisor(7, 1);
-    api.gl.glVertexAttribDivisor(8, 1);
 
     api.gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
     api.gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,
@@ -4829,7 +4820,7 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                 bullet->alive = false;
 
 
-                particle_emitter_circle(&state->particle_renderer, 360,
+                particle_emitter_circle(&state->particle_renderer, 36,
                     bullet->body.position, 1.0f, 0.05f, colors[RED], 1.0f);
             }
 

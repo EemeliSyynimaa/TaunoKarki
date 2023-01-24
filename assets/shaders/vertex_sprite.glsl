@@ -1,11 +1,10 @@
 #version 330
 
 layout(location = 0) in vec3 inPosition;
-layout(location = 1) in vec3 inNormals;
-layout(location = 2) in vec2 inTexcoords;
-layout(location = 3) in mat4 inModel;
-layout(location = 7) in vec4 inColor;
-layout(location = 8) in uint inTextureIndex;
+layout(location = 1) in vec2 inTexcoords;
+layout(location = 2) in mat4 inModel;
+layout(location = 6) in vec4 inColor;
+layout(location = 7) in uint inTextureIndex;
 
 uniform mat4 uniform_vp;
 
