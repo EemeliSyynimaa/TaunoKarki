@@ -81,6 +81,60 @@ struct sprite_renderer
     b32 initialized;
 };
 
+#define MAX_ATTRIBUTES 16
+#define MAX_VERTICES 256
+#define MAX_INSTANCES 1024
+
+struct vertex_attribute
+{
+    u32 type;       // e.g. GL_FLOAT
+    u8 size;        // e.g. 3 for vec3
+    u8 divisor;     // e.g. 1
+};
+
+struct mesh_data
+{
+    struct vertex_attribute attributes[MAX_ATTRIBUTES];
+    u32* indices;
+    u8* vertices;
+
+    u32 size_vertices;
+    u32 num_attributes;
+    u32 num_indices;
+};
+
+struct instance_data
+{
+    struct vertex_attribute attributes[MAX_ATTRIBUTES];
+    u8* vertices;
+
+    u32 num_attributes;
+};
+
+struct mesh_renderer
+{
+    u8 instances[MAX_INSTANCES * MAX_VERTICES];
+    u32 instance_size;
+    u32 num_indices;
+    u32 num_instances;
+    u32 vao;
+    u32 vbo_mesh;
+    u32 vbo_instances;
+    u32 ibo;
+    u32 shader;
+    u32 texture;
+    u32 count;
+    b32 initialized;
+};
+
+struct mesh_renderer_config
+{
+    struct mesh_data mesh;
+    struct instance_data instance;
+    u32 shader;
+    u32 texture;
+};
+
 #define MAX_CUBES 1024
 #define MAX_CUBE_COLORS 2048
 
@@ -169,7 +223,6 @@ struct particle_renderer
     u32 vbo_vertices;
     u32 vbo_particles;
     u32 ibo;
-    u32 ubo;
     u32 num_indices;
     u32 num_particles;
     u32 shader;
@@ -441,6 +494,7 @@ struct game_state
     struct line_segment wall_faces[MAX_WALL_FACES];
     struct line_segment cols_static[MAX_COLLISION_SEGMENTS];
     struct line_segment cols_dynamic[MAX_COLLISION_SEGMENTS];
+    struct mesh_renderer mesh_renderer;
     struct cube_renderer cube_renderer;
     struct sprite_renderer sprite_renderer;
     struct particle_renderer particle_renderer;
@@ -448,6 +502,7 @@ struct game_state
     struct gun_shot gun_shots[MAX_GUN_SHOTS];
     struct level level;
     struct level level_mask;
+    struct mesh_renderer_config TESTconfig;
     b32 render_debug;
     b32 level_change;
     b32 level_cleared;
@@ -523,6 +578,55 @@ f32 f32_random_number_get(struct game_state* state, f32 min, f32 max)
     f32 result = 0.0f;
     f32 rand = u32_random_number_get(state, 0, S32_MAX) / (f32)S32_MAX;
     result = min + rand * (max - min);
+
+    return result;
+}
+
+b32 gl_is_integer(u32 type)
+{
+    b32 result = false;
+
+    switch (type)
+    {
+    case GL_BYTE:
+    case GL_UNSIGNED_BYTE:
+    case GL_SHORT:
+    case GL_UNSIGNED_SHORT:
+    case GL_INT:
+    case GL_UNSIGNED_INT:
+    {
+        result = true;
+    } break;
+    default:
+    {
+        result = false;
+    } break;
+    }
+
+    return result;
+}
+
+u32 gl_type_size_get(u32 type)
+{
+    u32 result = 0;
+
+    switch (type)
+    {
+    case GL_BYTE:
+    case GL_UNSIGNED_BYTE:
+    {
+        result = 1;
+    } break;
+    case GL_SHORT:
+    case GL_UNSIGNED_SHORT:
+    {
+        result = 2;
+    } break;
+    default:
+    {
+        result = 4;
+    } break;
+    }
 
     return result;
 }
@@ -1289,6 +1393,166 @@ void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
         sizeof(struct vertex), (void*)32);
 }
 
+void mesh_renderer_init(struct mesh_renderer* renderer,
+    struct mesh_renderer_config* config)
+{
+    renderer->shader = config->shader;
+    renderer->texture = config->texture;
+
+    api.gl.glGenVertexArrays(1, &renderer->vao);
+    api.gl.glBindVertexArray(renderer->vao);
+
+    u32 attribute_index = 0;
+
+    {
+        api.gl.glGenBuffers(1, &renderer->vbo_mesh);
+        api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_mesh);
+
+        u64 stride = 0;
+        u64 offset = 0;
+
+        for (u32 i = 0; i < config->mesh.num_attributes; i++)
+        {
+            struct vertex_attribute* attrib = &config->mesh.attributes[i];
+
+            stride += attrib->size * gl_type_size_get(attrib->type);
+        }
+
+        for (u32 i = 0; i < config->mesh.num_attributes; i++, attribute_index++)
+        {
+            struct vertex_attribute* attrib = &config->mesh.attributes[i];
+
+            api.gl.glEnableVertexAttribArray(attribute_index);
+
+            if (gl_is_integer(attrib->type))
+            {
+                api.gl.glVertexAttribIPointer(attribute_index, attrib->size,
+                    attrib->type, stride, (void*)offset);
+            }
+            else
+            {
+                api.gl.glVertexAttribPointer(attribute_index, attrib->size,
+                    attrib->type, GL_FALSE, stride, (void*)offset);
+            }
+
+            if (attrib->divisor)
+            {
+                api.gl.glVertexAttribDivisor(attribute_index, attrib->divisor);
+            }
+
+            offset += attrib->size * gl_type_size_get(attrib->type);
+        }
+
+        api.gl.glBufferData(GL_ARRAY_BUFFER, config->mesh.size_vertices,
+            config->mesh.vertices, GL_STATIC_DRAW);
+    }
+
+    {
+        api.gl.glGenBuffers(1, &renderer->vbo_instances);
+        api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_instances);
+
+        u64 stride = 0;
+        u64 offset = 0;
+
+        for (u32 i = 0; i < config->instance.num_attributes; i++)
+        {
+            struct vertex_attribute* attrib = &config->instance.attributes[i];
+
+            stride += attrib->size * gl_type_size_get(attrib->type);
+        }
+
+        for (u32 i = 0; i < config->instance.num_attributes; i++,
+            attribute_index++)
+        {
+            struct vertex_attribute* attrib = &config->instance.attributes[i];
+
+            api.gl.glEnableVertexAttribArray(attribute_index);
+
+            if (gl_is_integer(attrib->type))
+            {
+                api.gl.glVertexAttribIPointer(attribute_index, attrib->size,
+                    attrib->type, stride, (void*)offset);
+            }
+            else
+            {
+                api.gl.glVertexAttribPointer(attribute_index, attrib->size,
+                    attrib->type, GL_FALSE, stride, (void*)offset);
+            }
+
+            if (attrib->divisor)
+            {
+                api.gl.glVertexAttribDivisor(attribute_index, attrib->divisor);
+            }
+
+            offset += attrib->size * gl_type_size_get(attrib->type);
+        }
+
+        api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->instances),
+            renderer->instances, GL_DYNAMIC_DRAW);
+
+        renderer->instance_size = stride;
+    }
+
+    api.gl.glGenBuffers(1, &renderer->ibo);
+    api.gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
+    api.gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+        config->mesh.num_indices * sizeof(u32), config->mesh.indices,
+        GL_STATIC_DRAW);
+
+    renderer->num_indices = config->mesh.num_indices;
+
+    renderer->initialized = !gl_check_error("mesh_renderer_init");
+}
+
+void mesh_renderer_add(struct mesh_renderer* renderer, void* data, u32 size)
+{
+    if (renderer->initialized)
+    {
+        if (renderer->num_instances < MAX_INSTANCES)
+        {
+            u64 index = renderer->num_instances++ * MAX_VERTICES;
+
+            memory_copy(data, &renderer->instances[index], size);
+        }
+    }
+}
+
+void mesh_renderer_flush(struct mesh_renderer* renderer, struct m4* view,
+    struct m4* projection)
+{
+    if (renderer->initialized && renderer->count)
+    {
+        api.gl.glBindVertexArray(renderer->vao);
+        api.gl.glUseProgram(renderer->shader);
+
+        u32 uniform_texture = api.gl.glGetUniformLocation(renderer->shader,
+            "uniform_texture");
+        u32 uniform_vp = api.gl.glGetUniformLocation(renderer->shader,
+            "uniform_vp");
+
+        struct m4 vp = m4_mul_m4(*view, *projection);
+
+        api.gl.glUniform1i(uniform_texture, 0);
+        api.gl.glUniformMatrix4fv(uniform_vp, 1, GL_FALSE, (GLfloat*)&vp);
+
+        api.gl.glActiveTexture(GL_TEXTURE0);
+        api.gl.glBindTexture(GL_TEXTURE_2D_ARRAY, renderer->texture);
+
+        api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_instances);
+        api.gl.glBufferSubData(GL_ARRAY_BUFFER, 0,
+            renderer->num_instances * renderer->instance_size,
+            renderer->instances);
+
+        api.gl.glDrawElementsInstanced(GL_TRIANGLES, renderer->num_indices,
+            GL_UNSIGNED_INT, NULL, renderer->num_instances);
+
+        api.gl.glUseProgram(0);
+        api.gl.glBindVertexArray(0);
+
+        renderer->num_instances = 0;
+    }
+}
+
 // Todo: create mesh_renderer that can be configured to work with particles,
 // cubes, sprites and more
 
@@ -1336,44 +1600,51 @@ void particle_renderer_init(struct particle_renderer* renderer, u32 shader,
     api.gl.glGenBuffers(1, &renderer->vbo_particles);
     api.gl.glGenBuffers(1, &renderer->ibo);
 
-    api.gl.glEnableVertexAttribArray(0);
-    api.gl.glEnableVertexAttribArray(1);
-    api.gl.glEnableVertexAttribArray(2);
-    api.gl.glEnableVertexAttribArray(3);
-    api.gl.glEnableVertexAttribArray(4);
-    api.gl.glEnableVertexAttribArray(5);
-    api.gl.glEnableVertexAttribArray(6);
-    api.gl.glEnableVertexAttribArray(7);
-
     api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_vertices);
     api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
         GL_STATIC_DRAW);
+
+    api.gl.glEnableVertexAttribArray(0);
     api.gl.glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
         sizeof(struct particle_vertex_data), (void*)0);
+
+    api.gl.glEnableVertexAttribArray(1);
     api.gl.glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
         sizeof(struct particle_vertex_data), (void*)8);
 
     api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_particles);
     api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->render_data),
         renderer->render_data, GL_DYNAMIC_DRAW);
+
+    api.gl.glEnableVertexAttribArray(2);
+    api.gl.glVertexAttribDivisor(2, 1);
     api.gl.glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE,
         sizeof(struct particle_render_data), (void*)(sizeof(struct v4) * 0));
+
+    api.gl.glEnableVertexAttribArray(3);
+    api.gl.glVertexAttribDivisor(3, 1);
     api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
         sizeof(struct particle_render_data), (void*)(sizeof(struct v4) * 1));
+
+    api.gl.glEnableVertexAttribArray(4);
+    api.gl.glVertexAttribDivisor(4, 1);
     api.gl.glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE,
         sizeof(struct particle_render_data), (void*)(sizeof(struct v4) * 2));
+
+    api.gl.glEnableVertexAttribArray(5);
+    api.gl.glVertexAttribDivisor(5, 1);
     api.gl.glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE,
         sizeof(struct particle_render_data), (void*)(sizeof(struct v4) * 3));
+
+    api.gl.glEnableVertexAttribArray(6);
+    api.gl.glVertexAttribDivisor(6, 1);
     api.gl.glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE,
         sizeof(struct particle_render_data), (void*)(sizeof(struct v4) * 4));
+
+    api.gl.glEnableVertexAttribArray(7);
+    api.gl.glVertexAttribDivisor(7, 1);
     api.gl.glVertexAttribIPointer(7, 1, GL_UNSIGNED_BYTE,
         sizeof(struct particle_render_data), (void*)(sizeof(struct v4) * 5));
-
-    api.gl.glVertexAttribDivisor(3, 1);
-    api.gl.glVertexAttribDivisor(4, 1);
-    api.gl.glVertexAttribDivisor(5, 1);
-    api.gl.glVertexAttribDivisor(6, 1);
-    api.gl.glVertexAttribDivisor(7, 1);
 
     api.gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
     api.gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,
@@ -1527,6 +1798,7 @@ void sprite_renderer_init(struct sprite_renderer* renderer, u32 shader,
     api.gl.glVertexAttribIPointer(7, 1, GL_UNSIGNED_BYTE,
         sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 5));
 
+    api.gl.glVertexAttribDivisor(2, 1);
     api.gl.glVertexAttribDivisor(3, 1);
     api.gl.glVertexAttribDivisor(4, 1);
     api.gl.glVertexAttribDivisor(5, 1);
@@ -2843,7 +3115,7 @@ void level_render(struct game_state* state, struct level* level)
                 data.texture = level->tile_sprites[tile_index];
                 data.color = colors[WHITE];
 
-                sprite_renderer_add(&state->sprite_renderer, &data);
+                mesh_renderer_add(&state->mesh_renderer, &data, sizeof(data));
             }
         }
     }
@@ -6244,12 +6516,77 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->texture_particle = texture_array_create(&state->stack,
             "assets/textures/particles.tga", 8, 8);
 
+        struct mesh_renderer_config* conf = &state->TESTconfig;
+        struct particle_vertex_data vertices[] =
+        {
+            // Top right
+            {
+                { 1.0f, 1.0f },
+                { 0.0f, 1.0f }
+            },
+            // Top left
+            {
+                { -1.0f, 1.0f },
+                { 0.0f, 0.0f }
+            },
+            // Bottom left
+            {
+                { -1.0f, -1.0f },
+                { 1.0f, 0.0f }
+            },
+            // Bottom right
+            {
+                { 1.0f, -1.0f },
+                { 1.0f, 1.0f }
+            }
+        };
+
+        u32 indices[] =
+        {
+            0, 1, 2, 0, 2, 3
+        };
+
+        conf->shader = state->shader_sprite;
+        conf->texture = state->texture_sprite;
+        conf->mesh.attributes[0].type = GL_FLOAT;
+        conf->mesh.attributes[0].size = 2;
+        conf->mesh.attributes[0].divisor = 0;
+        conf->mesh.attributes[1].type = GL_FLOAT;
+        conf->mesh.attributes[1].size = 2;
+        conf->mesh.attributes[1].divisor = 0;
+        conf->mesh.vertices = (u8*)vertices;
+        conf->mesh.indices = indices;
+        conf->mesh.size_vertices = sizeof(vertices);
+        conf->mesh.num_attributes = 2;
+        conf->mesh.num_indices = 6;
+
+        conf->instance.attributes[0].type = GL_FLOAT;
+        conf->instance.attributes[0].size = 4;
+        conf->instance.attributes[0].divisor = 1;
+        conf->instance.attributes[1].type = GL_FLOAT;
+        conf->instance.attributes[1].size = 4;
+        conf->instance.attributes[1].divisor = 1;
+        conf->instance.attributes[2].type = GL_FLOAT;
+        conf->instance.attributes[2].size = 4;
+        conf->instance.attributes[2].divisor = 1;
+        conf->instance.attributes[3].type = GL_FLOAT;
+        conf->instance.attributes[3].size = 4;
+        conf->instance.attributes[3].divisor = 1;
+        conf->instance.attributes[4].type = GL_FLOAT;
+        conf->instance.attributes[4].size = 4;
+        conf->instance.attributes[4].divisor = 1;
+        conf->instance.attributes[5].type = GL_UNSIGNED_BYTE;
+        conf->instance.attributes[5].size = 1;
+        conf->instance.attributes[5].divisor = 1;
+        conf->instance.num_attributes = 6;
+
         cube_renderer_init(&state->cube_renderer, state->shader_cube,
             state->texture_cube);
         sprite_renderer_init(&state->sprite_renderer, state->shader_sprite,
             state->texture_sprite);
         particle_renderer_init(&state->particle_renderer,
             state->shader_particle, state->texture_particle);
+        mesh_renderer_init(&state->mesh_renderer, &state->TESTconfig);
 
         mesh_create(&state->stack, "assets/meshes/sphere.mesh",
             &state->sphere);
@@ -6428,6 +6765,8 @@ void game_update(struct game_memory* memory, struct game_input* input)
         sprite_renderer_flush(&state->sprite_renderer, &state->camera.view,
             &state->camera.projection);
         particle_renderer_flush(&state->particle_renderer, &state->camera.view,
+            &state->camera.projection);
+        mesh_renderer_flush(&state->mesh_renderer, &state->camera.view,
             &state->camera.projection);
 
         particle_lines_render(state);
