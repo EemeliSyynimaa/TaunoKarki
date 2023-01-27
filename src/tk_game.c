@@ -3,6 +3,40 @@
 
 #include <string.h>
 
+// Todo: this is in global space, scary
+struct random_number_generator
+{
+    u32 seed;
+} _rng_default;
+
+void random_init(u32 seed)
+{
+    _rng_default.seed = seed;
+}
+
+u32 random()
+{
+    u32 result = _rng_default.seed = (u64)_rng_default.seed * 48271 % 0x7fffffff;
+
+    return result;
+}
+
+u32 u32_random(u32 min, u32 max)
+{
+    u32 result = random() % (max - min + 1) + min;
+
+    return result;
+}
+
+f32 f32_random(f32 min, f32 max)
+{
+    f32 result = 0.0f;
+    f32 rand = u32_random(0, S32_MAX) / (f32)S32_MAX;
+    result = min + rand * (max - min);
+
+    return result;
+}
+
 struct memory_block
 {
     u64 size;
@@ -319,20 +353,25 @@ void particle_emitter_spawn(struct particle_emitter* emitter, f32 dt)
             emitter->next_free = 0;
         }
 
-        if (emitter->config.type == PARTICLE_EMITTER_POINT)
+        struct particle_emitter_config* config = &emitter->config;
+
+        if (config->type == PARTICLE_EMITTER_POINT)
         {
-            struct v3 direction = { 0.0f };
-            direction.xy =
-                v2_direction_from_angle(emitter->config.direction_min);
-            particle->position = emitter->config.position;
+            struct v3 direction;
+            direction.xy = v2_direction_from_angle(f32_random(
+                config->direction_min, config->direction_max));
+            direction.z = 0.0f;
+            particle->position = config->position;
             particle->velocity = v3_mul_f32(direction,
-                emitter->config.velocity_min);
-            particle->velocity_angular = emitter->config.velocity_angular_min;
-            particle->scale = emitter->config.scale_start;
-            particle->color = emitter->config.color_start;
-            particle->time_start = emitter->config.time_max;
+                f32_random(config->velocity_min, config->velocity_max));
+            particle->velocity_angular = f32_random(
+                config->velocity_angular_min, config->velocity_angular_max);
+            particle->scale = config->scale_start;
+            particle->color = config->color_start;
+            particle->time_start = f32_random(config->time_min,
+                config->time_max);
             particle->time = particle->time_start;
-            particle->texture = emitter->config.texture;
+            particle->texture = config->texture;
         }
     }
 }
@@ -677,40 +716,6 @@ u32 key_times_pressed(struct key_state* state)
 f32 time_elapsed_seconds(u64 ticks_start, u64 ticks_end)
 {
     f32 result = (ticks_end - ticks_start) / 1000000000.0f;
-
-    return result;
-}
-
-// Todo: this is in global space, scary
-struct random_number_generator
-{
-    u32 seed;
-} _rng_default;
-
-void random_init(u32 seed)
-{
-    _rng_default.seed = seed;
-}
-
-u32 random()
-{  
-    u32 result = _rng_default.seed = (u64)_rng_default.seed * 48271 % 0x7fffffff;
-
-    return result;
-}
-
-u32 u32_random(u32 min, u32 max)
-{
-    u32 result = random() % (max - min + 1) + min;
-
-    return result;
-}
-
-f32 f32_random(f32 min, f32 max)
-{
-    f32 result = 0.0f;
-    f32 rand = u32_random(0, S32_MAX) / (f32)S32_MAX;
-    result = min + rand * (max - min);
 
     return result;
 }
@@ -6417,14 +6422,14 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         struct particle_emitter_config config;
         config.position = (struct v3){ 3.0f, 3.0f, 0.5f };
-        config.rate = 0.125f;
+        config.rate = 0.05f;
         config.max_particles = 64;
-        config.velocity_min = 1.0f;
-        config.velocity_max = 2.5f;
-        config.velocity_angular_min = 0.0f;
-        config.velocity_angular_max = 1.0f;
+        config.velocity_min = 0.125f;
+        config.velocity_max = 0.35f;
+        config.velocity_angular_min = -2.5f;
+        config.velocity_angular_max = 2.5f;
         config.scale_start = 0.0;
-        config.scale_end = 0.125f;
+        config.scale_end = 0.075f;
         config.color_start = colors[WHITE];
         config.color_end = colors[RED];
         config.time_min = 1.0f;
