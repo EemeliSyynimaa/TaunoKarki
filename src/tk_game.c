@@ -653,7 +653,6 @@ struct game_state
     u32 num_cols_static;
     u32 num_cols_dynamic;
     u32 num_gun_shots;
-    u32 random_seed;
     u32 ticks_per_second;
     u32 level_current;
 };
@@ -682,25 +681,35 @@ f32 time_elapsed_seconds(u64 ticks_start, u64 ticks_end)
     return result;
 }
 
-u32 random_number_generate(struct game_state* state)
-{  
-    u32 result = state->random_seed =
-        (u64)state->random_seed * 48271 % 0x7fffffff;
-
-    return result;
-}
-
-u32 u32_random_number_get(struct game_state* state, u32 min, u32 max)
+// Todo: this is in global space, scary
+struct random_number_generator
 {
-    u32 result = random_number_generate(state) % (max - min + 1) + min;
+    u32 seed;
+} _rng_default;
+
+void random_init(u32 seed)
+{
+    _rng_default.seed = seed;
+}
+
+u32 random()
+{  
+    u32 result = _rng_default.seed = (u64)_rng_default.seed * 48271 % 0x7fffffff;
 
     return result;
 }
 
-f32 f32_random_number_get(struct game_state* state, f32 min, f32 max)
+u32 u32_random(u32 min, u32 max)
+{
+    u32 result = random() % (max - min + 1) + min;
+
+    return result;
+}
+
+f32 f32_random(f32 min, f32 max)
 {
     f32 result = 0.0f;
-    f32 rand = u32_random_number_get(state, 0, S32_MAX) / (f32)S32_MAX;
+    f32 rand = u32_random(0, S32_MAX) / (f32)S32_MAX;
     result = min + rand * (max - min);
 
     return result;
@@ -849,8 +858,7 @@ b32 tile_is_free(struct level* level, struct v2 position)
     return tile_type_get(level, position) > TILE_WALL;
 }
 
-struct v2 tile_random_get(struct game_state* state, struct level* level,
-    u32 type)
+struct v2 tile_random_get(struct level* level, u32 type)
 {
     struct v2 result = { 0 };
 
@@ -860,8 +868,8 @@ struct v2 tile_random_get(struct game_state* state, struct level* level,
     {
         struct v2 position =
         {
-            u32_random_number_get(state, 0, level->width),
-            u32_random_number_get(state, 0, level->height)
+            u32_random(0, level->width),
+            u32_random(0, level->height)
         };
 
         if (tile_is_of_type(level, position, type))
@@ -2651,7 +2659,7 @@ void level_generate(struct game_state* state, struct level* level,
 
             while (true)
             {
-                u32 action = u32_random_number_get(state, 0, 2);
+                u32 action = u32_random(0, 2);
 
                 // Continue previous room
                 if (action == 0)
@@ -2792,8 +2800,8 @@ void level_generate(struct game_state* state, struct level* level,
     {
         for (u32 j = i + 1; j < room_index; j++)
         {
-            struct v2 tile_i = tile_random_get(state, level, i);
-            struct v2 tile_j = tile_random_get(state, level, j);
+            struct v2 tile_i = tile_random_get(level, i);
+            struct v2 tile_j = tile_random_get(level, j);
 
             u32 walls[256] = { 0 };
             u32 wall_count = 0;
@@ -2848,8 +2856,7 @@ void level_generate(struct game_state* state, struct level* level,
 
                     for (u32 k = 0; k < num_doors_to_open; k++)
                     {
-                        u32 random_door = u32_random_number_get(state, 0,
-                            wall_count - 1);
+                        u32 random_door = u32_random(0, wall_count - 1);
                         b32 door_picked_already = false;
 
                         for (u32 l = 0; l < k; l++)
@@ -3462,7 +3469,7 @@ void weapon_shoot(struct game_state* state, struct weapon* weapon, bool player)
             !weapon->reloading)
         {
             struct v2 randomized = v2_rotate(weapon->direction,
-                f32_random_number_get(state, -weapon->spread, weapon->spread));
+                f32_random(-weapon->spread, weapon->spread));
 
             bullet_create(state, weapon->position, weapon->velocity, randomized,
                 weapon->projectile_speed, weapon->projectile_damage, player,
@@ -3489,7 +3496,7 @@ void weapon_shoot(struct game_state* state, struct weapon* weapon, bool player)
             !weapon->reloading)
         {
             struct v2 randomized = v2_rotate(weapon->direction,
-                f32_random_number_get(state, -weapon->spread, weapon->spread));
+                f32_random(-weapon->spread, weapon->spread));
 
             bullet_create(state, weapon->position, weapon->velocity, randomized,
                 weapon->projectile_speed, weapon->projectile_damage, player,
@@ -3519,10 +3526,9 @@ void weapon_shoot(struct game_state* state, struct weapon* weapon, bool player)
             for (u32 i = 0; i < 10; i++)
             {
                 struct v2 randomized = v2_rotate(weapon->direction,
-                    f32_random_number_get(state, -weapon->spread,
-                        weapon->spread));
+                    f32_random(-weapon->spread, weapon->spread));
 
-                f32 speed = f32_random_number_get(state,
+                f32 speed = f32_random(
                     0.75f * weapon->projectile_speed, weapon->projectile_speed);
 
                 bullet_create(state, weapon->position, weapon->velocity,
@@ -3667,8 +3673,8 @@ f32 enemy_reaction_time_get(struct game_state* state, u32 state_enemy)
         } break;
     }
 
-    result = f32_random_number_get(state, ENEMY_REACTION_TIME_MIN,
-        ENEMY_REACTION_TIME_MAX) * reaction_multiplier;
+    result = f32_random(ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX) *
+        reaction_multiplier;
 
     return result;
 }
@@ -3780,9 +3786,9 @@ f32 enemy_turn_speed_get(struct enemy* enemy)
     return result;
 }
 
-f32 enemy_look_around_delay_get(struct game_state* state, struct enemy* enemy)
+f32 enemy_look_around_delay_get(struct enemy* enemy)
 {
-    f32 result = f32_random_number_get(state, ENEMY_LOOK_AROUND_DELAY_MIN,
+    f32 result = f32_random(ENEMY_LOOK_AROUND_DELAY_MIN,
         ENEMY_LOOK_AROUND_DELAY_MAX);
 
     if (enemy->state == ENEMY_STATE_LOOK_FOR_PLAYER)
@@ -3833,7 +3839,7 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         case ENEMY_STATE_WANDER_AROUND:
         {
             enemy->acceleration = ENEMY_ACCELERATION * 0.5f;
-            enemy->target = tile_random_get(state, level, TILE_FLOOR);
+            enemy->target = tile_random_get(level, TILE_FLOOR);
             enemy_calculate_path_to_target(state, level, enemy);
         } break;
         case ENEMY_STATE_LOOK_AROUND:
@@ -3890,22 +3896,20 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 item_create(state, enemy->body.position,
                     ITEM_HEALTH + enemy->weapon.type);
 
-                u32 random_item_count = u32_random_number_get(state, 0, 3);
+                u32 random_item_count = u32_random(0, 3);
 
                 for (u32 j = 0; j < random_item_count; j++)
                 {
                     struct v2 position = enemy->body.position;
 
                     f32 offset_max = 0.25f;
-                    f32 offset_x = f32_random_number_get(state, -offset_max,
-                        offset_max);
-                    f32 offset_y = f32_random_number_get(state, -offset_max,
-                        offset_max);
+                    f32 offset_x = f32_random(-offset_max, offset_max);
+                    f32 offset_y = f32_random(-offset_max, offset_max);
 
                     position.x += offset_x;
                     position.y += offset_y;
 
-                    u32 random_item_type = u32_random_number_get(state, 0, 2);
+                    u32 random_item_type = u32_random(0, 2);
                     random_item_type =
                         random_item_type ? ITEM_HEALTH : ITEM_WEAPON_LEVEL_UP;
 
@@ -4147,8 +4151,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     {
                         if (enemy->turns_left)
                         {
-                            f32 diff = f32_random_number_get(state, -F64_PI,
-                                F64_PI);
+                            f32 diff = f32_random(-F64_PI, F64_PI);
                             f32 angle_new = enemy->body.angle + diff;
 
                             enemy_look_towards_angle(enemy, angle_new);
@@ -4163,8 +4166,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     }
                     else if (enemy->state_timer <= 0.0f && !enemy->turn_amount)
                     {
-                        enemy->state_timer =
-                            enemy_look_around_delay_get(state, enemy);
+                        enemy->state_timer = enemy_look_around_delay_get(enemy);
                     }
                 } break;
                 case ENEMY_STATE_WANDER_AROUND:
@@ -4202,8 +4204,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                         enemy_look_towards_direction(enemy,
                                 enemy->player_last_seen_direction);
                         enemy->player_last_seen_direction = v2_zero;
-                        enemy->state_timer =
-                            enemy_look_around_delay_get(state, enemy);
+                        enemy->state_timer = enemy_look_around_delay_get(enemy);
                     }
                     else
                     {
@@ -4211,8 +4212,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                         {
                             if (enemy->turns_left)
                             {
-                                f32 diff = f32_random_number_get(state, -F64_PI,
-                                    F64_PI);
+                                f32 diff = f32_random(
+                                    -F64_PI, F64_PI);
                                 f32 angle_new = enemy->body.angle + diff;
 
                                 enemy_look_towards_angle(enemy, angle_new);
@@ -4229,7 +4230,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                             !enemy->turn_amount)
                         {
                             enemy->state_timer =
-                                enemy_look_around_delay_get(state, enemy);
+                                enemy_look_around_delay_get(enemy);
                         }
                     }
                 } break;
@@ -6225,7 +6226,7 @@ void level_init(struct game_state* state)
     // Inited once per level
     u32 enemies_min = state->level_current;
     u32 enemies_max =  MIN(enemies_min * 4, MAX_ENEMIES);
-    state->num_enemies = u32_random_number_get(state, enemies_min, enemies_max);
+    state->num_enemies = u32_random(enemies_min, enemies_max);
     // state->num_enemies = 1;
 
     LOG("%u enemies\n", state->num_enemies);
@@ -6240,14 +6241,13 @@ void level_init(struct game_state* state)
     for (u32 i = 0; i < state->num_enemies; i++)
     {
         struct enemy* enemy = &state->enemies[i];
-        enemy->body.position = tile_random_get(state, &state->level,
-            TILE_FLOOR);
+        enemy->body.position = tile_random_get(&state->level, TILE_FLOOR);
         enemy->alive = true;
         enemy->health = ENEMY_HEALTH_MAX;
         enemy->vision_cone_size = 0.2f * i;
         enemy->shooting = false;
         enemy->cube.faces[0].texture = 13;
-        enemy->state = u32_random_number_get(state, 0, 1) ? ENEMY_STATE_SLEEP :
+        enemy->state = u32_random(0, 1) ? ENEMY_STATE_SLEEP :
             ENEMY_STATE_WANDER_AROUND;
         // enemy->state = ENEMY_STATE_WANDER_AROUND;
 
@@ -6256,7 +6256,7 @@ void level_init(struct game_state* state)
 
         cube_data_color_update(&enemy->cube, color_enemy);
 
-        enemy->weapon = weapon_create(u32_random_number_get(state, 1, 3));
+        enemy->weapon = weapon_create(u32_random(1, 3));
         enemy->weapon.projectile_damage *= 0.2f;
     }
 
@@ -6365,7 +6365,8 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->stack.base = (s8*)state + sizeof(struct game_state);
         state->stack.current = state->stack.base;
         state->stack.size = 100*1024*1024;
-        state->random_seed = init->init_time;
+
+        random_init(init->init_time);
 
         state->shader = program_create(&state->stack,
             "assets/shaders/vertex.glsl",
