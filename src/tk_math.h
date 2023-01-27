@@ -669,6 +669,17 @@ struct v3 v3_direction(struct v3 start, struct v3 end)
     return result;
 }
 
+struct v3 v3_mul_f32(struct v3 a, f32 b)
+{
+    struct v3 result;
+
+    result.x = a.x * b;
+    result.y = a.y * b;
+    result.z = a.z * b;
+
+    return result;
+}
+
 f32 v2_length(struct v2 v)
 {
     f32 result = f32_sqrt(v.x * v.x + v.y * v.y);
