@@ -357,10 +357,9 @@ void particle_emitter_spawn(struct particle_emitter* emitter, f32 dt)
 
         if (config->type == PARTICLE_EMITTER_POINT)
         {
-            struct v3 direction;
-            direction.xy = v2_direction_from_angle(f32_random(
-                config->direction_min, config->direction_max));
-            direction.z = 0.0f;
+            struct v3 direction = { v2_direction_from_angle(f32_random(
+                config->direction_min, config->direction_max)), 0.0f };
+
             particle->position = config->position;
             particle->velocity = v3_mul_f32(direction,
                 f32_random(config->velocity_min, config->velocity_max));
@@ -5285,9 +5284,19 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
             }
         }
 
+        struct particle_emitter* emitter = &state->particle_system.emitters[0];
+
         // Todo: testing, remove when enough
-        state->particle_system.emitters[0].config.position =
-            (struct v3){ player->body.position, 0.5f };
+        if (v2_length(player->body.velocity) > 0.1f)
+        {
+            struct particle_emitter_config* config = &emitter->config;
+            config->position = (struct v3){ player->body.position, 0.5f };
+            emitter->active = true;
+        }
+        else
+        {
+            emitter->active = false;
+        }
     }
 }
 
