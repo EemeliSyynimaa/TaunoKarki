@@ -321,7 +321,8 @@ struct v2 particle_spawn_point_get(struct particle_emitter_config* config)
     {
     case PARTICLE_EMITTER_CIRCLE:
     {
-        struct v2 direction = v2_direction_from_angle(f32_random(0, F64_PI*2));
+        f32 angle = f32_random(config->direction_min, config->direction_max);
+        struct v2 direction = v2_direction_from_angle(angle);
         f32 radius = f32_random(config->spawn_radius_min,
             config->spawn_radius_max);
 
@@ -400,7 +401,7 @@ void particle_emitter_spawn(struct particle_emitter* emitter, f32 dt)
         else
         {
             direction.xy = v2_direction_from_angle(f32_random(
-            config->direction_min, config->direction_max));
+                config->direction_min, config->direction_max));
         }
 
         particle->velocity = v3_mul_f32(direction,
@@ -5364,10 +5365,18 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         struct particle_emitter* emitter = &state->particle_system.emitters[0];
 
         // Todo: testing, remove when enough
-        if (v2_length(player->body.velocity) > 0.1f)
+        if (v2_length(player->body.velocity) > 1.0f)
         {
             struct particle_emitter_config* config = &emitter->config;
             config->position.xy = player->body.position;
+
+            f32 angle = f32_atan(-player->body.velocity.y,
+                -player->body.velocity.x);
+            f32 spread = 0.45f;
+
+            config->direction_min = angle - spread;
+            config->direction_max = angle + spread;
+
             emitter->active = true;
         }
         else
@@ -6509,21 +6518,21 @@ void game_init(struct game_memory* memory, struct game_init* init)
         struct particle_emitter_config config;
         config.position = (struct v3){ 3.0f, 3.0f, 0.125f };
         config.type = PARTICLE_EMITTER_CIRCLE;
-        config.spawn_radius_min = 0.5f;
-        config.spawn_radius_max = 0.5f;
+        config.spawn_radius_min = 0.125f;
+        config.spawn_radius_max = 0.25f;
         config.move_away_from_spawn = true;
         config.rate = 0.015f;
         config.max_particles = 256;
         config.velocity_min = 0.425f;
-        config.velocity_max = 0.75f;
+        config.velocity_max = 1.75f;
         config.velocity_angular_min = -2.5f;
         config.velocity_angular_max = 2.5f;
         config.scale_start = 0.05;
-        config.scale_end = 0.1f;
+        config.scale_end = 0.15f;
         config.color_start = colors[WHITE];
         config.color_end = (struct v4){ 1.0f, 0.0f, 0.0f, 0.0f };
-        config.time_min = 1.5f;
-        config.time_max = 3.0f;
+        config.time_min = 0.5f;
+        config.time_max = 1.5f;
         config.texture = GFX_STAR_FILLED;
         config.direction_min = 0.0f;
         config.direction_max = F64_PI * 2.0f;
