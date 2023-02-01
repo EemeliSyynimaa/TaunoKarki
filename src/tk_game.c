@@ -3765,8 +3765,6 @@ f32 turn_amount_calculate(f32 angle_from, f32 angle_to)
 {
     f32 circle = F64_PI * 2.0f;
     f32 result = 0.0f;
-    f32 original_from = angle_from;
-    f32 original_to = angle_to;
 
     while (angle_to < 0.0f)
     {
