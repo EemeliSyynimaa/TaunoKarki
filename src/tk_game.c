@@ -200,6 +200,8 @@ struct particle_emitter_config
     f32 rate;
     f32 lifetime;
 
+    b32 permanent;
+
     f32 velocity_min;
     f32 velocity_max;
     f32 velocity_angular_min;
@@ -249,10 +251,10 @@ struct particle_system
 {
     struct particle_data particles[MAX_PARTICLES];
     struct particle_emitter emitters[MAX_PARTICLE_EMITTERS];
-    u32 num_particles;
-    u32 num_emitters;
-    u32 next_particle;
-    u32 next_emitter;
+    u32 next_permanent_particle;
+    u32 next_permanent_emitter;
+    u32 next_temporary_particle;
+    u32 next_temporary_emitter;
 };
 
 struct particle_renderer
@@ -275,26 +277,80 @@ struct particle_emitter* particle_emitter_create(struct particle_system* system,
 {
     struct particle_emitter* result = NULL;
 
-    // Todo: assert that config has good values
+    if (system->next_permanent_emitter < MAX_PARTICLE_EMITTERS)
     {
-        result = &system->emitters[system->next_emitter];
-
-        // Note: both emitters and particles behave as ringed buffers
-        if (++system->next_emitter >= MAX_PARTICLE_EMITTERS)
+        if (config->permanent)
         {
-            system->next_emitter = 0;
+            result = &system->emitters[system->next_permanent_emitter++];
+
+            system->next_temporary_emitter = MAX(system->next_temporary_emitter,
+                system->next_permanent_emitter);
+        }
+        else
+        {
+            result = &system->emitters[system->next_temporary_emitter++];
+
+            if (system->next_temporary_emitter >= MAX_PARTICLE_EMITTERS)
+            {
+                system->next_temporary_emitter = system->next_permanent_emitter;
+            }
         }
 
-        if (system->next_particle + config->max_particles > MAX_PARTICLES)
+        if (result)
         {
-            system->next_particle = 0;
-        }
+            struct particle_data* particles = NULL;
 
-        result->config = *config;
-        result->particles = &system->particles[system->next_particle];
-        result->max_particles = config->max_particles;
-        result->active = active;
-        system->next_particle += result->max_particles;
+            // Todo: assert that config has good values
+            if (config->permanent)
+            {
+                if (system->next_permanent_particle +
+                    config->max_particles < MAX_PARTICLES)
+                {
+                    particles =
+                        &system->particles[system->next_permanent_particle];
+                    system->next_permanent_particle += config->max_particles;
+                    system->next_temporary_particle =
+                        MAX(system->next_temporary_particle,
+                            system->next_permanent_particle);
+                }
+            }
+            else
+            {
+                if (system->next_temporary_particle +
+                    config->max_particles < MAX_PARTICLES)
+                {
+                    particles =
+                        &system->particles[system->next_temporary_particle];
+                    system->next_temporary_particle =
+                        system->next_temporary_particle + config->max_particles;
+                }
+                else if (system->next_permanent_particle +
+                    config->max_particles < MAX_PARTICLES)
+                {
+                    particles =
+                        &system->particles[system->next_permanent_particle];
+                    system->next_temporary_particle =
+                        system->next_permanent_particle + config->max_particles;
+                }
+            }
+
+            if (particles)
+            {
+                result->config = *config;
+                result->particles = particles;
+                result->max_particles = config->max_particles;
+                result->active = active;
+                result->age = 0.0f;
+
+                LOG("Create emitter! Permanent: %d Start index: %d Size: %d\n",
+                    config->permanent, result->particles - system->particles,
+                    config->max_particles);
+            }
+        }
+        else
+        {
+            LOG("Cannot create emitter, not enough spaces!\n");
+        }
     }
 
     return result;
@@ -1672,6 +1728,7 @@ void particle_renderer_flush(struct particle_renderer* renderer,
 {
     if (renderer->initialized && renderer->num_particles)
     {
+        // LOG("Rendering %u particles\n", renderer->num_particles);
         api.gl.glBindVertexArray(renderer->vao);
         api.gl.glUseProgram(renderer->shader);
 
@@ -5112,6 +5169,38 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                 //     (struct v2){ 0.0f, 0.0f }, colors[GREY],
                 //     PROJECTILE_RADIUS, PROJECTILE_RADIUS * 5.0f, 0.15f);
                 bullet->alive = false;
+
+                f32 angle = f32_atan(-bullet->body.velocity.y,
+                    -bullet->body.velocity.x);
+                f32 spread = 0.75f;
+                f32 color = f32_random(0.25f, 0.75f);
+
+                struct particle_emitter_config config;
+                config.position.xy = bullet->body.position;
+                config.position.z = 0.5f;
+                config.permanent = false;
+                config.type = PARTICLE_EMITTER_POINT;
+                config.spawn_radius_min = 0.125f;
+                config.spawn_radius_max = 0.25f;
+                config.move_away_from_spawn = false;
+                config.rate = 0.025f;
+                config.max_particles = 8;
+                config.velocity_min = 0.425f;
+                config.velocity_max = 1.25f;
+                config.velocity_angular_min = -2.5f;
+                config.velocity_angular_max = 2.5f;
+                config.scale_start = 0.025;
+                config.scale_end = 0.05f;
+                config.color_start = (struct v4){ color, color, color, 1.0f };
+                config.color_end = (struct v4){ .xyz = colors[GREY].xyz, 0.0f };
+                config.time_min = 0.5f;
+                config.time_max = 0.75f;
+                config.texture = GFX_CIRCLE_FILLED;
+                config.direction_min = angle - spread;
+                config.direction_max = angle + spread;
+                config.lifetime = 0.1f;
+
+                particle_emitter_create(&state->particle_system, &config, true);
             }
 
             particle_line_create(state, bullet->start, bullet->body.position,
@@ -6373,7 +6462,7 @@ void level_init(struct game_state* state)
 
     if (state->level_current == 1)
     {
-        state->player.weapon = weapon_create(WEAPON_PISTOL);
+        state->player.weapon = weapon_create(WEAPON_MACHINEGUN);
     }
 
     if (!state->player.alive)
@@ -6529,6 +6618,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         struct particle_emitter_config config;
         config.position = (struct v3){ 3.0f, 3.0f, 0.125f };
         config.type = PARTICLE_EMITTER_CIRCLE;
+        config.permanent = true;
         config.spawn_radius_min = 0.125f;
         config.spawn_radius_max = 0.25f;
         config.move_away_from_spawn = true;
@@ -6551,7 +6641,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         particle_emitter_create(&state->particle_system, &config, false);
 
-        struct particle_emitter_config config2;
         config.position = (struct v3){ 14.0f, 15.0f, 0.125f };
         config.type = PARTICLE_EMITTER_CIRCLE;
         config.spawn_radius_min = 0.125f;
