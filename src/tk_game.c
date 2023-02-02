@@ -277,6 +277,9 @@ struct particle_emitter* particle_emitter_create(struct particle_system* system,
 {
     struct particle_emitter* result = NULL;
 
+    // Todo: assert that config has good values
+    // Todo: clean
+
     if (system->next_permanent_emitter < MAX_PARTICLE_EMITTERS)
     {
         if (config->permanent)
@@ -300,7 +303,6 @@ struct particle_emitter* particle_emitter_create(struct particle_system* system,
         {
             struct particle_data* particles = NULL;
 
-            // Todo: assert that config has good values
             if (config->permanent)
             {
                 if (system->next_permanent_particle +
@@ -341,15 +343,11 @@ struct particle_emitter* particle_emitter_create(struct particle_system* system,
                 result->max_particles = config->max_particles;
                 result->active = active;
                 result->age = 0.0f;
-
-                LOG("Create emitter! Permanent: %d Start index: %d Size: %d\n",
-                    config->permanent, result->particles - system->particles,
-                    config->max_particles);
             }
-        }
-        else
-        {
-            LOG("Cannot create emitter, not enough spaces!\n");
+            else
+            {
+                result = NULL;
+            }
         }
     }
 
@@ -613,6 +611,7 @@ struct player
 struct bullet
 {
     struct rigid_body body;
+    struct v4 color;
     struct v2 start;
     f32 damage;
     b32 alive;
@@ -881,7 +880,7 @@ enum
 u32 ITEAM_HEALTH_AMOUNT = 25.0f;
 
 f32 PROJECTILE_RADIUS = 0.035f;
-f32 PROJECTILE_SPEED  = 100.0f;
+f32 PROJECTILE_SPEED  = 50.0f;
 
 f32 FRICTION  = 10.0f;
 f32 WALL_SIZE = 1.0f;
@@ -3491,6 +3490,8 @@ void bullet_create(struct game_state* state, struct v2 position,
         state->free_bullet = 0;
     }
 
+    f32 color = f32_random(0.75f, 1.0f);
+
     struct bullet* bullet = &state->bullets[state->free_bullet];
     bullet->body.position = position;
     bullet->body.velocity = start_velocity;
@@ -3500,6 +3501,7 @@ void bullet_create(struct game_state* state, struct v2 position,
     bullet->damage = damage;
     bullet->player_owned = player_owned;
     bullet->start = bullet->body.position;
+    bullet->color = (struct v4){ color, color, color, 1.0f };
 
     particle_sphere_create(state, position, (struct v2){ 0.0f, 0.0f },
         colors[YELLOW], size, size * 5.0f, 0.10f);
@@ -5165,9 +5167,6 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
 
             if (distance < distance_target)
             {
-                // particle_sphere_create(state, bullet->body.position,
-                //     (struct v2){ 0.0f, 0.0f }, colors[GREY],
-                //     PROJECTILE_RADIUS, PROJECTILE_RADIUS * 5.0f, 0.15f);
                 bullet->alive = false;
 
                 f32 angle = f32_atan(-bullet->body.velocity.y,
@@ -5204,8 +5203,9 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
             }
 
             particle_line_create(state, bullet->start, bullet->body.position,
-                colors[GREY], (struct v4){ colors[GREY].r, colors[GREY].g,
-                    colors[GREY].b, 0.0f }, 0.30f);
+                (struct v4){ .xyz = bullet->color.xyz, 0.75f },
+                (struct v4){ .xyz = bullet->color.xyz, 0.0f },
+                0.45f);
 
             f32 target_size = PLAYER_RADIUS + PROJECTILE_RADIUS;
 
@@ -5681,14 +5681,20 @@ void particle_lines_update(struct game_state* state, struct game_input* input,
 
 void particle_lines_render(struct game_state* state)
 {
+    // Todo: hax, but this fixes transparent blending
+    f32 depth = 0.0f;
+
     for (u32 i = 0; i < MAX_PARTICLES; i++)
     {
         struct particle_line* particle = &state->particle_lines[i];
 
         if (particle->alive)
         {
+            depth += 0.0001f;
+
             line_render(state, particle->start, particle->end,
-                particle->color_current, PLAYER_RADIUS, PROJECTILE_RADIUS);
+                particle->color_current,
+                PLAYER_RADIUS + depth, PROJECTILE_RADIUS * 0.5f);
         }
     }
 }
@@ -6833,7 +6839,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
         level_render(state, &state->level);
         player_render(state);
         enemies_render(state);
-        bullets_render(state);
+        // bullets_render(state);
         items_render(state);
         particle_system_render(&state->particle_system,
             &state->particle_renderer);
