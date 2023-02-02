@@ -158,6 +158,7 @@ struct cube_renderer
 
 #define MAX_PARTICLES 1024*32
 #define MAX_PARTICLE_EMITTERS 128
+#define INDEFINITE -1
 
 enum
 {
@@ -190,11 +191,14 @@ enum
 // Todo: currently support only two variables, min and max
 struct particle_emitter_config
 {
+    struct v4 color_start;
+    struct v4 color_end;
     struct v3 position;
-    f32 rate;
-    f32 spawn_timer;
+
     u32 type;
     u32 max_particles;
+    f32 rate;
+    f32 lifetime;
 
     f32 velocity_min;
     f32 velocity_max;
@@ -205,17 +209,15 @@ struct particle_emitter_config
     f32 direction_min;
     f32 direction_max;
 
-    struct v4 color_start;
-    struct v4 color_end;
     f32 scale_start;
     f32 scale_end;
-
-    u8 texture;
 
     // Todo: only used by circle emitter
     f32 spawn_radius_min;
     f32 spawn_radius_max;
     b32 move_away_from_spawn;
+
+    u8 texture;
 };
 
 struct particle_emitter
@@ -223,10 +225,10 @@ struct particle_emitter
     struct particle_emitter_config config;
     struct particle_data* particles;
     u32 max_particles;
-    f32 spawn_timer;
+    u32 count_particles;
     u32 next_free;
-
-    b32 alive;
+    f32 spawn_timer;
+    f32 age;
     b32 active;
 };
 
@@ -269,7 +271,7 @@ struct particle_renderer
 };
 
 struct particle_emitter* particle_emitter_create(struct particle_system* system,
-    struct particle_emitter_config* config)
+    struct particle_emitter_config* config, b32 active)
 {
     struct particle_emitter* result = NULL;
 
@@ -277,6 +279,7 @@ struct particle_emitter* particle_emitter_create(struct particle_system* system,
     {
         result = &system->emitters[system->next_emitter];
 
+        // Note: both emitters and particles behave as ringed buffers
         if (++system->next_emitter >= MAX_PARTICLE_EMITTERS)
         {
             system->next_emitter = 0;
@@ -290,6 +293,7 @@ struct particle_emitter* particle_emitter_create(struct particle_system* system,
         result->config = *config;
         result->particles = &system->particles[system->next_particle];
         result->max_particles = config->max_particles;
+        result->active = active;
         system->next_particle += result->max_particles;
     }
 
@@ -353,6 +357,7 @@ void particle_emitter_update(struct particle_emitter* emitter, f32 dt)
             {
                 step += particle->time;
                 particle->time = 0.0f;
+                emitter->count_particles--;
             }
 
             f32 t = (particle->time_start - particle->time) /
@@ -414,6 +419,8 @@ void particle_emitter_spawn(struct particle_emitter* emitter, f32 dt)
             config->time_max);
         particle->time = particle->time_start;
         particle->texture = config->texture;
+
+        emitter->count_particles++;
     }
 }
 
@@ -452,13 +459,19 @@ void particle_system_update(struct particle_system* system, f32 dt)
     {
         struct particle_emitter* emitter = &system->emitters[i];
 
-        if (emitter->alive)
+        if (emitter->count_particles)
         {
             particle_emitter_update(emitter, dt);
+        }
 
-            if (emitter->active)
+        if (emitter->active)
+        {
+            particle_emitter_spawn(emitter, dt);
+
+            if (emitter->config.lifetime != INDEFINITE &&
+                (emitter->age += dt) >= emitter->config.lifetime)
             {
-                particle_emitter_spawn(emitter, dt);
+                emitter->active = false;
             }
         }
     }
@@ -471,7 +484,7 @@ void particle_system_render(struct particle_system* system,
     {
         struct particle_emitter* emitter = &system->emitters[i];
 
-        if (emitter->alive)
+        if (emitter->count_particles)
         {
             particle_emitter_render(emitter, renderer);
         }
@@ -6534,12 +6547,34 @@ void game_init(struct game_memory* memory, struct game_init* init)
         config.texture = GFX_STAR_FILLED;
         config.direction_min = 0.0f;
         config.direction_max = F64_PI * 2.0f;
+        config.lifetime = INDEFINITE;
 
-        struct particle_emitter* emitter = particle_emitter_create(
-            &state->particle_system, &config);
+        particle_emitter_create(&state->particle_system, &config, false);
 
-        emitter->alive = true;
-        emitter->active = true;
+        struct particle_emitter_config config2;
+        config.position = (struct v3){ 14.0f, 15.0f, 0.125f };
+        config.type = PARTICLE_EMITTER_CIRCLE;
+        config.spawn_radius_min = 0.125f;
+        config.spawn_radius_max = 0.25f;
+        config.move_away_from_spawn = true;
+        config.rate = 0.015f;
+        config.max_particles = 256;
+        config.velocity_min = 0.425f;
+        config.velocity_max = 1.75f;
+        config.velocity_angular_min = -2.5f;
+        config.velocity_angular_max = 2.5f;
+        config.scale_start = 0.05;
+        config.scale_end = 0.15f;
+        config.color_start = colors[WHITE];
+        config.color_end = (struct v4){ 1.0f, 0.0f, 0.0f, 0.0f };
+        config.time_min = 0.5f;
+        config.time_max = 1.5f;
+        config.texture = GFX_STAR_FILLED;
+        config.direction_min = 0.0f;
+        config.direction_max = F64_PI * 2.0f;
+        config.lifetime = 1.0f;
+
+        particle_emitter_create(&state->particle_system, &config, true);
 
         state->camera.screen_width = init->screen_width;
         state->camera.screen_height = init->screen_height;
@@ -6576,6 +6611,8 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
 void game_update(struct game_memory* memory, struct game_input* input)
 {
+    static f32 particle_test = 0;
+
     if (memory->initialized)
     {
         struct game_state* state = (struct game_state*)memory->base;
@@ -6613,6 +6650,13 @@ void game_update(struct game_memory* memory, struct game_input* input)
                     particle_lines_update(state, input, step);
                     particle_spheres_update(state, input, step);
                     particle_system_update(&state->particle_system, step);
+
+                    if ((particle_test += step) > 1.5f)
+                    {
+                        state->particle_system.emitters[1].active = true;
+                        state->particle_system.emitters[1].age = 0.0f;
+                        particle_test = 0.0f;
+                    }
                 }
 
                 struct v2 start_min = v2_sub_f32(state->level.start_pos, 2.0f);
