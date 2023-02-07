@@ -16,7 +16,8 @@ void random_init(u32 seed)
 
 u32 random()
 {
-    u32 result = _rng_default.seed = (u64)_rng_default.seed * 48271 % 0x7fffffff;
+    u32 result = _rng_default.seed = (u64)_rng_default.seed * 48271 %
+        0x7fffffff;
 
     return result;
 }

@@ -610,7 +610,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     win32_ticks_frequency = query_performance_frequency.QuadPart;
 
     struct game_memory memory = { 0 };
-    memory.size = 1024*1024*1024;
+    memory.size = GIGABYTES(1);
     memory.base = VirtualAlloc(NULL, memory.size, MEM_COMMIT | MEM_RESERVE,
         PAGE_READWRITE);
 

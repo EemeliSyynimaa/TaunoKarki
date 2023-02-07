@@ -19,6 +19,11 @@ typedef double      f64;
 
 typedef bool        b32;
 
+#define KILOBYTES(X) ((X) * 1024)
+#define MEGABYTES(X) (KILOBYTES(X) * 1024)
+#define GIGABYTES(X) (MEGABYTES(X) * 1024)
+#define TERABYTES(X) (GIGABYTES(X) * 1024)
+
 #include "tk_opengl_api.h"
 #include "tk_file_api.h"
 #include "tk_time_api.h"
