@@ -664,18 +664,26 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                         new_input.mouse_x = 0;
                                         new_input.mouse_y = 0;
                                     }
-                                    LOG("Stop playing\n");
+                                    LOG("Playback: stop\n");
                                 }
                                 else
                                 {
-                                    CopyMemory(memory.base, memory_recorded,
-                                        memory.size);
-                                    CopyMemory(&inputs_playback,
-                                        &inputs_recorded,
-                                        sizeof(struct win32_recorded_inputs));
+                                    if (inputs_recorded.count)
+                                    {
+                                        CopyMemory(memory.base, memory_recorded,
+                                            memory.size);
+                                        CopyMemory(&inputs_playback,
+                                            &inputs_recorded,
+                                            sizeof(
+                                                struct win32_recorded_inputs));
 
-                                    LOG("Start playing\n");
-                                    playing = true;
+                                        LOG("Playback: start\n");
+                                        playing = true;
+                                    }
+                                    else
+                                    {
+                                        LOG("Playback: no recorded inputs\n");
+                                    }
                                 }
                             }
                         }
@@ -686,13 +694,13 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                 if (recording)
                                 {
                                     recording = false;
-                                    LOG("Stop recording\n");
+                                    LOG("Record: stop\n");
                                 }
                                 else
                                 {
                                     CopyMemory(memory_recorded, memory.base,
                                         memory.size);
-                                    LOG("Start recording\n");
+                                    LOG("Record: start\n");
                                     recording = true;
                                     inputs_recorded.count = 0;
                                     inputs_recorded.current = 0;
@@ -841,6 +849,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
             {
                 inputs_playback.current = 0;
                 CopyMemory(memory.base, memory_recorded, memory.size);
+
+                LOG("Playback: restart\n");
             }
 
             new_input = inputs_playback.inputs[inputs_playback.current++];
@@ -854,8 +864,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
             if (inputs_recorded.count == RECORDED_INPUTS_MAX)
             {
-                LOG("Recording limit reached\n");
-                LOG("Stop recording\n");
+                LOG("Record: stop, input limit reached\n");
                 recording = false;
             }
         }
