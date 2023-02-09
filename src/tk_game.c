@@ -206,6 +206,8 @@ struct particle_emitter_config
     f32 direction_min;
     f32 direction_max;
 
+    f32 opacity_start;
+    f32 opacity_end;
     f32 scale_start;
     f32 scale_end;
 
@@ -239,6 +241,7 @@ struct particle_data
     f32 rotation;
     f32 time_start;
     f32 time;
+    f32 opacity;
     u8 texture;
 };
 
@@ -354,6 +357,17 @@ f32 f32_get_value_between(f32 min, f32 max, f32 t)
     return min + (max - min) * t;
 }
 
+struct v3 v3_get_value_between(struct v3 min, struct v3 max, f32 t)
+{
+    struct v3 result = min;
+
+    result.x += (max.x - min.x) * t;
+    result.y += (max.y - min.y) * t;
+    result.z += (max.z - min.z) * t;
+
+    return result;
+}
+
 struct v4 v4_get_value_between(struct v4 min, struct v4 max, f32 t)
 {
     struct v4 result = min;
@@ -412,13 +426,17 @@ void particle_emitter_update(struct particle_emitter* emitter, f32 dt)
             f32 t = (particle->time_start - particle->time) /
                 particle->time_start;
 
+            struct particle_emitter_config* config = &emitter->config;
+
             particle->position.x += particle->velocity.x * step;
             particle->position.y += particle->velocity.y * step;
-            particle->scale = f32_get_value_between(emitter->config.scale_start,
-                emitter->config.scale_end, t);
-            particle->color = v4_get_value_between(emitter->config.color_start,
-                emitter->config.color_end, t);
+            particle->scale = f32_get_value_between(config->scale_start,
+                config->scale_end, t);
+            particle->color.xyz = v3_get_value_between(
+                config->color_start.xyz, config->color_end.xyz, t);
             particle->rotation += particle->velocity_angular * step;
+            particle->opacity = f32_get_value_between(config->opacity_start,
+                config->opacity_end, t);
         }
     }
 }
@@ -468,6 +486,7 @@ void particle_emitter_spawn(struct particle_emitter* emitter, f32 dt)
             config->time_max);
         particle->time = particle->time_start;
         particle->texture = config->texture;
+        particle->opacity = config->opacity_start;
 
         emitter->count_particles++;
     }
@@ -496,7 +515,7 @@ void particle_emitter_render(struct particle_emitter* emitter,
                 &renderer->data[renderer->num_particles++];
 
             data->model = model;
-            data->color = particle->color;
+            data->color = (struct v4){ particle->color.xyz, particle->opacity };
             data->texture = particle->texture;
         }
     }
@@ -5179,40 +5198,68 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                 config.spawn_radius_max = 0.25f;
                 config.move_away_from_spawn = false;
                 config.rate = 0.025f;
-                config.max_particles = 8;
-                config.velocity_min = 0.425f;
-                config.velocity_max = 1.25f;
+                config.max_particles = 5;
+                config.velocity_min = 1.25f;
+                config.velocity_max = 2.25f;
                 config.velocity_angular_min = -2.5f;
                 config.velocity_angular_max = 2.5f;
-                config.scale_start = 0.025;
+                config.scale_start = 0.0125;
                 config.scale_end = 0.05f;
                 config.color_start = (struct v4){ color, color, color, 1.0f };
                 config.color_end = (struct v4){ .xyz = colors[GREY].xyz, 0.0f };
-                config.time_min = 0.5f;
-                config.time_max = 0.75f;
+                config.opacity_start = 1.0f;
+                config.opacity_end = 0.25f;
+                config.time_min = 0.125f;
+                config.time_max = 0.25f;
                 config.texture = GFX_CIRCLE_FILLED;
                 config.direction_min = angle - spread;
                 config.direction_max = angle + spread;
                 config.lifetime = 0.1f;
 
-                particle_emitter_create(&state->particle_system, &config, true);
-            }
+                f32 target_size = PLAYER_RADIUS + PROJECTILE_RADIUS;
 
-            particle_line_create(state, bullet->start, bullet->body.position,
-                (struct v4){ .xyz = bullet->color.xyz, 0.75f },
-                (struct v4){ .xyz = bullet->color.xyz, 0.0f },
-                0.45f);
-
-            f32 target_size = PLAYER_RADIUS + PROJECTILE_RADIUS;
-
-            if (bullet->player_owned)
-            {
-                for (u32 j = 0; j < state->num_enemies; j++)
+                // Todo: we might not need to do this if the ray cast system
+                // could differentiate whether the ray hit a wall or an entity
+                if (bullet->player_owned)
                 {
-                    struct enemy* enemy = &state->enemies[j];
+                    for (u32 j = 0; j < state->num_enemies; j++)
+                    {
+                        struct enemy* enemy = &state->enemies[j];
+                        struct line_segment segments[4] = { 0 };
+
+                        get_body_rectangle(enemy->body, target_size,
+                            target_size, segments);
+
+                        struct v2 corners[] =
+                        {
+                            segments[0].start,
+                            segments[1].start,
+                            segments[2].start,
+                            segments[3].start
+                        };
+
+                        if (enemy->alive && collision_point_to_obb(
+                            bullet->body.position, corners))
+                        {
+                            bullet->alive = false;
+                            enemy->health -= bullet->damage;
+                            enemy->got_hit = true;
+                            enemy->hit_direction = v2_flip(v2_normalize(
+                                bullet->body.velocity));
+
+                            config.color_start = colors[RED];
+                            config.color_end = colors[RED];
+
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    struct player* player = &state->player;
                     struct line_segment segments[4] = { 0 };
 
-                    get_body_rectangle(enemy->body, target_size, target_size,
+                    get_body_rectangle(player->body, target_size, target_size,
                         segments);
 
                     struct v2 corners[] =
@@ -5223,52 +5270,24 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                         segments[3].start
                     };
 
-                    if (enemy->alive && collision_point_to_obb(
+                    if (player->alive && collision_point_to_obb(
                         bullet->body.position, corners))
                     {
                         bullet->alive = false;
-                        enemy->health -= bullet->damage;
-                        enemy->got_hit = true;
-                        enemy->hit_direction = v2_flip(v2_normalize(
-                            bullet->body.velocity));
+                        player->health -= bullet->damage;
 
-                        particle_sphere_create(state, bullet->body.position,
-                            (struct v2){ bullet->body.velocity.x * 0.5,
-                                bullet->body.velocity.y * 0.5 }, colors[RED],
-                            PROJECTILE_RADIUS, PROJECTILE_RADIUS * 2.5f, 0.15f);
-
-                        break;
+                        config.color_start = colors[RED];
+                        config.color_end = colors[RED];
                     }
                 }
+
+                particle_emitter_create(&state->particle_system, &config, true);
             }
-            else
-            {
-                struct player* player = &state->player;
-                struct line_segment segments[4] = { 0 };
 
-                get_body_rectangle(player->body, target_size, target_size,
-                    segments);
-
-                struct v2 corners[] =
-                {
-                    segments[0].start,
-                    segments[1].start,
-                    segments[2].start,
-                    segments[3].start
-                };
-
-                if (player->alive && collision_point_to_obb(
-                    bullet->body.position, corners))
-                {
-                    bullet->alive = false;
-                    player->health -= bullet->damage;
-
-                    particle_sphere_create(state, bullet->body.position,
-                        (struct v2){ bullet->body.velocity.x * 0.5,
-                            bullet->body.velocity.y * 0.5 }, colors[RED],
-                        PROJECTILE_RADIUS, PROJECTILE_RADIUS * 2.5f, 0.15f);
-                }
-            }
+            particle_line_create(state, bullet->start, bullet->body.position,
+                (struct v4){ .xyz = bullet->color.xyz, 0.75f },
+                (struct v4){ .xyz = bullet->color.xyz, 0.0f },
+                0.45f);
 
             bullet->start = bullet->body.position;
         }
@@ -6635,7 +6654,9 @@ void game_init(struct game_memory* memory, struct game_init* init)
         config.scale_start = 0.05;
         config.scale_end = 0.15f;
         config.color_start = colors[WHITE];
-        config.color_end = (struct v4){ 1.0f, 0.0f, 0.0f, 0.0f };
+        config.color_end = colors[RED];
+        config.opacity_start = 1.0f;
+        config.opacity_end = 0.0f;
         config.time_min = 0.5f;
         config.time_max = 1.5f;
         config.texture = GFX_STAR_FILLED;
@@ -6659,7 +6680,9 @@ void game_init(struct game_memory* memory, struct game_init* init)
         config.scale_start = 0.05;
         config.scale_end = 0.15f;
         config.color_start = colors[WHITE];
-        config.color_end = (struct v4){ 1.0f, 0.0f, 0.0f, 0.0f };
+        config.color_end = colors[RED];
+        config.opacity_start = 1.0f;
+        config.opacity_end = 0.0f;
         config.time_min = 0.5f;
         config.time_max = 1.5f;
         config.texture = GFX_STAR_FILLED;
