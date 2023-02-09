@@ -296,68 +296,13 @@ void win32_file_size_get(file_handle* handle, u64* file_size)
     }
 }
 
-bool win32_recorded_memory_read(struct game_memory* memory)
-{
-    file_handle file;
-    u64 bytes_read = 0;
-    win32_file_open(&file, "recorded_memory", true);
-
-    if (file)
-    {
-        win32_file_read(&file, memory->base, memory->size, &bytes_read);
-        win32_file_close(&file);
-
-        assert(bytes_read == memory->size);
-
-        return true;
-    }
-
-    return false;
-}
-
-void win32_recorded_memory_write(struct game_memory* memory)
-{
-    file_handle file;
-    win32_file_open(&file, "recorded_memory", false);
-    win32_file_write(&file, memory->base, memory->size);
-    win32_file_close(&file);
-}
-
 #define RECORDED_INPUTS_MAX 4096
 struct win32_recorded_inputs
 {
     u32 count;
     u32 current;
-    struct game_input inputs[RECORDED_INPUTS_MAX];
+    struct game_input* inputs;
 };
-
-bool win32_recorded_inputs_read(struct win32_recorded_inputs* inputs)
-{
-    file_handle file;
-    u64 bytes_read = 0;
-    win32_file_open(&file, "recorded_inputs", true);
-
-    if (file)
-    {
-        win32_file_read(&file, (s8*)inputs, 
-            sizeof(struct win32_recorded_inputs), &bytes_read);
-        win32_file_close(&file);
-
-        assert(bytes_read == sizeof(struct win32_recorded_inputs));
-
-        return true;
-    }
-
-    return false;
-}
-
-void win32_recorded_inputs_write(struct win32_recorded_inputs* inputs)
-{
-    file_handle file;
-    win32_file_open(&file, "recorded_inputs", false);
-    win32_file_write(&file, (s8*)inputs, sizeof(struct win32_recorded_inputs));
-    win32_file_close(&file);
-}
 
 LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
     LPARAM lParam)
@@ -394,9 +339,6 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 
     return 0;
 }
-
-// Todo: get rid of globals
-struct win32_recorded_inputs record;
 
 #define OPEN_GL_FUNCTION_LOAD(name) api.gl.name = \
     (type_##name*)wglGetProcAddress(#name)
@@ -616,6 +558,22 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     assert(memory.base);
 
+    void* memory_recorded = VirtualAlloc(NULL, memory.size,
+        MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
+    assert(memory_recorded);
+
+    struct win32_recorded_inputs inputs_recorded = { 0 };
+    struct win32_recorded_inputs inputs_playback = { 0 };
+
+    u32 max_record_inputs_in_bytes = sizeof(struct game_input) *
+        RECORDED_INPUTS_MAX;
+
+    inputs_recorded.inputs = VirtualAlloc(NULL, max_record_inputs_in_bytes,
+        MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    inputs_playback.inputs = VirtualAlloc(NULL, max_record_inputs_in_bytes,
+        MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+
     struct game_input old_input = { 0 };
 
     LARGE_INTEGER old_time = win32_current_time_get();
@@ -710,12 +668,14 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                 }
                                 else
                                 {
-                                    if (win32_recorded_memory_read(&memory) &&
-                                        win32_recorded_inputs_read(&record))
-                                    {
-                                        LOG("Start playing\n");
-                                        playing = true;
-                                    }
+                                    CopyMemory(memory.base, memory_recorded,
+                                        memory.size);
+                                    CopyMemory(&inputs_playback,
+                                        &inputs_recorded,
+                                        sizeof(struct win32_recorded_inputs));
+
+                                    LOG("Start playing\n");
+                                    playing = true;
                                 }
                             }
                         }
@@ -726,16 +686,16 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                 if (recording)
                                 {
                                     recording = false;
-                                    win32_recorded_inputs_write(&record);
                                     LOG("Stop recording\n");
                                 }
                                 else
                                 {
-                                    win32_recorded_memory_write(&memory);
+                                    CopyMemory(memory_recorded, memory.base,
+                                        memory.size);
                                     LOG("Start recording\n");
                                     recording = true;
-                                    record.count = 0;
-                                    record.current = 0;
+                                    inputs_recorded.count = 0;
+                                    inputs_recorded.current = 0;
                                 }   
                             }
                         }
@@ -877,22 +837,22 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
         if (playing)
         {
-            if (record.current >= record.count)
+            if (inputs_playback.current >= inputs_playback.count)
             {
-                record.current = 0;
-                win32_recorded_memory_read(&memory);
+                inputs_playback.current = 0;
+                CopyMemory(memory.base, memory_recorded, memory.size);
             }
 
-            new_input = record.inputs[record.current++];
+            new_input = inputs_playback.inputs[inputs_playback.current++];
         }
         
         new_input.delta_time = delta_time;
         
         if (recording)
         {
-            record.inputs[record.count++] = new_input;
+            inputs_recorded.inputs[inputs_recorded.count++] = new_input;
 
-            if (record.count == RECORDED_INPUTS_MAX)
+            if (inputs_recorded.count == RECORDED_INPUTS_MAX)
             {
                 LOG("Recording limit reached\n");
                 LOG("Stop recording\n");
