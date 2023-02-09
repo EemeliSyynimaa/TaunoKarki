@@ -6,18 +6,12 @@
 // Todo: this is in global space, scary
 struct random_number_generator
 {
-    u32 seed;
-} _rng_default;
-
-void random_init(u32 seed)
-{
-    _rng_default.seed = seed;
-}
+    u32* seed;
+} _rng;
 
 u32 random()
 {
-    u32 result = _rng_default.seed = (u64)_rng_default.seed * 48271 %
-        0x7fffffff;
+    u32 result = *_rng.seed = (u64)*_rng.seed * 48271 % 0x7fffffff;
 
     return result;
 }
@@ -820,6 +814,7 @@ struct game_state
     u32 num_gun_shots;
     u32 ticks_per_second;
     u32 level_current;
+    u32 random_seed;
 };
 
 // Todo: global for now
@@ -6521,13 +6516,15 @@ void level_init(struct game_state* state)
 
 void game_init(struct game_memory* memory, struct game_init* init)
 {
-    _log = *init->log;
+    struct game_state* state = (struct game_state*)memory->base;
 
+    // Init globals that use the game memory each time the game init is called
+    _log = *init->log;
+    _rng.seed = &state->random_seed;
     api = init->api;
 
     if (!memory->initialized)
     {
-        struct game_state* state = (struct game_state*)memory->base;
         s32 version_major = 0;
         s32 version_minor = 0;
         s32 uniform_blocks_max_vertex = 0;
@@ -6573,7 +6570,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->stack.current = state->stack.base;
         state->stack.size = 100*1024*1024;
 
-        random_init(init->init_time);
+        state->random_seed = init->init_time;
 
         state->shader = program_create(&state->stack,
             "assets/shaders/vertex.glsl",
