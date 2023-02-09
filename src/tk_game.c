@@ -786,7 +786,6 @@ struct game_state
     struct enemy enemies[MAX_ENEMIES];
     struct item items[MAX_ITEMS];
     struct particle_line particle_lines[MAX_PARTICLES];
-    struct particle_sphere particle_spheres[MAX_PARTICLES];
     struct camera camera;
     struct mouse mouse;
     struct mesh sphere;
@@ -3451,30 +3450,6 @@ b32 check_tile_collisions(struct level* level, struct v2* pos, struct v2* vel,
     return result;
 }
 
-void particle_sphere_create(struct game_state* state, struct v2 position,
-    struct v2 velocity, struct v4 color, f32 radius_start, f32 radius_end,
-    f32 time)
-{
-    if (++state->free_particle_sphere == MAX_PARTICLES)
-    {
-        state->free_particle_sphere = 0;
-    }
-
-    struct particle_sphere* particle = &state->particle_spheres[
-        state->free_particle_sphere];
-
-    *particle = (struct particle_sphere){ 0 };
-    particle->position = position;
-    particle->velocity = velocity;
-    particle->color = color;
-    particle->alive = true;
-    particle->radius_start = radius_start;
-    particle->radius_end = radius_end;
-    particle->time_start = time;
-    particle->time_current = particle->time_start;
-    particle->radius_current = particle->radius_start;
-}
-
 void particle_line_create(struct game_state* state, struct v2 start,
     struct v2 end, struct v4 color_start, struct v4 color_end, f32 time)
 {
@@ -3518,8 +3493,7 @@ void bullet_create(struct game_state* state, struct v2 position,
     bullet->start = bullet->body.position;
     bullet->color = (struct v4){ color, color, color, 1.0f };
 
-    particle_sphere_create(state, position, (struct v2){ 0.0f, 0.0f },
-        colors[YELLOW], size, size * 5.0f, 0.10f);
+    // Todo: add a fancy particle effect here
 }
 
 struct item* item_create(struct game_state* state, struct v2 position, u32 type)
@@ -5714,47 +5688,6 @@ void particle_lines_render(struct game_state* state)
     }
 }
 
-void particle_spheres_update(struct game_state* state, struct game_input* input,
-    f32 dt)
-{
-    for (u32 i = 0; i < MAX_PARTICLES; i++)
-    {
-        struct particle_sphere* particle = &state->particle_spheres[i];
-
-        if (particle->alive)
-        {
-            if (particle->time_current <= 0.0f)
-            {
-                particle->alive = false;
-            }
-            else
-            {
-                particle->position.x += particle->velocity.x * dt;
-                particle->position.y += particle->velocity.y * dt;
-                particle->time_current -= dt;
-                f32 t = 1.0f - particle->time_current / particle->time_start;
-
-                particle->radius_current = particle->radius_start +
-                    (particle->radius_end - particle->radius_start) * t;
-            }
-        }
-    }
-}
-
-void particle_spheres_render(struct game_state* state)
-{
-    for (u32 i = 0; i < MAX_PARTICLES; i++)
-    {
-        struct particle_sphere* particle = &state->particle_spheres[i];
-
-        if (particle->alive)
-        {
-            sphere_render(state, particle->position, particle->radius_current,
-                particle->color, PLAYER_RADIUS);
-        }
-    }
-}
-
 // Todo: create single struct for header (requires packing)
 struct color_map_spec
 {
@@ -6420,8 +6353,6 @@ void level_init(struct game_state* state)
         sizeof(struct item) * MAX_ITEMS, 0);
     memory_set(state->particle_lines,
         sizeof(struct particle_line) * MAX_PARTICLES, 0);
-    memory_set(state->particle_spheres,
-        sizeof(struct particle_sphere) * MAX_PARTICLES, 0);
     memory_set(state->wall_corners,
         sizeof(struct v2) * MAX_WALL_CORNERS, 0);
     memory_set(state->wall_faces,
@@ -6764,7 +6695,6 @@ void game_update(struct game_memory* memory, struct game_input* input)
                     bullets_update(state, input, step);
                     items_update(state, input, step);
                     particle_lines_update(state, input, step);
-                    particle_spheres_update(state, input, step);
                     particle_system_update(&state->particle_system, step);
 
                     if ((particle_test += step) > 1.5f)
@@ -6875,7 +6805,6 @@ void game_update(struct game_memory* memory, struct game_input* input)
             &state->camera.projection);
 
         particle_lines_render(state);
-        particle_spheres_render(state);
 
         // u64 render_end = ticks_current_get();
 
