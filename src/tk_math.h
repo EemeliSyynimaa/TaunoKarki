@@ -75,6 +75,10 @@ struct v4
     };
 };
 
+const struct v2 v2_zero = { 0.0f };
+const struct v3 v3_zero = { 0.0f };
+const struct v4 v4_zero = { 0.0f };
+
 struct m2
 {
     f32 m[2][2];
@@ -89,8 +93,6 @@ struct m4
 {
     f32 m[4][4];
 };
-
-struct v2 v2_zero = { 0.0f };
 
 f32 f32_radians(f32 degrees)
 {
