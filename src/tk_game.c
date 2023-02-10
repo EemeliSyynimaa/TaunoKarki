@@ -779,6 +779,16 @@ struct gun_shot
     f32 volume; // Todo: change name
 };
 
+#define MAX_CIRCLES 16
+
+struct circle
+{
+    struct v2 position;
+    struct v2 velocity;
+    struct v2 move_delta;
+    f32 radius;
+};
+
 struct game_state
 {
     struct player player;
@@ -804,6 +814,7 @@ struct game_state
     struct gun_shot gun_shots[MAX_GUN_SHOTS];
     struct level level;
     struct level level_mask;
+    struct circle circles[MAX_CIRCLES];
     b32 render_debug;
     b32 level_change;
     b32 level_cleared;
@@ -830,6 +841,7 @@ struct game_state
     u32 num_cols_static;
     u32 num_cols_dynamic;
     u32 num_gun_shots;
+    u32 num_circles;
     u32 ticks_per_second;
     u32 level_current;
     u32 random_seed;
@@ -2458,9 +2470,9 @@ void triangle_render(struct game_state* state, struct v2 a, struct v2 b,
     u32 texture = 0;
     struct vertex vertices[] =
     {
-        {{ a.x, a.y, depth }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, color },
-        {{ b.x, b.y, depth }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, color },
-        {{ c.x, c.y, depth }, { 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, color }
+        {{ a.x, a.y, depth }, v2_zero, v3_zero, color },
+        {{ b.x, b.y, depth }, v2_zero, v3_zero, color },
+        {{ c.x, c.y, depth }, v2_zero, v3_zero, color }
     };
 
     api.gl.glGenVertexArrays(1, &vao);
@@ -6625,12 +6637,23 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         state->camera.screen_width = init->screen_width;
         state->camera.screen_height = init->screen_height;
-        state->camera.projection = m4_perspective(60.0f,
-            (f32)state->camera.screen_width/(f32)state->camera.screen_height,
-            0.1f, 15.0f);
-        // state->camera.projection = m4_orthographic(-10.0f, 10.0f, -10.0f,
-        //     10.0f, 0.1f, 100.0f);
+        // state->camera.projection = m4_perspective(60.0f,
+        //     (f32)state->camera.screen_width/(f32)state->camera.screen_height,
+        //     0.1f, 15.0f);
+        state->camera.projection = m4_orthographic(-10.0f, 10.0f, -10.0f,
+            10.0f, 0.1f, 100.0f);
         state->camera.projection_inverse = m4_inverse(state->camera.projection);
+        state->num_circles = MAX_CIRCLES;
+
+        for (u32 i = 0; i < state->num_circles; i++)
+        {
+            struct circle* circle = &state->circles[i];
+            circle->position.x = f32_random(2.0f, 8.0f);
+            circle->position.y = f32_random(2.0f, 8.0f);
+            circle->velocity = v2_direction_from_angle(
+                f32_random(0, f32_radians(359)));
+        }
+
         state->render_debug = false;
 
         u32 num_colors = sizeof(colors) / sizeof(struct v4);
@@ -6653,6 +6676,132 @@ void game_init(struct game_memory* memory, struct game_init* init)
     if (!memory->initialized)
     {
         LOG("game_init: end of init, memory not initalized!\n");
+    }
+}
+
+b32 collision_circle_resolve(struct v2 rel, struct v2 move_delta, f32 radius,
+    f32 radius_target, f32* move_time, struct v2* normal)
+{
+    b32 result = collision_circle_to_circle(rel, radius, v2_zero,
+        radius_target);
+
+    if (result)
+    {
+        *move_time = 0.5;
+        *normal = v2_normalize(v2_direction(v2_zero, rel));
+    }
+
+    return result;
+}
+
+void circles_collisions_check(struct game_state* state)
+{
+    // f32 time_remaining = 1.0f;
+    // u32 times = 1;
+
+    // for (u32 i = 0; i < times && time_remaining > 0.0f; i++)
+    // {
+    //     f32 time = 1.0f;
+    //     struct v2 normal = { 0.0f };
+
+    //     for (u32 i = 0; i < state->num_enemies; i++)
+    //     {
+    //         struct v2 rel =
+    //         {
+    //             pos->x - state->enemies[i].body.position.x,
+    //             pos->y - state->enemies[i].body.position.y,
+    //         };
+
+    //         if (collision_circle_resolve(rel, move_delta, radius, radius,
+    //             &time, &normal))
+    //         {
+    //             // LOG("COLLISION!!!!\n");
+    //         }
+    //     }
+
+    //     pos->x += move_delta.x * time;
+    //     pos->y += move_delta.y * time;
+
+    //     f32 vel_dot = v2_dot(*vel, normal);
+
+    //     vel->x -= vel_dot * normal.x;
+    //     vel->y -= vel_dot * normal.y;
+
+    //     f32 move_delta_dot = v2_dot(move_delta, normal);
+
+    //     move_delta.x -= move_delta_dot * normal.x;
+    //     move_delta.y -= move_delta_dot * normal.y;
+
+    //     time_remaining -= time * time_remaining;
+    // }
+
+    for (u32 i = 0; i < state->num_circles; i++)
+    {
+        struct circle* a = &state->circles[i];
+
+        for (u32 j = 0; j < state->num_circles; j++)
+        {
+            if (i == j)
+            {
+                continue;
+            }
+
+            f32 time = 1.0f;
+            struct v2 normal = { 0.0f };
+
+            struct circle* b = &state->circles[j];
+
+            struct v2 rel =
+            {
+                a->position.x - b->position.x,
+                a->position.y - b->position.y
+            };
+
+            if (collision_circle_resolve(rel, a->move_delta, PLAYER_RADIUS,
+                PLAYER_RADIUS, &time, &normal))
+            {
+                f32 speed = v2_length(a->velocity);
+                a->move_delta.x = 0;
+                a->move_delta.y = 0;
+                a->velocity.x = 0;
+                a->velocity.y = 0;
+            }
+        }
+
+        a->position.x += a->move_delta.x;
+        a->position.y += a->move_delta.y;
+    }
+}
+
+void circles_update(struct game_state* state, struct game_input* input, f32 dt)
+{
+    for (u32 i = 0; i < state->num_circles; i++)
+    {
+        struct circle* circle = &state->circles[i];
+
+        circle->move_delta.x = circle->velocity.x * dt;
+        circle->move_delta.y = circle->velocity.y * dt;
+    }
+}
+
+void circles_render(struct game_state* state)
+{
+    for (u32 i = 0; i < state->num_circles; i++)
+    {
+        struct circle* circle = &state->circles[i];
+        struct m4 transform = m4_translate(circle->position.x,
+            circle->position.y, 1.0f);
+        struct m4 rotation = m4_identity();
+        struct m4 scale = m4_scale_all(PLAYER_RADIUS);
+
+        struct m4 model = m4_mul_m4(scale, rotation);
+        model = m4_mul_m4(model, transform);
+
+        struct m4 mvp = m4_mul_m4(model, state->camera.view);
+        mvp = m4_mul_m4(mvp, state->camera.projection);
+
+        mesh_render(&state->sphere, &mvp, state->texture_sphere,
+            state->shader_simple, colors[WHITE]);
     }
 }
 
@@ -6696,6 +6845,8 @@ void game_update(struct game_memory* memory, struct game_input* input)
                     items_update(state, input, step);
                     particle_lines_update(state, input, step);
                     particle_system_update(&state->particle_system, step);
+                    circles_update(state, input, step);
+                    circles_collisions_check(state);
 
                     if ((particle_test += step) > 1.5f)
                     {
@@ -6796,6 +6947,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
             &state->particle_renderer);
 
         particle_renderer_sort(&state->particle_renderer);
+        circles_render(state);
 
         cube_renderer_flush(&state->cube_renderer, &state->camera.view,
             &state->camera.projection);
