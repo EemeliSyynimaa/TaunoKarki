@@ -170,6 +170,13 @@ f32 f32_distance(f32 ax, f32 ay, f32 bx, f32 by)
     return result;
 }
 
+f32 f32_distance_squared(f32 ax, f32 ay, f32 bx, f32 by)
+{
+    f32 result = (bx - ax) * (bx - ax) + (by - ay) * (by - ay);
+
+    return result;
+}
+
 void f32_swap(f32* a, f32* b)
 {
     f32 t = *a;
@@ -724,6 +731,13 @@ f32 v2_distance(struct v2 a, struct v2 b)
     return result;
 }
 
+f32 v2_distance_squared(struct v2 a, struct v2 b)
+{
+    f32 result = f32_distance_squared(a.x, a.y, b.x, b.y);
+
+    return result;
+}
+
 f32 v2_angle(struct v2 a, struct v2 b)
 {
     f32 result = f32_acos(v2_dot(a, b) / (v2_length(a) * v2_length(b)));
@@ -883,6 +897,13 @@ struct v2 v2_flip(struct v2 a)
 
     result.x = -a.x;
     result.y = -a.y;
+
+    return result;
+}
+
+struct v2 v2_abs(struct v2 v)
+{
+    struct v2 result = { f32_abs(v.x), f32_abs(v.y) };
 
     return result;
 }
