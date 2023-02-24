@@ -789,6 +789,7 @@ struct circle
     struct v2 normal; // Todo: collision normal, temp here
     struct v2 acceleration;
     f32 radius;
+    f32 t;
     b32 collided;
 };
 
@@ -6676,14 +6677,13 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->num_circles = 2;
 
         struct circle* circle = &state->circles[0];
-        circle->position.x = 6.5;
-        circle->position.y = 6.5f;
+        circle->position.x = 8.0f;
+        circle->position.y = 5.0f;
         circle->acceleration.x = -10.f;
-        circle->acceleration.y = -10.f;
         circle->radius = 0.25f;
         circle = &state->circles[1];
-        circle->position.x = 5.0f;
-        circle->position.y = 5;
+        circle->position.x = 6.0f;
+        circle->position.y = 5.0;
         // circle->acceleration.x = -10.f;
         circle->radius = 0.25f;
 #endif
@@ -6713,83 +6713,53 @@ void game_init(struct game_memory* memory, struct game_init* init)
     }
 }
 
-struct v2 get_closest_point_on_line_segment(struct v2 point, struct v2 start,
-    struct v2 end, f32* distance, struct v2* closest_on_line)
-{
-    struct v2 result = { 0.0f };
-
-    // Calculate line segment direction vector
-    struct v2 direction_segment = v2_normalize(v2_direction(start, end));
-
-    // Calculate vector from start to point
-    struct v2 start_to_point = v2_sub(point, start); // Swap these
-
-    f32 temp = v2_dot(start_to_point, direction_segment);
-    struct v2 temp2 = v2_mul_f32(direction_segment, temp);
-
-    result = v2_add(start, temp2);
-
-    if (closest_on_line)
-    {
-        *closest_on_line = result;
-    }
-
-    f32 length_segment = v2_distance(start, end);
-    f32 distance_start_closest = v2_distance(start, result);
-    f32 distance_end_closest = v2_distance(end, result);
-
-    if (distance_end_closest > length_segment ||
-        distance_start_closest > length_segment)
-    {
-        if (distance_end_closest > distance_start_closest)
-        {
-            result = start;
-        }
-        else
-        {
-            result = end;
-        }
-    }
-
-    if (distance)
-    {
-        *distance = v2_distance(point, result);
-    }
-
-    return result;
-}
-
-b32 collision_circle_dynamic(struct v2 circle_a, struct v2 circle_b,
-    struct v2 circle_a_new, f32 radius_a, f32 radius_b, struct contact* contact)
+b32 collision_circle_dynamic(struct v2 a_pos, struct v2 b_pos, struct v2 a_vel,
+    struct v2 b_vel, f32 a_rad, f32 b_rad, struct contact* contact)
 {
     b32 result = false;
 
-    struct v2 closest_on_line = v2_zero;
+    // Todo: add early escapes
+    // - amount of movement is less distance between circles minus radii
+    // - moving to different directions
+    // - closest point on line is greater than the total radii
 
-    struct v2 closest = get_closest_point_on_line_segment(circle_b, circle_a,
-        circle_a_new, NULL, &closest_on_line);
+    // Calculate velocity direction
+    struct v2 a_dir = v2_normalize(a_vel);
 
-    f32 radius_total = f32_square(radius_a + radius_b);
-    f32 distance_b_to_closest = v2_distance_squared(closest, circle_b);
+    // Calculate vector from a to b
+    struct v2 ab = v2_sub(b_pos, a_pos);
 
-    if (distance_b_to_closest < radius_total)
+    // Calculate closest point to b on line in velocity direction
+    struct v2 d_pos = v2_add(a_pos, v2_mul_f32(a_dir, v2_dot(ab, a_dir)));
+
+    // Calculate velocity
+    f32 a_len = v2_length(a_vel);
+
+    // Calculate distance from circle a to d
+    f32 ad_len = v2_distance(a_pos, d_pos);
+
+    // Calculate squared distance from b to d
+    f32 bd_len = v2_distance_squared(b_pos, d_pos);
+
+    // Calculate total squared radii of a and b
+    f32 rad_total = f32_square(a_rad + b_rad);
+
+    // Calculate length from c to d
+    f32 cd_len = f32_sqrt(rad_total - bd_len);
+
+    // Calculate length from a to c
+    f32 ac_len = ad_len - cd_len;
+
+    // Collision occurs if the length from a to c is less than velocity
+    if (ac_len < a_len)
     {
         result = true;
 
+        // Store contact position
         if (contact)
         {
-            struct v2 n =
-                v2_abs(v2_normalize(v2_direction(circle_a, circle_a_new)));
-
-            f32 distance_other_to_closest = v2_distance_squared(circle_b,
-                closest_on_line);
-            f32 distance_closest_to_collision = f32_sqrt(radius_total -
-                distance_other_to_closest);
-            struct v2 d = v2_normalize(v2_direction(closest_on_line, closest));
-            d = v2_mul_f32(d, distance_closest_to_collision);
-
-            contact->position.x = closest_on_line.x + d.x;
-            contact->position.y = closest_on_line.y + d.y;
+            contact->position = v2_add(a_pos, v2_mul_f32(a_dir, ac_len));
+            contact->t = ac_len / a_len;
         }
     }
 
@@ -6823,41 +6793,23 @@ void circles_collisions_check(struct game_state* state)
     {
         struct circle* a = &state->circles[i];
 
-        struct v2 vel = a->position;
-
-        vel.x += a->move_delta.x;
-        vel.y += a->move_delta.y;
-
         for (u32 j = i + 1; j < state->num_circles; j++)
         {
             struct circle* b = &state->circles[j];
-
-            struct v2 rel =
-            {
-                a->position.x - (b->position.x + b->move_delta.x),
-                a->position.y - (b->position.y + b->move_delta.y)
-            };
-
-            struct v2 rel_new =
-            {
-                rel.x + a->move_delta.x,
-                rel.y + a->move_delta.y
-            };
-
-            struct v2 col = { 0.0f };
-            f32 col_distance = 0.0f;
 
             if (state->num_contacts < MAX_CONTACTS)
             {
                 struct contact* contact = &state->contacts[state->num_contacts];
 
-                if (collision_circle_dynamic(a->position, b->position, vel,
+                if (collision_circle_dynamic(a->position, b->position,
+                    a->move_delta, b->move_delta,
                     PLAYER_RADIUS, PLAYER_RADIUS, contact))
                 {
-                    LOG("CONTACT! %d vs %d\n", i, j);
                     contact->a = a;
                     contact->b = b;
                     state->num_contacts++;
+                    contact->a->collided = true;
+                    contact->b->collided = true;
                 }
             }
         }
