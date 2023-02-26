@@ -6540,6 +6540,8 @@ b32 collision_detect_circle_circle(struct circle* a, struct circle* b,
             {
                 result = true;
 
+                f32 t = ac_len / a_len;
+
                 // Store contact position
                 if (contact)
                 {
@@ -6578,7 +6580,7 @@ void circles_velocities_update(struct game_state* state, f32 dt)
 
         struct v2 acceleration = circle->acceleration;
 
-        f32 friction = 0.0f;
+        f32 friction = FRICTION;
 
         acceleration.x -= circle->velocity.x * friction;
         acceleration.y -= circle->velocity.y * friction;
@@ -6638,16 +6640,25 @@ void circles_collisions_check(struct game_state* state)
     }
 }
 
-void circles_collisions_resolve(struct game_state* state)
+void circles_collisions_resolve(struct game_state* state, f32 dt)
 {
     for (u32 i = 0; i < state->num_contacts; i++)
     {
         struct contact* contact = &state->contacts[i];
 
-        contact->a->move_delta = v2_mul_f32(contact->a->move_delta,
-            contact->t);
-        contact->b->move_delta = v2_mul_f32(contact->b->move_delta,
-            contact->t);
+        // Todo: this is a bit of haxy way to move the remaining (1 - t)
+        // into the new direction
+        f32 left = 1.0f - contact->t;
+
+        struct circle* a = contact->a;
+        a->move_delta = v2_mul_f32(a->move_delta, contact->t);
+        a->position = v2_add(a->position, a->move_delta);
+        a->move_delta = v2_mul_f32(a->velocity, left * dt);
+
+        struct circle* b = contact->b;
+        b->move_delta = v2_mul_f32(b->move_delta, contact->t);
+        b->position = v2_add(b->position, b->move_delta);
+        b->move_delta = v2_mul_f32(b->velocity, left * dt);
     }
 
     state->num_contacts = 0;
@@ -6879,7 +6890,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
             10.0f, 0.1f, 100.0f);
         state->camera.projection_inverse = m4_inverse(state->camera.projection);
 
-#if 1
+#if 0
         state->num_circles = MAX_CIRCLES;
 
         for (u32 i = 0; i < state->num_circles; i++)
@@ -6907,16 +6918,16 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         struct circle* circle = &state->circles[0];
         circle->position.x = 8.0f;
-        circle->position.y = 5.0f;
-        circle->velocity.x = -1.0f;
-        // circle->acceleration.x = -10.f;
+        circle->position.y = 5.125f;
+        // circle->velocity.x = -0.5f;
+        circle->acceleration.x = -10.f;
         circle->radius = 0.25f;
         circle->mass = 1.0f;
         circle = &state->circles[1];
         circle->position.x = 6.0f;
         circle->position.y = 5.0;
-        // circle->acceleration.x = 10.f;
-        circle->velocity.x = 1.0f;
+        circle->acceleration.x = 10.f;
+        // circle->velocity.x = 0.f;
         circle->radius = 0.25f;
         circle->mass = 1.0f;
 #endif
@@ -7004,7 +7015,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
                     // circles_update(state, input, step);
                     circles_velocities_update(state, step);
                     circles_collisions_check(state);
-                    circles_collisions_resolve(state);
+                    circles_collisions_resolve(state, step);
                     circles_positions_update(state);
                     // circles_update(state->circles, state->num_circles, step);
 
