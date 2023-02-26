@@ -790,6 +790,7 @@ struct circle
     struct v2 acceleration;
     f32 radius;
     f32 t;
+    f32 mass;
     b32 collided;
 };
 
@@ -6494,7 +6495,6 @@ b32 collision_detect_circle_circle(struct circle* a, struct circle* b,
 
     // Todo: add early escapes
     // - amount of movement is less distance between circles minus radii
-    // - moving to different directions
 
     // Reduce the velocity of b from the velocity of a
     struct v2 a_vel = v2_sub(a->move_delta, b->move_delta);
@@ -6503,46 +6503,69 @@ b32 collision_detect_circle_circle(struct circle* a, struct circle* b,
     struct v2 a_dir = v2_normalize(a_vel);
 
     // Calculate vector from a to b
-    struct v2 ab = v2_sub(b->position, a->position);
+    struct v2 ab = v2_direction(a->position, b->position);
 
-    // Calculate closest point to b on line in velocity direction
-    struct v2 d_pos = v2_add(a->position, v2_mul_f32(a_dir, v2_dot(ab, a_dir)));
-
-    // Calculate velocity
-    f32 a_len = v2_length(a_vel);
-
-    // Calculate distance from circle a to d
-    f32 ad_len = v2_distance(a->position, d_pos);
-
-    // Calculate squared distance from b to d
-    f32 bd_len = v2_distance_squared(b->position, d_pos);
-
-    // Calculate total squared radii of a and b
-    f32 rad_total = f32_square(a->radius + b->radius);
-
-    // There cannot be collision if the length between b and d is equal or
-    // greater than the total radii
-    if (bd_len < rad_total)
+    // There cannot be collision if the circles are moving to different
+    // directions
+    if (v2_dot(ab, a_dir) > 0.0f)
     {
-        // Calculate length from c to d
-        f32 cd_len = f32_sqrt(rad_total - bd_len);
+        // Calculate closest point to b on line in velocity direction
+        struct v2 d_pos = v2_add(a->position, v2_mul_f32(a_dir,
+            v2_dot(ab, a_dir)));
 
-        // Calculate length from a to c
-        f32 ac_len = ad_len - cd_len;
+        // Calculate velocity
+        f32 a_len = v2_length(a_vel);
 
-        // Collision occurs if the length from a to c is less than velocity
-        if (ac_len < a_len)
+        // Calculate distance from circle a to d
+        f32 ad_len = v2_distance(a->position, d_pos);
+
+        // Calculate squared distance from b to d
+        f32 bd_len = v2_distance_squared(b->position, d_pos);
+
+        // Calculate total squared radii of a and b
+        f32 rad_total = f32_square(a->radius + b->radius);
+
+        // There cannot be collision if the length between b and d is equal or
+        // greater than the total radii
+        if (bd_len < rad_total)
         {
-            result = true;
+            // Calculate length from c to d
+            f32 cd_len = f32_sqrt(rad_total - bd_len);
 
-            // Store contact position
-            if (contact)
+            // Calculate length from a to c
+            f32 ac_len = ad_len - cd_len;
+
+            // Collision occurs if the length from a to c is less than velocity
+            if (ac_len < a_len)
             {
-                contact->position = v2_add(a->position, v2_mul_f32(a_dir, ac_len));
-                contact->t = ac_len / a_len;
+                result = true;
+
+                // Store contact position
+                if (contact)
+                {
+                    contact->position = v2_add(a->position,
+                        v2_mul_f32(a_dir, ac_len));
+                    contact->t = ac_len / a_len;
+                }
+
+                // Calculate new velocities
+                struct v2 n = v2_normalize(v2_direction(b->position,
+                    a->position));
+
+                f32 a1 = v2_dot(a->velocity, n);
+                f32 a2 = v2_dot(b->velocity, n);
+
+                f32 p = (2.0f * (a1 - a2)) / (a->mass + b->mass);
+
+                a->velocity.x = a->velocity.x - p * b->mass * n.x;
+                a->velocity.y = a->velocity.y - p * b->mass * n.y;
+
+                b->velocity.x = b->velocity.x + p * a->mass * n.x;
+                b->velocity.y = b->velocity.y + p * a->mass * n.y;
             }
         }
     }
+
 
     return result;
 }
@@ -6555,8 +6578,10 @@ void circles_velocities_update(struct game_state* state, f32 dt)
 
         struct v2 acceleration = circle->acceleration;
 
-        acceleration.x -= circle->velocity.x * FRICTION;
-        acceleration.y -= circle->velocity.y * FRICTION;
+        f32 friction = 0.0f;
+
+        acceleration.x -= circle->velocity.x * friction;
+        acceleration.y -= circle->velocity.y * friction;
 
         circle->velocity.x = circle->velocity.x + acceleration.x * dt;
         circle->velocity.y = circle->velocity.y + acceleration.y * dt;
@@ -6601,8 +6626,6 @@ void circles_collisions_check(struct game_state* state)
                     LOG("COLLISION BETWEEN %d and %d\n", i, j);
                     contact->a = a;
                     contact->b = b;
-                    contact->a->collided = true;
-                    contact->b->collided = true;
 
                     state->num_contacts++;
                 }
@@ -6867,12 +6890,17 @@ void game_init(struct game_memory* memory, struct game_init* init)
             circle->radius = 0.25f;
             // circle->position.x = f32_random(2.0f, 8.0f);
             // circle->position.y = f32_random(2.0f, 8.0f);
-            circle->acceleration = v2_direction_from_angle(
-                f32_random(0, f32_radians(359)));
 
-            f32 s = 5.0f;
+            f32 speed = 0.25f;
+            circle->velocity.x = f32_random(-speed, speed);
+            circle->velocity.y = f32_random(-speed, speed);
+            // circle->acceleration = v2_direction_from_angle(
+            //     f32_random(0, f32_radians(359)));
+
+            f32 s = 0.25f;
             circle->acceleration.x *= s;
             circle->acceleration.y *= s;
+            circle->mass = 1.0f;
         }
 #else
         state->num_circles = 2;
@@ -6880,13 +6908,17 @@ void game_init(struct game_memory* memory, struct game_init* init)
         struct circle* circle = &state->circles[0];
         circle->position.x = 8.0f;
         circle->position.y = 5.0f;
-        circle->acceleration.x = -10.f;
+        circle->velocity.x = -1.0f;
+        // circle->acceleration.x = -10.f;
         circle->radius = 0.25f;
+        circle->mass = 1.0f;
         circle = &state->circles[1];
         circle->position.x = 6.0f;
         circle->position.y = 5.0;
-        circle->acceleration.x = 10.f;
+        // circle->acceleration.x = 10.f;
+        circle->velocity.x = 1.0f;
         circle->radius = 0.25f;
+        circle->mass = 1.0f;
 #endif
 
         // Todo: for testing
