@@ -6540,30 +6540,15 @@ b32 collision_detect_circle_circle(struct circle* a, struct circle* b,
             {
                 result = true;
 
-                f32 t = ac_len / a_len;
-
                 // Store contact position
                 if (contact)
                 {
                     contact->position = v2_add(a->position,
                         v2_mul_f32(a_dir, ac_len));
                     contact->t = ac_len / a_len;
+                    contact->a = a;
+                    contact->b = b;
                 }
-
-                // Calculate new velocities
-                struct v2 n = v2_normalize(v2_direction(b->position,
-                    a->position));
-
-                f32 a1 = v2_dot(a->velocity, n);
-                f32 a2 = v2_dot(b->velocity, n);
-
-                f32 p = (2.0f * (a1 - a2)) / (a->mass + b->mass);
-
-                a->velocity.x = a->velocity.x - p * b->mass * n.x;
-                a->velocity.y = a->velocity.y - p * b->mass * n.y;
-
-                b->velocity.x = b->velocity.x + p * a->mass * n.x;
-                b->velocity.y = b->velocity.y + p * a->mass * n.y;
             }
         }
     }
@@ -6626,9 +6611,6 @@ void circles_collisions_check(struct game_state* state)
                 if (collision_detect_circle_circle(a, b, contact))
                 {
                     LOG("COLLISION BETWEEN %d and %d\n", i, j);
-                    contact->a = a;
-                    contact->b = b;
-
                     state->num_contacts++;
                 }
             }
@@ -6647,18 +6629,59 @@ void circles_collisions_resolve(struct game_state* state, f32 dt)
         struct contact* contact = &state->contacts[i];
 
         // Todo: this is a bit of haxy way to move the remaining (1 - t)
-        // into the new direction
-        f32 left = 1.0f - contact->t;
+        // with a new velocity
+        f32 t_remaining = 1.0f - contact->t;
 
         struct circle* a = contact->a;
+        struct circle* b = contact->b;
+
+#if 0
+        // Elastic collisions
+        // Calculate new velocities
+        struct v2 n = v2_normalize(v2_direction(b->position,
+            a->position));
+
+        f32 a1 = v2_dot(a->velocity, n);
+        f32 a2 = v2_dot(b->velocity, n);
+
+        f32 p = (2.0f * (a1 - a2)) / (a->mass + b->mass);
+
+        a->velocity.x = a->velocity.x - p * b->mass * n.x;
+        a->velocity.y = a->velocity.y - p * b->mass * n.y;
+
+        b->velocity.x = b->velocity.x + p * a->mass * n.x;
+        b->velocity.y = b->velocity.y + p * a->mass * n.y;
+
         a->move_delta = v2_mul_f32(a->move_delta, contact->t);
         a->position = v2_add(a->position, a->move_delta);
-        a->move_delta = v2_mul_f32(a->velocity, left * dt);
+        a->move_delta = v2_mul_f32(a->velocity, t_remaining * dt);
 
-        struct circle* b = contact->b;
         b->move_delta = v2_mul_f32(b->move_delta, contact->t);
         b->position = v2_add(b->position, b->move_delta);
-        b->move_delta = v2_mul_f32(b->velocity, left * dt);
+        b->move_delta = v2_mul_f32(b->velocity, t_remaining * dt);
+
+#else
+        a->position = v2_add(a->position,
+            v2_mul_f32(a->move_delta, contact->t));
+        b->position = v2_add(b->position,
+            v2_mul_f32(b->move_delta, contact->t));
+
+        struct v2 n = v2_normalize(v2_direction(a->position, b->position));
+
+        f32 vdot_a = v2_dot(a->velocity, n);
+        f32 vdot_b = v2_dot(b->velocity, n);
+
+        a->velocity = v2_sub(a->velocity, v2_mul_f32(n, vdot_a));
+        b->velocity = v2_sub(b->velocity, v2_mul_f32(n, vdot_b));
+
+        f32 mvdot_a = v2_dot(a->move_delta, n);
+        f32 mvdot_b = v2_dot(b->move_delta, n);
+
+        a->move_delta = v2_mul_f32(
+            v2_sub(a->move_delta, v2_mul_f32(n, mvdot_a)), t_remaining);
+        b->move_delta = v2_mul_f32(
+            v2_sub(b->move_delta, v2_mul_f32(n, mvdot_b)), t_remaining);
+#endif
     }
 
     state->num_contacts = 0;
@@ -6902,13 +6925,13 @@ void game_init(struct game_memory* memory, struct game_init* init)
             // circle->position.x = f32_random(2.0f, 8.0f);
             // circle->position.y = f32_random(2.0f, 8.0f);
 
-            f32 speed = 0.25f;
-            circle->velocity.x = f32_random(-speed, speed);
-            circle->velocity.y = f32_random(-speed, speed);
-            // circle->acceleration = v2_direction_from_angle(
-            //     f32_random(0, f32_radians(359)));
+            // f32 speed = 0.25f;
+            // circle->velocity.x = f32_random(-speed, speed);
+            // circle->velocity.y = f32_random(-speed, speed);
+            circle->acceleration = v2_direction_from_angle(
+                f32_random(0, f32_radians(359)));
 
-            f32 s = 0.25f;
+            f32 s = 2.5f;
             circle->acceleration.x *= s;
             circle->acceleration.y *= s;
             circle->mass = 1.0f;
@@ -6918,7 +6941,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         struct circle* circle = &state->circles[0];
         circle->position.x = 8.0f;
-        circle->position.y = 5.125f;
+        circle->position.y = 5.25f;
         // circle->velocity.x = -0.5f;
         circle->acceleration.x = -10.f;
         circle->radius = 0.25f;
