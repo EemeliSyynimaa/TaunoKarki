@@ -779,19 +779,17 @@ struct gun_shot
     f32 volume; // Todo: change name
 };
 
-#define MAX_CIRCLES 16
+#define MAX_CIRCLES 64
 
 struct circle
 {
     struct v2 position;
     struct v2 velocity;
-    struct v2 move_delta; // Todo: move delta during physics step, temp here
-    struct v2 normal; // Todo: collision normal, temp here
+    struct v2 move_delta;
     struct v2 acceleration;
+    struct v2 target;
     f32 radius;
-    f32 t;
     f32 mass;
-    b32 collided;
 };
 
 #define MAX_CONTACTS 16
@@ -6488,8 +6486,8 @@ void level_init(struct game_state* state)
     }
 }
 
-b32 collision_detect_circle_circle(struct circle* a, struct circle* b,
-    struct contact* contact)
+b32 collision_detect_circle_circle(struct circle* a,
+    struct circle* b, struct contact* contact)
 {
     b32 result = false;
 
@@ -6563,9 +6561,12 @@ void circles_velocities_update(struct game_state* state, f32 dt)
     {
         struct circle* circle = &state->circles[i];
 
-        struct v2 acceleration = circle->acceleration;
-
         f32 friction = FRICTION;
+        f32 speed = 5.0f;
+
+        struct v2 acceleration = v2_direction(circle->position,
+            circle->target);
+        acceleration = v2_mul_f32(acceleration, 2.0f);
 
         acceleration.x -= circle->velocity.x * friction;
         acceleration.y -= circle->velocity.y * friction;
@@ -6584,40 +6585,55 @@ void circles_collisions_check(struct game_state* state)
 {
     for (u32 i = 0; i < state->num_circles - 1; i++)
     {
-        for (u32 j = i + 1; j < state->num_circles; j++)
+        struct contact* first_contact = NULL;
+
+        if (state->num_contacts < MAX_CONTACTS)
         {
-            if (state->num_contacts < MAX_CONTACTS)
+            for (u32 j = i + 1; j < state->num_circles; j++)
             {
-                struct circle* a = NULL;
-                struct circle* b = NULL;
+                if (state->num_contacts < MAX_CONTACTS)
+                {
+                    struct circle* a = NULL;
+                    struct circle* b = NULL;
 
-                if (v2_length(state->circles[i].move_delta))
-                {
-                    a = &state->circles[i];
-                    b = &state->circles[j];
-                }
-                else if (v2_length(state->circles[j].move_delta))
-                {
-                    a = &state->circles[j];
-                    b = &state->circles[i];
-                }
-                else
-                {
-                    continue;
-                }
+                    if (v2_length(state->circles[i].move_delta))
+                    {
+                        a = &state->circles[i];
+                        b = &state->circles[j];
+                    }
+                    else if (v2_length(state->circles[j].move_delta))
+                    {
+                        a = &state->circles[j];
+                        b = &state->circles[i];
+                    }
+                    else
+                    {
+                        continue;
+                    }
 
-                struct contact* contact = &state->contacts[state->num_contacts];
+                    struct contact contact = { 0 };
 
-                if (collision_detect_circle_circle(a, b, contact))
-                {
-                    LOG("COLLISION BETWEEN %d and %d\n", i, j);
-                    state->num_contacts++;
+                    if (collision_detect_circle_circle(a, b, &contact))
+                    {
+                        LOG("COLLISION BETWEEN %d and %d\n", i, j);
+                        if (!first_contact)
+                        {
+                            first_contact =
+                                &state->contacts[state->num_contacts++];
+                            *first_contact = contact;
+                        }
+                        else if (contact.t < first_contact->t)
+                        {
+                            *first_contact = contact;
+                        }
+                    }
                 }
             }
-            else
-            {
-                LOG("Maximum number of contacts reached!\n");
-            }
+        }
+        else
+        {
+            LOG("Maximum number of contacts reached!\n");
+            break;
         }
     }
 }
@@ -6635,7 +6651,7 @@ void circles_collisions_resolve(struct game_state* state, f32 dt)
         struct circle* a = contact->a;
         struct circle* b = contact->b;
 
-#if 0
+#if 1
         // Elastic collisions
         // Calculate new velocities
         struct v2 n = v2_normalize(v2_direction(b->position,
@@ -6715,33 +6731,36 @@ void circles_render(struct game_state* state)
         mvp = m4_mul_m4(mvp, state->camera.projection);
 
         mesh_render(&state->sphere, &mvp, state->texture_sphere,
-            state->shader_simple,
-            circle->collided ? colors[RED] : colors[WHITE]);
+            state->shader_simple, colors[WHITE]);
 
-        // Render velocity vector
-        {
-            f32 max_speed = 7.0f;
-            f32 length = v2_length(circle->velocity) / max_speed;
-            f32 angle = f32_atan(circle->velocity.x,
-                circle->velocity.y);
+        // // Render velocity vector
+        // {
+        //     f32 max_speed = 3.0f;
+        //     f32 length = v2_length(circle->velocity) / max_speed;
+        //     f32 angle = f32_atan(circle->velocity.x,
+        //         circle->velocity.y);
 
-            transform = m4_translate(
-                circle->position.x + circle->velocity.x / max_speed,
-                circle->position.y + circle->velocity.y / max_speed,
-                0.01f);
+        //     transform = m4_translate(
+        //         circle->position.x + circle->velocity.x / max_speed,
+        //         circle->position.y + circle->velocity.y / max_speed,
+        //         1.5f);
 
-            rotation = m4_rotate_z(-angle);
-            scale = m4_scale_xyz(0.05f, length, 1.5f);
+        //     rotation = m4_rotate_z(-angle);
+        //     scale = m4_scale_xyz(0.05f, length, 1.5f);
 
-            model = m4_mul_m4(scale, rotation);
-            model = m4_mul_m4(model, transform);
+        //     model = m4_mul_m4(scale, rotation);
+        //     model = m4_mul_m4(model, transform);
 
-            struct m4 mvp = m4_mul_m4(model, state->camera.view);
-            mvp = m4_mul_m4(mvp, state->camera.projection);
+        //     struct m4 mvp = m4_mul_m4(model, state->camera.view);
+        //     mvp = m4_mul_m4(mvp, state->camera.projection);
 
-            mesh_render(&state->floor, &mvp, state->texture_tileset,
-                state->shader_simple, colors[GREY]);
-        }
+        //     mesh_render(&state->floor, &mvp, state->texture_tileset,
+        //         state->shader_simple, colors[GREY]);
+        // }
+
+        // Render line to target
+        line_render(state, circle->position, circle->target, colors[RED],
+            1.1, 0.0125f);
     }
 }
 
@@ -6913,34 +6932,27 @@ void game_init(struct game_memory* memory, struct game_init* init)
             10.0f, 0.1f, 100.0f);
         state->camera.projection_inverse = m4_inverse(state->camera.projection);
 
-#if 0
+#if 1
         state->num_circles = MAX_CIRCLES;
+
+        u32 rows = (u32)f32_sqrt(MAX_CIRCLES);
 
         for (u32 i = 0; i < state->num_circles; i++)
         {
+
             struct circle* circle = &state->circles[i];
-            circle->position.x = 3 + 1.5f * (i % (MAX_CIRCLES / 4));
-            circle->position.y = 5 + 1.5f * (i / (MAX_CIRCLES / 4));
+            circle->position.x = 3.0f + 1.5f * (i % rows);
+            circle->position.y = 5.0f + 1.5f * (i / rows);
             circle->radius = 0.25f;
-            // circle->position.x = f32_random(2.0f, 8.0f);
-            // circle->position.y = f32_random(2.0f, 8.0f);
-
-            // f32 speed = 0.25f;
-            // circle->velocity.x = f32_random(-speed, speed);
-            // circle->velocity.y = f32_random(-speed, speed);
-            circle->acceleration = v2_direction_from_angle(
-                f32_random(0, f32_radians(359)));
-
-            f32 s = 2.5f;
-            circle->acceleration.x *= s;
-            circle->acceleration.y *= s;
+            circle->target.x = f32_random(1.0f, rows * 2.0f);
+            circle->target.y = f32_random(1.0f, rows * 2.0f);
             circle->mass = 1.0f;
         }
 #else
         state->num_circles = 2;
 
         struct circle* circle = &state->circles[0];
-        circle->position.x = 8.0f;
+        circle->position.x = 10.0f;
         circle->position.y = 5.25f;
         // circle->velocity.x = -0.5f;
         circle->acceleration.x = -10.f;
@@ -7035,12 +7047,15 @@ void game_update(struct game_memory* memory, struct game_input* input)
                     items_update(state, input, step);
                     particle_lines_update(state, input, step);
                     particle_system_update(&state->particle_system, step);
-                    // circles_update(state, input, step);
                     circles_velocities_update(state, step);
-                    circles_collisions_check(state);
-                    circles_collisions_resolve(state, step);
+
+                    for (u32 i = 0; i < 3; i++)
+                    {
+                        circles_collisions_check(state);
+                        circles_collisions_resolve(state, step);
+                    }
+
                     circles_positions_update(state);
-                    // circles_update(state->circles, state->num_circles, step);
 
                     if ((particle_test += step) > 1.5f)
                     {
