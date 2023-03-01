@@ -6699,8 +6699,6 @@ void circles_collisions_resolve(struct game_state* state, f32 dt)
             v2_sub(b->move_delta, v2_mul_f32(n, mvdot_b)), t_remaining);
 #endif
     }
-
-    state->num_contacts = 0;
 }
 
 void circles_positions_update(struct game_state* state)
@@ -7049,10 +7047,28 @@ void game_update(struct game_memory* memory, struct game_input* input)
                     particle_system_update(&state->particle_system, step);
                     circles_velocities_update(state, step);
 
-                    for (u32 i = 0; i < 3; i++)
+                    f32 max_iterations = 10;
+
+                    for (u32 i = 0; i < max_iterations; i++)
                     {
+                        LOG("Checking collisions, iteration %d\n", i + 1);
+
+                        // Todo: sometimes, for some reasons, a collision
+                        // between two objects happens again in the following
+                        // iteration. This shouldn't occur as the collision
+                        // is already resolved and the velocities and positions
+                        // are updated! Investigate
+
+                        state->num_contacts = 0;
+
                         circles_collisions_check(state);
                         circles_collisions_resolve(state, step);
+
+                        if (!state->num_contacts)
+                        {
+                            LOG("No contacts!\n");
+                            break;
+                        }
                     }
 
                     circles_positions_update(state);
