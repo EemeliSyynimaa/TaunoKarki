@@ -5340,25 +5340,26 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         player->body.angle = f32_atan(dir.y, dir.x);
         // player->body.angle = f32_radians(-90);
 
-        if (input->move_left.key_down)
-        {
-            direction.x -= 1.0f;
-        }
+        // Todo: testing, temporarily commented out
+        // if (input->move_left.key_down)
+        // {
+        //     direction.x -= 1.0f;
+        // }
 
-        if (input->move_right.key_down)
-        {
-            direction.x += 1.0f;
-        }
+        // if (input->move_right.key_down)
+        // {
+        //     direction.x += 1.0f;
+        // }
 
-        if (input->move_down.key_down)
-        {
-            direction.y -= 1.0f;
-        }
+        // if (input->move_down.key_down)
+        // {
+        //     direction.y -= 1.0f;
+        // }
 
-        if (input->move_up.key_down)
-        {
-            direction.y += 1.0f;
-        }
+        // if (input->move_up.key_down)
+        // {
+        //     direction.y += 1.0f;
+        // }
 
         direction = v2_normalize(direction);
 
@@ -6555,7 +6556,8 @@ b32 collision_detect_circle_circle(struct circle* a,
     return result;
 }
 
-void circles_velocities_update(struct game_state* state, f32 dt)
+void circles_velocities_update(struct game_state* state,
+    struct game_input* input, f32 dt)
 {
     for (u32 i = 0; i < state->num_circles; i++)
     {
@@ -6564,9 +6566,38 @@ void circles_velocities_update(struct game_state* state, f32 dt)
         f32 friction = FRICTION;
         f32 speed = 5.0f;
 
-        struct v2 acceleration = v2_direction(circle->position,
-            circle->target);
-        acceleration = v2_mul_f32(acceleration, 2.0f);
+        struct v2 acceleration = { 0.0f };
+
+        if (v2_equals(circle->target, v2_zero))
+        {
+            if (input->move_left.key_down)
+            {
+                acceleration.x -= 1.0f;
+            }
+
+            if (input->move_right.key_down)
+            {
+                acceleration.x += 1.0f;
+            }
+
+            if (input->move_down.key_down)
+            {
+                acceleration.y -= 1.0f;
+            }
+
+            if (input->move_up.key_down)
+            {
+                acceleration.y += 1.0f;
+            }
+
+            acceleration = v2_normalize(acceleration);
+            acceleration = v2_mul_f32(acceleration, PLAYER_ACCELERATION * 0.5f);
+        }
+        else
+        {
+            acceleration = v2_mul_f32(v2_direction(circle->position,
+                circle->target), 2.0f);
+        }
 
         acceleration.x -= circle->velocity.x * friction;
         acceleration.y -= circle->velocity.y * friction;
@@ -6728,8 +6759,10 @@ void circles_render(struct game_state* state)
         struct m4 mvp = m4_mul_m4(model, state->camera.view);
         mvp = m4_mul_m4(mvp, state->camera.projection);
 
+        b32 hasTarget = !v2_equals(circle->target, v2_zero);
+
         mesh_render(&state->sphere, &mvp, state->texture_sphere,
-            state->shader_simple, colors[WHITE]);
+            state->shader_simple, colors[hasTarget ? WHITE : AQUA]);
 
         // // Render velocity vector
         // {
@@ -6756,9 +6789,37 @@ void circles_render(struct game_state* state)
         //         state->shader_simple, colors[GREY]);
         // }
 
-        // Render line to target
-        line_render(state, circle->position, circle->target, colors[RED],
-            1.1, 0.0125f);
+        if (hasTarget)
+        {
+            // Render line to target
+            line_render(state, circle->position, circle->target, colors[RED],
+                1.1, 0.0125f);
+        }
+        else
+        {
+            // Render velocity vector
+            f32 max_speed = 7.0f;
+            f32 length = v2_length(circle->velocity) / max_speed;
+            f32 angle = f32_atan(circle->velocity.x,
+                circle->velocity.y);
+
+            transform = m4_translate(
+                circle->position.x + circle->velocity.x / max_speed,
+                circle->position.y + circle->velocity.y / max_speed,
+                1.5f);
+
+            rotation = m4_rotate_z(-angle);
+            scale = m4_scale_xyz(0.025f, length, 1.5f);
+
+            model = m4_mul_m4(scale, rotation);
+            model = m4_mul_m4(model, transform);
+
+            struct m4 mvp = m4_mul_m4(model, state->camera.view);
+            mvp = m4_mul_m4(mvp, state->camera.projection);
+
+            mesh_render(&state->floor, &mvp, state->texture_tileset,
+                state->shader_simple, colors[GREY]);
+        }
     }
 }
 
@@ -6935,9 +6996,14 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         u32 rows = (u32)f32_sqrt(MAX_CIRCLES);
 
-        for (u32 i = 0; i < state->num_circles; i++)
-        {
+        // Make the first circle controllable
+        state->circles[0].position.x = 3.0f + 1.5f;
+        state->circles[0].position.y = 5.0f + 1.5f;
+        state->circles[0].radius = 0.25f;
+        state->circles[0].mass = 1.0f;
 
+        for (u32 i = 1; i < state->num_circles; i++)
+        {
             struct circle* circle = &state->circles[i];
             circle->position.x = 3.0f + 1.5f * (i % rows);
             circle->position.y = 5.0f + 1.5f * (i / rows);
@@ -7045,7 +7111,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
                     items_update(state, input, step);
                     particle_lines_update(state, input, step);
                     particle_system_update(&state->particle_system, step);
-                    circles_velocities_update(state, step);
+                    circles_velocities_update(state, input, step);
 
                     f32 max_iterations = 10;
 
