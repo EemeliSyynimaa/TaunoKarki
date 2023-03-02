@@ -6487,8 +6487,8 @@ void level_init(struct game_state* state)
     }
 }
 
-b32 collision_detect_circle_circle(struct circle* a,
-    struct circle* b, struct contact* contact)
+b32 collision_detect_circle_circle(struct circle* a, struct circle* b,
+    struct contact* contact)
 {
     b32 result = false;
 
@@ -6552,6 +6552,13 @@ b32 collision_detect_circle_circle(struct circle* a,
         }
     }
 
+    return result;
+}
+
+b32 collision_detect_circle_line(struct circle* a, struct line_segment* b,
+    struct contact* contact)
+{
+    b32 result = false;
 
     return result;
 }
@@ -6620,43 +6627,51 @@ void circles_collisions_check(struct game_state* state)
 
         if (state->num_contacts < MAX_CONTACTS)
         {
+            struct circle* circle = &state->circles[i];
+
+            // Check collisions against other circles
             for (u32 j = i + 1; j < state->num_circles; j++)
             {
-                if (state->num_contacts < MAX_CONTACTS)
+                // Todo: we don't need to check the collisions if neither
+                // circle is moving
+                struct circle* other = &state->circles[j];
+                struct contact contact = { 0 };
+
+                if (collision_detect_circle_circle(circle, other, &contact))
                 {
-                    struct circle* a = NULL;
-                    struct circle* b = NULL;
-
-                    if (v2_length(state->circles[i].move_delta))
+                    LOG("COLLISION: circle %d and circle %d\n", i, j);
+                    if (!first_contact)
                     {
-                        a = &state->circles[i];
-                        b = &state->circles[j];
+                        first_contact = &state->contacts[state->num_contacts++];
+                        *first_contact = contact;
                     }
-                    else if (v2_length(state->circles[j].move_delta))
+                    else if (contact.t < first_contact->t)
                     {
-                        a = &state->circles[j];
-                        b = &state->circles[i];
+                        *first_contact = contact;
                     }
-                    else
+                }
+            }
+
+            // Todo: we don't need to check these collisions if the circle
+            // is not moving
+
+            // Check collisions against static walls
+            for (u32 j = 0; j < state->num_cols_static; j++)
+            {
+                struct line_segment* other = &state->cols_static[j];
+                struct contact contact = { 0 };
+
+                if (collision_detect_circle_line(circle, other, &contact))
+                {
+                    LOG("COLLISION: circle %d and line %d\n", i, j);
+                    if (!first_contact)
                     {
-                        continue;
+                        first_contact = &state->contacts[state->num_contacts++];
+                        *first_contact = contact;
                     }
-
-                    struct contact contact = { 0 };
-
-                    if (collision_detect_circle_circle(a, b, &contact))
+                    else if (contact.t < first_contact->t)
                     {
-                        LOG("COLLISION BETWEEN %d and %d\n", i, j);
-                        if (!first_contact)
-                        {
-                            first_contact =
-                                &state->contacts[state->num_contacts++];
-                            *first_contact = contact;
-                        }
-                        else if (contact.t < first_contact->t)
-                        {
-                            *first_contact = contact;
-                        }
+                        *first_contact = contact;
                     }
                 }
             }
@@ -6685,8 +6700,7 @@ void circles_collisions_resolve(struct game_state* state, f32 dt)
 #if 1
         // Elastic collisions
         // Calculate new velocities
-        struct v2 n = v2_normalize(v2_direction(b->position,
-            a->position));
+        struct v2 n = v2_normalize(v2_direction(b->position, a->position));
 
         f32 a1 = v2_dot(a->velocity, n);
         f32 a2 = v2_dot(b->velocity, n);
@@ -7071,10 +7085,146 @@ void game_init(struct game_memory* memory, struct game_init* init)
     }
 }
 
-void game_update(struct game_memory* memory, struct game_input* input)
+void game_logic_update(struct game_state* state, struct game_input* input,
+    f32 step)
 {
     static f32 particle_test = 0;
 
+    if (state->level_clear_notify <= 0.0f)
+    {
+        state->cube_renderer.num_cubes = 0;
+        state->sprite_renderer.num_sprites = 0;
+        state->particle_renderer.num_particles = 0;
+
+        player_update(state, input, step);
+        enemies_update(state, input, step);
+        bullets_update(state, input, step);
+        items_update(state, input, step);
+        particle_lines_update(state, input, step);
+        particle_system_update(&state->particle_system, step);
+        circles_velocities_update(state, input, step);
+
+        f32 max_iterations = 10;
+
+        for (u32 i = 0; i < max_iterations; i++)
+        {
+            LOG("Checking collisions, iteration %d\n", i + 1);
+
+            // Todo: sometimes, for some reasons, a collision
+            // between two objects happens again in the following
+            // iteration. This shouldn't occur as the collision
+            // is already resolved and the velocities and positions
+            // are updated! Investigate
+
+            // Todo: sometimes collisions are handled poorly
+            // when multiple circles are touching...?
+
+            state->num_contacts = 0;
+
+            circles_collisions_check(state);
+            circles_collisions_resolve(state, step);
+
+            if (!state->num_contacts)
+            {
+                LOG("No contacts!\n");
+                break;
+            }
+        }
+
+        circles_positions_update(state);
+
+        if ((particle_test += step) > 1.5f)
+        {
+            state->particle_system.emitters[1].active = true;
+            state->particle_system.emitters[1].age = 0.0f;
+            particle_test = 0.0f;
+        }
+    }
+
+    struct v2 start_min = v2_sub_f32(state->level.start_pos, 2.0f);
+    struct v2 start_max = v2_add_f32(state->level.start_pos, 2.0f);
+    struct v2 plr_pos = state->player.body.position;
+
+    state->player_in_start_room = plr_pos.x > start_min.x &&
+        plr_pos.x < start_max.x && plr_pos.y > start_min.y &&
+        plr_pos.y < start_max.y;
+
+    struct camera* camera = &state->camera;
+
+    if (state->level_clear_notify > 0.0f)
+    {
+        camera->target.x = state->level.start_pos.x;
+        camera->target.y = state->level.start_pos.y + 1.0f;
+        camera->target.z = 3.75f;
+
+        state->level_clear_notify -= step;
+    }
+    else if (state->player_in_start_room)
+    {
+        camera->target.xy = state->level.start_pos;
+        camera->target.z = 3.75f;
+    }
+    else
+    {
+        f32 distance_to_activate = 0.0f;
+
+        struct v2 direction_to_mouse = v2_normalize(v2_direction(
+            state->player.body.position, state->mouse.world));
+
+        struct v2 target_pos = v2_average(state->mouse.world,
+            state->player.body.position);
+
+        f32 distance_to_target = v2_distance(target_pos,
+            state->player.body.position);
+
+        distance_to_target -= distance_to_activate;
+
+        struct v2 target = state->player.body.position;
+
+        if (distance_to_target > 0)
+        {
+            target.x = state->player.body.position.x +
+                direction_to_mouse.x * distance_to_target;
+            target.y = state->player.body.position.y +
+                direction_to_mouse.y * distance_to_target;
+        }
+
+        camera->target.xy = target;
+        camera->target.z = 10.0f;
+    }
+
+    {
+        struct v3 dir = v3_direction(camera->position,
+            camera->target);
+
+        camera->position.x += dir.x * CAMERA_ACCELERATION * step;
+        camera->position.y += dir.y * CAMERA_ACCELERATION * step;
+        camera->position.z += dir.z * CAMERA_ACCELERATION * step;
+
+        struct v3 up = { 0.0f, 1.0f, 0.0f };
+
+        camera->view = m4_look_at(camera->position,
+            (struct v3) { camera->position.xy, 0.0f }, up);
+        camera->view_inverse = m4_inverse(camera->view);
+    }
+
+    state->mouse.world = calculate_world_pos(input->mouse_x,
+        input->mouse_y, camera);
+
+    collision_map_dynamic_calculate(state);
+
+    u32 num_keys = sizeof(input->keys)/sizeof(input->keys[0]);
+
+    for (u32 i = 0; i < num_keys; i++)
+    {
+        input->keys[i].transitions = 0;
+    }
+
+    state->num_gun_shots = 0;
+}
+
+void game_update(struct game_memory* memory, struct game_input* input)
+{
     if (memory->initialized)
     {
         struct game_state* state = (struct game_state*)memory->base;
@@ -7095,137 +7245,16 @@ void game_update(struct game_memory* memory, struct game_input* input)
         {
             state->accumulator += input->delta_time;
 
-            while (!input->pause && state->accumulator >= step)
+            while (state->accumulator >= step)
             {
                 state->accumulator -= step;
 
-                if (state->level_clear_notify <= 0.0f)
-                {
-                    state->cube_renderer.num_cubes = 0;
-                    state->sprite_renderer.num_sprites = 0;
-                    state->particle_renderer.num_particles = 0;
-
-                    player_update(state, input, step);
-                    enemies_update(state, input, step);
-                    bullets_update(state, input, step);
-                    items_update(state, input, step);
-                    particle_lines_update(state, input, step);
-                    particle_system_update(&state->particle_system, step);
-                    circles_velocities_update(state, input, step);
-
-                    f32 max_iterations = 10;
-
-                    for (u32 i = 0; i < max_iterations; i++)
-                    {
-                        LOG("Checking collisions, iteration %d\n", i + 1);
-
-                        // Todo: sometimes, for some reasons, a collision
-                        // between two objects happens again in the following
-                        // iteration. This shouldn't occur as the collision
-                        // is already resolved and the velocities and positions
-                        // are updated! Investigate
-
-                        state->num_contacts = 0;
-
-                        circles_collisions_check(state);
-                        circles_collisions_resolve(state, step);
-
-                        if (!state->num_contacts)
-                        {
-                            LOG("No contacts!\n");
-                            break;
-                        }
-                    }
-
-                    circles_positions_update(state);
-
-                    if ((particle_test += step) > 1.5f)
-                    {
-                        state->particle_system.emitters[1].active = true;
-                        state->particle_system.emitters[1].age = 0.0f;
-                        particle_test = 0.0f;
-                    }
-                }
-
-                struct v2 start_min = v2_sub_f32(state->level.start_pos, 2.0f);
-                struct v2 start_max = v2_add_f32(state->level.start_pos, 2.0f);
-                struct v2 plr_pos = state->player.body.position;
-
-                state->player_in_start_room = plr_pos.x > start_min.x &&
-                    plr_pos.x < start_max.x && plr_pos.y > start_min.y &&
-                    plr_pos.y < start_max.y;
-
-                if (state->level_clear_notify > 0.0f)
-                {
-                    camera->target.x = state->level.start_pos.x;
-                    camera->target.y = state->level.start_pos.y + 1.0f;
-                    camera->target.z = 3.75f;
-
-                    state->level_clear_notify -= step;
-                }
-                else if (state->player_in_start_room)
-                {
-                    camera->target.xy = state->level.start_pos;
-                    camera->target.z = 3.75f;
-                }
-                else
-                {
-                    f32 distance_to_activate = 0.0f;
-
-                    struct v2 direction_to_mouse = v2_normalize(v2_direction(
-                        state->player.body.position, state->mouse.world));
-
-                    struct v2 target_pos = v2_average(state->mouse.world,
-                        state->player.body.position);
-
-                    f32 distance_to_target = v2_distance(target_pos,
-                        state->player.body.position);
-
-                    distance_to_target -= distance_to_activate;
-
-                    struct v2 target = state->player.body.position;
-
-                    if (distance_to_target > 0)
-                    {
-                        target.x = state->player.body.position.x +
-                            direction_to_mouse.x * distance_to_target;
-                        target.y = state->player.body.position.y +
-                            direction_to_mouse.y * distance_to_target;
-                    }
-
-                    camera->target.xy = target;
-                    camera->target.z = 10.0f;
-                }
-
-                {
-                    struct v3 dir = v3_direction(camera->position,
-                        camera->target);
-
-                    camera->position.x += dir.x * CAMERA_ACCELERATION * step;
-                    camera->position.y += dir.y * CAMERA_ACCELERATION * step;
-                    camera->position.z += dir.z * CAMERA_ACCELERATION * step;
-
-                    struct v3 up = { 0.0f, 1.0f, 0.0f };
-
-                    camera->view = m4_look_at(camera->position,
-                        (struct v3) { camera->position.xy, 0.0f }, up);
-                    camera->view_inverse = m4_inverse(camera->view);
-                }
-
-                state->mouse.world = calculate_world_pos(input->mouse_x,
-                    input->mouse_y, camera);
-
-                collision_map_dynamic_calculate(state);
-
-                u32 num_keys = sizeof(input->keys)/sizeof(input->keys[0]);
-
-                for (u32 i = 0; i < num_keys; i++)
-                {
-                    input->keys[i].transitions = 0;
-                }
-
-                state->num_gun_shots = 0;
+                game_logic_update(state, input, step);
             }
+        }
+        else if (input->advance_physics)
+        {
+            game_logic_update(state, input, step);
         }
 
         // u64 render_start = ticks_current_get();

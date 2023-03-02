@@ -73,6 +73,7 @@ struct game_input
     // Debug stuff
     b32 enable_debug_rendering;
     b32 pause;
+    b32 advance_physics;
 };
 
 struct api
