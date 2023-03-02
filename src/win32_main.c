@@ -707,6 +707,10 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                 }   
                             }
                         }
+                        else if (msg.wParam == VK_F11 && !was_down)
+                        {
+                            new_input.advance_physics = true;
+                        }
                         else if (!playing)
                         {
                             b32 debug = false;
