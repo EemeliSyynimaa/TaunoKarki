@@ -774,6 +774,7 @@ struct v2 v2_normalize(struct v2 v)
     return result;
 }
 
+// Todo: should the direction be normalized by default?
 struct v2 v2_direction(struct v2 start, struct v2 end)
 {
     struct v2 result;

@@ -798,6 +798,7 @@ struct contact
 {
     struct circle* a;
     struct circle* b;
+    struct line_segment* line;
     struct v2 position;
     f32 t;
 };
@@ -1358,6 +1359,77 @@ void get_body_rectangle(struct rigid_body body, f32 width_half,
         segments[i].start = corners[i];
         segments[i].end   = corners[(i+1) % 4];
     }
+}
+
+b32 intersect_line_to_line(struct line_segment line_a,
+    struct line_segment line_b, struct v2* collision)
+{
+    b32 result = false;
+
+    struct v2 p = line_a.start;
+    struct v2 r = v2_direction(line_a.start, line_a.end);
+    struct v2 q = line_b.start;
+    struct v2 s = v2_direction(line_b.start, line_b.end);
+    struct v2 qp = { q.x - p.x, q.y - p.y };
+    f32 r_x_s = v2_cross(r, s);
+
+    if (r_x_s)
+    {
+        f32 qp_x_s = v2_cross(qp, s);
+        f32 qp_x_r = v2_cross(qp, r);
+
+        f32 t = qp_x_s / r_x_s;
+        f32 u = qp_x_r / r_x_s;
+
+        if (collision)
+        {
+            collision->x = p.x + t * r.x;
+            collision->y = p.y + t * r.y;
+        }
+
+        result = true;
+    }
+
+    return result;
+}
+
+b32 intersect_line_segment_to_line_segment(struct line_segment line_a,
+    struct line_segment line_b, struct v2* collision)
+{
+    b32 result = false;
+
+    struct v2 p = line_a.start;
+    struct v2 r = v2_direction(line_a.start, line_a.end);
+    struct v2 q = line_b.start;
+    struct v2 s = v2_direction(line_b.start, line_b.end);
+    struct v2 qp = { q.x - p.x, q.y - p.y };
+    f32 r_x_s = v2_cross(r, s);
+
+    if (r_x_s == 0.0f)
+    {
+        // Todo: implement if necessary
+    }
+    else
+    {
+        f32 qp_x_s = v2_cross(qp, s);
+        f32 qp_x_r = v2_cross(qp, r);
+
+        f32 t = qp_x_s / r_x_s;
+        f32 u = qp_x_r / r_x_s;
+
+        if (t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f)
+        {
+            if (collision)
+            {
+                collision->x = p.x + t * r.x;
+                collision->y = p.y + t * r.y;
+            }
+
+            result = true;
+        }
+    }
+
+    return result;
 }
 
 b32 intersect_ray_to_line_segment(struct v2 start, struct v2 direction,
@@ -6555,10 +6627,120 @@ b32 collision_detect_circle_circle(struct circle* a, struct circle* b,
     return result;
 }
 
+struct v2 get_closest_point_on_line_segment(struct v2 point, struct v2 start,
+    struct v2 end)
+{
+    struct v2 result = { 0.0f };
+    struct v2 d = v2_normalize(v2_direction(start, end));
+    struct v2 s_to_p = v2_sub(point, start);
+
+    result = v2_add(start, v2_mul_f32(d, v2_dot(s_to_p, d)));
+
+    f32 length_segment = v2_distance(start, end);
+    f32 distance_start_closest = v2_distance(start, result);
+    f32 distance_end_closest = v2_distance(end, result);
+
+    if (distance_end_closest > length_segment ||
+        distance_start_closest > length_segment)
+    {
+        if (distance_end_closest > distance_start_closest)
+        {
+            result = start;
+        }
+        else
+        {
+            result = end;
+        }
+    }
+
+    return result;
+}
+
+struct v2 get_closest_point_on_line(struct v2 point, struct v2 start,
+    struct v2 end)
+{
+    struct v2 result = { 0.0f };
+    struct v2 d = v2_normalize(v2_direction(start, end));
+    struct v2 s_to_p = v2_sub(point, start);
+
+    result = v2_add(start, v2_mul_f32(d, v2_dot(s_to_p, d)));
+
+    return result;
+}
+
 b32 collision_detect_circle_line(struct circle* a, struct line_segment* b,
     struct contact* contact)
 {
     b32 result = false;
+
+    struct line_segment line = {
+        a->position,
+        v2_add(a->position, a->move_delta)
+    };
+
+    struct v2 line_intersection = { 0 };
+
+    // Line intersection point.
+    if (intersect_line_to_line(line, *b, &line_intersection))
+    {
+        struct v2 segment_intersection = { 0 };
+        struct v2 closest_line_to_move_end = { 0 };
+        struct v2 closest_move_to_line_start = { 0 };
+        struct v2 closest_move_to_line_end = { 0 };
+
+        // Segment intersection point.
+        b32 intersects = intersect_line_segment_to_line_segment(line, *b,
+            &segment_intersection);
+
+        // Closest point on line segment to movement vector end
+        closest_line_to_move_end =
+            get_closest_point_on_line_segment(line.end, b->start, b->end);
+
+        // Closest point on movement vector to line start
+        closest_move_to_line_start =
+            get_closest_point_on_line_segment(b->start, line.start, line.end);
+
+        // Closest point on movement vector to line end
+        closest_move_to_line_end =
+            get_closest_point_on_line_segment(b->end, line.start, line.end);
+
+        f32 distance_a = v2_distance(closest_line_to_move_end, line.end);
+        f32 distance_b = v2_distance(closest_move_to_line_start, b->start);
+        f32 distance_c = v2_distance(closest_move_to_line_end, b->end);
+
+        if (distance_a < a->radius || distance_b < a->radius ||
+            distance_c < a->radius || intersects)
+        {
+            struct v2 closest = get_closest_point_on_line(a->position, b->start,
+                b->end);
+
+            f32 distance_to_closest = v2_distance(a->position, closest);
+            f32 distance_to_intersection = v2_distance(a->position,
+                line_intersection);
+            f32 distance_to_contact =
+                a->radius * (distance_to_intersection / distance_to_closest);
+
+            struct v2 i_to_a = v2_normalize(v2_direction(line_intersection,
+                a->position));
+
+            struct v2 c = v2_add(line_intersection,
+                v2_mul_f32(i_to_a, distance_to_contact));
+
+            f32 dist_a_to_c = v2_distance(c, a->position);
+
+            f32 t = dist_a_to_c / v2_length(a->move_delta);
+
+            if (t >= 0.0f && t <= 1.0f)
+            {
+                result = true;
+
+                contact->t = t;
+                contact->position = c;
+            }
+        }
+    }
+
+    // Todo: check collisions to line segment end points
 
     return result;
 }
@@ -6621,7 +6803,7 @@ void circles_velocities_update(struct game_state* state,
 
 void circles_collisions_check(struct game_state* state)
 {
-    for (u32 i = 0; i < state->num_circles - 1; i++)
+    for (u32 i = 0; i < state->num_circles; i++)
     {
         struct contact* first_contact = NULL;
 
@@ -6629,25 +6811,29 @@ void circles_collisions_check(struct game_state* state)
         {
             struct circle* circle = &state->circles[i];
 
-            // Check collisions against other circles
-            for (u32 j = i + 1; j < state->num_circles; j++)
+            if (i < state->num_circles - 1)
             {
-                // Todo: we don't need to check the collisions if neither
-                // circle is moving
-                struct circle* other = &state->circles[j];
-                struct contact contact = { 0 };
-
-                if (collision_detect_circle_circle(circle, other, &contact))
+                // Check collisions against other circles
+                for (u32 j = i + 1; j < state->num_circles; j++)
                 {
-                    LOG("COLLISION: circle %d and circle %d\n", i, j);
-                    if (!first_contact)
+                    // Todo: we don't need to check the collisions if neither
+                    // circle is moving
+                    struct circle* other = &state->circles[j];
+                    struct contact contact = { 0 };
+
+                    if (collision_detect_circle_circle(circle, other, &contact))
                     {
-                        first_contact = &state->contacts[state->num_contacts++];
-                        *first_contact = contact;
-                    }
-                    else if (contact.t < first_contact->t)
-                    {
-                        *first_contact = contact;
+                        LOG("COLLISION: circle %d and circle %d\n", i, j);
+                        if (!first_contact)
+                        {
+                            first_contact =
+                                &state->contacts[state->num_contacts++];
+                            *first_contact = contact;
+                        }
+                        else if (contact.t < first_contact->t)
+                        {
+                            *first_contact = contact;
+                        }
                     }
                 }
             }
@@ -6663,6 +6849,10 @@ void circles_collisions_check(struct game_state* state)
 
                 if (collision_detect_circle_line(circle, other, &contact))
                 {
+                    contact.a = circle;
+                    contact.b = NULL;
+                    contact.line = other;
+
                     LOG("COLLISION: circle %d and line %d\n", i, j);
                     if (!first_contact)
                     {
@@ -6696,53 +6886,84 @@ void circles_collisions_resolve(struct game_state* state, f32 dt)
 
         struct circle* a = contact->a;
         struct circle* b = contact->b;
+        struct line_segment* line = contact->line;
 
+        // Circle - circle
+        if (a && b)
+        {
 #if 1
-        // Elastic collisions
-        // Calculate new velocities
-        struct v2 n = v2_normalize(v2_direction(b->position, a->position));
+            // Elastic collisions
+            // Calculate new velocities
+            struct v2 n = v2_normalize(v2_direction(b->position, a->position));
 
-        f32 a1 = v2_dot(a->velocity, n);
-        f32 a2 = v2_dot(b->velocity, n);
+            f32 a1 = v2_dot(a->velocity, n);
+            f32 a2 = v2_dot(b->velocity, n);
 
-        f32 p = (2.0f * (a1 - a2)) / (a->mass + b->mass);
+            f32 p = (2.0f * (a1 - a2)) / (a->mass + b->mass);
 
-        a->velocity.x = a->velocity.x - p * b->mass * n.x;
-        a->velocity.y = a->velocity.y - p * b->mass * n.y;
+            a->velocity.x = a->velocity.x - p * b->mass * n.x;
+            a->velocity.y = a->velocity.y - p * b->mass * n.y;
 
-        b->velocity.x = b->velocity.x + p * a->mass * n.x;
-        b->velocity.y = b->velocity.y + p * a->mass * n.y;
+            b->velocity.x = b->velocity.x + p * a->mass * n.x;
+            b->velocity.y = b->velocity.y + p * a->mass * n.y;
 
-        a->move_delta = v2_mul_f32(a->move_delta, contact->t);
-        a->position = v2_add(a->position, a->move_delta);
-        a->move_delta = v2_mul_f32(a->velocity, t_remaining * dt);
+            a->move_delta = v2_mul_f32(a->move_delta, contact->t);
+            a->position = v2_add(a->position, a->move_delta);
+            a->move_delta = v2_mul_f32(a->velocity, t_remaining * dt);
 
-        b->move_delta = v2_mul_f32(b->move_delta, contact->t);
-        b->position = v2_add(b->position, b->move_delta);
-        b->move_delta = v2_mul_f32(b->velocity, t_remaining * dt);
+            b->move_delta = v2_mul_f32(b->move_delta, contact->t);
+            b->position = v2_add(b->position, b->move_delta);
+            b->move_delta = v2_mul_f32(b->velocity, t_remaining * dt);
 
 #else
-        a->position = v2_add(a->position,
-            v2_mul_f32(a->move_delta, contact->t));
-        b->position = v2_add(b->position,
-            v2_mul_f32(b->move_delta, contact->t));
+            a->position = v2_add(a->position,
+                v2_mul_f32(a->move_delta, contact->t));
+            b->position = v2_add(b->position,
+                v2_mul_f32(b->move_delta, contact->t));
 
-        struct v2 n = v2_normalize(v2_direction(a->position, b->position));
+            struct v2 n = v2_normalize(v2_direction(a->position, b->position));
 
-        f32 vdot_a = v2_dot(a->velocity, n);
-        f32 vdot_b = v2_dot(b->velocity, n);
+            f32 vdot_a = v2_dot(a->velocity, n);
+            f32 vdot_b = v2_dot(b->velocity, n);
 
-        a->velocity = v2_sub(a->velocity, v2_mul_f32(n, vdot_a));
-        b->velocity = v2_sub(b->velocity, v2_mul_f32(n, vdot_b));
+            a->velocity = v2_sub(a->velocity, v2_mul_f32(n, vdot_a));
+            b->velocity = v2_sub(b->velocity, v2_mul_f32(n, vdot_b));
 
-        f32 mvdot_a = v2_dot(a->move_delta, n);
-        f32 mvdot_b = v2_dot(b->move_delta, n);
+            f32 mvdot_a = v2_dot(a->move_delta, n);
+            f32 mvdot_b = v2_dot(b->move_delta, n);
 
-        a->move_delta = v2_mul_f32(
-            v2_sub(a->move_delta, v2_mul_f32(n, mvdot_a)), t_remaining);
-        b->move_delta = v2_mul_f32(
-            v2_sub(b->move_delta, v2_mul_f32(n, mvdot_b)), t_remaining);
+            a->move_delta = v2_mul_f32(
+                v2_sub(a->move_delta, v2_mul_f32(n, mvdot_a)), t_remaining);
+            b->move_delta = v2_mul_f32(
+                v2_sub(b->move_delta, v2_mul_f32(n, mvdot_b)), t_remaining);
 #endif
+        }
+        // Circle - line
+        else if (a && line)
+        {
+            a->position = v2_add(a->position,
+                v2_mul_f32(a->move_delta, contact->t));
+
+            struct v2 closest = get_closest_point_on_line_segment(
+                a->position, line->start, line->end);
+
+            struct v2 n = v2_normalize(v2_direction(a->position, closest));
+
+            f32 vdot_a = v2_dot(a->velocity, n);
+
+            a->velocity = v2_sub(a->velocity, v2_mul_f32(n, vdot_a));
+
+            f32 mvdot_a = v2_dot(a->move_delta, n);
+
+            a->move_delta = v2_mul_f32(
+                v2_sub(a->move_delta, v2_mul_f32(n, mvdot_a)), t_remaining);
+
+        }
+        // No collision??
+        else
+        {
+            LOG("Error: no collidees in collision?\n");
+        }
     }
 }
 
@@ -7006,13 +7227,13 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->camera.projection_inverse = m4_inverse(state->camera.projection);
 
 #if 1
-        state->num_circles = MAX_CIRCLES;
+        state->num_circles = 2;
 
         u32 rows = (u32)f32_sqrt(MAX_CIRCLES);
 
         // Make the first circle controllable
-        state->circles[0].position.x = 3.0f + 1.5f;
-        state->circles[0].position.y = 5.0f + 1.5f;
+        state->circles[0].position.x = 3.5f + 1.5f;
+        state->circles[0].position.y = 5.5f + 1.5f;
         state->circles[0].radius = 0.25f;
         state->circles[0].mass = 1.0f;
 
@@ -7060,6 +7281,37 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         // collision_detect_circle_circle(&a, &b, &contact);
 
+        struct contact contact = { 0 };
+
+        struct circle a = { 0 };
+        a.position.x = 0.0f;
+        a.position.y = 0.0f;
+        a.move_delta.x = 1.0f;
+        a.move_delta.y = 1.0f;
+        a.radius = 0.5f;
+
+        struct line_segment b = { 0 };
+        b.start.x = 1.0f;
+        b.start.y = -10.0f;
+        b.end.x = 1.0f;
+        b.end.y = 10.0f;
+
+        collision_detect_circle_line(&a, &b, &contact);
+
+        // struct line_segment a = { 0 };
+        // a.start.x = 7.25f;
+        // a.start.y = 7.0f;
+        // a.end.x = 7.5f;
+        // a.end.y = 7.0f;
+        // struct line_segment b = { 0 };
+        // b.start.x = 7.5f;
+        // b.start.y = 4.5f;
+        // b.end.x = 7.5f;
+        // b.end.y = 7.5f;
+        // struct v2 collision = { 0 };
+
+        // b32 result = intersect_line_segment_to_line_segment(a, b, &collision);
+
         state->render_debug = false;
 
         u32 num_colors = sizeof(colors) / sizeof(struct v4);
@@ -7089,6 +7341,9 @@ void game_logic_update(struct game_state* state, struct game_input* input,
     f32 step)
 {
     static f32 particle_test = 0;
+    static u32 frame_number = 0;
+
+    LOG("Frame: %i\n", frame_number++);
 
     if (state->level_clear_notify <= 0.0f)
     {
