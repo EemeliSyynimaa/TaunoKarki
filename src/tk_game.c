@@ -6678,69 +6678,58 @@ b32 collision_detect_circle_line(struct circle* a, struct line_segment* b,
         v2_add(a->position, a->move_delta)
     };
 
-    struct v2 line_intersection = { 0 };
+    struct v2 segment_intersection = { 0 };
+    struct v2 closest_line_to_move_end = { 0 };
+    struct v2 closest_move_to_line_start = { 0 };
+    struct v2 closest_move_to_line_end = { 0 };
 
-    // Line intersection point.
-    if (intersect_line_to_line(line, *b, &line_intersection))
+    // Segment intersection point.
+    b32 intersects = intersect_line_segment_to_line_segment(line, *b,
+        &segment_intersection);
+
+    // Closest point on line segment to movement vector end
+    closest_line_to_move_end =
+        get_closest_point_on_line_segment(line.end, b->start, b->end);
+
+    // Closest point on movement vector to line start
+    closest_move_to_line_start =
+        get_closest_point_on_line_segment(b->start, line.start, line.end);
+
+    // Closest point on movement vector to line end
+    closest_move_to_line_end =
+        get_closest_point_on_line_segment(b->end, line.start, line.end);
+
+    f32 distance_a = v2_distance(closest_line_to_move_end, line.end);
+    f32 distance_b = v2_distance(closest_move_to_line_start, b->start);
+    f32 distance_c = v2_distance(closest_move_to_line_end, b->end);
+
+    if (distance_a < a->radius || distance_b < a->radius ||
+        distance_c < a->radius || intersects)
     {
-        struct v2 segment_intersection = { 0 };
-        struct v2 closest_line_to_move_end = { 0 };
-        struct v2 closest_move_to_line_start = { 0 };
-        struct v2 closest_move_to_line_end = { 0 };
+        struct v2 line_intersection = { 0 };
 
-        // Segment intersection point.
-        b32 intersects = intersect_line_segment_to_line_segment(line, *b,
-            &segment_intersection);
+        intersect_line_to_line(line, *b, &line_intersection);
 
-        // Closest point on line segment to movement vector end
-        closest_line_to_move_end =
-            get_closest_point_on_line_segment(line.end, b->start, b->end);
+        struct v2 closest = get_closest_point_on_line(a->position, b->start,
+            b->end);
 
-        // Closest point on movement vector to line start
-        closest_move_to_line_start =
-            get_closest_point_on_line_segment(b->start, line.start, line.end);
+        f32 distance_to_closest = v2_distance(a->position, closest);
+        f32 distance_to_intersection = v2_distance(a->position,
+            line_intersection);
+        f32 distance_to_contact =
+            a->radius * (distance_to_intersection / distance_to_closest);
 
-        // Closest point on movement vector to line end
-        closest_move_to_line_end =
-            get_closest_point_on_line_segment(b->end, line.start, line.end);
+        struct v2 i_to_a = v2_normalize(v2_direction(line_intersection,
+            a->position));
 
-        f32 distance_a = v2_distance(closest_line_to_move_end, line.end);
-        f32 distance_b = v2_distance(closest_move_to_line_start, b->start);
-        f32 distance_c = v2_distance(closest_move_to_line_end, b->end);
+        struct v2 c = v2_add(line_intersection, v2_mul_f32(i_to_a,
+            distance_to_contact));
 
-        if (distance_a < a->radius || distance_b < a->radius ||
-            distance_c < a->radius || intersects)
-        {
-            struct v2 closest = get_closest_point_on_line(a->position, b->start,
-                b->end);
+        result = true;
 
-            f32 distance_to_closest = v2_distance(a->position, closest);
-            f32 distance_to_intersection = v2_distance(a->position,
-                line_intersection);
-            f32 distance_to_contact =
-                a->radius * (distance_to_intersection / distance_to_closest);
-
-            struct v2 i_to_a = v2_normalize(v2_direction(line_intersection,
-                a->position));
-
-            struct v2 c = v2_add(line_intersection,
-                v2_mul_f32(i_to_a, distance_to_contact));
-
-            f32 dist_a_to_c = v2_distance(c, a->position);
-
-            f32 t = dist_a_to_c / v2_length(a->move_delta);
-
-            if (t >= 0.0f && t <= 1.0f)
-            {
-                result = true;
-
-                contact->t = t;
-                contact->position = c;
-            }
-        }
+        contact->t = v2_distance(c, a->position) / v2_length(a->move_delta);
+        contact->position = c;
     }
-
-    // Todo: check collisions to line segment end points
 
     return result;
 }
@@ -6780,7 +6769,7 @@ void circles_velocities_update(struct game_state* state,
             }
 
             acceleration = v2_normalize(acceleration);
-            acceleration = v2_mul_f32(acceleration, PLAYER_ACCELERATION * 0.5f);
+            acceleration = v2_mul_f32(acceleration, PLAYER_ACCELERATION * 1.0f);
         }
         else
         {
@@ -6803,7 +6792,7 @@ void circles_velocities_update(struct game_state* state,
 
 void circles_collisions_check(struct game_state* state)
 {
-    for (u32 i = 0; i < state->num_circles; i++)
+    for (u32 i = 0; i < state->num_circles-1; i++)
     {
         struct contact* first_contact = NULL;
 
@@ -7406,20 +7395,20 @@ void game_logic_update(struct game_state* state, struct game_input* input,
 
     struct camera* camera = &state->camera;
 
-    if (state->level_clear_notify > 0.0f)
-    {
-        camera->target.x = state->level.start_pos.x;
-        camera->target.y = state->level.start_pos.y + 1.0f;
-        camera->target.z = 3.75f;
+    // if (state->level_clear_notify > 0.0f)
+    // {
+    //     camera->target.x = state->level.start_pos.x;
+    //     camera->target.y = state->level.start_pos.y + 1.0f;
+    //     camera->target.z = 3.75f;
 
-        state->level_clear_notify -= step;
-    }
-    else if (state->player_in_start_room)
-    {
-        camera->target.xy = state->level.start_pos;
-        camera->target.z = 3.75f;
-    }
-    else
+    //     state->level_clear_notify -= step;
+    // }
+    // else if (state->player_in_start_room)
+    // {
+    //     camera->target.xy = state->level.start_pos;
+    //     camera->target.z = 3.75f;
+    // }
+    // else
     {
         f32 distance_to_activate = 0.0f;
 
@@ -7434,15 +7423,16 @@ void game_logic_update(struct game_state* state, struct game_input* input,
 
         distance_to_target -= distance_to_activate;
 
-        struct v2 target = state->player.body.position;
+        // struct v2 target = state->player.body.position;
+        struct v2 target = state->circles[0].position;
 
-        if (distance_to_target > 0)
-        {
-            target.x = state->player.body.position.x +
-                direction_to_mouse.x * distance_to_target;
-            target.y = state->player.body.position.y +
-                direction_to_mouse.y * distance_to_target;
-        }
+        // if (distance_to_target > 0)
+        // {
+        //     target.x = state->player.body.position.x +
+        //         direction_to_mouse.x * distance_to_target;
+        //     target.y = state->player.body.position.y +
+        //         direction_to_mouse.y * distance_to_target;
+        // }
 
         camera->target.xy = target;
         camera->target.z = 10.0f;
