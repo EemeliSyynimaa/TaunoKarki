@@ -1,6 +1,52 @@
 # Todo
 
-Development plan for the MVP that's supposed to be available in December 2022.
+2023
+
+- [ ] Finish physics (March)
+ - [ ] Entity to entity collisions
+
+- Ideas:
+ - Levels:
+  - make some rooms higher than others so they can be viewable from upper
+    floors!
+  - make walls thinner (doesn't need to be so blocky)
+ - General:
+  - create a floor selection panel in the elevator (starting) room. The camera
+    should zoom in when player enters the elevator and the current floor
+    should be highlighted. Also the next floor should be greenlighted when
+    it's reachable
+ - Enemy AI:
+  - when the player disappears from view, search the whole area where they
+    seemed to have gone => ability for being able to search a room quickly or
+    thoroughly would be awesome
+  - enemy should move it's head around while moving, just to look around
+  - enemy should react to foot steps as well
+  - enemies should be able to communicate via shouting (way too cool!)
+ - Weapons:
+  - leveling is stupid, think of how to improve it
+  - maybe add limited amount of bullets
+ - Graphics:
+  - floor tiles look absolutely awful and doesn't go well together
+  - render player characters as sprites: separate head, body, legs, arms and
+    weapons
+  - render text
+  - shadows and lighting
+  - screenshake
+  - raytracing???
+ - Physics:
+  - Record physics steps so it's possible to go back in time
+ - Fun:
+  - create physical doors, not just doorways!
+  - create windows:
+   - one that can be seen through but not shot
+   - one that can be both seen and shot through and once broken also
+     traveled through
+
+Bugs
+ - enemy rotates to wrong direction (very randomly)
+ - enemy can see through walls (ray cast doesn't always work in corners?)
+
+2022
 
 - [ ] Finish physics (May)
  - [ ] Entity to entity collisions
@@ -60,7 +106,7 @@ Development plan for the MVP that's supposed to be available in December 2022.
    - [ ] Door blocks (blocks view, can be opened)
    - [ ] Shadows and lighting
    - [ ] Screenshake
-   - [ ] Enemy and player faces react to happenings (sleepy, watchful etc)
+   - [X] Enemy and player faces react to happenings (sleepy, watchful etc)
    - [ ] Render text
 - [ ] Polish the MVP (December)
  - [ ] Main menu
