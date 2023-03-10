@@ -26,6 +26,14 @@
   - leveling is stupid, think of how to improve it
   - maybe add limited amount of bullets
  - Graphics:
+  - primitive renderer
+   - one (?) vertex buffer for all primitives
+   - should handle transparency properly
+   - functions for primitives
+    - circle
+    - triangle
+    - line
+    - rect
   - floor tiles look absolutely awful and doesn't go well together
   - render player characters as sprites: separate head, body, legs, arms and
     weapons
