@@ -780,19 +780,7 @@ struct gun_shot
 };
 
 #define MAX_CIRCLES 64
-
-struct circle
-{
-    struct v2 position;
-    struct v2 velocity;
-    struct v2 move_delta;
-    struct v2 acceleration;
-    struct v2 target;
-    f32 radius;
-    f32 mass;
-};
-
-#define MAX_CONTACTS 16
+#define MAX_CONTACTS 64
 
 struct contact
 {
@@ -801,6 +789,18 @@ struct contact
     struct line_segment* line;
     struct v2 position;
     f32 t;
+};
+
+struct circle
+{
+    struct contact* contact;
+    struct v2 position;
+    struct v2 velocity;
+    struct v2 move_delta;
+    struct v2 acceleration;
+    struct v2 target;
+    f32 radius;
+    f32 mass;
 };
 
 struct game_state
@@ -6820,12 +6820,11 @@ void circles_collisions_check(struct game_state* state)
 {
     for (u32 i = 0; i < state->num_circles; i++)
     {
-        struct contact* first_contact = NULL;
+        struct circle* circle = &state->circles[i];
+        circle->contact = NULL;
 
         if (state->num_contacts < MAX_CONTACTS)
         {
-            struct circle* circle = &state->circles[i];
-
             if (i < state->num_circles - 1)
             {
                 // Check collisions against other circles
@@ -6839,15 +6838,15 @@ void circles_collisions_check(struct game_state* state)
                     if (collision_detect_circle_circle(circle, other, &contact))
                     {
                         LOG("COLLISION: circle %d and circle %d\n", i, j);
-                        if (!first_contact)
+                        if (!circle->contact)
                         {
-                            first_contact =
+                            circle->contact =
                                 &state->contacts[state->num_contacts++];
-                            *first_contact = contact;
+                            *circle->contact = contact;
                         }
-                        else if (contact.t < first_contact->t)
+                        else if (contact.t < circle->contact->t)
                         {
-                            *first_contact = contact;
+                            *circle->contact = contact;
                         }
                     }
                 }
@@ -6869,14 +6868,14 @@ void circles_collisions_check(struct game_state* state)
                     contact.line = other;
 
                     LOG("COLLISION: circle %d and line %d\n", i, j);
-                    if (!first_contact)
+                    if (!circle->contact)
                     {
-                        first_contact = &state->contacts[state->num_contacts++];
-                        *first_contact = contact;
+                        circle->contact = &state->contacts[state->num_contacts++];
+                        *circle->contact = contact;
                     }
-                    else if (contact.t < first_contact->t)
+                    else if (contact.t < circle->contact->t)
                     {
-                        *first_contact = contact;
+                        *circle->contact = contact;
                     }
                 }
             }
@@ -6894,7 +6893,6 @@ void circles_collisions_resolve(struct game_state* state, f32 dt)
     for (u32 i = 0; i < state->num_contacts; i++)
     {
         struct contact* contact = &state->contacts[i];
-
         // Todo: this is a bit of haxy way to move the remaining (1 - t)
         // with a new velocity
         f32 t_remaining = 1.0f - contact->t;
@@ -7274,9 +7272,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         api.gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
 #if 1
-        state->num_circles = 2;
-
-        u32 rows = (u32)f32_sqrt(MAX_CIRCLES);
+        state->num_circles = 16;
 
         // Make the first circle controllable
         state->circles[0].position.x = 3.5f + 1.5f;
@@ -7288,11 +7284,8 @@ void game_init(struct game_memory* memory, struct game_init* init)
         {
             struct circle* circle = &state->circles[i];
             circle->position = tile_random_get(&state->level, TILE_FLOOR);
-            // circle->position.x = 3.0f + 1.5f * (i % rows);
-            // circle->position.y = 5.0f + 1.5f * (i / rows);
             circle->radius = 0.25f;
-            circle->target.x = f32_random(1.0f, rows * 2.0f);
-            circle->target.y = f32_random(1.0f, rows * 2.0f);
+            circle->target = tile_random_get(&state->level, TILE_FLOOR);
             circle->mass = 1.0f;
         }
 #else
