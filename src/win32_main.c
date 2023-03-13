@@ -217,8 +217,8 @@ void win32_file_read(file_handle* file, s8* data, u64 bytes_max,
     {
         u64 num_bytes_read = 0;
 
-        if (ReadFile(*win32_handle, data, bytes_max, (LPDWORD)&num_bytes_read,
-            0))
+        if (ReadFile(*win32_handle, data, (DWORD)bytes_max,
+            (LPDWORD)&num_bytes_read, 0))
         {
             LOG("Read %llu/%llu bytes\n", num_bytes_read, bytes_max);
         }
@@ -253,8 +253,8 @@ void win32_file_write(file_handle* file, s8* data, u64 bytes)
     {
         u64 num_bytes_written = 0;
 
-        if (WriteFile(*win32_handle, data, bytes, (LPDWORD)&num_bytes_written,
-            0))
+        if (WriteFile(*win32_handle, data, (DWORD)bytes,
+            (LPDWORD)&num_bytes_written, 0))
         {
             LOG("Wrote %llu/%llu bytes\n", num_bytes_written, bytes);
         }
