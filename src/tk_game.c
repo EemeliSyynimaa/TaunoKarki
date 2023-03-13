@@ -919,7 +919,7 @@ enum
     ITEM_COUNT = 6
 };
 
-u32 ITEAM_HEALTH_AMOUNT = 25.0f;
+u32 ITEAM_HEALTH_AMOUNT = 25;
 
 f32 PROJECTILE_RADIUS = 0.035f;
 f32 PROJECTILE_SPEED  = 50.0f;
@@ -987,10 +987,11 @@ b32 tile_inside_level_bounds(struct level* level, struct v2 position)
 {
     b32 result = false;
 
-    s32 x = f32_round(position.x);
-    s32 y = f32_round(position.y);
+    s32 x = (s32)f32_round(position.x);
+    s32 y = (s32)f32_round(position.y);
 
-    result = x >= 0 && x < level->width && y >= 0 && y < level->height;
+    result = x >= 0 && x <(s32) level->width && y >= 0 &&
+        y < (s32)level->height;
 
     return result;
 }
@@ -1001,8 +1002,8 @@ b32 tile_is_of_type(struct level* level, struct v2 position, u32 type)
 
     if (tile_inside_level_bounds(level, position))
     {
-        s32 x = f32_round(position.x);
-        s32 y = f32_round(position.y);
+        s32 x = (s32)f32_round(position.x);
+        s32 y = (s32)f32_round(position.y);
 
         result = level->tile_types[y * level->width + x] == type;
     }
@@ -1016,8 +1017,8 @@ u8 tile_type_get(struct level* level, struct v2 position)
 
     if (tile_inside_level_bounds(level, position))
     {
-        s32 x = f32_round(position.x);
-        s32 y = f32_round(position.y);
+        s32 x = (s32)f32_round(position.x);
+        s32 y = (s32)f32_round(position.y);
 
         result = level->tile_types[y * level->width + x];
     }
@@ -1040,8 +1041,8 @@ struct v2 tile_random_get(struct level* level, u32 type)
     {
         struct v2 position =
         {
-            u32_random(0, level->width),
-            u32_random(0, level->height)
+            (f32)u32_random(0, level->width),
+            (f32)u32_random(0, level->height)
         };
 
         if (tile_is_of_type(level, position, type))
@@ -2920,8 +2921,8 @@ void level_generate(struct game_state* state, struct level* level,
 {
     u32 width = layout_mask->width;
     u32 height = layout_mask->height;
-    u32 start_x = layout_mask->start_pos.x;
-    u32 start_y = layout_mask->start_pos.y;
+    u32 start_x = (u32)layout_mask->start_pos.x;
+    u32 start_y = (u32)layout_mask->start_pos.y;
 
     if (!width || !height)
     {
@@ -3183,12 +3184,12 @@ void level_generate(struct game_state* state, struct level* level,
     u32 room_center_x = (u32)(room_width * 0.5f);
     u32 room_center_y = (u32)(room_height * 0.5f);
 
-    level->start_pos.x = start_x * room_width + room_center_x;
-    level->start_pos.y = start_y * room_height + room_center_y;
+    level->start_pos.x = start_x * room_width + (f32)room_center_x;
+    level->start_pos.y = start_y * room_height + (f32)room_center_y;
 
     // Always pointing south
     u32 start_door_index = (start_y * room_height + room_center_y +
-        -room_center_y) * level->width + start_x * room_width + room_center_x;
+        room_center_y) * level->width + start_x * room_width + room_center_x;
 
     level->tile_types[start_door_index] = TILE_FLOOR;
     level->tile_sprites[start_door_index] = 16;
@@ -3275,7 +3276,7 @@ void level_render(struct game_state* state, struct level* level)
 
             if (tile_type == TILE_WALL)
             {
-                struct m4 transform = m4_translate(x, y, 0.5f);
+                struct m4 transform = m4_translate((f32)x, (f32)y, 0.5f);
                 struct m4 rotation = m4_rotate_z(0.0f);
                 struct m4 scale = m4_scale_all(WALL_SIZE * 0.5f);
 
@@ -3290,7 +3291,7 @@ void level_render(struct game_state* state, struct level* level)
             }
             else if (tile_type != TILE_NOTHING)
             {
-                struct m4 transform = m4_translate(x, y, 0.0f);
+                struct m4 transform = m4_translate((f32)x, (f32)y, 0.0f);
                 struct m4 rotation = m4_rotate_z(0.0f);
                 struct m4 scale = m4_scale_all(WALL_SIZE * 0.5f);
 
@@ -3327,7 +3328,7 @@ void collision_map_render(struct game_state* state)
 b32 collision_circle_to_circle(struct v2 position_a, f32 radius_a,
     struct v2 position_b, f32 radius_b)
 {
-    f32 result = v2_distance(position_a, position_b) < (radius_a + radius_b);
+    b32 result = v2_distance(position_a, position_b) < (radius_a + radius_b);
 
     return result;
 }
@@ -3496,8 +3497,8 @@ b32 check_tile_collisions(struct level* level, struct v2* pos, struct v2* vel,
     f32 min_x = pos->x + wall_low - margin_x - WALL_SIZE;
     f32 min_y = pos->y + wall_low - margin_y - WALL_SIZE;
 
-    u32 start_x = min_x < 0.0f ? 0 : (u32)min_x / WALL_SIZE;
-    u32 start_y = min_y < 0.0f ? 0 : (u32)min_y / WALL_SIZE;
+    u32 start_x = min_x < 0.0f ? 0 : (u32)((u32)min_x / WALL_SIZE);
+    u32 start_y = min_y < 0.0f ? 0 : (u32)((u32)min_y / WALL_SIZE);
     u32 end_x = (u32)((pos->x + wall_low + margin_x) / WALL_SIZE) + 1;
     u32 end_y = (u32)((pos->y + wall_low + margin_y) / WALL_SIZE) + 1;
 
@@ -3862,7 +3863,7 @@ b32 weapon_level_up(struct weapon* weapon)
     {
         weapon->level++;
 
-        weapon->ammo_max *= 1.1f;
+        weapon->ammo_max = (u32)(weapon->ammo_max * 1.1f);
         weapon->projectile_damage *= 1.1f;
         weapon->reload_time *= 0.9f;
         weapon->fire_rate *= 0.9f;
@@ -4054,7 +4055,7 @@ f32 enemy_turn_speed_get(struct enemy* enemy)
     };
 
     // One full turn per second * multiplier
-    result = F64_PI * 2.0f * speed_multiplier;
+    result = (f32)F64_PI * 2.0f * speed_multiplier;
 
     return result;
 }
@@ -4700,7 +4701,7 @@ void get_wall_corners(struct level* level, struct v2 corners[], u32 max,
     {
         for (u32 x = 0; x < level->width; x++)
         {
-            struct v2 tile = { x, y };
+            struct v2 tile = { (f32)x, (f32)y };
 
             if (tile_is_of_type(level, tile, TILE_WALL))
             {
@@ -4793,7 +4794,7 @@ void collision_map_static_calculate(struct level* level,
 
         for (u32 x = 0; x <= level->width; x++)
         {
-            struct v2 tile = { x, y };
+            struct v2 tile = { (f32)x, (f32)y };
             face_top.type = COLLISION_STATIC;
             face_bottom.type = COLLISION_STATIC;
 
@@ -4857,7 +4858,7 @@ void collision_map_static_calculate(struct level* level,
 
         for (u32 y = 0; y < level->height; y++)
         {
-            struct v2 tile = { x, y };
+            struct v2 tile = { (f32)x, (f32)y };
             face_left.type = COLLISION_STATIC;
             face_right.type = COLLISION_STATIC;
 
@@ -5146,8 +5147,8 @@ void enemies_render(struct game_state* state)
 
             health_bar_render(state, enemy->body.position, enemy->health,
                 ENEMY_HEALTH_MAX);
-            ammo_bar_render(state, enemy->body.position, enemy->weapon.ammo,
-                enemy->weapon.ammo_max);
+            ammo_bar_render(state, enemy->body.position,
+                (f32)enemy->weapon.ammo, (f32)enemy->weapon.ammo_max);
 
             // Render velocity vector
             if (state->render_debug)
@@ -5686,8 +5687,8 @@ void player_render(struct game_state* state)
         struct weapon* weapon = &player->weapon;
         health_bar_render(state, player->body.position, player->health,
             PLAYER_HEALTH_MAX);
-        ammo_bar_render(state, player->body.position, weapon->ammo,
-            weapon->ammo_max);
+        ammo_bar_render(state, player->body.position, (f32)weapon->ammo,
+            (f32)weapon->ammo_max);
         weapon_level_bar_render(state, player->body.position, weapon->level,
             WEAPON_LEVEL_MAX);
     }
@@ -5701,7 +5702,7 @@ void items_update(struct game_state* state, struct game_input* input, f32 dt)
 
         if (item->alive)
         {
-            item->body.angle -= F64_PI * dt;
+            item->body.angle -= (f32)F64_PI * dt;
             item->alive -= dt;
 
             if (item->alive < 0.0f)
@@ -6022,7 +6023,7 @@ s32 s32_parse(char* str, u64* size)
     {
         u8 val = *str++ - '0';
 
-        value *= 10.0;
+        value *= 10;
         value += val;
 
         bytes++;
@@ -6100,13 +6101,13 @@ f32 f32_parse(char* str, u64* size)
                 bytes++;
             }
 
-            u32 exponent = 0;
+            s32 exponent = 0;
 
             while (is_digit(*str))
             {
                 u8 val = *str++ - '0';
 
-                exponent *= 10.0;
+                exponent *= 10;
                 exponent += val;
 
                 bytes++;
@@ -6449,8 +6450,8 @@ void level_mask_init(struct game_state* state)
     {
         u32 width = mask->width;
         u32 height = mask->height;
-        u32 start_x = mask->start_pos.x;
-        u32 start_y = mask->start_pos.y;
+        u32 start_x = (u32)mask->start_pos.x;
+        u32 start_y = (u32)mask->start_pos.y;
 
         u64 size = width * height;
         u8* data = mask->tile_types;
@@ -7142,7 +7143,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->stack.current = state->stack.base;
         state->stack.size = 100*1024*1024;
 
-        state->random_seed = init->init_time;
+        state->random_seed = (u32)init->init_time;
 
         state->shader = program_create(&state->stack,
             "assets/shaders/vertex.glsl",
@@ -7245,8 +7246,8 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         particle_emitter_create(&state->particle_system, &config, true);
 
-        state->camera.screen_width = init->screen_width;
-        state->camera.screen_height = init->screen_height;
+        state->camera.screen_width = (f32)init->screen_width;
+        state->camera.screen_height = (f32)init->screen_height;
         // state->camera.projection = m4_perspective(60.0f,
         //     (f32)state->camera.screen_width/(f32)state->camera.screen_height,
         //     0.1f, 15.0f);
@@ -7402,8 +7403,8 @@ void game_logic_update(struct game_state* state, struct game_input* input,
     {
         f32 distance_to_activate = 0.0f;
 
-        struct v2 direction_to_mouse = v2_normalize(v2_direction(
-            state->player.body.position, state->mouse.world));
+        // struct v2 direction_to_mouse = v2_normalize(v2_direction(
+        //     state->player.body.position, state->mouse.world));
 
         struct v2 target_pos = v2_average(state->mouse.world,
             state->player.body.position);
@@ -7443,8 +7444,8 @@ void game_logic_update(struct game_state* state, struct game_input* input,
         camera->view_inverse = m4_inverse(camera->view);
     }
 
-    state->mouse.world = calculate_world_pos(input->mouse_x,
-        input->mouse_y, camera);
+    state->mouse.world = calculate_world_pos((f32)input->mouse_x,
+        (f32)input->mouse_y, camera);
 
     collision_map_dynamic_calculate(state);
 
@@ -7470,11 +7471,11 @@ void game_update(struct game_memory* memory, struct game_input* input)
         api.gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         f32 step = 1.0f / 120.0f;
 
-        state->mouse.screen.x = input->mouse_x;
-        state->mouse.screen.y = input->mouse_y;
+        state->mouse.screen.x = (f32)input->mouse_x;
+        state->mouse.screen.y = (f32)input->mouse_y;
 
-        state->mouse.world = calculate_world_pos(input->mouse_x,
-            input->mouse_y, camera);
+        state->mouse.world = calculate_world_pos((f32)input->mouse_x,
+            (f32)input->mouse_y, camera);
 
         if (!input->pause)
         {
