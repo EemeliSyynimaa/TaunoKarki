@@ -3181,15 +3181,15 @@ void level_generate(struct game_state* state, struct level* level,
     }
 
     // Open start room door
-    u32 room_center_x = (u32)(room_width * 0.5f);
-    u32 room_center_y = (u32)(room_height * 0.5f);
+    s32 room_center_x = (u32)(room_width * 0.5f);
+    s32 room_center_y = (u32)(room_height * 0.5f);
 
     level->start_pos.x = start_x * room_width + (f32)room_center_x;
     level->start_pos.y = start_y * room_height + (f32)room_center_y;
 
     // Always pointing south
     u32 start_door_index = (start_y * room_height + room_center_y +
-        room_center_y) * level->width + start_x * room_width + room_center_x;
+        -room_center_y) * level->width + start_x * room_width + room_center_x;
 
     level->tile_types[start_door_index] = TILE_FLOOR;
     level->tile_sprites[start_door_index] = 16;
@@ -5443,28 +5443,26 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         dir = v2_normalize(dir);
 
         player->body.angle = f32_atan(dir.y, dir.x);
-        // player->body.angle = f32_radians(-90);
 
-        // Todo: testing, temporarily commented out
-        // if (input->move_left.key_down)
-        // {
-        //     direction.x -= 1.0f;
-        // }
+        if (input->move_left.key_down)
+        {
+            direction.x -= 1.0f;
+        }
 
-        // if (input->move_right.key_down)
-        // {
-        //     direction.x += 1.0f;
-        // }
+        if (input->move_right.key_down)
+        {
+            direction.x += 1.0f;
+        }
 
-        // if (input->move_down.key_down)
-        // {
-        //     direction.y -= 1.0f;
-        // }
+        if (input->move_down.key_down)
+        {
+            direction.y -= 1.0f;
+        }
 
-        // if (input->move_up.key_down)
-        // {
-        //     direction.y += 1.0f;
-        // }
+        if (input->move_up.key_down)
+        {
+            direction.y += 1.0f;
+        }
 
         direction = v2_normalize(direction);
 
@@ -7087,6 +7085,11 @@ void circles_render(struct game_state* state)
     }
 }
 
+#include "tk_state_game.c"
+#include "tk_state_physics.c"
+
+b32 PHYSICS_DEBUG = false;
+
 void game_init(struct game_memory* memory, struct game_init* init)
 {
     struct game_state* state = (struct game_state*)memory->base;
@@ -7098,6 +7101,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
     if (!memory->initialized)
     {
+        // Init OpenGL
         s32 version_major = 0;
         s32 version_minor = 0;
         s32 uniform_blocks_max_vertex = 0;
@@ -7138,13 +7142,17 @@ void game_init(struct game_memory* memory, struct game_init* init)
         api.gl.glEnable(GL_CULL_FACE);
         api.gl.glDepthFunc(GL_LESS);
         api.gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        api.gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
+        // Init stack allocator
         state->stack.base = (s8*)state + sizeof(struct game_state);
         state->stack.current = state->stack.base;
         state->stack.size = 100*1024*1024;
 
+        // Init random seed
         state->random_seed = (u32)init->init_time;
 
+        // Init resources
         state->shader = program_create(&state->stack,
             "assets/shaders/vertex.glsl",
             "assets/shaders/fragment.glsl");
@@ -7176,13 +7184,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->texture_particle = texture_array_create(&state->stack,
             "assets/textures/particles.tga", 8, 8);
 
-        cube_renderer_init(&state->cube_renderer, state->shader_cube,
-            state->texture_cube);
-        sprite_renderer_init(&state->sprite_renderer, state->shader_sprite,
-            state->texture_sprite);
-        particle_renderer_init(&state->particle_renderer,
-            state->shader_particle, state->texture_particle);
-
         mesh_create(&state->stack, "assets/meshes/sphere.mesh",
             &state->sphere);
         mesh_create(&state->stack, "assets/meshes/wall.mesh",
@@ -7192,121 +7193,14 @@ void game_init(struct game_memory* memory, struct game_init* init)
         mesh_create(&state->stack, "assets/meshes/triangle.mesh",
             &state->triangle);
 
-        struct particle_emitter_config config;
-        config.position = (struct v3){ 3.0f, 3.0f, 0.125f };
-        config.type = PARTICLE_EMITTER_CIRCLE;
-        config.permanent = true;
-        config.spawn_radius_min = 0.125f;
-        config.spawn_radius_max = 0.25f;
-        config.move_away_from_spawn = true;
-        config.rate = 0.015f;
-        config.max_particles = 256;
-        config.velocity_min = 0.425f;
-        config.velocity_max = 1.75f;
-        config.velocity_angular_min = -2.5f;
-        config.velocity_angular_max = 2.5f;
-        config.scale_start = 0.05;
-        config.scale_end = 0.15f;
-        config.color_start = colors[WHITE];
-        config.color_end = colors[RED];
-        config.opacity_start = 1.0f;
-        config.opacity_end = 0.0f;
-        config.time_min = 0.5f;
-        config.time_max = 1.5f;
-        config.texture = GFX_STAR_FILLED;
-        config.direction_min = 0.0f;
-        config.direction_max = F64_PI * 2.0f;
-        config.lifetime = INDEFINITE;
-
-        particle_emitter_create(&state->particle_system, &config, false);
-
-        config.position = (struct v3){ 14.0f, 15.0f, 0.125f };
-        config.type = PARTICLE_EMITTER_CIRCLE;
-        config.spawn_radius_min = 0.125f;
-        config.spawn_radius_max = 0.25f;
-        config.move_away_from_spawn = true;
-        config.rate = 0.015f;
-        config.max_particles = 256;
-        config.velocity_min = 0.425f;
-        config.velocity_max = 1.75f;
-        config.velocity_angular_min = -2.5f;
-        config.velocity_angular_max = 2.5f;
-        config.scale_start = 0.05;
-        config.scale_end = 0.15f;
-        config.color_start = colors[WHITE];
-        config.color_end = colors[RED];
-        config.opacity_start = 1.0f;
-        config.opacity_end = 0.0f;
-        config.time_min = 0.5f;
-        config.time_max = 1.5f;
-        config.texture = GFX_STAR_FILLED;
-        config.direction_min = 0.0f;
-        config.direction_max = F64_PI * 2.0f;
-        config.lifetime = 1.0f;
-
-        particle_emitter_create(&state->particle_system, &config, true);
-
-        state->camera.screen_width = (f32)init->screen_width;
-        state->camera.screen_height = (f32)init->screen_height;
-        // state->camera.projection = m4_perspective(60.0f,
-        //     (f32)state->camera.screen_width/(f32)state->camera.screen_height,
-        //     0.1f, 15.0f);
-
-        f32 size = 7.5f;
-        state->camera.projection = m4_orthographic(-size, size, -size, size,
-            0.1f, 100.0f);
-        state->camera.projection_inverse = m4_inverse(state->camera.projection);
-        state->render_debug = false;
-
-        u32 num_colors = sizeof(colors) / sizeof(struct v4);
-
-        for (u32 i = 0; i < num_colors; i++)
+        if (PHYSICS_DEBUG)
         {
-            cube_renderer_color_add(&state->cube_renderer, colors[i]);
+            state_physics_init(state, init);
         }
-
-        state->level_current = 1;
-
-        level_mask_init(state);
-        level_init(state);
-
-        api.gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-
-#if 1
-        state->num_circles = 16;
-
-        // Make the first circle controllable
-        state->circles[0].position.x = 3.5f + 1.5f;
-        state->circles[0].position.y = 5.5f + 1.5f;
-        state->circles[0].radius = 0.25f;
-        state->circles[0].mass = 1.0f;
-
-        for (u32 i = 1; i < state->num_circles; i++)
+        else
         {
-            struct circle* circle = &state->circles[i];
-            circle->position = tile_random_get(&state->level, TILE_FLOOR);
-            circle->radius = 0.25f;
-            circle->target = tile_random_get(&state->level, TILE_FLOOR);
-            circle->mass = 1.0f;
+            state_game_init(state, init);
         }
-#else
-        state->num_circles = 2;
-
-        struct circle* circle = &state->circles[0];
-        circle->position.x = 10.0f;
-        circle->position.y = 5.25f;
-        // circle->velocity.x = -0.5f;
-        circle->acceleration.x = -10.f;
-        circle->radius = 0.25f;
-        circle->mass = 1.0f;
-        circle = &state->circles[1];
-        circle->position.x = 6.0f;
-        circle->position.y = 5.0;
-        circle->acceleration.x = 10.f;
-        // circle->velocity.x = 0.f;
-        circle->radius = 0.25f;
-        circle->mass = 1.0f;
-#endif
 
         memory->initialized = true;
     }
@@ -7317,221 +7211,39 @@ void game_init(struct game_memory* memory, struct game_init* init)
     }
 }
 
-void game_logic_update(struct game_state* state, struct game_input* input,
-    f32 step)
-{
-    static f32 particle_test = 0;
-    static u32 frame_number = 0;
-
-    LOG("Frame: %i\n", frame_number++);
-
-    if (state->level_clear_notify <= 0.0f)
-    {
-        state->cube_renderer.num_cubes = 0;
-        state->sprite_renderer.num_sprites = 0;
-        state->particle_renderer.num_particles = 0;
-
-        player_update(state, input, step);
-        enemies_update(state, input, step);
-        bullets_update(state, input, step);
-        items_update(state, input, step);
-        particle_lines_update(state, input, step);
-        particle_system_update(&state->particle_system, step);
-        circles_velocities_update(state, input, step);
-
-        f32 max_iterations = 10;
-
-        for (u32 i = 0; i < max_iterations; i++)
-        {
-            LOG("Checking collisions, iteration %d\n", i + 1);
-
-            // Todo: sometimes, for some reasons, a collision
-            // between two objects happens again in the following
-            // iteration. This shouldn't occur as the collision
-            // is already resolved and the velocities and positions
-            // are updated! Investigate
-
-            // Todo: sometimes collisions are handled poorly
-            // when multiple circles are touching...?
-
-            state->num_contacts = 0;
-
-            circles_collisions_check(state);
-            circles_collisions_resolve(state, step);
-
-            if (!state->num_contacts)
-            {
-                LOG("No contacts!\n");
-                break;
-            }
-        }
-
-        circles_positions_update(state);
-
-        if ((particle_test += step) > 1.5f)
-        {
-            state->particle_system.emitters[1].active = true;
-            state->particle_system.emitters[1].age = 0.0f;
-            particle_test = 0.0f;
-        }
-    }
-
-    struct v2 start_min = v2_sub_f32(state->level.start_pos, 2.0f);
-    struct v2 start_max = v2_add_f32(state->level.start_pos, 2.0f);
-    struct v2 plr_pos = state->player.body.position;
-
-    state->player_in_start_room = plr_pos.x > start_min.x &&
-        plr_pos.x < start_max.x && plr_pos.y > start_min.y &&
-        plr_pos.y < start_max.y;
-
-    struct camera* camera = &state->camera;
-
-    // if (state->level_clear_notify > 0.0f)
-    // {
-    //     camera->target.x = state->level.start_pos.x;
-    //     camera->target.y = state->level.start_pos.y + 1.0f;
-    //     camera->target.z = 3.75f;
-
-    //     state->level_clear_notify -= step;
-    // }
-    // else if (state->player_in_start_room)
-    // {
-    //     camera->target.xy = state->level.start_pos;
-    //     camera->target.z = 3.75f;
-    // }
-    // else
-    {
-        f32 distance_to_activate = 0.0f;
-
-        // struct v2 direction_to_mouse = v2_normalize(v2_direction(
-        //     state->player.body.position, state->mouse.world));
-
-        struct v2 target_pos = v2_average(state->mouse.world,
-            state->player.body.position);
-
-        f32 distance_to_target = v2_distance(target_pos,
-            state->player.body.position);
-
-        distance_to_target -= distance_to_activate;
-
-        // struct v2 target = state->player.body.position;
-        struct v2 target = state->circles[0].position;
-
-        // if (distance_to_target > 0)
-        // {
-        //     target.x = state->player.body.position.x +
-        //         direction_to_mouse.x * distance_to_target;
-        //     target.y = state->player.body.position.y +
-        //         direction_to_mouse.y * distance_to_target;
-        // }
-
-        camera->target.xy = target;
-        camera->target.z = 5.0f;
-    }
-
-    {
-        struct v3 dir = v3_direction(camera->position,
-            camera->target);
-
-        camera->position.x += dir.x * CAMERA_ACCELERATION * step;
-        camera->position.y += dir.y * CAMERA_ACCELERATION * step;
-        camera->position.z += dir.z * CAMERA_ACCELERATION * step;
-
-        struct v3 up = { 0.0f, 1.0f, 0.0f };
-
-        camera->view = m4_look_at(camera->position,
-            (struct v3) { camera->position.xy, 0.0f }, up);
-        camera->view_inverse = m4_inverse(camera->view);
-    }
-
-    state->mouse.world = calculate_world_pos((f32)input->mouse_x,
-        (f32)input->mouse_y, camera);
-
-    collision_map_dynamic_calculate(state);
-
-    u32 num_keys = sizeof(input->keys)/sizeof(input->keys[0]);
-
-    for (u32 i = 0; i < num_keys; i++)
-    {
-        input->keys[i].transitions = 0;
-    }
-
-    state->num_gun_shots = 0;
-}
-
 void game_update(struct game_memory* memory, struct game_input* input)
 {
     if (memory->initialized)
     {
         struct game_state* state = (struct game_state*)memory->base;
-        struct camera* camera = &state->camera;
 
-        state->render_debug = input->enable_debug_rendering;
-
-        api.gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         f32 step = 1.0f / 120.0f;
 
-        state->mouse.screen.x = (f32)input->mouse_x;
-        state->mouse.screen.y = (f32)input->mouse_y;
+        state->accumulator += input->delta_time;
 
-        state->mouse.world = calculate_world_pos((f32)input->mouse_x,
-            (f32)input->mouse_y, camera);
-
-        if (!input->pause)
+        while (state->accumulator >= step)
         {
-            state->accumulator += input->delta_time;
+            state->accumulator -= step;
 
-            while (state->accumulator >= step)
+            if (PHYSICS_DEBUG)
             {
-                state->accumulator -= step;
-
-                game_logic_update(state, input, step);
+                state_physics_update(state, input, step);
+            }
+            else
+            {
+                state_game_update(state, input, step);
             }
         }
-        else if (input->advance_physics)
+
+        api.gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        if (PHYSICS_DEBUG)
         {
-            game_logic_update(state, input, step);
+            state_physics_render(state);
         }
-
-        // u64 render_start = ticks_current_get();
-        level_render(state, &state->level);
-        player_render(state);
-        enemies_render(state);
-        // bullets_render(state);
-        items_render(state);
-        particle_system_render(&state->particle_system,
-            &state->particle_renderer);
-
-        particle_renderer_sort(&state->particle_renderer);
-        circles_render(state);
-
-        cube_renderer_flush(&state->cube_renderer, &state->camera.view,
-            &state->camera.projection);
-        sprite_renderer_flush(&state->sprite_renderer, &state->camera.view,
-            &state->camera.projection);
-        particle_renderer_flush(&state->particle_renderer, &state->camera.view,
-            &state->camera.projection);
-
-        particle_lines_render(state);
-
-        // u64 render_end = ticks_current_get();
-
-        // LOG("Render time: %f\n", time_elapsed_seconds(state, render_start,
-        //     render_end));
-
-        if (state->render_debug)
+        else
         {
-            collision_map_render(state);
-        }
-        // cursor_render(state);
-
-        if (state->level_change)
-        {
-            state->level_cleared = false;
-            state->level_change = false;
-            state->accumulator = 0;
-            state->level_current++;
-            level_init(state);
+            state_game_render(state);
         }
     }
     else
