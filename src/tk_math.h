@@ -2,6 +2,7 @@
 #include <float.h>
 
 #define F64_PI 3.1415926535897932384626433832795028841971693993751058209749445
+#define F32_PI (f32)F64_PI
 #define F32_MAX FLT_MAX
 #define F32_MIN FLT_MIN
 #define U32_MAX 0xFFFFFFFF
@@ -96,14 +97,14 @@ struct m4
 
 f32 f32_radians(f32 degrees)
 {
-    f32 result = degrees * F64_PI / 180.0;
+    f32 result = degrees * (f32)F64_PI / 180.0f;
 
     return result;
 }
 
 f32 f32_degrees(f32 radians)
 {
-    f32 result = radians * 180.0 / F64_PI;
+    f32 result = radians * 180.0f / (f32)F64_PI;
 
     return result;
 }
@@ -113,7 +114,7 @@ f32 f32_degrees(f32 radians)
 f32 f32_atan(f32 y, f32 x)
 {
     // Todo: implement own atan(2) function
-    return atan2(y, x);
+    return (f32)atan2(y, x);
 }
 
 f32 f32_acos(f32 value)
@@ -122,31 +123,31 @@ f32 f32_acos(f32 value)
     value = MIN(1.0f, value);
 
     // Todo: implement own acos function
-    return acos(value);
+    return (f32)acos(value);
 }
 
 f32 f32_sin(f32 angle)
 {
     // Todo: implement own sin function
-    return sin(angle);
+    return (f32)sin(angle);
 }
 
 f32 f32_cos(f32 angle)
 {
     // Todo: implement own cos function
-    return cos(angle);
+    return (f32)cos(angle);
 }
 
 f32 f32_tan(f32 angle)
 {
     // Todo: implement own tan function
-    return tan(angle);
+    return (f32)tan(angle);
 }
 
 f32 f32_sqrt(f32 value)
 {
     // Todo: implement own sqrt function
-    return sqrt(value);
+    return (f32)sqrt(value);
 }
 
 f32 f32_square(f32 value)
@@ -186,7 +187,7 @@ void f32_swap(f32* a, f32* b)
 
 f32 f32_round(f32 value)
 {
-    f32 result = (s32)(value + (value < 0 ? -0.5f : 0.5f));
+    f32 result = (f32)(s32)(value + (value < 0 ? -0.5f : 0.5f));
 
     return result;
 }
@@ -719,7 +720,7 @@ f32 v2_cross(struct v2 a, struct v2 b)
 
 b32 v2_is_zero(struct v2 v)
 {
-    f32 result = v.x == 0.0f && v.y == 0.0f;
+    b32 result = v.x == 0.0f && v.y == 0.0f;
 
     return result;
 }
