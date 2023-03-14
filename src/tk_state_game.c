@@ -1,5 +1,4 @@
-
-void state_game_init(struct game_state* state, struct game_init* init)
+void state_game_init(struct game_state* state)
 {
     cube_renderer_init(&state->cube_renderer, state->shader_cube,
         state->texture_cube);
@@ -62,8 +61,8 @@ void state_game_init(struct game_state* state, struct game_init* init)
 
     particle_emitter_create(&state->particle_system, &config, true);
 
-    state->camera.screen_width = (f32)init->screen_width;
-    state->camera.screen_height = (f32)init->screen_height;
+    state->camera.screen_width = (f32)state->screen_width;
+    state->camera.screen_height = (f32)state->screen_height;
     state->camera.projection = m4_perspective(60.0f,
         (f32)state->camera.screen_width/(f32)state->camera.screen_height,
         0.1f, 15.0f);
@@ -227,3 +226,10 @@ void state_game_render(struct game_state* state)
         level_init(state);
     }
 }
+
+struct state_interface state_game =
+{
+    .init = state_game_init,
+    .update = state_game_update,
+    .render = state_game_render
+};
