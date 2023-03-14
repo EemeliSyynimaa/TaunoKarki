@@ -61,8 +61,6 @@ void state_game_init(struct game_state* state)
 
     particle_emitter_create(&state->particle_system, &config, true);
 
-    state->camera.screen_width = (f32)state->screen_width;
-    state->camera.screen_height = (f32)state->screen_height;
     state->camera.projection = m4_perspective(60.0f,
         (f32)state->camera.screen_width/(f32)state->camera.screen_height,
         0.1f, 15.0f);
@@ -99,7 +97,6 @@ void state_game_update(struct game_state* state, struct game_input* input,
         items_update(state, input, step);
         particle_lines_update(state, input, step);
         particle_system_update(&state->particle_system, step);
-        circles_velocities_update(state, input, step);
     }
 
     struct v2 start_min = v2_sub_f32(state->level.start_pos, 2.0f);

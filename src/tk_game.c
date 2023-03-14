@@ -838,8 +838,6 @@ struct game_state
     b32 player_in_start_room;
     f32 accumulator;
     f32 level_clear_notify;
-    s32 screen_width;
-    s32 screen_height;
     u32 shader;
     u32 shader_simple;
     u32 shader_cube;
@@ -6763,12 +6761,12 @@ b32 collision_detect_circle_line(struct circle* a, struct line_segment* b,
     return result;
 }
 
-void circles_velocities_update(struct game_state* state,
+void circles_velocities_update(struct circle circles[], u32 num_circles,
     struct game_input* input, f32 dt)
 {
-    for (u32 i = 0; i < state->num_circles; i++)
+    for (u32 i = 0; i < num_circles; i++)
     {
-        struct circle* circle = &state->circles[i];
+        struct circle* circle = &circles[i];
 
         f32 friction = FRICTION;
         f32 speed = 5.0f;
@@ -6819,23 +6817,26 @@ void circles_velocities_update(struct game_state* state,
     }
 }
 
-void circles_collisions_check(struct game_state* state)
+u32 circles_collisions_check(struct circle circles[], u32 num_circles,
+    struct contact contacts[], struct line_segment lines[], u32 num_lines)
 {
-    for (u32 i = 0; i < state->num_circles; i++)
+    u32 result = 0;
+
+    for (u32 i = 0; i < num_circles; i++)
     {
-        struct circle* circle = &state->circles[i];
+        struct circle* circle = &circles[i];
         circle->contact = NULL;
 
-        if (state->num_contacts < MAX_CONTACTS)
+        if (result < MAX_CONTACTS)
         {
-            if (i < state->num_circles - 1)
+            if (i < num_circles - 1)
             {
                 // Check collisions against other circles
-                for (u32 j = i + 1; j < state->num_circles; j++)
+                for (u32 j = i + 1; j < num_circles; j++)
                 {
                     // Todo: we don't need to check the collisions if neither
                     // circle is moving
-                    struct circle* other = &state->circles[j];
+                    struct circle* other = &circles[j];
                     struct contact contact = { 0 };
 
                     if (collision_detect_circle_circle(circle, other, &contact))
@@ -6844,7 +6845,7 @@ void circles_collisions_check(struct game_state* state)
                         if (!circle->contact)
                         {
                             circle->contact =
-                                &state->contacts[state->num_contacts++];
+                                &contacts[result++];
                             *circle->contact = contact;
                         }
                         else if (contact.t < circle->contact->t)
@@ -6859,9 +6860,9 @@ void circles_collisions_check(struct game_state* state)
             // is not moving
 
             // Check collisions against static walls
-            for (u32 j = 0; j < state->num_cols_static; j++)
+            for (u32 j = 0; j < num_lines; j++)
             {
-                struct line_segment* other = &state->cols_static[j];
+                struct line_segment* other = &lines[j];
                 struct contact contact = { 0 };
 
                 if (collision_detect_circle_line(circle, other, &contact))
@@ -6874,7 +6875,7 @@ void circles_collisions_check(struct game_state* state)
                     if (!circle->contact)
                     {
                         circle->contact =
-                            &state->contacts[state->num_contacts++];
+                            &contacts[result++];
                         *circle->contact = contact;
                     }
                     else if (contact.t < circle->contact->t)
@@ -6890,13 +6891,16 @@ void circles_collisions_check(struct game_state* state)
             break;
         }
     }
+
+    return result;
 }
 
-void circles_collisions_resolve(struct game_state* state, f32 dt)
+void circles_collisions_resolve(struct contact contacts[], u32 num_contacts,
+    f32 dt)
 {
-    for (u32 i = 0; i < state->num_contacts; i++)
+    for (u32 i = 0; i < num_contacts; i++)
     {
-        struct contact* contact = &state->contacts[i];
+        struct contact* contact = &contacts[i];
         // Todo: this is a bit of haxy way to move the remaining (1 - t)
         // with a new velocity
         f32 t_remaining = 1.0f - contact->t;
@@ -6905,22 +6909,23 @@ void circles_collisions_resolve(struct game_state* state, f32 dt)
         struct circle* b = contact->b;
         struct line_segment* line = contact->line;
 
+        // Todo: needs state, get rid of it
         // Render contact position
-        {
-            struct m4 transform = m4_translate(contact->position.x,
-                contact->position.y, 1.5f);
-            struct m4 rotation = m4_identity();
-            struct m4 scale = m4_scale_all(0.05f);
+        // {
+        //     struct m4 transform = m4_translate(contact->position.x,
+        //         contact->position.y, 1.5f);
+        //     struct m4 rotation = m4_identity();
+        //     struct m4 scale = m4_scale_all(0.05f);
 
-            struct m4 model = m4_mul_m4(scale, rotation);
-            model = m4_mul_m4(model, transform);
+        //     struct m4 model = m4_mul_m4(scale, rotation);
+        //     model = m4_mul_m4(model, transform);
 
-            struct m4 mvp = m4_mul_m4(model, state->camera.view);
-            mvp = m4_mul_m4(mvp, state->camera.projection);
+        //     struct m4 mvp = m4_mul_m4(model, state->camera.view);
+        //     mvp = m4_mul_m4(mvp, state->camera.projection);
 
-            mesh_render(&state->sphere, &mvp, state->texture_sphere,
-                state->shader_simple, colors[RED]);
-        }
+        //     mesh_render(&state->sphere, &mvp, state->texture_sphere,
+        //         state->shader_simple, colors[RED]);
+        // }
 
         // Circle - circle
         if (a && b)
@@ -6999,22 +7004,23 @@ void circles_collisions_resolve(struct game_state* state, f32 dt)
     }
 }
 
-void circles_positions_update(struct game_state* state)
+void circles_positions_update(struct circle circles[], u32 num_circles)
 {
-    for (u32 i = 0; i < state->num_circles; i++)
+    for (u32 i = 0; i < num_circles; i++)
     {
-        struct circle* circle = &state->circles[i];
+        struct circle* circle = &circles[i];
 
         circle->position.x += circle->move_delta.x;
         circle->position.y += circle->move_delta.y;
     }
 }
 
-void circles_render(struct game_state* state)
+void circles_render(struct circle circles[], u32 num_circles,
+    struct game_state* state)
 {
-    for (u32 i = 0; i < state->num_circles; i++)
+    for (u32 i = 0; i < num_circles; i++)
     {
-        struct circle* circle = &state->circles[i];
+        struct circle* circle = &circles[i];
         struct m4 transform = m4_translate(circle->position.x,
             circle->position.y, 1.25f);
         struct m4 rotation = m4_identity();
@@ -7093,7 +7099,9 @@ void circles_render(struct game_state* state)
 #include "tk_state_game.c"
 #include "tk_state_physics.c"
 
-b32 PHYSICS_DEBUG = false;
+b32 PHYSICS_DEBUG = true;
+
+struct state_interface state_physics;
 
 void game_init(struct game_memory* memory, struct game_init* init)
 {
@@ -7150,13 +7158,13 @@ void game_init(struct game_memory* memory, struct game_init* init)
         api.gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
         // Init screen size
-        state->screen_width = init->screen_width;
-        state->screen_height = init->screen_height;
+        state->camera.screen_width = (f32)init->screen_width;
+        state->camera.screen_height = (f32)init->screen_height;
 
         // Init stack allocator
         state->stack.base = (s8*)state + sizeof(struct game_state);
         state->stack.current = state->stack.base;
-        state->stack.size = 100*1024*1024;
+        state->stack.size = MEGABYTES(512);
 
         // Init random seed
         state->random_seed = (u32)init->init_time;
@@ -7202,8 +7210,12 @@ void game_init(struct game_memory* memory, struct game_init* init)
         mesh_create(&state->stack, "assets/meshes/triangle.mesh",
             &state->triangle);
 
-        state->state_current = PHYSICS_DEBUG ? &state_physics : &state_game;
-        state->state_current->init(state);
+        state_physics = state_physics_create(state);
+
+        state->state_current = &state_physics;
+
+        // state->state_current = PHYSICS_DEBUG ? &state_physics : &state_game;
+        state->state_current->init(state->state_current->data);
 
         memory->initialized = true;
     }
@@ -7227,12 +7239,13 @@ void game_update(struct game_memory* memory, struct game_input* input)
         while (state->accumulator >= step)
         {
             state->accumulator -= step;
-            state->state_current->update(state, input, step);
+            state->state_current->update(state->state_current->data, input,
+                step);
         }
 
         api.gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        state->state_current->render(state);
+        state->state_current->render(state->state_current->data);
     }
     else
     {
