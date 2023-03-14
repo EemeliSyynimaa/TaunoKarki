@@ -1,5 +1,6 @@
 #include "tk_platform.h"
 #include "tk_math.h"
+#include "tk_state_interface.c"
 
 #include <string.h>
 
@@ -830,12 +831,15 @@ struct game_state
     struct level level_mask;
     struct circle circles[MAX_CIRCLES];
     struct contact contacts[MAX_CONTACTS];
+    struct state_interface* state_current;
     b32 render_debug;
     b32 level_change;
     b32 level_cleared;
     b32 player_in_start_room;
     f32 accumulator;
     f32 level_clear_notify;
+    s32 screen_width;
+    s32 screen_height;
     u32 shader;
     u32 shader_simple;
     u32 shader_cube;
@@ -6869,7 +6873,8 @@ void circles_collisions_check(struct game_state* state)
                     LOG("COLLISION: circle %d and line %d\n", i, j);
                     if (!circle->contact)
                     {
-                        circle->contact = &state->contacts[state->num_contacts++];
+                        circle->contact =
+                            &state->contacts[state->num_contacts++];
                         *circle->contact = contact;
                     }
                     else if (contact.t < circle->contact->t)
@@ -7144,6 +7149,10 @@ void game_init(struct game_memory* memory, struct game_init* init)
         api.gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         api.gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
+        // Init screen size
+        state->screen_width = init->screen_width;
+        state->screen_height = init->screen_height;
+
         // Init stack allocator
         state->stack.base = (s8*)state + sizeof(struct game_state);
         state->stack.current = state->stack.base;
@@ -7193,14 +7202,8 @@ void game_init(struct game_memory* memory, struct game_init* init)
         mesh_create(&state->stack, "assets/meshes/triangle.mesh",
             &state->triangle);
 
-        if (PHYSICS_DEBUG)
-        {
-            state_physics_init(state, init);
-        }
-        else
-        {
-            state_game_init(state, init);
-        }
+        state->state_current = PHYSICS_DEBUG ? &state_physics : &state_game;
+        state->state_current->init(state);
 
         memory->initialized = true;
     }
@@ -7224,27 +7227,12 @@ void game_update(struct game_memory* memory, struct game_input* input)
         while (state->accumulator >= step)
         {
             state->accumulator -= step;
-
-            if (PHYSICS_DEBUG)
-            {
-                state_physics_update(state, input, step);
-            }
-            else
-            {
-                state_game_update(state, input, step);
-            }
+            state->state_current->update(state, input, step);
         }
 
         api.gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        if (PHYSICS_DEBUG)
-        {
-            state_physics_render(state);
-        }
-        else
-        {
-            state_game_render(state);
-        }
+        state->state_current->render(state);
     }
     else
     {

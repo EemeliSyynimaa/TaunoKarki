@@ -1,5 +1,4 @@
-
-void state_physics_init(struct game_state* state, struct game_init* init)
+void state_physics_init(struct game_state* state)
 {
     state->num_circles = 16;
 
@@ -23,8 +22,8 @@ void state_physics_init(struct game_state* state, struct game_init* init)
     }
 
     f32 size = 7.5f;
-    state->camera.screen_width = (f32)init->screen_width;
-    state->camera.screen_height = (f32)init->screen_height;
+    state->camera.screen_width = (f32)state->screen_width;
+    state->camera.screen_height = (f32)state->screen_height;
     state->camera.position = (struct v3){ 0.0f, 0.0f, 5.0f };
     state->camera.projection = m4_orthographic(-size, size, -size, size,
             0.1f, 100.0f);
@@ -84,3 +83,10 @@ void state_physics_render(struct game_state* state)
     circles_render(state);
     collision_map_render(state);
 }
+
+struct state_interface state_physics =
+{
+    .init = state_physics_init,
+    .update = state_physics_update,
+    .render = state_physics_render
+};
