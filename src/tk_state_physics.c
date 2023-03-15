@@ -8,11 +8,39 @@ struct state_physics_data
     u32 num_lines;
 };
 
+void lines_render(struct line_segment lines[], u32 num_lines,
+    struct game_state* state)
+{
+    for (u32 i = 0; i < num_lines; i++)
+    {
+        line_render(state, lines[i].start, lines[i].end, colors[GREY], 1.25f,
+            0.0125f);
+    }
+}
+
 void state_physics_init(struct state_physics_data* data)
 {
-    data->num_circles = 16;
+    // Create lines
+    data->num_lines = 4;
 
-    f32 area_size = 5.0f;
+    f32 width = 4.5f;
+    f32 height = 4.5f;
+
+    // Top
+    data->lines[0].start = (struct v2){ -width, height };
+    data->lines[0].end = (struct v2){ width, height };
+    // Bottom
+    data->lines[1].start = (struct v2){ -width, -height };
+    data->lines[1].end = (struct v2){ width, -height };
+    // Left
+    data->lines[2].start = (struct v2){ -width, height };
+    data->lines[2].end = (struct v2){ -width, -height };
+    // Right
+    data->lines[3].start = (struct v2){ width, height };
+    data->lines[3].end = (struct v2){ width, -height };
+
+    // Create circles
+    data->num_circles = 16;
 
     // Make the first circle controllable
     data->circles[0].position.x = 0.0f;
@@ -22,27 +50,30 @@ void state_physics_init(struct state_physics_data* data)
 
     for (u32 i = 1; i < data->num_circles; i++)
     {
+        f32 spawn_area = 4.0f;
+
         struct circle* circle = &data->circles[i];
-        circle->position.x = f32_random(-area_size, area_size);
-        circle->position.y = f32_random(-area_size, area_size);
+        circle->position.x = f32_random(-spawn_area, spawn_area);
+        circle->position.y = f32_random(-spawn_area, spawn_area);
         circle->radius = 0.25f;
-        circle->target.x = f32_random(-area_size, area_size);
-        circle->target.y = f32_random(-area_size, area_size);
+        circle->target.x = f32_random(-spawn_area, spawn_area);
+        circle->target.y = f32_random(-spawn_area, spawn_area);
         circle->mass = 1.0f;
     }
 
-    f32 size = 7.5f;
-    data->base->camera.position = (struct v3){ 0.0f, 0.0f, 5.0f };
-    data->base->camera.projection = m4_orthographic(-size, size, -size, size,
-            0.1f, 100.0f);
-    data->base->camera.projection_inverse =
-        m4_inverse(data->base->camera.projection);
+    // Setup camera
+    f32 size = 5.0f;
+    f32 near = 0.1f;
+    f32 far = 100.0f;
 
-    struct v3 up = { 0.0f, 1.0f, 0.0f };
-
-    data->base->camera.view = m4_look_at(data->base->camera.position,
-        (struct v3) { data->base->camera.position.xy, 0.0f }, up);
-    data->base->camera.view_inverse = m4_inverse(data->base->camera.view);
+    struct camera* camera = &data->base->camera;
+    camera->position = (struct v3){ 0.0f, 0.0f, 5.0f };
+    camera->projection = m4_orthographic(-size, size, -size, size, near, far);
+    camera->projection_inverse = m4_inverse(camera->projection);
+    camera->view = m4_look_at(camera->position,
+        (struct v3) { camera->position.xy, 0.0f },
+        (struct v3) { 0.0f, 1.0f, 0.0f });
+    camera->view_inverse = m4_inverse(camera->view);
 
     api.gl.glClearColor(0.25f, 0.0f, 0.0f, 0.0f);
 }
@@ -92,7 +123,7 @@ void state_physics_update(struct state_physics_data* data,
 void state_physics_render(struct state_physics_data* data)
 {
     circles_render(data->circles, data->num_circles, data->base);
-    // collision_map_render(state);
+    lines_render(data->lines, data->num_lines, data->base);
 }
 
 struct state_interface state_physics_create(struct game_state* state)

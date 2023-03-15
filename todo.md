@@ -12,11 +12,11 @@ Separate game logic
 
 Create test bench for physics and collision
  - [X] Make physics state default and commit to physics
- - [ ] Area surrounded by four static walls
+ - [X] Area surrounded by four static walls
  - [ ] Static circles
- - [ ] Controllable circle
- - [ ] Support dynamic circles, the amount will be decided later
- - [ ] Render scene
+ - [X] Controllable circle
+ - [X] Support dynamic circles, the amount will be decided later
+ - [X] Render scene
 
 Render velocities and forces
  - [ ] Only when paused?
