@@ -829,8 +829,6 @@ struct game_state
     struct gun_shot gun_shots[MAX_GUN_SHOTS];
     struct level level;
     struct level level_mask;
-    struct circle circles[MAX_CIRCLES];
-    struct contact contacts[MAX_CONTACTS];
     struct state_interface* state_current;
     b32 render_debug;
     b32 level_change;
@@ -858,8 +856,6 @@ struct game_state
     u32 num_cols_static;
     u32 num_cols_dynamic;
     u32 num_gun_shots;
-    u32 num_circles;
-    u32 num_contacts;
     u32 ticks_per_second;
     u32 level_current;
     u32 random_seed;
@@ -7096,7 +7092,7 @@ void circles_render(struct circle circles[], u32 num_circles,
 #include "tk_state_game.c"
 #include "tk_state_physics.c"
 
-b32 PHYSICS_DEBUG = true;
+b32 PHYSICS_DEBUG = false;
 
 struct state_interface state_physics;
 struct state_interface state_game;
@@ -7211,7 +7207,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state_physics = state_physics_create(state);
         state_game = state_game_create(state);
 
-        state->state_current = &state_game;
+        state->state_current = PHYSICS_DEBUG ? &state_physics : &state_game;
         state->state_current->init(state->state_current->data);
 
         memory->initialized = true;
