@@ -11,7 +11,7 @@ Separate game logic
  - [X] Make game state default and commit to master
 
 Create test bench for physics and collision
- - [ ] Make physics state default and commit to physics
+ - [X] Make physics state default and commit to physics
  - [ ] Area surrounded by four static walls
  - [ ] Static circles
  - [ ] Controllable circle
