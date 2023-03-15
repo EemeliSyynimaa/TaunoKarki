@@ -7092,7 +7092,7 @@ void circles_render(struct circle circles[], u32 num_circles,
 #include "tk_state_game.c"
 #include "tk_state_physics.c"
 
-b32 PHYSICS_DEBUG = false;
+b32 PHYSICS_DEBUG = true;
 
 struct state_interface state_physics;
 struct state_interface state_game;
