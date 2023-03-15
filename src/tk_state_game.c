@@ -1,9 +1,17 @@
-void state_game_init(struct game_state* state)
+// Todo: move data specific for this state from game state to here
+struct state_game_data
 {
+    struct game_state* base;
+};
+
+void state_game_init(struct state_game_data* data)
+{
+    struct game_state* state = data->base;
+
     cube_renderer_init(&state->cube_renderer, state->shader_cube,
         state->texture_cube);
-    sprite_renderer_init(&state->sprite_renderer, state->shader_sprite,
-        state->texture_sprite);
+    sprite_renderer_init(&state->sprite_renderer,
+        state->shader_sprite, state->texture_sprite);
     particle_renderer_init(&state->particle_renderer,
         state->shader_particle, state->texture_particle);
 
@@ -61,10 +69,10 @@ void state_game_init(struct game_state* state)
 
     particle_emitter_create(&state->particle_system, &config, true);
 
-    state->camera.projection = m4_perspective(60.0f,
-        (f32)state->camera.screen_width/(f32)state->camera.screen_height,
-        0.1f, 15.0f);
-    state->camera.projection_inverse = m4_inverse(state->camera.projection);
+    struct camera* camera = &state->camera;
+    camera->projection = m4_perspective(60.0f,
+        (f32)camera->screen_width / (f32)camera->screen_height, 0.1f, 15.0f);
+    camera->projection_inverse = m4_inverse(camera->projection);
     state->render_debug = false;
 
     u32 num_colors = sizeof(colors) / sizeof(struct v4);
@@ -76,15 +84,17 @@ void state_game_init(struct game_state* state)
 
     state->level_current = 1;
 
-    level_mask_init(state);
+    level_mask_init(&state->level_mask);
     level_init(state);
 
     api.gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
-void state_game_update(struct game_state* state, struct game_input* input,
+void state_game_update(struct state_game_data* data, struct game_input* input,
     f32 step)
 {
+    struct game_state* state = data->base;
+
     if (state->level_clear_notify <= 0.0f)
     {
         state->cube_renderer.num_cubes = 0;
@@ -108,6 +118,7 @@ void state_game_update(struct game_state* state, struct game_input* input,
         plr_pos.y < start_max.y;
 
     struct camera* camera = &state->camera;
+    struct mouse* mouse = &state->mouse;
 
     if (state->level_clear_notify > 0.0f)
     {
@@ -127,9 +138,9 @@ void state_game_update(struct game_state* state, struct game_input* input,
         f32 distance_to_activate = 0.0f;
 
         struct v2 direction_to_mouse = v2_normalize(v2_direction(
-            state->player.body.position, state->mouse.world));
+            state->player.body.position, mouse->world));
 
-        struct v2 target_pos = v2_average(state->mouse.world,
+        struct v2 target_pos = v2_average(mouse->world,
             state->player.body.position);
 
         f32 distance_to_target = v2_distance(target_pos,
@@ -166,7 +177,7 @@ void state_game_update(struct game_state* state, struct game_input* input,
         camera->view_inverse = m4_inverse(camera->view);
     }
 
-    state->mouse.world = calculate_world_pos((f32)input->mouse_x,
+    mouse->world = calculate_world_pos((f32)input->mouse_x,
         (f32)input->mouse_y, camera);
 
     collision_map_dynamic_calculate(state);
@@ -179,40 +190,6 @@ void state_game_update(struct game_state* state, struct game_input* input,
     }
 
     state->num_gun_shots = 0;
-}
-
-void state_game_render(struct game_state* state)
-{
-    // u64 render_start = ticks_current_get();
-    level_render(state, &state->level);
-    player_render(state);
-    enemies_render(state);
-    // bullets_render(state);
-    items_render(state);
-    particle_system_render(&state->particle_system,
-        &state->particle_renderer);
-
-    particle_renderer_sort(&state->particle_renderer);
-
-    cube_renderer_flush(&state->cube_renderer, &state->camera.view,
-        &state->camera.projection);
-    sprite_renderer_flush(&state->sprite_renderer, &state->camera.view,
-        &state->camera.projection);
-    particle_renderer_flush(&state->particle_renderer, &state->camera.view,
-        &state->camera.projection);
-
-    particle_lines_render(state);
-
-    // u64 render_end = ticks_current_get();
-
-    // LOG("Render time: %f\n", time_elapsed_seconds(state, render_start,
-    //     render_end));
-
-    if (state->render_debug)
-    {
-        collision_map_render(state);
-    }
-    // cursor_render(state);
 
     if (state->level_change)
     {
@@ -224,9 +201,48 @@ void state_game_render(struct game_state* state)
     }
 }
 
-struct state_interface state_game =
+void state_game_render(struct state_game_data* data)
 {
-    .init = state_game_init,
-    .update = state_game_update,
-    .render = state_game_render
-};
+    struct game_state* state = data->base;
+    struct camera* camera = &state->camera;
+
+    level_render(data->base, &state->level);
+    player_render(data->base);
+    enemies_render(data->base);
+    items_render(data->base);
+    particle_system_render(&state->particle_system,
+        &state->particle_renderer);
+
+    particle_renderer_sort(&state->particle_renderer);
+
+    cube_renderer_flush(&state->cube_renderer, &camera->view,
+        &camera->projection);
+    sprite_renderer_flush(&state->sprite_renderer, &camera->view,
+        &camera->projection);
+    particle_renderer_flush(&state->particle_renderer, &camera->view,
+        &camera->projection);
+
+    particle_lines_render(data->base);
+
+    if (state->render_debug)
+    {
+        collision_map_render(data->base);
+    }
+}
+
+struct state_interface state_game_create(struct game_state* state)
+{
+    struct state_interface result = { 0 };
+    result.init = state_game_init;
+    result.update = state_game_update;
+    result.render = state_game_render;
+    result.data = stack_alloc(&state->stack, sizeof(struct state_game_data));
+
+    memory_set(result.data, sizeof(struct state_game_data), 0);
+
+    struct game_state** base = (struct game_state**)result.data;
+
+    *base = state;
+
+    return result;
+}

@@ -2918,7 +2918,7 @@ b32 collision_point_to_obb(struct v2 pos, struct v2 corners[4])
     return result;
 }
 
-void level_generate(struct game_state* state, struct level* level,
+void level_generate(struct memory_block* stack, struct level* level,
     struct level* layout_mask)
 {
     u32 width = layout_mask->width;
@@ -2935,7 +2935,7 @@ void level_generate(struct game_state* state, struct level* level,
     u64 size = width * height;
     u8* data = 0;
 
-    data = stack_alloc(&state->stack, size);
+    data = stack_alloc(stack, size);
     memory_copy(layout_mask->tile_types, data, size);
 
     memory_set(level, sizeof(struct level), 0);
@@ -3235,7 +3235,7 @@ void level_generate(struct game_state* state, struct level* level,
         LOG("\n");
     }
 
-    stack_free(&state->stack);
+    stack_free(stack);
 }
 
 void level_render(struct game_state* state, struct level* level)
@@ -6433,11 +6433,9 @@ u32 program_create(struct memory_block* block, char* vertex_shader_path,
     return program;
 }
 
-void level_mask_init(struct game_state* state)
+void level_mask_init(struct level* mask)
 {
     // Inited once per game round e.g. until the player has died
-
-    struct level* mask = &state->level_mask;
 
     // Todo: now hard coded, randomize in the future
     mask->width = 8;
@@ -6511,7 +6509,7 @@ void level_init(struct game_state* state)
 
     LOG("%u enemies\n", state->num_enemies);
 
-    level_generate(state, &state->level, &state->level_mask);
+    level_generate(&state->stack, &state->level, &state->level_mask);
 
     u32 color_enemy = cube_renderer_color_add(&state->cube_renderer,
         (struct v4){ 0.7f, 0.90f, 0.1f, 1.0f });
@@ -6557,14 +6555,13 @@ void level_init(struct game_state* state)
 
     state->mouse.world = state->player.body.position;
 
-    state->camera.position.xy = state->level.start_pos;
-    state->camera.target.xy = state->level.start_pos;
-    state->camera.target.z = 3.75f;
-
-    state->camera.view = m4_translate(-state->camera.position.x,
-        -state->camera.position.y, -state->camera.position.z);
-
-    state->camera.view_inverse = m4_inverse(state->camera.view);
+    struct camera* camera = &state->camera;
+    camera->position.xy = state->level.start_pos;
+    camera->target.xy = state->level.start_pos;
+    camera->target.z = 3.75f;
+    camera->view = m4_translate(-camera->position.x, -camera->position.y,
+        -camera->position.z);
+    camera->view_inverse = m4_inverse(camera->view);
 
     collision_map_static_calculate(&state->level, state->cols_static,
         MAX_COLLISION_SEGMENTS, &state->num_cols_static);
@@ -7102,6 +7099,7 @@ void circles_render(struct circle circles[], u32 num_circles,
 b32 PHYSICS_DEBUG = true;
 
 struct state_interface state_physics;
+struct state_interface state_game;
 
 void game_init(struct game_memory* memory, struct game_init* init)
 {
@@ -7211,10 +7209,9 @@ void game_init(struct game_memory* memory, struct game_init* init)
             &state->triangle);
 
         state_physics = state_physics_create(state);
+        state_game = state_game_create(state);
 
-        state->state_current = &state_physics;
-
-        // state->state_current = PHYSICS_DEBUG ? &state_physics : &state_game;
+        state->state_current = &state_game;
         state->state_current->init(state->state_current->data);
 
         memory->initialized = true;
