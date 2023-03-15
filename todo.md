@@ -4,13 +4,14 @@
 Separate game logic
  - [X] Commit existing changes to remote (fix linux and merge with the old WIP commit)
  - [X] Separate game and circle logic to own files (update, render and other functions only)
- - [ ] Create an interface for different states
+ - [X] Create an interface for different states
    - [X] Functions for init, update and render
-   - [ ] Each state can have it's own struct for storage, for example the current game state struct
- - [ ] Create states for game and physics test bench (old circle logic)
- - [ ] Make game state default and commit to master
+   - [X] Each state can have it's own struct for storage, for example the current game state struct
+ - [X] Create states for game and physics test bench (old circle logic)
+ - [X] Make game state default and commit to master
 
 Create test bench for physics and collision
+ - [ ] Make physics state default and commit to physics
  - [ ] Area surrounded by four static walls
  - [ ] Static circles
  - [ ] Controllable circle
