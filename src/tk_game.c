@@ -7014,7 +7014,7 @@ void circles_positions_update(struct circle circles[], u32 num_circles)
 }
 
 void circles_render(struct circle circles[], u32 num_circles,
-    struct game_state* state)
+    struct game_state* state, b32 paused)
 {
     for (u32 i = 0; i < num_circles; i++)
     {
@@ -7035,63 +7035,47 @@ void circles_render(struct circle circles[], u32 num_circles,
         mesh_render(&state->sphere, &mvp, state->texture_sphere,
             state->shader_simple, colors[color]);
 
-        // // Render velocity vector
-        // {
-        //     f32 max_speed = 3.0f;
-        //     f32 length = v2_length(circle->velocity) / max_speed;
-        //     f32 angle = f32_atan(circle->velocity.x,
-        //         circle->velocity.y);
-
-        //     transform = m4_translate(
-        //         circle->position.x + circle->velocity.x / max_speed,
-        //         circle->position.y + circle->velocity.y / max_speed,
-        //         1.5f);
-
-        //     rotation = m4_rotate_z(-angle);
-        //     scale = m4_scale_xyz(0.05f, length, 1.5f);
-
-        //     model = m4_mul_m4(scale, rotation);
-        //     model = m4_mul_m4(model, transform);
-
-        //     struct m4 mvp = m4_mul_m4(model, state->camera.view);
-        //     mvp = m4_mul_m4(mvp, state->camera.projection);
-
-        //     mesh_render(&state->floor, &mvp, state->texture_tileset,
-        //         state->shader_simple, colors[GREY]);
-        // }
-
         if (circle->dynamic)
         {
-            if (i)
+            if (paused)
             {
-                // Render line to target
-                line_render(state, circle->position, circle->target,
-                    colors[RED], 1.1, 0.0125f);
+                // Render movement vector
+                line_render(state, circle->position, v2_add(circle->position,
+                    circle->move_delta), colors[RED], 1.5f, 0.01f);
             }
             else
             {
-                // Render velocity vector
-                f32 max_speed = 7.0f;
-                f32 length = v2_length(circle->velocity) / max_speed;
-                f32 angle = f32_atan(circle->velocity.x,
-                    circle->velocity.y);
+                if (i)
+                {
+                    // Render line to target
+                    line_render(state, circle->position, circle->target,
+                        colors[RED], 1.1, 0.0125f);
+                }
+                else
+                {
+                    // Render velocity vector
+                    f32 max_speed = 7.0f;
+                    f32 length = v2_length(circle->velocity) / max_speed;
+                    f32 angle = f32_atan(circle->velocity.x,
+                        circle->velocity.y);
 
-                transform = m4_translate(
-                    circle->position.x + circle->velocity.x / max_speed,
-                    circle->position.y + circle->velocity.y / max_speed,
-                    1.5f);
+                    transform = m4_translate(
+                        circle->position.x + circle->velocity.x / max_speed,
+                        circle->position.y + circle->velocity.y / max_speed,
+                        1.5f);
 
-                rotation = m4_rotate_z(-angle);
-                scale = m4_scale_xyz(0.025f, length, 1.5f);
+                    rotation = m4_rotate_z(-angle);
+                    scale = m4_scale_xyz(0.025f, length, 1.5f);
 
-                model = m4_mul_m4(scale, rotation);
-                model = m4_mul_m4(model, transform);
+                    model = m4_mul_m4(scale, rotation);
+                    model = m4_mul_m4(model, transform);
 
-                struct m4 mvp = m4_mul_m4(model, state->camera.view);
-                mvp = m4_mul_m4(mvp, state->camera.projection);
+                    struct m4 mvp = m4_mul_m4(model, state->camera.view);
+                    mvp = m4_mul_m4(mvp, state->camera.projection);
 
-                mesh_render(&state->floor, &mvp, state->texture_tileset,
-                    state->shader_simple, colors[GREY]);
+                    mesh_render(&state->floor, &mvp, state->texture_tileset,
+                        state->shader_simple, colors[GREY]);
+                }
             }
         }
     }

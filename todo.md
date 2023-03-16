@@ -18,8 +18,8 @@ Create test bench for physics and collision
  - [X] Support dynamic circles, the amount will be decided later
  - [X] Render scene
 
-Render velocities and forces
- - [ ] Only when paused?
+Render circle movement vector
+ - [X] Only when paused
 
 Store previous frames and add ability to move freely between them and to continue physics at any given point
  - [ ] Specify the data to be stored

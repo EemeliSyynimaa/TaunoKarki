@@ -6,6 +6,7 @@ struct state_physics_data
     struct line_segment lines[MAX_COLLISION_SEGMENTS];
     u32 num_circles;
     u32 num_lines;
+    b32 paused;
 };
 
 void lines_render(struct line_segment lines[], u32 num_lines,
@@ -102,45 +103,52 @@ void state_physics_update(struct state_physics_data* data,
     static f32 particle_test = 0;
     static u32 frame_number = 0;
 
-    LOG("Frame: %i\n", frame_number++);
+    data->paused = input->pause;
 
-    circles_velocities_update(data->circles, data->num_circles, input, step);
-
-    f32 max_iterations = 10;
-
-    for (u32 i = 0; i < max_iterations; i++)
+    if (!data->paused)
     {
-        LOG("Checking collisions, iteration %d\n", i + 1);
+        LOG("Frame: %i\n", frame_number++);
 
-        // Todo: sometimes, for some reasons, a collision
-        // between two objects happens again in the following
-        // iteration. This shouldn't occur as the collision
-        // is already resolved and the velocities and positions
-        // are updated! Investigate
+        circles_velocities_update(data->circles, data->num_circles, input,
+            step);
 
-        // Todo: sometimes collisions are handled poorly
-        // when multiple circles are touching...?
+        f32 max_iterations = 10;
 
-        u32 num_contacts = circles_collisions_check(data->circles,
-            data->num_circles, data->contacts, data->lines, data->num_lines);
-
-        if (num_contacts)
+        for (u32 i = 0; i < max_iterations; i++)
         {
-            circles_collisions_resolve(data->contacts, num_contacts, step);
+            LOG("Checking collisions, iteration %d\n", i + 1);
+
+            // Todo: sometimes, for some reasons, a collision
+            // between two objects happens again in the following
+            // iteration. This shouldn't occur as the collision
+            // is already resolved and the velocities and positions
+            // are updated! Investigate
+
+            // Todo: sometimes collisions are handled poorly
+            // when multiple circles are touching...?
+
+            u32 num_contacts = circles_collisions_check(data->circles,
+                data->num_circles, data->contacts, data->lines,
+                data->num_lines);
+
+            if (num_contacts)
+            {
+                circles_collisions_resolve(data->contacts, num_contacts, step);
+            }
+            else
+            {
+                LOG("No contacts!\n");
+                break;
+            }
         }
-        else
-        {
-            LOG("No contacts!\n");
-            break;
-        }
+
+        circles_positions_update(data->circles, data->num_circles);
     }
-
-    circles_positions_update(data->circles, data->num_circles);
 }
 
 void state_physics_render(struct state_physics_data* data)
 {
-    circles_render(data->circles, data->num_circles, data->base);
+    circles_render(data->circles, data->num_circles, data->base, data->paused);
     lines_render(data->lines, data->num_lines, data->base);
 }
 
