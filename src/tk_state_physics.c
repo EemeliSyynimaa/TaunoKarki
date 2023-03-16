@@ -14,7 +14,8 @@ struct state_physics_data
 {
     struct game_state* base;
     struct frame frames[MAX_FRAMES];
-    u32 current_frame;
+    u32 frame_current;
+    u32 frame_last;
     b32 paused;
 };
 
@@ -525,7 +526,7 @@ void circles_render(struct circle circles[], u32 num_circles,
 
 void state_physics_init(struct state_physics_data* data)
 {
-    struct frame* frame = &data->frames[data->current_frame];
+    struct frame* frame = &data->frames[data->frame_current];
 
     // Create lines
     frame->num_lines = 4;
@@ -614,14 +615,14 @@ void state_physics_update(struct state_physics_data* data,
     if (!data->paused)
     {
         // Copy old frame to new
-        struct frame* prev = &data->frames[data->current_frame];
+        struct frame* prev = &data->frames[data->frame_current];
 
-        if (++data->current_frame >= MAX_FRAMES)
+        if (++data->frame_current >= MAX_FRAMES)
         {
-            data->current_frame = 0;
+            data->frame_current = 0;
         }
 
-        struct frame* frame = &data->frames[data->current_frame];
+        struct frame* frame = &data->frames[data->frame_current];
         *frame = *prev;
 
         LOG("Frame: %u\n", ++frame->number);
@@ -660,12 +661,41 @@ void state_physics_update(struct state_physics_data* data,
         }
 
         circles_positions_update(frame->circles, frame->num_circles);
+
+        data->frame_last = data->frame_current;
+    }
+    else
+    {
+        if (key_times_pressed(&input->move_left))
+        {
+            if (data->frame_current != data->frame_last + 1)
+            {
+                LOG("LEFT\n");
+                u32 frame_peek = data->frame_current == 0 ? MAX_FRAMES - 1 :
+                    data->frame_current - 1;
+
+                data->frame_current = frame_peek;
+                LOG("Frame: %u\n", data->frame_current);
+            }
+        }
+        else if (key_times_pressed(&input->move_right))
+        {
+            if (data->frame_current != data->frame_last)
+            {
+                LOG("RIGHT\n");
+                u32 frame_peek = data->frame_current == MAX_FRAMES - 1 ? 0 :
+                    data->frame_current + 1;
+
+                data->frame_current = frame_peek;
+                LOG("Frame: %u\n", data->frame_current);
+            }
+        }
     }
 }
 
 void state_physics_render(struct state_physics_data* data)
 {
-    struct frame* frame = &data->frames[data->current_frame];
+    struct frame* frame = &data->frames[data->frame_current];
     circles_render(frame->circles, frame->num_circles, data->base,
         data->paused);
     lines_render(frame->lines, frame->num_lines, data->base);

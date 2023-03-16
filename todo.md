@@ -22,10 +22,10 @@ Render circle movement vector
  - [X] Only when paused
 
 Store previous frames and add ability to move freely between them and to continue physics at any given point
- - [ ] Specify the data to be stored
- - [ ] Store data after each frame
- - [ ] When paused, moving between frames is possible
- - [ ] When unpaused, physics should continue from the current frame
+ - [X] Specify the data to be stored
+ - [X] Store data after each frame
+ - [X] When paused, moving between frames is possible
+ - [X] When unpaused, physics should continue from the current frame
 
 Render all collision steps
  - [ ] When paused each collision check and resolve can be viewed

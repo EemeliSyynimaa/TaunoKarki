@@ -6731,6 +6731,13 @@ void game_update(struct game_memory* memory, struct game_input* input)
             state->accumulator -= step;
             state->state_current->update(state->state_current->data, input,
                 step);
+
+            u32 num_keys = sizeof(input->keys)/sizeof(input->keys[0]);
+
+            for (u32 i = 0; i < num_keys; i++)
+            {
+                input->keys[i].transitions = 0;
+            }
         }
 
         api.gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

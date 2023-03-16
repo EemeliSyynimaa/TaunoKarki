@@ -182,13 +182,6 @@ void state_game_update(struct state_game_data* data, struct game_input* input,
 
     collision_map_dynamic_calculate(state);
 
-    u32 num_keys = sizeof(input->keys)/sizeof(input->keys[0]);
-
-    for (u32 i = 0; i < num_keys; i++)
-    {
-        input->keys[i].transitions = 0;
-    }
-
     state->num_gun_shots = 0;
 
     if (state->level_change)
