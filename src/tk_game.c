@@ -802,6 +802,7 @@ struct circle
     struct v2 target;
     f32 radius;
     f32 mass;
+    b32 dynamic;
 };
 
 struct game_state
@@ -6761,52 +6762,56 @@ void circles_velocities_update(struct circle circles[], u32 num_circles,
     {
         struct circle* circle = &circles[i];
 
-        f32 friction = FRICTION;
-        f32 speed = 5.0f;
-
-        struct v2 acceleration = { 0.0f };
-
-        if (v2_equals(circle->target, v2_zero))
+        if (circle->dynamic)
         {
-            if (input->move_left.key_down)
+            f32 friction = FRICTION;
+            f32 speed = 5.0f;
+
+            struct v2 acceleration = { 0.0f };
+
+            if (i == 0)
             {
-                acceleration.x -= 1.0f;
+                if (input->move_left.key_down)
+                {
+                    acceleration.x -= 1.0f;
+                }
+
+                if (input->move_right.key_down)
+                {
+                    acceleration.x += 1.0f;
+                }
+
+                if (input->move_down.key_down)
+                {
+                    acceleration.y -= 1.0f;
+                }
+
+                if (input->move_up.key_down)
+                {
+                    acceleration.y += 1.0f;
+                }
+
+                acceleration = v2_normalize(acceleration);
+                acceleration = v2_mul_f32(acceleration,
+                    PLAYER_ACCELERATION * 1.0f);
+            }
+            else
+            {
+                acceleration = v2_mul_f32(v2_direction(circle->position,
+                    circle->target), 2.0f);
             }
 
-            if (input->move_right.key_down)
-            {
-                acceleration.x += 1.0f;
-            }
+            acceleration.x -= circle->velocity.x * friction;
+            acceleration.y -= circle->velocity.y * friction;
 
-            if (input->move_down.key_down)
-            {
-                acceleration.y -= 1.0f;
-            }
+            circle->velocity.x = circle->velocity.x + acceleration.x * dt;
+            circle->velocity.y = circle->velocity.y + acceleration.y * dt;
 
-            if (input->move_up.key_down)
-            {
-                acceleration.y += 1.0f;
-            }
-
-            acceleration = v2_normalize(acceleration);
-            acceleration = v2_mul_f32(acceleration, PLAYER_ACCELERATION * 1.0f);
+            circle->move_delta.x = 0.5f * circle->acceleration.x * dt * dt +
+                circle->velocity.x * dt;
+            circle->move_delta.y = 0.5f * circle->acceleration.y * dt * dt +
+                circle->velocity.y * dt;
         }
-        else
-        {
-            acceleration = v2_mul_f32(v2_direction(circle->position,
-                circle->target), 2.0f);
-        }
-
-        acceleration.x -= circle->velocity.x * friction;
-        acceleration.y -= circle->velocity.y * friction;
-
-        circle->velocity.x = circle->velocity.x + acceleration.x * dt;
-        circle->velocity.y = circle->velocity.y + acceleration.y * dt;
-
-        circle->move_delta.x = 0.5f * circle->acceleration.x * f32_square(dt) +
-            circle->velocity.x * dt;
-        circle->move_delta.y = 0.5f * circle->acceleration.y * f32_square(dt) +
-            circle->velocity.y * dt;
     }
 }
 
@@ -7025,10 +7030,10 @@ void circles_render(struct circle circles[], u32 num_circles,
         struct m4 mvp = m4_mul_m4(model, state->camera.view);
         mvp = m4_mul_m4(mvp, state->camera.projection);
 
-        b32 hasTarget = !v2_equals(circle->target, v2_zero);
+        u32 color = (i == 0) ? AQUA : (circle->dynamic ? WHITE : GREY);
 
         mesh_render(&state->sphere, &mvp, state->texture_sphere,
-            state->shader_simple, colors[hasTarget ? WHITE : AQUA]);
+            state->shader_simple, colors[color]);
 
         // // Render velocity vector
         // {
@@ -7055,36 +7060,39 @@ void circles_render(struct circle circles[], u32 num_circles,
         //         state->shader_simple, colors[GREY]);
         // }
 
-        if (hasTarget)
+        if (circle->dynamic)
         {
-            // Render line to target
-            line_render(state, circle->position, circle->target, colors[RED],
-                1.1, 0.0125f);
-        }
-        else
-        {
-            // Render velocity vector
-            f32 max_speed = 7.0f;
-            f32 length = v2_length(circle->velocity) / max_speed;
-            f32 angle = f32_atan(circle->velocity.x,
-                circle->velocity.y);
+            if (i)
+            {
+                // Render line to target
+                line_render(state, circle->position, circle->target,
+                    colors[RED], 1.1, 0.0125f);
+            }
+            else
+            {
+                // Render velocity vector
+                f32 max_speed = 7.0f;
+                f32 length = v2_length(circle->velocity) / max_speed;
+                f32 angle = f32_atan(circle->velocity.x,
+                    circle->velocity.y);
 
-            transform = m4_translate(
-                circle->position.x + circle->velocity.x / max_speed,
-                circle->position.y + circle->velocity.y / max_speed,
-                1.5f);
+                transform = m4_translate(
+                    circle->position.x + circle->velocity.x / max_speed,
+                    circle->position.y + circle->velocity.y / max_speed,
+                    1.5f);
 
-            rotation = m4_rotate_z(-angle);
-            scale = m4_scale_xyz(0.025f, length, 1.5f);
+                rotation = m4_rotate_z(-angle);
+                scale = m4_scale_xyz(0.025f, length, 1.5f);
 
-            model = m4_mul_m4(scale, rotation);
-            model = m4_mul_m4(model, transform);
+                model = m4_mul_m4(scale, rotation);
+                model = m4_mul_m4(model, transform);
 
-            struct m4 mvp = m4_mul_m4(model, state->camera.view);
-            mvp = m4_mul_m4(mvp, state->camera.projection);
+                struct m4 mvp = m4_mul_m4(model, state->camera.view);
+                mvp = m4_mul_m4(mvp, state->camera.projection);
 
-            mesh_render(&state->floor, &mvp, state->texture_tileset,
-                state->shader_simple, colors[GREY]);
+                mesh_render(&state->floor, &mvp, state->texture_tileset,
+                    state->shader_simple, colors[GREY]);
+            }
         }
     }
 }

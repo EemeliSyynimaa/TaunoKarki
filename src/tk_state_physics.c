@@ -25,6 +25,7 @@ void state_physics_init(struct state_physics_data* data)
 
     f32 width = 4.5f;
     f32 height = 4.5f;
+    f32 spawn_area = 4.0f;
 
     // Top
     data->lines[0].start = (struct v2){ -width, height };
@@ -40,25 +41,42 @@ void state_physics_init(struct state_physics_data* data)
     data->lines[3].end = (struct v2){ width, -height };
 
     // Create circles
-    data->num_circles = 16;
+    data->num_circles = 15; // 1 controllable, 4 static, 10 dynamic
 
     // Make the first circle controllable
-    data->circles[0].position.x = 0.0f;
-    data->circles[0].position.y = 0.0f;
-    data->circles[0].radius = 0.25f;
-    data->circles[0].mass = 10.0f;
+    u32 index = 0;
+    struct circle* circle = &data->circles[index++];
+    circle->position.x = 0.0f;
+    circle->position.y = 0.0f;
+    circle->radius = 0.25f;
+    circle->mass = 10.0f;
+    circle->dynamic = true;
 
-    for (u32 i = 1; i < data->num_circles; i++)
+    // Todo: these are not really handled as static, they are  just dynamic
+    // circles but with HUGE mass
+
+    // Create static circles
+    for (u32 i = 0; i < 4; i++)
     {
-        f32 spawn_area = 4.0f;
+        circle = &data->circles[index++];
+        circle->position.x = ((f32)(i % 2) - 0.5f) * spawn_area;
+        circle->position.y = ((f32)(i / 2) - 0.5f) * spawn_area;
+        circle->radius = 0.35f;
+        circle->mass = F32_MAX;
+        circle->dynamic = false;
+    }
 
-        struct circle* circle = &data->circles[i];
+    // Create dynamic circles
+    for (u32 i = 0; i < 10; i++)
+    {
+        circle = &data->circles[index++];
         circle->position.x = f32_random(-spawn_area, spawn_area);
         circle->position.y = f32_random(-spawn_area, spawn_area);
         circle->radius = 0.25f;
+        circle->mass = 1.0f;
+        circle->dynamic = true;
         circle->target.x = f32_random(-spawn_area, spawn_area);
         circle->target.y = f32_random(-spawn_area, spawn_area);
-        circle->mass = 1.0f;
     }
 
     // Setup camera

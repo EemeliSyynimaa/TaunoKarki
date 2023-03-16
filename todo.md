@@ -13,7 +13,7 @@ Separate game logic
 Create test bench for physics and collision
  - [X] Make physics state default and commit to physics
  - [X] Area surrounded by four static walls
- - [ ] Static circles
+ - [X] Static circles
  - [X] Controllable circle
  - [X] Support dynamic circles, the amount will be decided later
  - [X] Render scene
@@ -31,8 +31,9 @@ Render all collision steps
  - [ ] When paused each collision check and resolve can be viewed
  - [ ] Possibility to move between collision steps
 
-Fix collision issues with multiple colliders
+Fix remaining issues with collisions
  - [ ] Use the test bench and new tools
+ - [ ] Static circles shouldn't move at all
 
 Integrate circle physics to game logic
  - [ ] Use with player collisions
