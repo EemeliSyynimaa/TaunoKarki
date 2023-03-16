@@ -15,7 +15,8 @@ struct state_physics_data
     struct game_state* base;
     struct frame frames[MAX_FRAMES];
     u32 frame_current;
-    u32 frame_last;
+    u32 frame_max;
+    u32 frame_min;
     b32 paused;
 };
 
@@ -658,7 +659,36 @@ void physics_advance(struct state_physics_data* data, struct game_input* input,
 
     circles_positions_update(frame->circles, frame->num_circles);
 
-    data->frame_last = data->frame_current;
+    // Todo: frame_min should be updated as well
+    data->frame_max = data->frame_current;
+}
+
+u32 state_frame_decrease(u32 frame_current, u32 frame_min, u32 frame_max)
+{
+    u32 result = frame_current;
+
+    if (frame_current != frame_min)
+    {
+        result = --frame_current % MAX_FRAMES;
+
+        LOG("Frame: %u\n", result);
+    }
+
+    return result;
+}
+
+u32 state_frame_increase(u32 frame_current, u32 frame_min, u32 frame_max)
+{
+    u32 result = frame_current;
+
+    if (frame_current != frame_max)
+    {
+        result = ++frame_current % MAX_FRAMES;
+
+        LOG("Frame: %u\n", result);
+    }
+
+    return result;
 }
 
 void state_physics_update(struct state_physics_data* data,
@@ -674,25 +704,23 @@ void state_physics_update(struct state_physics_data* data,
     {
         if (key_times_pressed(&input->move_left))
         {
-            if (data->frame_current != data->frame_last + 1)
-            {
-                u32 frame_peek = data->frame_current == 0 ? MAX_FRAMES - 1 :
-                    data->frame_current - 1;
-
-                data->frame_current = frame_peek;
-                LOG("Frame: %u\n", data->frame_current);
-            }
+            data->frame_current = state_frame_decrease(data->frame_current,
+                data->frame_min, data->frame_max);
         }
         else if (key_times_pressed(&input->move_right))
         {
-            if (data->frame_current != data->frame_last)
-            {
-                u32 frame_peek = data->frame_current == MAX_FRAMES - 1 ? 0 :
-                    data->frame_current + 1;
-
-                data->frame_current = frame_peek;
-                LOG("Frame: %u\n", data->frame_current);
-            }
+            data->frame_current = state_frame_increase(data->frame_current,
+                data->frame_min, data->frame_max);
+        }
+        else if (input->move_up.key_down)
+        {
+            data->frame_current = state_frame_increase(data->frame_current,
+                data->frame_min, data->frame_max);
+        }
+        else if (input->move_down.key_down)
+        {
+            data->frame_current = state_frame_decrease(data->frame_current,
+                data->frame_min, data->frame_max);
         }
 
         if (input->physics_advance.key_down)
