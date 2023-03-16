@@ -607,6 +607,60 @@ void state_physics_init(struct state_physics_data* data)
     data->paused = true;
 }
 
+void physics_advance(struct state_physics_data* data, struct game_input* input,
+    f32 step)
+{
+    // Copy old frame to new
+    struct frame* prev = &data->frames[data->frame_current];
+
+    if (++data->frame_current >= MAX_FRAMES)
+    {
+        data->frame_current = 0;
+    }
+
+    struct frame* frame = &data->frames[data->frame_current];
+    *frame = *prev;
+
+    LOG("Frame: %u\n", ++frame->number);
+
+    circles_velocities_update(frame->circles, frame->num_circles, input,
+        step);
+
+    f32 max_iterations = 10;
+
+    for (u32 i = 0; i < max_iterations; i++)
+    {
+        // LOG("Checking collisions, iteration %d\n", i + 1);
+
+        // Todo: sometimes, for some reasons, a collision
+        // between two objects happens again in the following
+        // iteration. This shouldn't occur as the collision
+        // is already resolved and the velocities and positions
+        // are updated! Investigate
+
+        // Todo: sometimes collisions are handled poorly
+        // when multiple circles are touching...?
+
+        u32 num_contacts = circles_collisions_check(frame->circles,
+            frame->num_circles, frame->contacts, frame->lines,
+            frame->num_lines);
+
+        if (num_contacts)
+        {
+            circles_collisions_resolve(frame->contacts, num_contacts, step);
+        }
+        else
+        {
+            // LOG("No contacts!\n");
+            break;
+        }
+    }
+
+    circles_positions_update(frame->circles, frame->num_circles);
+
+    data->frame_last = data->frame_current;
+}
+
 void state_physics_update(struct state_physics_data* data,
     struct game_input* input, f32 step)
 {
@@ -614,55 +668,7 @@ void state_physics_update(struct state_physics_data* data,
 
     if (!data->paused)
     {
-        // Copy old frame to new
-        struct frame* prev = &data->frames[data->frame_current];
-
-        if (++data->frame_current >= MAX_FRAMES)
-        {
-            data->frame_current = 0;
-        }
-
-        struct frame* frame = &data->frames[data->frame_current];
-        *frame = *prev;
-
-        LOG("Frame: %u\n", ++frame->number);
-
-        circles_velocities_update(frame->circles, frame->num_circles, input,
-            step);
-
-        f32 max_iterations = 10;
-
-        for (u32 i = 0; i < max_iterations; i++)
-        {
-            // LOG("Checking collisions, iteration %d\n", i + 1);
-
-            // Todo: sometimes, for some reasons, a collision
-            // between two objects happens again in the following
-            // iteration. This shouldn't occur as the collision
-            // is already resolved and the velocities and positions
-            // are updated! Investigate
-
-            // Todo: sometimes collisions are handled poorly
-            // when multiple circles are touching...?
-
-            u32 num_contacts = circles_collisions_check(frame->circles,
-                frame->num_circles, frame->contacts, frame->lines,
-                frame->num_lines);
-
-            if (num_contacts)
-            {
-                circles_collisions_resolve(frame->contacts, num_contacts, step);
-            }
-            else
-            {
-                // LOG("No contacts!\n");
-                break;
-            }
-        }
-
-        circles_positions_update(frame->circles, frame->num_circles);
-
-        data->frame_last = data->frame_current;
+        physics_advance(data, input, step);
     }
     else
     {
@@ -670,7 +676,6 @@ void state_physics_update(struct state_physics_data* data,
         {
             if (data->frame_current != data->frame_last + 1)
             {
-                LOG("LEFT\n");
                 u32 frame_peek = data->frame_current == 0 ? MAX_FRAMES - 1 :
                     data->frame_current - 1;
 
@@ -682,13 +687,22 @@ void state_physics_update(struct state_physics_data* data,
         {
             if (data->frame_current != data->frame_last)
             {
-                LOG("RIGHT\n");
                 u32 frame_peek = data->frame_current == MAX_FRAMES - 1 ? 0 :
                     data->frame_current + 1;
 
                 data->frame_current = frame_peek;
                 LOG("Frame: %u\n", data->frame_current);
             }
+        }
+
+        if (input->physics_advance.key_down)
+        {
+            physics_advance(data, input, step);
+        }
+
+        if (key_times_pressed(&input->physics_advance_step))
+        {
+            physics_advance(data, input, step);
         }
     }
 }

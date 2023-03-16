@@ -42,7 +42,7 @@ struct game_input
 
     union 
     {
-        struct key_state keys[13];
+        struct key_state keys[15];
 
         struct
         {
@@ -63,6 +63,10 @@ struct game_input
             struct key_state weapon_slot_5;
 
             struct key_state weapon_pick;
+
+            // For debugging only
+            struct key_state physics_advance;
+            struct key_state physics_advance_step;
         };
     };
 

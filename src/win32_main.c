@@ -819,6 +819,24 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                 win32_input_process(&new_input.weapon_pick,
                                     is_down);
                             }
+                            else if (msg.wParam == 0x49)
+                            {
+                                if (debug)
+                                {
+                                    LOG("I - %s\n", is_down ? "down" : "up");
+                                }
+                                win32_input_process(&new_input.physics_advance,
+                                    is_down);
+                            }
+                            else if (msg.wParam == 0x4F)
+                            {
+                                if (debug)
+                                {
+                                    LOG("O - %s\n", is_down ? "down" : "up");
+                                }
+                                win32_input_process(
+                                    &new_input.physics_advance_step, is_down);
+                            }
                         }
                     }
                 } break;
