@@ -1,11 +1,20 @@
-struct state_physics_data
+struct frame
 {
-    struct game_state* base;
     struct circle circles[MAX_CIRCLES];
     struct contact contacts[MAX_CONTACTS];
     struct line_segment lines[MAX_COLLISION_SEGMENTS];
     u32 num_circles;
     u32 num_lines;
+    u32 number;
+};
+
+#define MAX_FRAMES 3600
+
+struct state_physics_data
+{
+    struct game_state* base;
+    struct frame frames[MAX_FRAMES];
+    u32 current_frame;
     b32 paused;
 };
 
@@ -516,32 +525,34 @@ void circles_render(struct circle circles[], u32 num_circles,
 
 void state_physics_init(struct state_physics_data* data)
 {
+    struct frame* frame = &data->frames[data->current_frame];
+
     // Create lines
-    data->num_lines = 4;
+    frame->num_lines = 4;
 
     f32 width = 4.5f;
     f32 height = 4.5f;
     f32 spawn_area = 4.0f;
 
     // Top
-    data->lines[0].start = (struct v2){ -width, height };
-    data->lines[0].end = (struct v2){ width, height };
+    frame->lines[0].start = (struct v2){ -width, height };
+    frame->lines[0].end = (struct v2){ width, height };
     // Bottom
-    data->lines[1].start = (struct v2){ -width, -height };
-    data->lines[1].end = (struct v2){ width, -height };
+    frame->lines[1].start = (struct v2){ -width, -height };
+    frame->lines[1].end = (struct v2){ width, -height };
     // Left
-    data->lines[2].start = (struct v2){ -width, height };
-    data->lines[2].end = (struct v2){ -width, -height };
+    frame->lines[2].start = (struct v2){ -width, height };
+    frame->lines[2].end = (struct v2){ -width, -height };
     // Right
-    data->lines[3].start = (struct v2){ width, height };
-    data->lines[3].end = (struct v2){ width, -height };
+    frame->lines[3].start = (struct v2){ width, height };
+    frame->lines[3].end = (struct v2){ width, -height };
 
     // Create circles
-    data->num_circles = 15; // 1 controllable, 4 static, 10 dynamic
+    frame->num_circles = 15; // 1 controllable, 4 static, 10 dynamic
 
     // Make the first circle controllable
     u32 index = 0;
-    struct circle* circle = &data->circles[index++];
+    struct circle* circle = &frame->circles[index++];
     circle->position.x = 0.0f;
     circle->position.y = 0.0f;
     circle->radius = 0.25f;
@@ -554,7 +565,7 @@ void state_physics_init(struct state_physics_data* data)
     // Create static circles
     for (u32 i = 0; i < 4; i++)
     {
-        circle = &data->circles[index++];
+        circle = &frame->circles[index++];
         circle->position.x = ((f32)(i % 2) - 0.5f) * spawn_area;
         circle->position.y = ((f32)(i / 2) - 0.5f) * spawn_area;
         circle->radius = 0.35f;
@@ -565,7 +576,7 @@ void state_physics_init(struct state_physics_data* data)
     // Create dynamic circles
     for (u32 i = 0; i < 10; i++)
     {
-        circle = &data->circles[index++];
+        circle = &frame->circles[index++];
         circle->position.x = f32_random(-spawn_area, spawn_area);
         circle->position.y = f32_random(-spawn_area, spawn_area);
         circle->radius = 0.25f;
@@ -590,28 +601,39 @@ void state_physics_init(struct state_physics_data* data)
     camera->view_inverse = m4_inverse(camera->view);
 
     api.gl.glClearColor(0.25f, 0.0f, 0.0f, 0.0f);
+
+    // Start as paused
+    data->paused = true;
 }
 
 void state_physics_update(struct state_physics_data* data,
     struct game_input* input, f32 step)
 {
-    static f32 particle_test = 0;
-    static u32 frame_number = 0;
-
-    data->paused = input->pause;
+    data->paused = !input->pause;
 
     if (!data->paused)
     {
-        LOG("Frame: %i\n", frame_number++);
+        // Copy old frame to new
+        struct frame* prev = &data->frames[data->current_frame];
 
-        circles_velocities_update(data->circles, data->num_circles, input,
+        if (++data->current_frame >= MAX_FRAMES)
+        {
+            data->current_frame = 0;
+        }
+
+        struct frame* frame = &data->frames[data->current_frame];
+        *frame = *prev;
+
+        LOG("Frame: %u\n", ++frame->number);
+
+        circles_velocities_update(frame->circles, frame->num_circles, input,
             step);
 
         f32 max_iterations = 10;
 
         for (u32 i = 0; i < max_iterations; i++)
         {
-            LOG("Checking collisions, iteration %d\n", i + 1);
+            // LOG("Checking collisions, iteration %d\n", i + 1);
 
             // Todo: sometimes, for some reasons, a collision
             // between two objects happens again in the following
@@ -622,29 +644,31 @@ void state_physics_update(struct state_physics_data* data,
             // Todo: sometimes collisions are handled poorly
             // when multiple circles are touching...?
 
-            u32 num_contacts = circles_collisions_check(data->circles,
-                data->num_circles, data->contacts, data->lines,
-                data->num_lines);
+            u32 num_contacts = circles_collisions_check(frame->circles,
+                frame->num_circles, frame->contacts, frame->lines,
+                frame->num_lines);
 
             if (num_contacts)
             {
-                circles_collisions_resolve(data->contacts, num_contacts, step);
+                circles_collisions_resolve(frame->contacts, num_contacts, step);
             }
             else
             {
-                LOG("No contacts!\n");
+                // LOG("No contacts!\n");
                 break;
             }
         }
 
-        circles_positions_update(data->circles, data->num_circles);
+        circles_positions_update(frame->circles, frame->num_circles);
     }
 }
 
 void state_physics_render(struct state_physics_data* data)
 {
-    circles_render(data->circles, data->num_circles, data->base, data->paused);
-    lines_render(data->lines, data->num_lines, data->base);
+    struct frame* frame = &data->frames[data->current_frame];
+    circles_render(frame->circles, frame->num_circles, data->base,
+        data->paused);
+    lines_render(frame->lines, frame->num_lines, data->base);
 }
 
 struct state_interface state_physics_create(struct game_state* state)
