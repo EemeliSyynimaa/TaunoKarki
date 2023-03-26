@@ -215,25 +215,25 @@ void circles_velocities_update(struct circle circles[], u32 num_circles,
 
             if (i == 0)
             {
-                if (input->move_left.key_down)
-                {
-                    acceleration.x -= 1.0f;
-                }
+                // if (input->move_left.key_down)
+                // {
+                //     acceleration.x -= 1.0f;
+                // }
 
-                if (input->move_right.key_down)
+                // if (input->move_right.key_down)
                 {
                     acceleration.x += 1.0f;
                 }
 
-                if (input->move_down.key_down)
+                // if (input->move_down.key_down)
                 {
                     acceleration.y -= 1.0f;
                 }
 
-                if (input->move_up.key_down)
-                {
-                    acceleration.y += 1.0f;
-                }
+                // if (input->move_up.key_down)
+                // {
+                //     acceleration.y += 1.0f;
+                // }
 
                 acceleration = v2_normalize(acceleration);
                 acceleration = v2_mul_f32(acceleration,
@@ -264,10 +264,11 @@ u32 circles_collisions_check(struct circle circles[], u32 num_circles,
 {
     u32 result = 0;
 
+    // Todo: this looks horrible, refactor and clean
+
     for (u32 i = 0; i < num_circles; i++)
     {
         struct circle* circle = &circles[i];
-        circle->contact = NULL;
 
         if (result < MAX_CONTACTS)
         {
@@ -284,14 +285,51 @@ u32 circles_collisions_check(struct circle circles[], u32 num_circles,
                     if (collision_detect_circle_circle(circle, other, &contact))
                     {
                         LOG("COLLISION: circle %d and circle %d\n", i, j);
-                        if (!circle->contact)
+                        if ((!circle->contact ||
+                            contact.t < circle->contact->t) &&
+                            (!other->contact || contact.t < other->contact->t))
                         {
-                            circle->contact =
-                                &contacts[result++];
-                            *circle->contact = contact;
-                        }
-                        else if (contact.t < circle->contact->t)
-                        {
+                            if (!circle->contact && !other->contact)
+                            {
+                                circle->contact = &contacts[result++];
+                                other->contact = circle->contact;
+                            }
+                            else
+                            {
+                                if (circle->contact)
+                                {
+                                    if (circle->contact->a &&
+                                        circle->contact->a != circle)
+                                    {
+                                        circle->contact->a->contact = NULL;
+                                    }
+
+                                    if (circle->contact->b &&
+                                        circle->contact->b != circle)
+                                    {
+                                        circle->contact->b->contact = NULL;
+                                    }
+
+                                    other->contact = circle->contact;
+                                }
+                                else
+                                {
+                                    if (other->contact->a &&
+                                        other->contact->a != other)
+                                    {
+                                        other->contact->a->contact = NULL;
+                                    }
+
+                                    if (other->contact->b &&
+                                        other->contact->b != other)
+                                    {
+                                        other->contact->b->contact = NULL;
+                                    }
+
+                                    circle->contact = other->contact;
+                                }
+                            }
+
                             *circle->contact = contact;
                         }
                     }
@@ -313,15 +351,30 @@ u32 circles_collisions_check(struct circle circles[], u32 num_circles,
                     contact.b = NULL;
                     contact.line = other;
 
+                        // Todo: HERE RECURSIVELY CHCECK THAT EACH CONTACT IS
+                        // NULLIFIED FOR ALL PARTIES
                     LOG("COLLISION: circle %d and line %d\n", i, j);
-                    if (!circle->contact)
+                    if (!circle->contact || contact.t < circle->contact->t)
                     {
-                        circle->contact =
-                            &contacts[result++];
-                        *circle->contact = contact;
-                    }
-                    else if (contact.t < circle->contact->t)
-                    {
+                        if (circle->contact)
+                        {
+                            if (circle->contact->a &&
+                                circle->contact->a != circle)
+                            {
+                                circle->contact->a->contact = NULL;
+                            }
+
+                            if (circle->contact->b &&
+                                circle->contact->b != circle)
+                            {
+                                circle->contact->b->contact = NULL;
+                            }
+                        }
+                        else
+                        {
+                            circle->contact = &contacts[result++];
+                        }
+
                         *circle->contact = contact;
                     }
                 }
@@ -373,6 +426,9 @@ void circles_collisions_resolve(struct contact contacts[], u32 num_contacts,
         if (a && b)
         {
 #if 1
+            // Todo: when circle cannot move, if it's in a corner for example,
+            // it should be regarded as static!
+
             // Elastic collisions
             // Calculate new velocities
             struct v2 n = v2_normalize(v2_direction(b->position, a->position));
@@ -442,6 +498,16 @@ void circles_collisions_resolve(struct contact contacts[], u32 num_contacts,
         else
         {
             LOG("Error: no collidees in collision?\n");
+        }
+
+        if (contact->a)
+        {
+            contact->a->contact = NULL;
+        }
+
+        if (contact->b)
+        {
+            contact->b->contact = NULL;
         }
     }
 }
@@ -550,13 +616,13 @@ void state_physics_init(struct state_physics_data* data)
     frame->lines[3].end = (struct v2){ width, -height };
 
     // Create circles
-    frame->num_circles = 15; // 1 controllable, 4 static, 10 dynamic
+    frame->num_circles = 6; // 1 controllable, 4 static, 10 dynamic
 
     // Make the first circle controllable
     u32 index = 0;
     struct circle* circle = &frame->circles[index++];
-    circle->position.x = 0.0f;
-    circle->position.y = 0.0f;
+    circle->position.x = 3.75f;
+    circle->position.y = -3.75f;
     circle->radius = 0.25f;
     circle->mass = 10.0f;
     circle->dynamic = true;
@@ -575,6 +641,7 @@ void state_physics_init(struct state_physics_data* data)
         circle->dynamic = false;
     }
 
+    #if 0
     // Create dynamic circles
     for (u32 i = 0; i < 10; i++)
     {
@@ -587,6 +654,16 @@ void state_physics_init(struct state_physics_data* data)
         circle->target.x = f32_random(-spawn_area, spawn_area);
         circle->target.y = f32_random(-spawn_area, spawn_area);
     }
+    #else
+    circle = &frame->circles[index++];
+    circle->position.x = 4.25f;
+    circle->position.y = -4.25f;
+    circle->radius = 0.25f;
+    circle->mass = 1.0f;
+    circle->dynamic = true;
+    circle->target.x = 4.0f;
+    circle->target.y = -4.0f;
+    #endif
 
     // Setup camera
     f32 size = 5.0f;
@@ -631,7 +708,7 @@ void physics_advance(struct state_physics_data* data, struct game_input* input,
 
     for (u32 i = 0; i < max_iterations; i++)
     {
-        // LOG("Checking collisions, iteration %d\n", i + 1);
+        LOG("Checking collisions, iteration %d\n", i + 1);
 
         // Todo: sometimes, for some reasons, a collision
         // between two objects happens again in the following
@@ -652,7 +729,7 @@ void physics_advance(struct state_physics_data* data, struct game_input* input,
         }
         else
         {
-            // LOG("No contacts!\n");
+            LOG("No contacts!\n");
             break;
         }
     }
