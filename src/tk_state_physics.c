@@ -162,7 +162,9 @@ b32 collision_detect_circle_line(struct circle* a, struct line_segment* b,
 
     f32 r = a->radius;
 
-    if (intersect_line_segment_to_line_segment(line, *b, NULL) ||
+    struct v2 intersection = { 0 };
+
+    if (intersect_line_segment_to_line_segment(line, *b, &intersection) ||
         get_distance_to_closest_point_on_line_segment(line.end, *b) < r ||
         get_distance_to_closest_point_on_line_segment(b->start, line) < r ||
         get_distance_to_closest_point_on_line_segment(b->end, line) < r )
@@ -187,8 +189,13 @@ b32 collision_detect_circle_line(struct circle* a, struct line_segment* b,
             distance_to_contact));
 
         contact->t = v2_distance(c, a->position) / v2_length(a->move_delta);
-        contact->position = get_closest_point_on_line_segment(c, b->start,
-            b->end);
+        // contact->position = get_closest_point_on_line_segment(line.end,
+        //     b->start, b->end);
+
+        if (!v2_equals(intersection, v2_zero))
+        {
+            contact->position = intersection;
+        }
 
         // Todo: collisions with corners are not perfect, the circle may get
         // stuck
@@ -214,25 +221,25 @@ void circles_velocities_update(struct circle circles[], u32 num_circles,
 
             if (i == 0)
             {
-                // if (input->move_left.key_down)
-                // {
-                //     acceleration.x -= 1.0f;
-                // }
+                if (input->move_left.key_down)
+                {
+                    acceleration.x -= 1.0f;
+                }
 
-                // if (input->move_right.key_down)
+                if (input->move_right.key_down)
                 {
                     acceleration.x += 1.0f;
                 }
 
-                // if (input->move_down.key_down)
+                if (input->move_down.key_down)
                 {
                     acceleration.y -= 1.0f;
                 }
 
-                // if (input->move_up.key_down)
-                // {
-                //     acceleration.y += 1.0f;
-                // }
+                if (input->move_up.key_down)
+                {
+                    acceleration.y += 1.0f;
+                }
 
                 acceleration = v2_normalize(acceleration);
                 acceleration = v2_mul_f32(acceleration,
@@ -271,6 +278,50 @@ u32 circles_collisions_check(struct circle circles[], u32 num_circles,
 
         if (result < MAX_CONTACTS)
         {
+            // Todo: we don't need to check these collisions if the circle
+            // is not moving
+
+            // Check collisions against static walls
+            for (u32 j = 0; j < num_lines; j++)
+            {
+                struct line_segment* other = &lines[j];
+                struct contact contact = { 0 };
+
+                if (collision_detect_circle_line(circle, other, &contact))
+                {
+                    contact.a = circle;
+                    contact.b = NULL;
+                    contact.line = other;
+
+                    // Todo: HERE RECURSIVELY CHCECK THAT EACH CONTACT IS
+                    // NULLIFIED FOR ALL PARTIES
+                    LOG("COLLISION: circle %d and line %d\n", i, j);
+                    if (!circle->contact || contact.t < circle->contact->t)
+                    {
+                        if (circle->contact)
+                        {
+                            if (circle->contact->a &&
+                                circle->contact->a != circle)
+                            {
+                                circle->contact->a->contact = NULL;
+                            }
+
+                            if (circle->contact->b &&
+                                circle->contact->b != circle)
+                            {
+                                circle->contact->b->contact = NULL;
+                            }
+                        }
+                        else
+                        {
+                            circle->contact = &contacts[result++];
+                        }
+
+                        *circle->contact = contact;
+                    }
+                }
+            }
+
             if (i < num_circles - 1)
             {
                 // Check collisions against other circles
@@ -334,50 +385,6 @@ u32 circles_collisions_check(struct circle circles[], u32 num_circles,
                     }
                 }
             }
-
-            // Todo: we don't need to check these collisions if the circle
-            // is not moving
-
-            // Check collisions against static walls
-            for (u32 j = 0; j < num_lines; j++)
-            {
-                struct line_segment* other = &lines[j];
-                struct contact contact = { 0 };
-
-                if (collision_detect_circle_line(circle, other, &contact))
-                {
-                    contact.a = circle;
-                    contact.b = NULL;
-                    contact.line = other;
-
-                        // Todo: HERE RECURSIVELY CHCECK THAT EACH CONTACT IS
-                        // NULLIFIED FOR ALL PARTIES
-                    LOG("COLLISION: circle %d and line %d\n", i, j);
-                    if (!circle->contact || contact.t < circle->contact->t)
-                    {
-                        if (circle->contact)
-                        {
-                            if (circle->contact->a &&
-                                circle->contact->a != circle)
-                            {
-                                circle->contact->a->contact = NULL;
-                            }
-
-                            if (circle->contact->b &&
-                                circle->contact->b != circle)
-                            {
-                                circle->contact->b->contact = NULL;
-                            }
-                        }
-                        else
-                        {
-                            circle->contact = &contacts[result++];
-                        }
-
-                        *circle->contact = contact;
-                    }
-                }
-            }
         }
         else
         {
@@ -392,6 +399,8 @@ u32 circles_collisions_check(struct circle circles[], u32 num_circles,
 void circles_collisions_resolve(struct contact contacts[], u32 num_contacts,
     f32 dt)
 {
+    f32 r = 1.0f; // Todo: coefficient of restitution
+
     for (u32 i = 0; i < num_contacts; i++)
     {
         struct contact* contact = &contacts[i];
@@ -437,11 +446,11 @@ void circles_collisions_resolve(struct contact contacts[], u32 num_contacts,
 
             f32 p = (2.0f * (a1 - a2)) / (a->mass + b->mass);
 
-            a->velocity.x = a->velocity.x - p * b->mass * n.x;
-            a->velocity.y = a->velocity.y - p * b->mass * n.y;
+            a->velocity.x = a->velocity.x - p * b->mass * n.x * r;
+            a->velocity.y = a->velocity.y - p * b->mass * n.y * r;
 
-            b->velocity.x = b->velocity.x + p * a->mass * n.x;
-            b->velocity.y = b->velocity.y + p * a->mass * n.y;
+            b->velocity.x = b->velocity.x + p * a->mass * n.x * r;
+            b->velocity.y = b->velocity.y + p * a->mass * n.y * r;
 
             a->move_delta = v2_mul_f32(a->move_delta, contact->t);
             a->position = v2_add(a->position, a->move_delta);
@@ -477,21 +486,27 @@ void circles_collisions_resolve(struct contact contacts[], u32 num_contacts,
         // Circle - line
         else if (a && line)
         {
+            // Todo: this is wrong, the end should never be in the other side
+            // of the line segment...
+            struct v2 end = v2_add(a->position, a->move_delta);
+
             a->position = v2_add(a->position,
                 v2_mul_f32(a->move_delta, contact->t));
 
-            struct v2 n = v2_normalize(v2_direction(a->position,
-                contact->position));
+            struct v2 c = get_closest_point_on_line_segment(end, line->start,
+                line->end);
 
-            f32 vdot_a = v2_dot(a->velocity, n);
+            struct v2 b =
+            {
+                c.x + (c.x - end.x),
+                c.y + (c.y - end.y)
+            };
 
-            a->velocity = v2_sub(a->velocity, v2_mul_f32(n, vdot_a));
+            struct v2 d = v2_normalize(v2_direction(contact->position, c));
 
-            f32 mvdot_a = v2_dot(a->move_delta, n);
+            a->velocity = v2_mul_f32(v2_mul(a->velocity, d), r);
 
-            a->move_delta = v2_mul_f32(
-                v2_sub(a->move_delta, v2_mul_f32(n, mvdot_a)), t_remaining);
-
+            a->move_delta = v2_mul_f32(v2_mul(a->move_delta, d), t_remaining);
         }
         // No collision??
         else
@@ -616,7 +631,7 @@ void state_physics_init(void* data)
     frame->lines[3].end = (struct v2){ width, -height };
 
     // Create circles
-    frame->num_circles = 6; // 1 controllable, 4 static, 10 dynamic
+    frame->num_circles = 15; // 1 controllable, 4 static, 10 dynamic
 
     // Make the first circle controllable
     u32 index = 0;
@@ -659,10 +674,10 @@ void state_physics_init(void* data)
     circle->position.x = 4.25f;
     circle->position.y = -4.25f;
     circle->radius = 0.25f;
-    circle->mass = 1.0f;
+    circle->mass = 10.0f;
     circle->dynamic = true;
-    circle->target.x = 4.0f;
-    circle->target.y = -4.0f;
+    circle->target.x = 4.25f;
+    circle->target.y = -4.25f;
     #endif
 
     // Setup camera
@@ -705,7 +720,7 @@ void physics_advance(void* data, struct game_input* input, f32 step)
     circles_velocities_update(frame->circles, frame->num_circles, input,
         step);
 
-    f32 max_iterations = 10;
+    f32 max_iterations = 100;
 
     for (u32 i = 0; i < max_iterations; i++)
     {
