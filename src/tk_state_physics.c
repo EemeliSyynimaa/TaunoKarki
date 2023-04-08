@@ -209,7 +209,6 @@ void circles_velocities_update(struct circle circles[], u32 num_circles,
         if (circle->dynamic)
         {
             f32 friction = FRICTION;
-            f32 speed = 5.0f;
 
             struct v2 acceleration = { 0.0f };
 
@@ -591,9 +590,10 @@ void circles_render(struct circle circles[], u32 num_circles,
     }
 }
 
-void state_physics_init(struct state_physics_data* data)
+void state_physics_init(void* data)
 {
-    struct frame* frame = &data->frames[data->frame_current];
+    struct state_physics_data* state = (struct state_physics_data*)data;
+    struct frame* frame = &state->frames[state->frame_current];
 
     // Create lines
     frame->num_lines = 4;
@@ -670,7 +670,7 @@ void state_physics_init(struct state_physics_data* data)
     f32 near = 0.1f;
     f32 far = 100.0f;
 
-    struct camera* camera = &data->base->camera;
+    struct camera* camera = &state->base->camera;
     camera->position = (struct v3){ 0.0f, 0.0f, 5.0f };
     camera->projection = m4_orthographic(-size, size, -size, size, near, far);
     camera->projection_inverse = m4_inverse(camera->projection);
@@ -682,21 +682,22 @@ void state_physics_init(struct state_physics_data* data)
     api.gl.glClearColor(0.25f, 0.0f, 0.0f, 0.0f);
 
     // Start as paused
-    data->paused = true;
+    state->paused = true;
 }
 
-void physics_advance(struct state_physics_data* data, struct game_input* input,
-    f32 step)
+void physics_advance(void* data, struct game_input* input, f32 step)
 {
-    // Copy old frame to new
-    struct frame* prev = &data->frames[data->frame_current];
+    struct state_physics_data* state = (struct state_physics_data*)data;
 
-    if (++data->frame_current >= MAX_FRAMES)
+    // Copy old frame to new
+    struct frame* prev = &state->frames[state->frame_current];
+
+    if (++state->frame_current >= MAX_FRAMES)
     {
-        data->frame_current = 0;
+        state->frame_current = 0;
     }
 
-    struct frame* frame = &data->frames[data->frame_current];
+    struct frame* frame = &state->frames[state->frame_current];
     *frame = *prev;
 
     LOG("Frame: %u\n", ++frame->number);
@@ -737,7 +738,7 @@ void physics_advance(struct state_physics_data* data, struct game_input* input,
     circles_positions_update(frame->circles, frame->num_circles);
 
     // Todo: frame_min should be updated as well
-    data->frame_max = data->frame_current;
+    state->frame_max = state->frame_current;
 }
 
 u32 state_frame_decrease(u32 frame_current, u32 frame_min, u32 frame_max)
@@ -768,56 +769,58 @@ u32 state_frame_increase(u32 frame_current, u32 frame_min, u32 frame_max)
     return result;
 }
 
-void state_physics_update(struct state_physics_data* data,
-    struct game_input* input, f32 step)
+void state_physics_update(void* data, struct game_input* input, f32 step)
 {
-    data->paused = !input->pause;
+    struct state_physics_data* state = (struct state_physics_data*)data;
 
-    if (!data->paused)
+    state->paused = !input->pause;
+
+    if (!state->paused)
     {
-        physics_advance(data, input, step);
+        physics_advance(state, input, step);
     }
     else
     {
         if (key_times_pressed(&input->move_left))
         {
-            data->frame_current = state_frame_decrease(data->frame_current,
-                data->frame_min, data->frame_max);
+            state->frame_current = state_frame_decrease(state->frame_current,
+                state->frame_min, state->frame_max);
         }
         else if (key_times_pressed(&input->move_right))
         {
-            data->frame_current = state_frame_increase(data->frame_current,
-                data->frame_min, data->frame_max);
+            state->frame_current = state_frame_increase(state->frame_current,
+                state->frame_min, state->frame_max);
         }
         else if (input->move_up.key_down)
         {
-            data->frame_current = state_frame_increase(data->frame_current,
-                data->frame_min, data->frame_max);
+            state->frame_current = state_frame_increase(state->frame_current,
+                state->frame_min, state->frame_max);
         }
         else if (input->move_down.key_down)
         {
-            data->frame_current = state_frame_decrease(data->frame_current,
-                data->frame_min, data->frame_max);
+            state->frame_current = state_frame_decrease(state->frame_current,
+                state->frame_min, state->frame_max);
         }
 
         if (input->physics_advance.key_down)
         {
-            physics_advance(data, input, step);
+            physics_advance(state, input, step);
         }
 
         if (key_times_pressed(&input->physics_advance_step))
         {
-            physics_advance(data, input, step);
+            physics_advance(state, input, step);
         }
     }
 }
 
-void state_physics_render(struct state_physics_data* data)
+void state_physics_render(void* data)
 {
-    struct frame* frame = &data->frames[data->frame_current];
-    circles_render(frame->circles, frame->num_circles, data->base,
-        data->paused);
-    lines_render(frame->lines, frame->num_lines, data->base);
+    struct state_physics_data* state = (struct state_physics_data*)data;
+    struct frame* frame = &state->frames[state->frame_current];
+    circles_render(frame->circles, frame->num_circles, state->base,
+        state->paused);
+    lines_render(frame->lines, frame->num_lines, state->base);
 }
 
 struct state_interface state_physics_create(struct game_state* state)

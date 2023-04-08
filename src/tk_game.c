@@ -1376,10 +1376,7 @@ b32 intersect_line_to_line(struct line_segment line_a,
     if (r_x_s)
     {
         f32 qp_x_s = v2_cross(qp, s);
-        f32 qp_x_r = v2_cross(qp, r);
-
         f32 t = qp_x_s / r_x_s;
-        f32 u = qp_x_r / r_x_s;
 
         if (collision)
         {
@@ -1408,10 +1405,7 @@ b32 intersect_line_to_line_segment(struct line_segment line_a,
     if (r_x_s)
     {
         f32 qp_x_s = v2_cross(qp, s);
-        f32 qp_x_r = v2_cross(qp, r);
-
         f32 t = qp_x_s / r_x_s;
-        f32 u = qp_x_r / r_x_s;
 
         if (t > 0.0f)
         {
@@ -6589,7 +6583,7 @@ void level_init(struct game_state* state)
 #include "tk_state_game.c"
 #include "tk_state_physics.c"
 
-b32 PHYSICS_DEBUG = true;
+b32 PHYSICS_DEBUG = false;
 
 struct state_interface state_physics;
 struct state_interface state_game;
