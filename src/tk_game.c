@@ -590,7 +590,43 @@ struct rigid_body
     struct v2 position;
     struct v2 velocity;
     f32 angle;
+    b32 alive;
 };
+
+#define MAX_BODIES 1024
+
+struct physics_world
+{
+    struct rigid_body bodies[MAX_BODIES];
+    u32 num_bodies;
+};
+
+struct rigid_body* rigid_body_get(struct physics_world* world)
+{
+    struct rigid_body* result = NULL;
+
+    for (u32 i = 0; i < MAX_BODIES; i++)
+    {
+        if (!world->bodies[i].alive)
+        {
+            result = &world->bodies[i];
+
+            result->position = v2_zero;
+            result->velocity = v2_zero;
+            result->angle = 0.0f;
+            result->alive = true;
+
+            break;
+        }
+    }
+
+    return result;
+}
+
+void rigid_body_free(struct rigid_body* body)
+{
+    body->alive = false;
+}
 
 struct weapon
 {
@@ -614,7 +650,7 @@ struct weapon
 
 struct player
 {
-    struct rigid_body body;
+    struct rigid_body* body;
     struct v2 eye_position;
     struct weapon weapon;
     struct cube_data cube;
@@ -625,7 +661,7 @@ struct player
 
 struct bullet
 {
-    struct rigid_body body;
+    struct rigid_body* body;
     struct v4 color;
     struct v2 start;
     f32 damage;
@@ -635,7 +671,7 @@ struct bullet
 
 struct item
 {
-    struct rigid_body body;
+    struct rigid_body* body;
     struct cube_data cube;
     u32 type;
     f32 alive;
@@ -673,7 +709,7 @@ char enemy_state_str[][256] =
 
 struct enemy
 {
-    struct rigid_body body;
+    struct rigid_body* body;
     struct v2 path[MAX_PATH];
     struct v2 direction_aim;
     struct v2 direction_look;
@@ -807,6 +843,7 @@ struct circle
 
 struct game_state
 {
+    struct physics_world world;
     struct player player;
     struct bullet bullets[MAX_BULLETS];
     struct enemy enemies[MAX_ENEMIES];
@@ -1336,7 +1373,7 @@ struct ray_cast_collision
     f32 ray_length;
 };
 
-void get_body_rectangle(struct rigid_body body, f32 width_half,
+void get_body_rectangle(struct rigid_body* body, f32 width_half,
     f32 height_half, struct line_segment* segments)
 {
     struct v2 corners[4] =
@@ -1349,9 +1386,9 @@ void get_body_rectangle(struct rigid_body body, f32 width_half,
 
     for (u32 i = 0; i < 4; i++)
     {
-        corners[i] = v2_rotate(corners[i], body.angle);
-        corners[i].x += body.position.x;
-        corners[i].y += body.position.y;
+        corners[i] = v2_rotate(corners[i], body->angle);
+        corners[i].x += body->position.x;
+        corners[i].y += body->position.y;
     }
 
     for (u32 i = 0; i < 4; i++)
@@ -1555,7 +1592,7 @@ f32 ray_cast_position(struct game_state* state, struct v2 start, struct v2 end,
 }
 
 f32 ray_cast_body(struct game_state* state, struct v2 start,
-    struct rigid_body body, struct v2* collision, u32 flags)
+    struct rigid_body* body, struct v2* collision, u32 flags)
 {
     f32 result = 0.0f;
 
@@ -1568,7 +1605,7 @@ f32 ray_cast_body(struct game_state* state, struct v2 start,
         segments[i].type = flags;
     }
 
-    struct v2 direction = v2_direction(start, body.position);
+    struct v2 direction = v2_direction(start, body->position);
 
     f32 target = ray_cast_to_direction(start, direction, segments, 4, NULL,
         F32_MAX, flags) - 0.1f;
@@ -3609,14 +3646,15 @@ void bullet_create(struct game_state* state, struct v2 position,
     f32 color = f32_random(0.75f, 1.0f);
 
     struct bullet* bullet = &state->bullets[state->free_bullet];
-    bullet->body.position = position;
-    bullet->body.velocity = start_velocity;
-    bullet->body.velocity.x += direction.x * speed;
-    bullet->body.velocity.y += direction.y * speed;
+    bullet->body = rigid_body_get(&state->world);
+    bullet->body->position = position;
+    bullet->body->velocity = start_velocity;
+    bullet->body->velocity.x += direction.x * speed;
+    bullet->body->velocity.y += direction.y * speed;
     bullet->alive = true;
     bullet->damage = damage;
     bullet->player_owned = player_owned;
-    bullet->start = bullet->body.position;
+    bullet->start = bullet->body->position;
     bullet->color = (struct v4){ color, color, color, 1.0f };
 
     // Todo: add a fancy particle effect here
@@ -3634,7 +3672,8 @@ struct item* item_create(struct game_state* state, struct v2 position, u32 type)
         }
 
         result = &state->items[state->free_item];
-        result->body.position = position;
+        result->body = rigid_body_get(&state->world);
+        result->body->position = position;
         result->alive = ITEM_ALIVE_TIME;
         result->type = type;
 
@@ -3872,10 +3911,10 @@ b32 enemy_sees_player(struct game_state* state, struct enemy* enemy,
     b32 result = false;
 
     // Todo: maybe use direction_in_range() here instead
-    struct v2 direction_player = v2_direction(enemy->body.position,
-        player->body.position);
+    struct v2 direction_player = v2_direction(enemy->body->position,
+        player->body->position);
     struct v2 direction_current = v2_direction_from_angle(
-        enemy->body.angle);
+        enemy->body->angle);
 
     f32 angle_player = v2_angle(direction_player, direction_current);
 
@@ -3901,7 +3940,7 @@ b32 enemy_hears_gun_shot(struct game_state* state, struct enemy* enemy)
     {
         struct gun_shot* shot = &state->gun_shots[i];
 
-        f32 distance = v2_distance(enemy->body.position, shot->position);
+        f32 distance = v2_distance(enemy->body->position, shot->position);
 
         if (distance < closest && distance < shot->volume)
         {
@@ -3986,7 +4025,7 @@ f32 turn_amount_calculate(f32 angle_from, f32 angle_to)
 
 void enemy_look_towards_angle(struct enemy* enemy, f32 angle)
 {
-    enemy->turn_amount = turn_amount_calculate(enemy->body.angle, angle);
+    enemy->turn_amount = turn_amount_calculate(enemy->body->angle, angle);
 }
 
 void enemy_look_towards_direction(struct enemy* enemy, struct v2 direction)
@@ -3996,7 +4035,7 @@ void enemy_look_towards_direction(struct enemy* enemy, struct v2 direction)
 
 void enemy_look_towards_position(struct enemy* enemy, struct v2 position)
 {
-    struct v2 direction = v2_direction(enemy->body.position, position);
+    struct v2 direction = v2_direction(enemy->body->position, position);
 
     enemy_look_towards_angle(enemy, f32_atan(direction.y, direction.x));
 }
@@ -4004,9 +4043,9 @@ void enemy_look_towards_position(struct enemy* enemy, struct v2 position)
 void enemy_calculate_path_to_target(struct game_state* state,
     struct level* level, struct enemy* enemy)
 {
-    enemy->path_length = path_find(level, enemy->body.position,
+    enemy->path_length = path_find(level, enemy->body->position,
         enemy->target, enemy->path, MAX_PATH);
-    path_trim(state, enemy->body.position, enemy->path,
+    path_trim(state, enemy->body->position, enemy->path,
         &enemy->path_length);
     enemy_look_towards_position(enemy, enemy->path[0]);
     enemy->path_index = 0;
@@ -4140,6 +4179,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             {
                 enemy->alive = false;
 
+                rigid_body_free(enemy->body);
+
                 {
                     u32 count = 0;
 
@@ -4160,14 +4201,14 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     }
                 }
 
-                item_create(state, enemy->body.position,
+                item_create(state, enemy->body->position,
                     ITEM_HEALTH + enemy->weapon.type);
 
                 u32 random_item_count = u32_random(0, 3);
 
                 for (u32 j = 0; j < random_item_count; j++)
                 {
-                    struct v2 position = enemy->body.position;
+                    struct v2 position = enemy->body->position;
 
                     f32 offset_max = 0.25f;
                     f32 offset_x = f32_random(-offset_max, offset_max);
@@ -4183,7 +4224,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     item_create(state, position, random_item_type);
                 }
 
-                item_create(state, enemy->body.position,
+                item_create(state, enemy->body->position,
                     ITEM_HEALTH + enemy->weapon.type);
 
                 continue;
@@ -4196,9 +4237,9 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
             if (enemy->player_in_view)
             {
-                enemy->player_last_seen_position = state->player.body.position;
+                enemy->player_last_seen_position = state->player.body->position;
                 enemy->player_last_seen_direction = v2_normalize(
-                    state->player.body.velocity);
+                    state->player.body->velocity);
 
                 if (enemy->state != ENEMY_STATE_SHOOT &&
                     enemy->state != ENEMY_STATE_SLEEP)
@@ -4267,7 +4308,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     else if (enemy->player_in_view)
                     {
                         enemy_look_towards_position(enemy,
-                            state->player.body.position);
+                            state->player.body->position);
                     }
                 } break;
                 case ENEMY_STATE_REACT_TO_GUN_SHOT:
@@ -4303,15 +4344,15 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     if (enemy->player_in_view)
                     {
                         enemy->player_last_seen_position =
-                            state->player.body.position;
+                            state->player.body->position;
                         enemy->player_last_seen_direction = v2_normalize(
-                            state->player.body.velocity);
+                            state->player.body->velocity);
 
                         struct v2 target_forward = v2_direction(
-                            enemy->body.position,
+                            enemy->body->position,
                             enemy->player_last_seen_position);
 
-                        if (v2_length(enemy->body.velocity))
+                        if (v2_length(enemy->body->velocity))
                         {
                             // Todo: calculate right with cross product
                             f32 angle = F64_PI*1.5f;
@@ -4326,7 +4367,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                                     tcos
                             };
 
-                            f32 initial_velocity = v2_dot(enemy->body.velocity,
+                            f32 initial_velocity = v2_dot(enemy->body->velocity,
                                 target_right);
 
                             struct v2 desired_velocity = { 0.0f };
@@ -4383,7 +4424,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
                         weapon->direction = enemy->direction_aim;
                         weapon->position = enemy->eye_position;
-                        weapon->velocity = enemy->body.velocity;
+                        weapon->velocity = enemy->body->velocity;
 
                         weapon_shoot(state, weapon, false);
 
@@ -4419,7 +4460,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                         if (enemy->turns_left)
                         {
                             f32 diff = f32_random(-F64_PI, F64_PI);
-                            f32 angle_new = enemy->body.angle + diff;
+                            f32 angle_new = enemy->body->angle + diff;
 
                             enemy_look_towards_angle(enemy, angle_new);
 
@@ -4481,7 +4522,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                             {
                                 f32 diff = f32_random(
                                     -F64_PI, F64_PI);
-                                f32 angle_new = enemy->body.angle + diff;
+                                f32 angle_new = enemy->body->angle + diff;
 
                                 enemy_look_towards_angle(enemy, angle_new);
 
@@ -4519,7 +4560,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             {
                 struct v2 current = enemy->path[enemy->path_index];
 
-                f32 distance_to_current = v2_distance(enemy->body.position,
+                f32 distance_to_current = v2_distance(enemy->body->position,
                     current);
                 f32 epsilon = 0.25f;
 
@@ -4539,7 +4580,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 else
                 {
                     struct v2 direction = v2_normalize(v2_direction(
-                        enemy->body.position, current));
+                        enemy->body->position, current));
 
                     f32 length = v2_length(direction);
 
@@ -4560,21 +4601,21 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             acceleration.x = enemy->direction_move.x * enemy->acceleration;
             acceleration.y = enemy->direction_move.y * enemy->acceleration;
 
-            acceleration.x += -enemy->body.velocity.x * FRICTION;
-            acceleration.y += -enemy->body.velocity.y * FRICTION;
+            acceleration.x += -enemy->body->velocity.x * FRICTION;
+            acceleration.y += -enemy->body->velocity.y * FRICTION;
 
             move_delta.x = 0.5f * acceleration.x * f32_square(dt) +
-                enemy->body.velocity.x * dt;
+                enemy->body->velocity.x * dt;
             move_delta.y = 0.5f * acceleration.y * f32_square(dt) +
-                enemy->body.velocity.y * dt;
+                enemy->body->velocity.y * dt;
 
-            enemy->body.velocity.x = enemy->body.velocity.x + acceleration.x
+            enemy->body->velocity.x = enemy->body->velocity.x + acceleration.x
                 * dt;
-            enemy->body.velocity.y = enemy->body.velocity.y + acceleration.y
+            enemy->body->velocity.y = enemy->body->velocity.y + acceleration.y
                 * dt;
 
-            check_tile_collisions(&state->level, &enemy->body.position,
-                &enemy->body.velocity,
+            check_tile_collisions(&state->level, &enemy->body->position,
+                &enemy->body->velocity,
                 move_delta, PLAYER_RADIUS, 1);
 
             if (enemy->turn_amount)
@@ -4584,21 +4625,21 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
                 if (enemy->turn_amount > 0)
                 {
-                    enemy->body.angle -= remaining;
+                    enemy->body->angle -= remaining;
                     enemy->turn_amount = MAX(enemy->turn_amount - remaining, 0);
                 }
                 else
                 {
-                    enemy->body.angle += remaining;
+                    enemy->body->angle += remaining;
                     enemy->turn_amount = MIN(enemy->turn_amount + remaining, 0);
                 }
             }
 
             struct v2 eye = { PLAYER_RADIUS + 0.0001f, 0.0f };
 
-            enemy->eye_position = v2_rotate(eye, enemy->body.angle);
-            enemy->eye_position.x += enemy->body.position.x;
-            enemy->eye_position.y += enemy->body.position.y;
+            enemy->eye_position = v2_rotate(eye, enemy->body->angle);
+            enemy->eye_position.x += enemy->body->position.x;
+            enemy->eye_position.y += enemy->body->position.y;
 
             {
                 f32 vision_cone_update_speed = 3.0f;
@@ -5118,9 +5159,9 @@ void enemies_render(struct game_state* state)
                 } break;
             }
 
-            struct m4 transform = m4_translate(enemy->body.position.x,
-                enemy->body.position.y, PLAYER_RADIUS);
-            struct m4 rotation = m4_rotate_z(enemy->body.angle);
+            struct m4 transform = m4_translate(enemy->body->position.x,
+                enemy->body->position.y, PLAYER_RADIUS);
+            struct m4 rotation = m4_rotate_z(enemy->body->angle);
             struct m4 scale = m4_scale_xyz(PLAYER_RADIUS, PLAYER_RADIUS, 0.25f);
             struct m4 model = m4_mul_m4(scale, rotation);
             model = m4_mul_m4(model, transform);
@@ -5132,28 +5173,30 @@ void enemies_render(struct game_state* state)
             if (state->render_debug)
             {
                 line_of_sight_render(state, enemy->eye_position,
-                    enemy->body.angle, enemy->vision_cone_size *
+                    enemy->body->angle, enemy->vision_cone_size *
                     ENEMY_LINE_OF_SIGHT_HALF,
                     enemy->player_in_view ? colors[PURPLE] : colors[TEAL],
                     true);
             }
 
-            health_bar_render(state, enemy->body.position, enemy->health,
+            health_bar_render(state, enemy->body->position, enemy->health,
                 ENEMY_HEALTH_MAX);
-            ammo_bar_render(state, enemy->body.position,
+            ammo_bar_render(state, enemy->body->position,
                 (f32)enemy->weapon.ammo, (f32)enemy->weapon.ammo_max);
 
             // Render velocity vector
             if (state->render_debug)
             {
                 f32 max_speed = 7.0f;
-                f32 length = v2_length(enemy->body.velocity) / max_speed;
-                f32 angle = f32_atan(enemy->body.velocity.x,
-                    enemy->body.velocity.y);
+                f32 length = v2_length(enemy->body->velocity) / max_speed;
+                f32 angle = f32_atan(enemy->body->velocity.x,
+                    enemy->body->velocity.y);
 
                 transform = m4_translate(
-                    enemy->body.position.x + enemy->body.velocity.x / max_speed,
-                    enemy->body.position.y + enemy->body.velocity.y / max_speed,
+                    enemy->body->position.x + enemy->body->velocity.x /
+                        max_speed,
+                    enemy->body->position.y + enemy->body->velocity.y /
+                        max_speed,
                     0.012f);
 
                 rotation = m4_rotate_z(-angle);
@@ -5177,8 +5220,8 @@ void enemies_render(struct game_state* state)
                     enemy->direction_aim.y);
 
                 transform = m4_translate(
-                    enemy->body.position.x + enemy->direction_aim.x / length,
-                    enemy->body.position.y + enemy->direction_aim.y / length,
+                    enemy->body->position.x + enemy->direction_aim.x / length,
+                    enemy->body->position.y + enemy->direction_aim.y / length,
                     0.011f);
 
                 rotation = m4_rotate_z(-angle);
@@ -5202,8 +5245,8 @@ void enemies_render(struct game_state* state)
                     enemy->direction_look.y);
 
                 transform = m4_translate(
-                    enemy->body.position.x + enemy->direction_look.x / length,
-                    enemy->body.position.y + enemy->direction_look.y / length,
+                    enemy->body->position.x + enemy->direction_look.x / length,
+                    enemy->body->position.y + enemy->direction_look.y / length,
                     0.010f);
 
                 rotation = m4_rotate_z(-angle);
@@ -5224,7 +5267,7 @@ void enemies_render(struct game_state* state)
             {
                 if (enemy->path_length)
                 {
-                    struct v2 current = enemy->body.position;
+                    struct v2 current = enemy->body->position;
 
                     for (u32 j = enemy->path_index; j < enemy->path_length; j++)
                     {
@@ -5251,8 +5294,8 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
         {
             struct v2 move_delta =
             {
-                bullet->body.velocity.x * dt,
-                bullet->body.velocity.y * dt
+                bullet->body->velocity.x * dt,
+                bullet->body->velocity.y * dt
             };
 
             f32 distance_target = v2_length(move_delta);
@@ -5267,7 +5310,7 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                 flags |= COLLISION_PLAYER;
             }
 
-            f32 distance = ray_cast_direction(state, bullet->body.position,
+            f32 distance = ray_cast_direction(state, bullet->body->position,
                 v2_normalize(move_delta), NULL, flags);
 
             f32 fraction = 1.0f;
@@ -5277,20 +5320,22 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                 fraction = distance / distance_target;
             }
 
-            bullet->body.position.x += move_delta.x * fraction;
-            bullet->body.position.y += move_delta.y * fraction;
+            bullet->body->position.x += move_delta.x * fraction;
+            bullet->body->position.y += move_delta.y * fraction;
 
             if (distance < distance_target)
             {
+                rigid_body_free(bullet->body);
+
                 bullet->alive = false;
 
-                f32 angle = f32_atan(-bullet->body.velocity.y,
-                    -bullet->body.velocity.x);
+                f32 angle = f32_atan(-bullet->body->velocity.y,
+                    -bullet->body->velocity.x);
                 f32 spread = 0.75f;
                 f32 color = f32_random(0.25f, 0.75f);
 
                 struct particle_emitter_config config;
-                config.position.xy = bullet->body.position;
+                config.position.xy = bullet->body->position;
                 config.position.z = 0.5f;
                 config.permanent = false;
                 config.type = PARTICLE_EMITTER_POINT;
@@ -5339,13 +5384,13 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                         };
 
                         if (enemy->alive && collision_point_to_obb(
-                            bullet->body.position, corners))
+                            bullet->body->position, corners))
                         {
                             bullet->alive = false;
                             enemy->health -= bullet->damage;
                             enemy->got_hit = true;
                             enemy->hit_direction = v2_flip(v2_normalize(
-                                bullet->body.velocity));
+                                bullet->body->velocity));
 
                             config.color_start = colors[RED];
                             config.color_end = colors[RED];
@@ -5371,7 +5416,7 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                     };
 
                     if (player->alive && collision_point_to_obb(
-                        bullet->body.position, corners))
+                        bullet->body->position, corners))
                     {
                         bullet->alive = false;
                         player->health -= bullet->damage;
@@ -5384,12 +5429,12 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                 particle_emitter_create(&state->particle_system, &config, true);
             }
 
-            particle_line_create(state, bullet->start, bullet->body.position,
+            particle_line_create(state, bullet->start, bullet->body->position,
                 (struct v4){ .xyz = bullet->color.xyz, 0.75f },
                 (struct v4){ .xyz = bullet->color.xyz, 0.0f },
                 0.45f);
 
-            bullet->start = bullet->body.position;
+            bullet->start = bullet->body->position;
         }
     }
 }
@@ -5402,9 +5447,9 @@ void bullets_render(struct game_state* state)
 
         if (bullet->alive)
         {
-            struct m4 transform = m4_translate(bullet->body.position.x,
-                bullet->body.position.y, PLAYER_RADIUS);
-            struct m4 rotation = m4_rotate_z(bullet->body.angle);
+            struct m4 transform = m4_translate(bullet->body->position.x,
+                bullet->body->position.y, PLAYER_RADIUS);
+            struct m4 rotation = m4_rotate_z(bullet->body->angle);
             struct m4 scale = m4_scale_all(PROJECTILE_RADIUS);
 
             struct m4 model = m4_mul_m4(scale, rotation);
@@ -5431,11 +5476,11 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         struct v2 acceleration = { 0.0f };
         struct v2 move_delta = { 0.0f };
 
-        struct v2 dir = { state->mouse.world.x - player->body.position.x,
-            (state->mouse.world.y - PLAYER_RADIUS) - player->body.position.y };
+        struct v2 dir = { state->mouse.world.x - player->body->position.x,
+            (state->mouse.world.y - PLAYER_RADIUS) - player->body->position.y };
         dir = v2_normalize(dir);
 
-        player->body.angle = f32_atan(dir.y, dir.x);
+        player->body->angle = f32_atan(dir.y, dir.x);
 
         if (input->move_left.key_down)
         {
@@ -5462,25 +5507,27 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         acceleration.x = direction.x * PLAYER_ACCELERATION;
         acceleration.y = direction.y * PLAYER_ACCELERATION;
 
-        acceleration.x += -player->body.velocity.x * FRICTION;
-        acceleration.y += -player->body.velocity.y * FRICTION;
+        acceleration.x += -player->body->velocity.x * FRICTION;
+        acceleration.y += -player->body->velocity.y * FRICTION;
 
         move_delta.x = 0.5f * acceleration.x * f32_square(dt) +
-            player->body.velocity.x * dt;
+            player->body->velocity.x * dt;
         move_delta.y = 0.5f * acceleration.y * f32_square(dt) +
-            player->body.velocity.y * dt;
+            player->body->velocity.y * dt;
 
-        player->body.velocity.x = player->body.velocity.x + acceleration.x * dt;
-        player->body.velocity.y = player->body.velocity.y + acceleration.y * dt;
+        player->body->velocity.x =
+            player->body->velocity.x + acceleration.x * dt;
+        player->body->velocity.y =
+            player->body->velocity.y + acceleration.y * dt;
 
-        check_tile_collisions(&state->level, &player->body.position,
-            &player->body.velocity, move_delta, PLAYER_RADIUS, 1);
+        check_tile_collisions(&state->level, &player->body->position,
+            &player->body->velocity, move_delta, PLAYER_RADIUS, 1);
 
         struct v2 eye = { PLAYER_RADIUS + 0.0001f, 0.0f };
 
-        player->eye_position = v2_rotate(eye, player->body.angle);
-        player->eye_position.x += player->body.position.x;
-        player->eye_position.y += player->body.position.y;
+        player->eye_position = v2_rotate(eye, player->body->angle);
+        player->eye_position.x += player->body->position.x;
+        player->eye_position.y += player->body->position.y;
 
         struct weapon* weapon = &player->weapon;
 
@@ -5526,7 +5573,7 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 
         weapon->direction = dir;
         weapon->position = player->eye_position;
-        weapon->velocity = player->body.velocity;
+        weapon->velocity = player->body->velocity;
 
         if (key_times_pressed(&input->reload))
         {
@@ -5536,7 +5583,7 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         if (state->level_cleared)
         {
             if (key_times_pressed(&input->weapon_pick) &&
-                tile_type_get(&state->level, player->body.position) ==
+                tile_type_get(&state->level, player->body->position) ==
                 TILE_START)
             {
                 LOG("Changing level...\n");
@@ -5573,13 +5620,13 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         struct particle_emitter* emitter = &state->particle_system.emitters[0];
 
         // Todo: testing, remove when enough
-        if (v2_length(player->body.velocity) > 1.0f)
+        if (v2_length(player->body->velocity) > 1.0f)
         {
             struct particle_emitter_config* config = &emitter->config;
-            config->position.xy = player->body.position;
+            config->position.xy = player->body->position;
 
-            f32 angle = f32_atan(-player->body.velocity.y,
-                -player->body.velocity.x);
+            f32 angle = f32_atan(-player->body->velocity.y,
+                -player->body->velocity.x);
             f32 spread = 0.45f;
 
             config->direction_min = angle - spread;
@@ -5600,9 +5647,9 @@ void player_render(struct game_state* state)
 
     if (player->alive)
     {
-        struct m4 transform = m4_translate(player->body.position.x,
-            player->body.position.y, PLAYER_RADIUS);
-        struct m4 rotation = m4_rotate_z(player->body.angle);
+        struct m4 transform = m4_translate(player->body->position.x,
+            player->body->position.y, PLAYER_RADIUS);
+        struct m4 rotation = m4_rotate_z(player->body->angle);
         struct m4 scale = m4_scale_xyz(PLAYER_RADIUS, PLAYER_RADIUS, 0.25f);
         struct m4 model = m4_mul_m4(scale, rotation);
         model = m4_mul_m4(model, transform);
@@ -5616,20 +5663,20 @@ void player_render(struct game_state* state)
             struct v4 color = colors[LIME];
             color.a = 0.5f;
             line_of_sight_render(state, player->eye_position,
-                player->body.angle, ENEMY_LINE_OF_SIGHT_HALF, color, true);
+                player->body->angle, ENEMY_LINE_OF_SIGHT_HALF, color, true);
         }
 
         // Render velocity vector
         if (state->render_debug)
         {
             f32 max_speed = 7.0f;
-            f32 length = v2_length(player->body.velocity) / max_speed;
-            f32 angle = f32_atan(player->body.velocity.x,
-                player->body.velocity.y);
+            f32 length = v2_length(player->body->velocity) / max_speed;
+            f32 angle = f32_atan(player->body->velocity.x,
+                player->body->velocity.y);
 
             transform = m4_translate(
-                player->body.position.x + player->body.velocity.x / max_speed,
-                player->body.position.y + player->body.velocity.y / max_speed,
+                player->body->position.x + player->body->velocity.x / max_speed,
+                player->body->position.y + player->body->velocity.y / max_speed,
                 0.01f);
 
             rotation = m4_rotate_z(-angle);
@@ -5650,8 +5697,9 @@ void player_render(struct game_state* state)
         {
             struct v2 vec =
             {
-                state->mouse.world.x - player->body.position.x,
-                (state->mouse.world.y - PLAYER_RADIUS) - player->body.position.y
+                state->mouse.world.x - player->body->position.x,
+                (state->mouse.world.y - PLAYER_RADIUS) -
+                    player->body->position.y
             };
 
             f32 length = v2_length(vec) * 0.5f;
@@ -5660,8 +5708,8 @@ void player_render(struct game_state* state)
             struct v2 direction = v2_normalize(vec);
 
             transform = m4_translate(
-                player->body.position.x + direction.x * length,
-                player->body.position.y + direction.y * length, PLAYER_RADIUS);
+                player->body->position.x + direction.x * length,
+                player->body->position.y + direction.y * length, PLAYER_RADIUS);
             rotation = m4_rotate_z(-angle);
             scale = m4_scale_xyz(0.01f, length, 0.01f);
 
@@ -5676,11 +5724,11 @@ void player_render(struct game_state* state)
         }
 
         struct weapon* weapon = &player->weapon;
-        health_bar_render(state, player->body.position, player->health,
+        health_bar_render(state, player->body->position, player->health,
             PLAYER_HEALTH_MAX);
-        ammo_bar_render(state, player->body.position, (f32)weapon->ammo,
+        ammo_bar_render(state, player->body->position, (f32)weapon->ammo,
             (f32)weapon->ammo_max);
-        weapon_level_bar_render(state, player->body.position, weapon->level,
+        weapon_level_bar_render(state, player->body->position, weapon->level,
             WEAPON_LEVEL_MAX);
     }
 }
@@ -5693,7 +5741,7 @@ void items_update(struct game_state* state, struct game_input* input, f32 dt)
 
         if (item->alive)
         {
-            item->body.angle -= (f32)F64_PI * dt;
+            item->body->angle -= (f32)F64_PI * dt;
             item->alive -= dt;
 
             if (item->alive < 0.0f)
@@ -5715,14 +5763,17 @@ void items_update(struct game_state* state, struct game_input* input, f32 dt)
 
             struct player* player = &state->player;
 
-            if (player->alive && collision_circle_to_circle(item->body.position,
-                ITEM_RADIUS, player->body.position, PLAYER_RADIUS))
+            if (player->alive && collision_circle_to_circle(
+                item->body->position, ITEM_RADIUS, player->body->position,
+                PLAYER_RADIUS))
             {
                 if (item->type < ITEM_SHOTGUN || item->type > ITEM_PISTOL ||
                     key_times_pressed(&input->weapon_pick))
                 {
                     player->item_picked = item->type;
                     item->alive = false;
+
+                    rigid_body_free(item->body);
                 }
             }
         }
@@ -5737,11 +5788,11 @@ void items_render(struct game_state* state)
 
         if (item->alive && !item->flash_hide)
         {
-            f32 t = f32_sin(item->body.angle) * 0.25f;
+            f32 t = f32_sin(item->body->angle) * 0.25f;
 
-            struct m4 transform = m4_translate(item->body.position.x,
-                item->body.position.y, ITEM_RADIUS);
-            struct m4 rotation = m4_rotate_z(item->body.angle);
+            struct m4 transform = m4_translate(item->body->position.x,
+                item->body->position.y, ITEM_RADIUS);
+            struct m4 rotation = m4_rotate_z(item->body->angle);
             struct m4 scale = m4_scale_all(ITEM_RADIUS + t * ITEM_RADIUS);
             struct m4 model = m4_mul_m4(scale, rotation);
 
@@ -6510,7 +6561,8 @@ void level_init(struct game_state* state)
     for (u32 i = 0; i < state->num_enemies; i++)
     {
         struct enemy* enemy = &state->enemies[i];
-        enemy->body.position = tile_random_get(&state->level, TILE_FLOOR);
+        enemy->body = rigid_body_get(&state->world);
+        enemy->body->position = tile_random_get(&state->level, TILE_FLOOR);
         enemy->alive = true;
         enemy->health = ENEMY_HEALTH_MAX;
         enemy->vision_cone_size = 0.2f * i;
@@ -6536,7 +6588,8 @@ void level_init(struct game_state* state)
 
     if (!state->player.alive)
     {
-        state->player.body.position = state->level.start_pos;
+        state->player.body = rigid_body_get(&state->world);
+        state->player.body->position = state->level.start_pos;
         state->player.alive = true;
         state->player.health = PLAYER_HEALTH_MAX;
         state->player.cube.faces[0].texture = 11;
@@ -6544,7 +6597,7 @@ void level_init(struct game_state* state)
 
     cube_data_color_update(&state->player.cube, color_player);
 
-    state->mouse.world = state->player.body.position;
+    state->mouse.world = state->player.body->position;
 
     struct camera* camera = &state->camera;
     camera->position.xy = state->level.start_pos;
