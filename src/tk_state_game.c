@@ -26,8 +26,11 @@ void rigid_bodies_update(struct rigid_body bodies[], u32 num_bodies,
             body->velocity.x = body->velocity.x + body->acceleration.x * dt;
             body->velocity.y = body->velocity.y + body->acceleration.y * dt;
 
-            check_tile_collisions(level, &body->position, &body->velocity,
-                move_delta, body->radius, 1);
+            if (!body->bullet)
+            {
+                check_tile_collisions(level, &body->position, &body->velocity,
+                    move_delta, body->radius, 1);
+            }
         }
     }
 }

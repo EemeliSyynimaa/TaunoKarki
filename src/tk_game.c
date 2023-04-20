@@ -594,6 +594,7 @@ struct rigid_body
     f32 radius;
     f32 angle;
     b32 alive;
+    b32 bullet;
 };
 
 #define MAX_BODIES 512
@@ -612,13 +613,7 @@ struct rigid_body* rigid_body_get(struct physics_world* world)
         if (!world->bodies[i].alive)
         {
             result = &world->bodies[i];
-
-            result->acceleration = v2_zero;
-            result->position = v2_zero;
-            result->velocity = v2_zero;
-            result->angle = 0.0f;
-            result->friction = 0.0f;
-            result->radius = 0.0f;
+            *result = (struct rigid_body){ 0 };
             result->alive = true;
 
             break;
@@ -3657,6 +3652,7 @@ void bullet_create(struct game_state* state, struct v2 position,
         bullet->body = rigid_body_get(&state->world);
     }
 
+    bullet->body->bullet = true;
     bullet->body->position = position;
     bullet->body->velocity = start_velocity;
     bullet->body->velocity.x += direction.x * speed;
