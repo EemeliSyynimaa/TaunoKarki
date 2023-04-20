@@ -589,16 +589,18 @@ struct rigid_body
 {
     struct v2 position;
     struct v2 velocity;
+    struct v2 acceleration;
+    f32 friction;
+    f32 radius;
     f32 angle;
     b32 alive;
 };
 
-#define MAX_BODIES 1024
+#define MAX_BODIES 512
 
 struct physics_world
 {
     struct rigid_body bodies[MAX_BODIES];
-    u32 num_bodies;
 };
 
 struct rigid_body* rigid_body_get(struct physics_world* world)
@@ -611,9 +613,12 @@ struct rigid_body* rigid_body_get(struct physics_world* world)
         {
             result = &world->bodies[i];
 
+            result->acceleration = v2_zero;
             result->position = v2_zero;
             result->velocity = v2_zero;
             result->angle = 0.0f;
+            result->friction = 0.0f;
+            result->radius = 0.0f;
             result->alive = true;
 
             break;
@@ -3529,8 +3534,8 @@ b32 check_tile_collisions(struct level* level, struct v2* pos, struct v2* vel,
 
     u32 start_x = min_x < 0.0f ? 0 : (u32)((u32)min_x / WALL_SIZE);
     u32 start_y = min_y < 0.0f ? 0 : (u32)((u32)min_y / WALL_SIZE);
-    u32 end_x = (u32)((pos->x + wall_low + margin_x) / WALL_SIZE) + 1;
-    u32 end_y = (u32)((pos->y + wall_low + margin_y) / WALL_SIZE) + 1;
+    u32 end_x = (u32)((MAX(pos->x, 0) + wall_low + margin_x) / WALL_SIZE) + 1;
+    u32 end_y = (u32)((MAX(pos->y, 0) + wall_low + margin_y) / WALL_SIZE) + 1;
 
     f32 time_remaining = 1.0f;
 
@@ -3646,7 +3651,12 @@ void bullet_create(struct game_state* state, struct v2 position,
     f32 color = f32_random(0.75f, 1.0f);
 
     struct bullet* bullet = &state->bullets[state->free_bullet];
-    bullet->body = rigid_body_get(&state->world);
+
+    if (!bullet->alive)
+    {
+        bullet->body = rigid_body_get(&state->world);
+    }
+
     bullet->body->position = position;
     bullet->body->velocity = start_velocity;
     bullet->body->velocity.x += direction.x * speed;
@@ -3672,7 +3682,12 @@ struct item* item_create(struct game_state* state, struct v2 position, u32 type)
         }
 
         result = &state->items[state->free_item];
-        result->body = rigid_body_get(&state->world);
+
+        if (!result->alive)
+        {
+            result->body = rigid_body_get(&state->world);
+        }
+
         result->body->position = position;
         result->alive = ITEM_ALIVE_TIME;
         result->type = type;
@@ -4224,9 +4239,6 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     item_create(state, position, random_item_type);
                 }
 
-                item_create(state, enemy->body->position,
-                    ITEM_HEALTH + enemy->weapon.type);
-
                 continue;
             }
 
@@ -4595,28 +4607,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 }
             }
 
-            struct v2 acceleration = { 0.0f };
-            struct v2 move_delta = { 0.0f };
-
-            acceleration.x = enemy->direction_move.x * enemy->acceleration;
-            acceleration.y = enemy->direction_move.y * enemy->acceleration;
-
-            acceleration.x += -enemy->body->velocity.x * FRICTION;
-            acceleration.y += -enemy->body->velocity.y * FRICTION;
-
-            move_delta.x = 0.5f * acceleration.x * f32_square(dt) +
-                enemy->body->velocity.x * dt;
-            move_delta.y = 0.5f * acceleration.y * f32_square(dt) +
-                enemy->body->velocity.y * dt;
-
-            enemy->body->velocity.x = enemy->body->velocity.x + acceleration.x
-                * dt;
-            enemy->body->velocity.y = enemy->body->velocity.y + acceleration.y
-                * dt;
-
-            check_tile_collisions(&state->level, &enemy->body->position,
-                &enemy->body->velocity,
-                move_delta, PLAYER_RADIUS, 1);
+            enemy->body->acceleration = v2_mul_f32(enemy->direction_move,
+                enemy->acceleration);
 
             if (enemy->turn_amount)
             {
@@ -5473,8 +5465,6 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
     if (player->alive)
     {
         struct v2 direction = { 0.0f };
-        struct v2 acceleration = { 0.0f };
-        struct v2 move_delta = { 0.0f };
 
         struct v2 dir = { state->mouse.world.x - player->body->position.x,
             (state->mouse.world.y - PLAYER_RADIUS) - player->body->position.y };
@@ -5504,24 +5494,10 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
 
         direction = v2_normalize(direction);
 
-        acceleration.x = direction.x * PLAYER_ACCELERATION;
-        acceleration.y = direction.y * PLAYER_ACCELERATION;
+        struct rigid_body* body = player->body;
 
-        acceleration.x += -player->body->velocity.x * FRICTION;
-        acceleration.y += -player->body->velocity.y * FRICTION;
-
-        move_delta.x = 0.5f * acceleration.x * f32_square(dt) +
-            player->body->velocity.x * dt;
-        move_delta.y = 0.5f * acceleration.y * f32_square(dt) +
-            player->body->velocity.y * dt;
-
-        player->body->velocity.x =
-            player->body->velocity.x + acceleration.x * dt;
-        player->body->velocity.y =
-            player->body->velocity.y + acceleration.y * dt;
-
-        check_tile_collisions(&state->level, &player->body->position,
-            &player->body->velocity, move_delta, PLAYER_RADIUS, 1);
+        body->acceleration.x = direction.x * PLAYER_ACCELERATION;
+        body->acceleration.y = direction.y * PLAYER_ACCELERATION;
 
         struct v2 eye = { PLAYER_RADIUS + 0.0001f, 0.0f };
 
@@ -5735,12 +5711,16 @@ void player_render(struct game_state* state)
 
 void items_update(struct game_state* state, struct game_input* input, f32 dt)
 {
+    u32 count = 0;
+
     for (u32 i = 0; i < MAX_ITEMS; i++)
     {
         struct item* item = &state->items[i];
 
         if (item->alive)
         {
+            count++;
+
             item->body->angle -= (f32)F64_PI * dt;
             item->alive -= dt;
 
@@ -5778,6 +5758,8 @@ void items_update(struct game_state* state, struct game_input* input, f32 dt)
             }
         }
     }
+
+    LOG("Items alive: %u\n", count);
 }
 
 void items_render(struct game_state* state)
@@ -6563,6 +6545,8 @@ void level_init(struct game_state* state)
         struct enemy* enemy = &state->enemies[i];
         enemy->body = rigid_body_get(&state->world);
         enemy->body->position = tile_random_get(&state->level, TILE_FLOOR);
+        enemy->body->friction = FRICTION;
+        enemy->body->radius = PLAYER_RADIUS;
         enemy->alive = true;
         enemy->health = ENEMY_HEALTH_MAX;
         enemy->vision_cone_size = 0.2f * i;
@@ -6590,6 +6574,8 @@ void level_init(struct game_state* state)
     {
         state->player.body = rigid_body_get(&state->world);
         state->player.body->position = state->level.start_pos;
+        state->player.body->friction = FRICTION;
+        state->player.body->radius = PLAYER_RADIUS;
         state->player.alive = true;
         state->player.health = PLAYER_HEALTH_MAX;
         state->player.cube.faces[0].texture = 11;

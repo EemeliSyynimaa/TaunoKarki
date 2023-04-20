@@ -4,6 +4,34 @@ struct state_game_data
     struct game_state* base;
 };
 
+void rigid_bodies_update(struct rigid_body bodies[], u32 num_bodies,
+    struct level* level, f32 dt)
+{
+    for (u32 i = 0; i < num_bodies; i++)
+    {
+        struct rigid_body* body = &bodies[i];
+
+        if (body->alive)
+        {
+            struct v2 move_delta = { 0.0f };
+
+            body->acceleration.x += -body->velocity.x * body->friction;
+            body->acceleration.y += -body->velocity.y * body->friction;
+
+            move_delta.x = 0.5f * body->acceleration.x * f32_square(dt) +
+                body->velocity.x * dt;
+            move_delta.y = 0.5f * body->acceleration.y * f32_square(dt) +
+                body->velocity.y * dt;
+
+            body->velocity.x = body->velocity.x + body->acceleration.x * dt;
+            body->velocity.y = body->velocity.y + body->acceleration.y * dt;
+
+            check_tile_collisions(level, &body->position, &body->velocity,
+                move_delta, body->radius, 1);
+        }
+    }
+}
+
 void state_game_init(void* data)
 {
     struct state_game_data* state = (struct state_game_data*)data;
@@ -108,6 +136,8 @@ void state_game_update(void* data, struct game_input* input, f32 step)
         items_update(game, input, step);
         particle_lines_update(game, input, step);
         particle_system_update(&game->particle_system, step);
+
+        rigid_bodies_update(game->world.bodies, MAX_BODIES, &game->level, step);
     }
 
     struct v2 start_min = v2_sub_f32(game->level.start_pos, 2.0f);
