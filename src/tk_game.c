@@ -597,11 +597,45 @@ struct rigid_body
     b32 bullet;
 };
 
+struct line_segment
+{
+    struct v2 start;
+    struct v2 end;
+    u32 type;
+};
+
+#define MAX_CIRCLES 64
+#define MAX_CONTACTS 64
+
+struct contact
+{
+    struct circle* a;
+    struct circle* b;
+    struct line_segment* line;
+    struct v2 position;
+    f32 t;
+};
+
+struct circle
+{
+    struct contact* contact;
+    struct v2 position;
+    struct v2 velocity;
+    struct v2 move_delta;
+    struct v2 acceleration;
+    struct v2 target;
+    f32 radius;
+    f32 mass;
+    b32 dynamic;
+};
+
+#define MAX_STATICS 1024
 #define MAX_BODIES 512
 
 struct physics_world
 {
     struct rigid_body bodies[MAX_BODIES];
+    struct line_segment walls[MAX_STATICS];
 };
 
 struct rigid_body* rigid_body_get(struct physics_world* world)
@@ -791,7 +825,6 @@ struct mesh
 #define MAX_ITEMS 256
 #define MAX_WALL_CORNERS 512
 #define MAX_WALL_FACES 512
-#define MAX_COLLISION_SEGMENTS 1024
 #define MAX_GUN_SHOTS 64
 
 enum
@@ -803,42 +836,10 @@ enum
     WEAPON_COUNT = 4
 };
 
-struct line_segment
-{
-    struct v2 start;
-    struct v2 end;
-    u32 type;
-};
-
 struct gun_shot
 {
     struct v2 position;
     f32 volume; // Todo: change name
-};
-
-#define MAX_CIRCLES 64
-#define MAX_CONTACTS 64
-
-struct contact
-{
-    struct circle* a;
-    struct circle* b;
-    struct line_segment* line;
-    struct v2 position;
-    f32 t;
-};
-
-struct circle
-{
-    struct contact* contact;
-    struct v2 position;
-    struct v2 velocity;
-    struct v2 move_delta;
-    struct v2 acceleration;
-    struct v2 target;
-    f32 radius;
-    f32 mass;
-    b32 dynamic;
 };
 
 struct game_state
@@ -858,8 +859,8 @@ struct game_state
     struct memory_block stack;
     struct v2 wall_corners[MAX_WALL_CORNERS];
     struct line_segment wall_faces[MAX_WALL_FACES];
-    struct line_segment cols_static[MAX_COLLISION_SEGMENTS];
-    struct line_segment cols_dynamic[MAX_COLLISION_SEGMENTS];
+    struct line_segment cols_static[MAX_STATICS];
+    struct line_segment cols_dynamic[MAX_STATICS];
     struct cube_renderer cube_renderer;
     struct sprite_renderer sprite_renderer;
     struct particle_renderer particle_renderer;
@@ -4949,8 +4950,7 @@ void collision_map_dynamic_calculate(struct game_state* state)
         get_body_rectangle(state->player.body, PLAYER_RADIUS, PLAYER_RADIUS,
             segments);
 
-        for (u32 i = 0;
-            i < 4 && state->num_cols_static < MAX_COLLISION_SEGMENTS; i++)
+        for (u32 i = 0; i < 4 && state->num_cols_dynamic < MAX_STATICS; i++)
         {
             segments[i].type = COLLISION_PLAYER;
             state->cols_dynamic[state->num_cols_dynamic++] = segments[i];
@@ -4966,8 +4966,7 @@ void collision_map_dynamic_calculate(struct game_state* state)
             get_body_rectangle(enemy->body, PLAYER_RADIUS, PLAYER_RADIUS,
                 segments);
 
-            for (u32 i = 0;
-                i < 4 && state->num_cols_dynamic < MAX_COLLISION_SEGMENTS; i++)
+            for (u32 i = 0; i < 4 && state->num_cols_dynamic < MAX_STATICS; i++)
             {
                 segments[i].type = COLLISION_ENEMY;
                 state->cols_dynamic[state->num_cols_dynamic++] = segments[i];
@@ -5707,16 +5706,12 @@ void player_render(struct game_state* state)
 
 void items_update(struct game_state* state, struct game_input* input, f32 dt)
 {
-    u32 count = 0;
-
     for (u32 i = 0; i < MAX_ITEMS; i++)
     {
         struct item* item = &state->items[i];
 
         if (item->alive)
         {
-            count++;
-
             item->body->angle -= (f32)F64_PI * dt;
             item->alive -= dt;
 
@@ -5754,8 +5749,6 @@ void items_update(struct game_state* state, struct game_input* input, f32 dt)
             }
         }
     }
-
-    LOG("Items alive: %u\n", count);
 }
 
 void items_render(struct game_state* state)
@@ -6504,9 +6497,9 @@ void level_init(struct game_state* state)
     memory_set(state->wall_faces,
         sizeof(struct line_segment) * MAX_WALL_FACES, 0);
     memory_set(state->cols_static,
-        sizeof(struct line_segment) * MAX_COLLISION_SEGMENTS, 0);
+        sizeof(struct line_segment) * MAX_STATICS, 0);
     memory_set(state->cols_dynamic,
-        sizeof(struct line_segment) * MAX_COLLISION_SEGMENTS, 0);
+        sizeof(struct line_segment) * MAX_STATICS, 0);
     memory_set(state->gun_shots,
         sizeof(struct gun_shot) * MAX_GUN_SHOTS, 0);
 
@@ -6590,10 +6583,9 @@ void level_init(struct game_state* state)
     camera->view_inverse = m4_inverse(camera->view);
 
     collision_map_static_calculate(&state->level, state->cols_static,
-        MAX_COLLISION_SEGMENTS, &state->num_cols_static);
+        MAX_STATICS, &state->num_cols_static);
 
-    LOG("Wall faces: %d/%d\n", state->num_cols_static,
-        MAX_COLLISION_SEGMENTS);
+    LOG("Wall faces: %d/%d\n", state->num_cols_static, MAX_STATICS);
 
     get_wall_corners_from_faces(state->wall_corners, MAX_WALL_CORNERS,
         &state->num_wall_corners, state->cols_static,

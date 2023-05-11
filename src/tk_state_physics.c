@@ -2,7 +2,7 @@ struct frame
 {
     struct circle circles[MAX_CIRCLES];
     struct contact contacts[MAX_CONTACTS];
-    struct line_segment lines[MAX_COLLISION_SEGMENTS];
+    struct line_segment lines[MAX_STATICS];
     u32 num_circles;
     u32 num_lines;
     u32 number;
