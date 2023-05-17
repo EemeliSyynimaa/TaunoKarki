@@ -5,39 +5,24 @@
 #include "tk_memory.h"
 
 #include "tk_particle.c"
-#include "tk_sprite.c"
-#include "tk_cube.c"
+#include "tk_mesh.c"
+#include "tk_primitive_renderer.c"
+#include "tk_sprite_renderer.c"
+#include "tk_cube_renderer.c"
 #include "tk_physics.c"
 #include "tk_world.c"
 #include "tk_pathfind.c"
 #include "tk_input.c"
 #include "tk_camera.c"
 
-#include <string.h>
-
-struct particle_line
+// Todo: where to store these?
+enum
 {
-    struct v2 start;
-    struct v2 end;
-    struct v4 color_start;
-    struct v4 color_end;
-    struct v4 color_current;
-    f32 time_start;
-    f32 time_current;
-    b32 alive;
-};
-
-struct particle_sphere
-{
-    struct v2 position;
-    struct v2 velocity;
-    struct v4 color;
-    f32 radius_start;
-    f32 radius_end;
-    f32 radius_current;
-    f32 time_start;
-    f32 time_current;
-    b32 alive;
+    WEAPON_NONE = 0,
+    WEAPON_SHOTGUN = 1,
+    WEAPON_MACHINEGUN = 2,
+    WEAPON_PISTOL = 3,
+    WEAPON_COUNT = 4
 };
 
 struct weapon
@@ -60,113 +45,13 @@ struct weapon
     b32 reloading;
 };
 
-struct player
+struct gun_shot
 {
-    struct rigid_body* body;
-    struct v2 eye_position;
-    struct weapon weapon;
-    struct cube_data cube;
-    f32 health;
-    b32 alive;
-    u32 item_picked;
+    struct v2 position;
+    f32 volume; // Todo: change name
 };
 
-struct bullet
-{
-    struct rigid_body* body;
-    struct v4 color;
-    struct v2 start;
-    f32 damage;
-    b32 alive;
-    b32 player_owned;
-};
-
-struct item
-{
-    struct rigid_body* body;
-    struct cube_data cube;
-    u32 type;
-    f32 alive;
-    f32 flash_timer;
-    b32 flash_hide;
-};
-
-enum
-{
-    ENEMY_STATE_SHOOT,
-    ENEMY_STATE_WANDER_AROUND,
-    ENEMY_STATE_RUSH_TO_TARGET,
-    ENEMY_STATE_SLEEP,
-    ENEMY_STATE_REACT_TO_PLAYER_SEEN,
-    ENEMY_STATE_REACT_TO_GUN_SHOT,
-    ENEMY_STATE_REACT_TO_BEING_SHOT_AT,
-    ENEMY_STATE_LOOK_AROUND,
-    ENEMY_STATE_LOOK_FOR_PLAYER
-};
-
-char enemy_state_str[][256] =
-{
-    "SHOOT",
-    "WANDER AROUND",
-    "RUSH TO TARGET",
-    "SLEEP",
-    "REACT_TO_PLAYER_SEEN",
-    "REACT_TO_GUN_SHOT",
-    "REACT_TO_BEING_SHOT_AT",
-    "LOOK_AROUND",
-    "LOOK_FOR_PLAYER"
-};
-
-#define MAX_PATH 256
-
-struct enemy
-{
-    struct rigid_body* body;
-    struct v2 path[MAX_PATH];
-    struct v2 direction_aim;
-    struct v2 direction_look;
-    struct v2 direction_move;
-    struct v2 eye_position;
-    struct v2 player_last_seen_position;
-    struct v2 player_last_seen_direction;
-    struct v2 gun_shot_position;
-    struct v2 hit_direction;
-    struct v2 target;
-    struct weapon weapon;
-    struct cube_data cube;
-    u32 state;
-    u32 path_index;
-    u32 path_length;
-    u32 turns_left; // For looking around
-    f32 health;
-    f32 trigger_release;
-    f32 vision_cone_size;
-    f32 acceleration;
-    f32 state_timer;
-    f32 turn_amount;
-    b32 player_in_view;
-    b32 gun_shot_heard;
-    b32 got_hit;
-    b32 alive;
-    b32 shooting;
-    b32 state_timer_finished;
-};
-
-struct vertex
-{
-    struct v3 position;
-    struct v2 uv;
-    struct v3 normal;
-    struct v4 color;
-};
-
-struct mesh
-{
-    u32 vao;
-    u32 vbo;
-    u32 ibo;
-    u32 num_indices;
-};
+#include "tk_entity.c"
 
 #define MAX_BULLETS 64
 #define MAX_ENEMIES 64
@@ -174,21 +59,6 @@ struct mesh
 #define MAX_WALL_CORNERS 512
 #define MAX_WALL_FACES 512
 #define MAX_GUN_SHOTS 64
-
-enum
-{
-    WEAPON_NONE = 0,
-    WEAPON_SHOTGUN = 1,
-    WEAPON_MACHINEGUN = 2,
-    WEAPON_PISTOL = 3,
-    WEAPON_COUNT = 4
-};
-
-struct gun_shot
-{
-    struct v2 position;
-    f32 volume; // Todo: change name
-};
 
 struct game_state
 {
@@ -250,7 +120,6 @@ struct game_state
 
 // Todo: global for now
 struct api api;
-
 
 f32 PLAYER_ACCELERATION = 40.0f;
 f32 PLAYER_RADIUS       = 0.25f;
