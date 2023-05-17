@@ -1,6 +1,31 @@
 2023
 ---
 
+Code maintenance
+ - [ ] Remove references to struct game_state in all functions and pass the used variables instead
+ - [ ] Create structs for basic shapes like circle, line
+ - [ ] Create entity system
+   - [ ] Make a plan
+ - [ ] Create generic renderer system
+   - [ ] Render prites
+   - [ ] Render cubes
+   - [ ] Render particles
+   - [ ] Render primitives
+ - [ ] Create proper game world
+   - [ ] Store multiple levels
+ - [ ] Store game config in one file
+
+Fix remaining issues with collisions
+ - [ ] Use the test bench and new tools
+ - [ ] Static circles shouldn't move at all
+
+Integrate circle physics to game logic
+ - [ ] Use with player collisions
+ - [ ] Use with enemy collisions
+
+Done
+---
+
 Separate game logic
  - [X] Commit existing changes to remote (fix linux and merge with the old WIP commit)
  - [X] Separate game and circle logic to own files (update, render and other functions only)
@@ -26,15 +51,3 @@ Store previous frames and add ability to move freely between them and to continu
  - [X] Store data after each frame
  - [X] When paused, moving between frames is possible
  - [X] When unpaused, physics should continue from the current frame
-
-Render all collision steps
- - [ ] When paused each collision check and resolve can be viewed
- - [ ] Possibility to move between collision steps
-
-Fix remaining issues with collisions
- - [ ] Use the test bench and new tools
- - [ ] Static circles shouldn't move at all
-
-Integrate circle physics to game logic
- - [ ] Use with player collisions
- - [ ] Use with enemy collisions
