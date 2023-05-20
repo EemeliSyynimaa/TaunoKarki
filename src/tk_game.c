@@ -4,11 +4,56 @@
 #include "tk_random.h"
 #include "tk_memory.h"
 
-#include "tk_particle.c"
+// Todo: global for now
+struct api api;
+
+bool gl_check_error(char* t)
+{
+    bool result = true;
+
+    GLenum error = api.gl.glGetError();
+
+    switch (error)
+    {
+        case GL_NO_ERROR:
+            // LOG("glGetError(): NO ERRORS (%s)\n", t);
+            result = false;
+            break;
+        case GL_INVALID_ENUM:
+            LOG("glGetError(): INVALID ENUM (%s)\n", t);
+            break;
+        case GL_INVALID_VALUE:
+            LOG("glGetError(): INVALID VALUE (%s)\n", t);
+            break;
+        case GL_INVALID_OPERATION:
+            LOG("glGetError(): INVALID OPERATION (%s)\n", t);
+            break;
+        case GL_STACK_OVERFLOW:
+            LOG("glGetError(): STACK OVERFLOW (%s)\n", t);
+            break;
+        case GL_STACK_UNDERFLOW:
+            LOG("glGetError(): STACK UNDERFLOW (%s)\n", t);
+            break;
+        case GL_OUT_OF_MEMORY:
+            LOG("glGetError(): OUT OF MEMORY (%s)\n", t);
+            break;
+        default:
+            LOG("glGetError(): UNKNOWN ERROR (%s)\n", t);
+            break;
+    };
+
+    return result;
+}
+
 #include "tk_mesh.c"
+
+// Todo: create mesh_renderer that can be configured to work with particles,
+// cubes, sprites and more
 #include "tk_primitive_renderer.c"
 #include "tk_sprite_renderer.c"
 #include "tk_cube_renderer.c"
+#include "tk_particle.c"
+
 #include "tk_physics.c"
 #include "tk_world.c"
 #include "tk_input.c"
@@ -116,9 +161,6 @@ struct game_state
     u32 random_seed;
 };
 
-// Todo: global for now
-struct api api;
-
 f32 PLAYER_ACCELERATION = 40.0f;
 f32 PLAYER_RADIUS       = 0.25f;
 f32 PLAYER_HEALTH_MAX   = 100.0f;
@@ -200,713 +242,6 @@ enum
     YELLOW,
     WHITE
 };
-
-bool gl_check_error(char* t)
-{
-    bool result = true;
-
-    GLenum error = api.gl.glGetError();
-
-    switch (error)
-    {
-        case GL_NO_ERROR:
-            // LOG("glGetError(): NO ERRORS (%s)\n", t);
-            result = false;
-            break;
-        case GL_INVALID_ENUM:
-            LOG("glGetError(): INVALID ENUM (%s)\n", t);
-            break;
-        case GL_INVALID_VALUE:
-            LOG("glGetError(): INVALID VALUE (%s)\n", t);
-            break;
-        case GL_INVALID_OPERATION:
-            LOG("glGetError(): INVALID OPERATION (%s)\n", t);
-            break;
-        case GL_STACK_OVERFLOW:
-            LOG("glGetError(): STACK OVERFLOW (%s)\n", t);
-            break;
-        case GL_STACK_UNDERFLOW:
-            LOG("glGetError(): STACK UNDERFLOW (%s)\n", t);
-            break;
-        case GL_OUT_OF_MEMORY:
-            LOG("glGetError(): OUT OF MEMORY (%s)\n", t);
-            break;
-        default:
-            LOG("glGetError(): UNKNOWN ERROR (%s)\n", t);
-            break;
-    };
-
-    return result;
-}
-
-void generate_vertex_array(struct mesh* mesh, struct vertex* vertices,
-    u32 num_vertices, u32* indices)
-{
-    LOG("Vertices: %d Indices: %d\n", num_vertices, mesh->num_indices);
-    api.gl.glGenVertexArrays(1, &mesh->vao);
-    api.gl.glBindVertexArray(mesh->vao);
-
-    api.gl.glGenBuffers(1, &mesh->vbo);
-    api.gl.glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-    api.gl.glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct vertex),
-        vertices, GL_DYNAMIC_DRAW);
-
-    api.gl.glGenBuffers(1, &mesh->ibo);
-    api.gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
-    api.gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-        mesh->num_indices * sizeof(u32), indices, GL_DYNAMIC_DRAW);
-
-    api.gl.glEnableVertexAttribArray(0);
-    api.gl.glEnableVertexAttribArray(1);
-    api.gl.glEnableVertexAttribArray(2);
-    api.gl.glEnableVertexAttribArray(3);
-
-    // Todo: implement offsetof
-    api.gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-        sizeof(struct vertex), (void*)0);
-    api.gl.glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
-        sizeof(struct vertex), (void*)12);
-    api.gl.glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
-        sizeof(struct vertex), (void*)20);
-    api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
-        sizeof(struct vertex), (void*)32);
-}
-
-// Todo: create mesh_renderer that can be configured to work with particles,
-// cubes, sprites and more
-
-void particle_renderer_init(struct particle_renderer* renderer, u32 shader,
-    u32 texture)
-{
-    renderer->shader = shader;
-    renderer->texture = texture;
-
-    struct particle_vertex_data vertices[] =
-    {
-        // Top right
-        {
-            { 1.0f, 1.0f },
-            { 0.0f, 0.0f }
-        },
-        // Top left
-        {
-            { -1.0f, 1.0f },
-            { 1.0f, 0.0f }
-        },
-        // Bottom left
-        {
-            { -1.0f, -1.0f },
-            { 1.0f, 1.0f }
-        },
-        // Bottom right
-        {
-            { 1.0f, -1.0f },
-            { 0.0f, 1.0f }
-        }
-    };
-
-    u32 indices[] =
-    {
-        0, 1, 2, 0, 2, 3
-    };
-
-    renderer->num_indices = 6;
-
-    api.gl.glGenVertexArrays(1, &renderer->vao);
-    api.gl.glBindVertexArray(renderer->vao);
-
-    api.gl.glGenBuffers(1, &renderer->vbo_vertices);
-    api.gl.glGenBuffers(1, &renderer->vbo_particles);
-    api.gl.glGenBuffers(1, &renderer->ibo);
-
-    api.gl.glEnableVertexAttribArray(0);
-    api.gl.glEnableVertexAttribArray(1);
-    api.gl.glEnableVertexAttribArray(2);
-    api.gl.glEnableVertexAttribArray(3);
-    api.gl.glEnableVertexAttribArray(4);
-    api.gl.glEnableVertexAttribArray(5);
-    api.gl.glEnableVertexAttribArray(6);
-    api.gl.glEnableVertexAttribArray(7);
-
-    api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_vertices);
-    api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
-        GL_STATIC_DRAW);
-    api.gl.glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
-        sizeof(struct particle_vertex_data), (void*)0);
-    api.gl.glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
-        sizeof(struct particle_vertex_data), (void*)sizeof(struct v2));
-
-    api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_particles);
-    api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->data),
-        renderer->data, GL_DYNAMIC_DRAW);
-    api.gl.glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE,
-        sizeof(struct particle_render_data), (void*)(sizeof(struct v4) * 0));
-    api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
-        sizeof(struct particle_render_data), (void*)(sizeof(struct v4) * 1));
-    api.gl.glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE,
-        sizeof(struct particle_render_data), (void*)(sizeof(struct v4) * 2));
-    api.gl.glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE,
-        sizeof(struct particle_render_data), (void*)(sizeof(struct v4) * 3));
-    api.gl.glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE,
-        sizeof(struct particle_render_data), (void*)(sizeof(struct v4) * 4));
-    api.gl.glVertexAttribIPointer(7, 1, GL_UNSIGNED_INT,
-        sizeof(struct particle_render_data), (void*)(sizeof(struct v4) * 5));
-
-    api.gl.glVertexAttribDivisor(2, 1);
-    api.gl.glVertexAttribDivisor(3, 1);
-    api.gl.glVertexAttribDivisor(4, 1);
-    api.gl.glVertexAttribDivisor(5, 1);
-    api.gl.glVertexAttribDivisor(6, 1);
-    api.gl.glVertexAttribDivisor(7, 1);
-
-    api.gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
-    api.gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-        renderer->num_indices * sizeof(u32), indices, GL_STATIC_DRAW);
-
-    api.gl.glBindVertexArray(0);
-
-    renderer->initialized = !gl_check_error("particle_renderer_init");
-}
-
-void particle_renderer_sort(struct particle_renderer* renderer)
-{
-    if (renderer->initialized && renderer->num_particles)
-    {
-        for (u32 i = 0; i < renderer->num_particles - 1; i++)
-        {
-            for (u32 j = i + 1; j < renderer->num_particles; j++)
-            {
-                if (renderer->data[i].model.m[3][2] >
-                    renderer->data[j].model.m[3][2])
-                {
-                    struct particle_render_data data = renderer->data[i];
-                    renderer->data[i] = renderer->data[j];
-                    renderer->data[j] = data;
-                }
-            }
-        }
-    }
-}
-
-void particle_renderer_flush(struct particle_renderer* renderer,
-    struct m4* view, struct m4* projection)
-{
-    if (renderer->initialized && renderer->num_particles)
-    {
-        // LOG("Rendering %u particles\n", renderer->num_particles);
-        api.gl.glBindVertexArray(renderer->vao);
-        api.gl.glUseProgram(renderer->shader);
-
-        u32 uniform_texture = api.gl.glGetUniformLocation(renderer->shader,
-            "uniform_texture");
-        u32 uniform_vp = api.gl.glGetUniformLocation(renderer->shader,
-            "uniform_vp");
-
-        struct m4 vp = m4_mul_m4(*view, *projection);
-
-        api.gl.glUniform1i(uniform_texture, 0);
-        api.gl.glUniformMatrix4fv(uniform_vp, 1, GL_FALSE, (GLfloat*)&vp);
-
-        api.gl.glActiveTexture(GL_TEXTURE0);
-        api.gl.glBindTexture(GL_TEXTURE_2D_ARRAY, renderer->texture);
-
-        api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_particles);
-        api.gl.glBufferSubData(GL_ARRAY_BUFFER, 0,
-            renderer->num_particles * sizeof(struct particle_render_data),
-            renderer->data);
-
-        api.gl.glDrawElementsInstanced(GL_TRIANGLES, renderer->num_indices,
-            GL_UNSIGNED_INT, NULL, renderer->num_particles);
-
-        api.gl.glUseProgram(0);
-        api.gl.glBindVertexArray(0);
-
-        renderer->num_particles = 0;
-    }
-}
-
-void sprite_renderer_init(struct sprite_renderer* renderer, u32 shader,
-    u32 texture)
-{
-    renderer->shader = shader;
-    renderer->texture = texture;
-
-    struct sprite_vertex_data vertices[] =
-    {
-        // Top right
-        {
-            { 1.0f, 1.0f },
-            { 0.0f, 1.0f }
-        },
-        // Top left
-        {
-            { -1.0f, 1.0f },
-            { 0.0f, 0.0f }
-        },
-        // Bottom left
-        {
-            { -1.0f, -1.0f },
-            { 1.0f, 0.0f }
-        },
-        // Bottom right
-        {
-            { 1.0f, -1.0f },
-            { 1.0f, 1.0f }
-        }
-    };
-
-    u32 indices[] =
-    {
-        0, 1, 2, 0, 2, 3
-    };
-
-    renderer->num_indices = 6;
-
-    api.gl.glGenVertexArrays(1, &renderer->vao);
-    api.gl.glBindVertexArray(renderer->vao);
-
-    api.gl.glGenBuffers(1, &renderer->vbo_vertices);
-    api.gl.glGenBuffers(1, &renderer->vbo_sprites);
-    api.gl.glGenBuffers(1, &renderer->ibo);
-
-    api.gl.glEnableVertexAttribArray(0);
-    api.gl.glEnableVertexAttribArray(1);
-    api.gl.glEnableVertexAttribArray(2);
-    api.gl.glEnableVertexAttribArray(3);
-    api.gl.glEnableVertexAttribArray(4);
-    api.gl.glEnableVertexAttribArray(5);
-    api.gl.glEnableVertexAttribArray(6);
-    api.gl.glEnableVertexAttribArray(7);
-
-    api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_vertices);
-    api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
-        GL_STATIC_DRAW);
-    api.gl.glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
-        sizeof(struct sprite_vertex_data), (void*)0);
-    api.gl.glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
-        sizeof(struct sprite_vertex_data), (void*)8);
-
-    api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_sprites);
-    api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->sprites),
-        renderer->sprites, GL_DYNAMIC_DRAW);
-    api.gl.glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE,
-        sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 0));
-    api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
-        sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 1));
-    api.gl.glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE,
-        sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 2));
-    api.gl.glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE,
-        sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 3));
-    api.gl.glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE,
-        sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 4));
-    api.gl.glVertexAttribIPointer(7, 1, GL_UNSIGNED_BYTE,
-        sizeof(struct sprite_data), (void*)(sizeof(struct v4) * 5));
-
-    api.gl.glVertexAttribDivisor(2, 1);
-    api.gl.glVertexAttribDivisor(3, 1);
-    api.gl.glVertexAttribDivisor(4, 1);
-    api.gl.glVertexAttribDivisor(5, 1);
-    api.gl.glVertexAttribDivisor(6, 1);
-    api.gl.glVertexAttribDivisor(7, 1);
-
-    api.gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
-    api.gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-        renderer->num_indices * sizeof(u32), indices, GL_STATIC_DRAW);
-
-    api.gl.glBindVertexArray(0);
-
-    renderer->initialized = !gl_check_error("sprite_renderer_init");
-}
-
-void sprite_renderer_add(struct sprite_renderer* renderer,
-    struct sprite_data* data)
-{
-    if (renderer->initialized)
-    {
-        if (renderer->num_sprites < MAX_SPRITES)
-        {
-            renderer->sprites[renderer->num_sprites++] = *data;
-        }
-    }
-}
-
-void sprite_renderer_flush(struct sprite_renderer* renderer, struct m4* view,
-    struct m4* projection)
-{
-    if (renderer->initialized && renderer->num_sprites)
-    {
-        api.gl.glBindVertexArray(renderer->vao);
-        api.gl.glUseProgram(renderer->shader);
-
-        u32 uniform_texture = api.gl.glGetUniformLocation(renderer->shader,
-            "uniform_texture");
-        u32 uniform_vp = api.gl.glGetUniformLocation(renderer->shader,
-            "uniform_vp");
-
-        struct m4 vp = m4_mul_m4(*view, *projection);
-
-        api.gl.glUniform1i(uniform_texture, 0);
-        api.gl.glUniformMatrix4fv(uniform_vp, 1, GL_FALSE, (GLfloat*)&vp);
-
-        api.gl.glActiveTexture(GL_TEXTURE0);
-        api.gl.glBindTexture(GL_TEXTURE_2D_ARRAY, renderer->texture);
-
-        api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_sprites);
-        api.gl.glBufferSubData(GL_ARRAY_BUFFER, 0,
-            renderer->num_sprites * sizeof(struct sprite_data),
-            renderer->sprites);
-
-        api.gl.glDrawElementsInstanced(GL_TRIANGLES, renderer->num_indices,
-            GL_UNSIGNED_INT, NULL, renderer->num_sprites);
-
-        api.gl.glUseProgram(0);
-        api.gl.glBindVertexArray(0);
-
-        renderer->num_sprites = 0;
-    }
-}
-
-void cube_renderer_init(struct cube_renderer* renderer, u32 shader, u32 texture)
-{
-    renderer->shader = shader;
-    renderer->texture = texture;
-
-    struct cube_vertex_data vertices[] =
-    {
-        // Top right
-        {
-            { 1.0f, 1.0f, 1.0f },
-            { 0.0f, 0.0f, 1.0f },
-            { 0.0f, 1.0f }
-        },
-        // Top left
-        {
-            { -1.0f, 1.0f, 1.0f },
-            { 0.0f, 0.0f, 1.0f },
-            { 0.0f, 0.0f }
-        },
-        // Bottom left
-        {
-            { -1.0f, -1.0f, 1.0f },
-            { 0.0f, 0.0f, 1.0f },
-            { 1.0f, 0.0f }
-        },
-        // Bottom right
-        {
-            { 1.0f, -1.0f, 1.0f },
-            { 0.0f, 0.0f, 1.0f },
-            { 1.0f, 1.0f }
-        },
-        // Top right
-        {
-            { -1.0f, 1.0f, -1.0f },
-            { 0.0f, 0.0f, -1.0f },
-            { 0.0f, 1.0f }
-        },
-        // Top left
-        {
-            { 1.0f, 1.0f, -1.0f },
-            { 0.0f, 0.0f, -1.0f },
-            { 0.0f, 0.0f }
-        },
-        // Bottom left
-        {
-            { 1.0f, -1.0f, -1.0f },
-            { 0.0f, 0.0f, -1.0f },
-            { 1.0f, 0.0f }
-        },
-        // Bottom right
-        {
-            { -1.0f, -1.0f, -1.0f },
-            { 0.0f, 0.0f, -1.0f },
-            { 1.0f, 1.0f }
-        },
-        // Top right
-        {
-            { -1.0f, -1.0f, 1.0f },
-            { -1.0f, 0.0f, 0.0f },
-            { 0.0f, 1.0f }
-        },
-        // Top left
-        {
-            { -1.0f, 1.0f, 1.0f },
-            { -1.0f, 0.0f, 0.0f },
-            { 0.0f, 0.0f }
-        },
-        // Bottom left
-        {
-            { -1.0f, 1.0f, -1.0f },
-            { -1.0f, 0.0f, 0.0f },
-            { 1.0f, 0.0f }
-        },
-        // Bottom right
-        {
-            { -1.0f, -1.0f, -1.0f },
-            { -1.0f, 0.0f, 0.0f },
-            { 1.0f, 1.0f }
-        },
-        // Top right
-        {
-            { 1.0f, 1.0f, 1.0f },
-            { 1.0f, 0.0f, 0.0f },
-            { 0.0f, 1.0f }
-        },
-        // Top left
-        {
-            { 1.0f, -1.0f, 1.0f },
-            { 1.0f, 0.0f, 0.0f },
-            { 0.0f, 0.0f }
-        },
-        // Bottom left
-        {
-            { 1.0f, -1.0f, -1.0f },
-            { 1.0f, 0.0f, 0.0f },
-            { 1.0f, 0.0f }
-        },
-        // Bottom right
-        {
-            { 1.0f, 1.0f, -1.0f },
-            { 1.0f, 0.0f, 0.0f },
-            { 1.0f, 1.0f }
-        },
-        // Top right
-        {
-            { -1.0f, 1.0f, 1.0f },
-            { 0.0f, 1.0f, 0.0f },
-            { 0.0f, 1.0f }
-        },
-        // Top left
-        {
-            { 1.0f, 1.0f, 1.0f },
-            { 0.0f, 1.0f, 0.0f },
-            { 0.0f, 0.0f }
-        },
-        // Bottom left
-        {
-            { 1.0f, 1.0f, -1.0f },
-            { 0.0f, 1.0f, 0.0f },
-            { 1.0f, 0.0f }
-        },
-        // Bottom right
-        {
-            { -1.0f, 1.0f, -1.0f },
-            { 0.0f, 1.0f, 0.0f },
-            { 1.0f, 1.0f }
-        },
-        // Top right
-        {
-            { 1.0f, -1.0f, 1.0f },
-            { 0.0f, -1.0f, 0.0f },
-            { 0.0f, 1.0f }
-        },
-        // Top left
-        {
-            { -1.0f, -1.0f, 1.0f },
-            { 0.0f, -1.0f, 0.0f },
-            { 0.0f, 0.0f }
-        },
-        // Bottom left
-        {
-            { -1.0f, -1.0f, -1.0f },
-            { 0.0f, -1.0f, 0.0f },
-            { 1.0f, 0.0f }
-        },
-        // Bottom right
-        {
-            { 1.0f, -1.0f, -1.0f },
-            { 0.0f, -1.0f, 0.0f },
-            { 1.0f, 1.0f }
-        }
-    };
-
-    u32 indices[] =
-    {
-         0,  1,  2,  0,  2,  3, // Top
-         4,  5,  6,  4,  6,  7, // Bottom
-         8,  9, 10,  8, 10, 11, // Left
-        12, 13, 14, 12, 14, 15, // Right
-        16, 17, 18, 16, 18, 19, // Up
-        20, 21, 22, 20, 22, 23, // Down
-    };
-
-    renderer->num_indices = 36;
-
-    api.gl.glGenVertexArrays(1, &renderer->vao);
-    api.gl.glBindVertexArray(renderer->vao);
-
-    api.gl.glGenBuffers(1, &renderer->vbo_vertices);
-    api.gl.glGenBuffers(1, &renderer->vbo_cubes);
-    api.gl.glGenBuffers(1, &renderer->ibo);
-    api.gl.glGenBuffers(1, &renderer->ubo);
-
-    api.gl.glEnableVertexAttribArray(0);
-    api.gl.glEnableVertexAttribArray(1);
-    api.gl.glEnableVertexAttribArray(2);
-    api.gl.glEnableVertexAttribArray(3);
-    api.gl.glEnableVertexAttribArray(4);
-    api.gl.glEnableVertexAttribArray(5);
-    api.gl.glEnableVertexAttribArray(6);
-    api.gl.glEnableVertexAttribArray(7);
-    api.gl.glEnableVertexAttribArray(8);
-    api.gl.glEnableVertexAttribArray(9);
-    api.gl.glEnableVertexAttribArray(10);
-    api.gl.glEnableVertexAttribArray(11);
-    api.gl.glEnableVertexAttribArray(12);
-
-    api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_vertices);
-    api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices,
-        GL_STATIC_DRAW);
-    api.gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-        sizeof(struct cube_vertex_data), (void*)0);
-    api.gl.glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE,
-        sizeof(struct cube_vertex_data), (void*)12);
-    api.gl.glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE,
-        sizeof(struct cube_vertex_data), (void*)24);
-
-    api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_cubes);
-    api.gl.glBufferData(GL_ARRAY_BUFFER, sizeof(renderer->cubes),
-        renderer->cubes, GL_DYNAMIC_DRAW);
-    api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
-        sizeof(struct cube_data), (void*)0);
-    api.gl.glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE,
-        sizeof(struct cube_data), (void*)sizeof(struct v4));
-    api.gl.glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE,
-        sizeof(struct cube_data), (void*)(sizeof(struct v4) * 2));
-    api.gl.glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE,
-        sizeof(struct cube_data), (void*)(sizeof(struct v4) * 3));
-    api.gl.glVertexAttribIPointer(7, 3, GL_UNSIGNED_BYTE,
-        sizeof(struct cube_data), (void*)(sizeof(struct v4) * 4));
-    api.gl.glVertexAttribIPointer(8, 3, GL_UNSIGNED_BYTE,
-        sizeof(struct cube_data), (void*)(sizeof(struct v4) * 4 + 3));
-    api.gl.glVertexAttribIPointer(9, 3, GL_UNSIGNED_BYTE,
-        sizeof(struct cube_data), (void*)(sizeof(struct v4) * 4 + 6));
-    api.gl.glVertexAttribIPointer(10, 3, GL_UNSIGNED_BYTE,
-        sizeof(struct cube_data), (void*)(sizeof(struct v4) * 4 + 9));
-    api.gl.glVertexAttribIPointer(11, 3, GL_UNSIGNED_BYTE,
-        sizeof(struct cube_data), (void*)(sizeof(struct v4) * 4 + 12));
-    api.gl.glVertexAttribIPointer(12, 3, GL_UNSIGNED_BYTE,
-        sizeof(struct cube_data), (void*)(sizeof(struct v4) * 4 + 15));
-
-    api.gl.glVertexAttribDivisor(3, 1);
-    api.gl.glVertexAttribDivisor(4, 1);
-    api.gl.glVertexAttribDivisor(5, 1);
-    api.gl.glVertexAttribDivisor(6, 1);
-    api.gl.glVertexAttribDivisor(7, 1);
-    api.gl.glVertexAttribDivisor(8, 1);
-    api.gl.glVertexAttribDivisor(9, 1);
-    api.gl.glVertexAttribDivisor(10, 1);
-    api.gl.glVertexAttribDivisor(11, 1);
-    api.gl.glVertexAttribDivisor(12, 1);
-
-    api.gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, renderer->ibo);
-    api.gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-        renderer->num_indices * sizeof(u32), indices, GL_STATIC_DRAW);
-
-    u32 uniform_block_index = api.gl.glGetUniformBlockIndex(renderer->shader,
-        "uniform_colors");
-    api.gl.glUniformBlockBinding(renderer->shader, uniform_block_index, 0);
-
-    api.gl.glBindBuffer(GL_UNIFORM_BUFFER, renderer->ubo);
-    api.gl.glBufferData(GL_UNIFORM_BUFFER, sizeof(renderer->colors), NULL,
-        GL_STATIC_DRAW);
-
-    api.gl.glBindBufferRange(GL_UNIFORM_BUFFER, 0, renderer->ubo, 0,
-        sizeof(renderer->colors));
-
-    api.gl.glBindVertexArray(0);
-
-    renderer->initialized = !gl_check_error("cube_renderer_init");
-}
-
-void cube_renderer_add(struct cube_renderer* renderer, struct cube_data* data)
-{
-    if (renderer->initialized)
-    {
-        if (renderer->num_cubes < MAX_CUBES)
-        {
-            renderer->cubes[renderer->num_cubes++] = *data;
-        }
-    }
-}
-
-void cube_renderer_flush(struct cube_renderer* renderer, struct m4* view,
-    struct m4* projection)
-{
-    if (renderer->initialized && renderer->num_cubes)
-    {
-        api.gl.glBindVertexArray(renderer->vao);
-        api.gl.glUseProgram(renderer->shader);
-
-        u32 uniform_texture = api.gl.glGetUniformLocation(renderer->shader,
-            "uniform_texture");
-        u32 uniform_vp = api.gl.glGetUniformLocation(renderer->shader,
-            "uniform_vp");
-
-        if (renderer->update_color_data)
-        {
-            api.gl.glBufferData(GL_UNIFORM_BUFFER, sizeof(renderer->colors),
-                &renderer->colors, GL_STATIC_DRAW);
-
-            renderer->update_color_data = false;
-        }
-
-        struct m4 vp = m4_mul_m4(*view, *projection);
-
-        api.gl.glUniform1i(uniform_texture, 0);
-        api.gl.glUniformMatrix4fv(uniform_vp, 1, GL_FALSE, (GLfloat*)&vp);
-
-        api.gl.glActiveTexture(GL_TEXTURE0);
-        api.gl.glBindTexture(GL_TEXTURE_2D_ARRAY, renderer->texture);
-
-        api.gl.glBindBuffer(GL_ARRAY_BUFFER, renderer->vbo_cubes);
-        api.gl.glBufferSubData(GL_ARRAY_BUFFER, 0,
-            renderer->num_cubes * sizeof(struct cube_data), renderer->cubes);
-
-        api.gl.glDrawElementsInstanced(GL_TRIANGLES, renderer->num_indices,
-            GL_UNSIGNED_INT, NULL, renderer->num_cubes);
-
-        api.gl.glUseProgram(0);
-        api.gl.glBindVertexArray(0);
-
-        renderer->num_cubes = 0;
-    }
-}
-
-s32 cube_renderer_color_add(struct cube_renderer* renderer, struct v4 color)
-{
-    s32 result = -1;
-
-    if (renderer->initialized)
-    {
-        // Todo: we should figure out what to do when the color buffer is full
-        for (u32 i = 0; i < renderer->num_colors; i++)
-        {
-            if (v4_equals(renderer->colors[i], color))
-            {
-                result = i;
-                renderer->update_color_data = true;
-                break;
-            }
-        }
-
-        if (result == -1 && renderer->num_colors < MAX_CUBE_COLORS)
-        {
-            result = renderer->num_colors++;
-            renderer->colors[result] = color;
-            renderer->update_color_data = true;
-        }
-    }
-
-    return result;
-}
-
-void cube_data_color_update(struct cube_data* cube, u32 color)
-{
-    for (u32 i = 0; i < 6; i++)
-    {
-        cube->faces[i].color = color;
-    }
-}
 
 void triangle_reorder_vertices_ccw(struct v2 a, struct v2* b, struct v2* c)
 {
@@ -1186,34 +521,6 @@ void cursor_render(struct game_state* state)
 
     mesh_render(&state->floor, &mp, state->texture_tileset,
         state->shader_simple, colors[WHITE]);
-}
-
-b32 collision_point_to_aabb(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y,
-    f32 max_y)
-{
-    b32 result = false;
-
-    result = x >= min_x && x <= max_x && y >= min_y && y <= max_y;
-
-    return result;
-}
-
-b32 collision_point_to_obb(struct v2 pos, struct v2 corners[4])
-{
-    b32 result = false;
-
-    b32 result_top = v2_cross(v2_direction(corners[0], corners[1]),
-        v2_direction(corners[0], pos)) < 0.0f;
-    b32 result_right = v2_cross(v2_direction(corners[1], corners[2]),
-        v2_direction(corners[1], pos)) < 0.0f;
-    b32 result_bottom = v2_cross(v2_direction(corners[2], corners[3]),
-        v2_direction(corners[2], pos)) < 0.0f;
-    b32 result_left = v2_cross(v2_direction(corners[3], corners[0]),
-        v2_direction(corners[3], pos)) < 0.0f;
-
-    result = result_top && result_right && result_bottom && result_left;
-
-    return result;
 }
 
 void level_generate(struct memory_block* stack, struct level* level,
@@ -1615,264 +922,6 @@ void collision_map_render(struct game_state* state, struct line_segment* cols,
         line_render(state, cols[i].start, cols[i].end, colors[RED],
             WALL_SIZE + 0.01f, 0.025f);
     }
-}
-
-b32 collision_circle_to_circle(struct v2 position_a, f32 radius_a,
-    struct v2 position_b, f32 radius_b)
-{
-    b32 result = v2_distance(position_a, position_b) < (radius_a + radius_b);
-
-    return result;
-}
-
-b32 collision_circle_to_rect(struct v2 circle, f32 circle_radius, f32 rect_top,
-    f32 rect_bottom, f32 rect_left, f32 rect_right, struct v2* col)
-{
-    f32 result;
-
-    struct v2 collision_point = circle;
-
-    if (circle.x < rect_left)
-    {
-        collision_point.x = rect_left;
-    }
-    else if (circle.x > rect_right)
-    {
-        collision_point.x = rect_right;
-    }
-
-    if (circle.y < rect_bottom)
-    {
-        collision_point.y = rect_bottom;
-    }
-    else if (circle.y > rect_top)
-    {
-        collision_point.y = rect_top;
-    }
-
-    result = collision_circle_to_circle(circle, circle_radius, collision_point,
-         0.0f);
-
-    // Todo: this only works if the circle collides with a corner
-    if (result && col)
-    {
-        col->x = circle.x > 0 ? rect_right : rect_left;
-        col->y = circle.y > 0 ? rect_top : rect_bottom;
-    }
-
-    return result;
-}
-
-b32 collision_wall_resolve(f32 wall_x, f32 pos_x, f32 pos_y, f32 move_delta_x,
-    f32 move_delta_y, f32 wall_size, f32* move_time)
-{
-    b32 result = false;
-
-    if (move_delta_x != 0.0f)
-    {
-        f32 diff = wall_x - pos_x;
-        f32 t = diff / move_delta_x;
-        f32 y = pos_y + move_delta_y * t;
-
-        if (y >= -wall_size && y <= wall_size)
-        {
-            if (t < *move_time && t >= 0.0f)
-            {
-                // Todo: what is the best amount for the epsilon?
-                f32 epsilon = 0.01f;
-                *move_time = MAX(0.0f, t - epsilon);
-
-                result = true;
-            }
-        }
-    }
-
-    return result;
-}
-
-b32 collision_corner_resolve(struct v2 rel, struct v2 move_delta, f32 radius,
-    f32* move_time, struct v2* normal)
-{
-    b32 result = false;
-
-    struct v2 rel_new =
-    {
-        rel.x + move_delta.x,
-        rel.y + move_delta.y
-    };
-
-    struct v2 col = { 0.0f };
-
-    f32 wall_half = WALL_SIZE * 0.5f;
-
-    if (collision_circle_to_rect(rel_new, radius, wall_half, -wall_half,
-        -wall_half, wall_half, &col))
-    {
-        // 1. find the closest point on the line from
-        //    relative position - relative_position_new
-        struct v2 plr_to_col =
-        {
-            col.x - rel.x,
-            col.y - rel.y
-        };
-
-        struct v2 plr_to_new =
-        {
-            rel_new.x - rel.x,
-            rel_new.y - rel.y
-        };
-
-        f32 dot = v2_dot(plr_to_col, plr_to_new);
-        f32 length_squared = v2_length_squared(plr_to_new);
-        f32 temp = dot / length_squared;
-
-        struct v2 closest =
-        {
-            rel.x + plr_to_new.x * temp,
-            rel.y + plr_to_new.y * temp
-        };
-
-        // 2. calculate distance from closest point to the perfect point
-        f32 distance_closest_to_collision = v2_distance(closest, col);
-
-        f32 distance_closest_to_perfect = f32_sqrt(f32_square(radius) -
-            f32_square(distance_closest_to_collision));
-
-        // 3. calculate distance from relative point to perfect point
-        f32 distance_closest_to_relative = v2_distance(closest, rel);
-
-        f32 distance_relative_to_perfect = distance_closest_to_relative -
-            distance_closest_to_perfect;
-
-        struct v2 velocity_direction = v2_normalize(move_delta);
-
-        struct v2 perfect =
-        {
-            rel.x + velocity_direction.x * distance_relative_to_perfect,
-            rel.y + velocity_direction.y * distance_relative_to_perfect
-        };
-
-        // 4. calculate t and normal
-        f32 distance_relative_to_new = v2_length(plr_to_new);
-
-        f32 t = distance_relative_to_perfect / distance_relative_to_new;
-
-        if (t < *move_time)
-        {
-            // Todo: what is the best amount for the epsilon?
-            f32 epsilon = 0.01f;
-            *move_time = MAX(0.0f, t - epsilon);
-
-            normal->x = perfect.x - col.x;
-            normal->y = perfect.y - col.y;
-
-            *normal = v2_normalize(*normal);
-
-            result = true;
-        }
-    }
-
-    return result;
-}
-
-b32 check_tile_collisions(struct level* level, struct v2* pos, struct v2* vel,
-    struct v2 move_delta, f32 radius, f32 bounce_factor)
-{
-    b32 result = false;
-
-    f32 wall_low = WALL_SIZE * 0.5f;
-    f32 wall_high = wall_low + radius;
-
-    f32 margin_x = move_delta.x + radius;
-    f32 margin_y = move_delta.y + radius;
-
-    f32 min_x = pos->x + wall_low - margin_x - WALL_SIZE;
-    f32 min_y = pos->y + wall_low - margin_y - WALL_SIZE;
-
-    u32 start_x = min_x < 0.0f ? 0 : (u32)((u32)min_x / WALL_SIZE);
-    u32 start_y = min_y < 0.0f ? 0 : (u32)((u32)min_y / WALL_SIZE);
-    u32 end_x = (u32)((MAX(pos->x, 0) + wall_low + margin_x) / WALL_SIZE) + 1;
-    u32 end_y = (u32)((MAX(pos->y, 0) + wall_low + margin_y) / WALL_SIZE) + 1;
-
-    f32 time_remaining = 1.0f;
-
-    for (u32 i = 0; i < 4 && time_remaining > 0.0f; i++)
-    {
-        f32 time = 1.0f;
-        struct v2 normal = { 0.0f };
-
-        for (u32 y = start_y; y <= end_y; y++)
-        {
-            for (u32 x = start_x; x <= end_x; x++)
-            {
-                if (level->tile_types[y * level->width + x] != 1)
-                {
-                    continue;
-                }
-
-                struct v2 rel =
-                {
-                    pos->x - x,
-                    pos->y - y
-                };
-
-                if (collision_wall_resolve(-wall_high, rel.y, rel.x,
-                    move_delta.y, move_delta.x, wall_low, &time))
-                {
-                    normal.x = 0.0f;
-                    normal.y = -1.0f;
-                    result = true;
-                }
-                if (collision_wall_resolve(-wall_high, rel.x, rel.y,
-                    move_delta.x, move_delta.y, wall_low, &time))
-                {
-                    normal.x = -1.0f;
-                    normal.y = 0.0f;
-                    result = true;
-                }
-                if (collision_wall_resolve(wall_high, rel.y, rel.x,
-                    move_delta.y, move_delta.x, wall_low, &time))
-                {
-                    normal.x = 0.0f;
-                    normal.y = 1.0f;
-                    result = true;
-                }
-                if (collision_wall_resolve(wall_high, rel.x, rel.y,
-                    move_delta.x, move_delta.y, wall_low, &time))
-                {
-                    normal.x = 1.0f;
-                    normal.y = 0.0f;
-                    result = true;
-                }
-
-                if (v2_length(normal) == 0.0f)
-                {
-                    if (collision_corner_resolve(rel, move_delta, radius, &time,
-                        &normal))
-                    {
-                        result = true;
-                    }
-                }
-            }
-        }
-
-        pos->x += move_delta.x * time;
-        pos->y += move_delta.y * time;
-
-        f32 vel_dot = bounce_factor * v2_dot(*vel, normal);
-
-        vel->x -= vel_dot * normal.x;
-        vel->y -= vel_dot * normal.y;
-
-        f32 move_delta_dot = bounce_factor * v2_dot(move_delta, normal);
-
-        move_delta.x -= move_delta_dot * normal.x;
-        move_delta.y -= move_delta_dot * normal.y;
-
-        time_remaining -= time * time_remaining;
-    }
-
-    return result;
 }
 
 void particle_line_create(struct game_state* state, struct v2 start,
@@ -4630,7 +3679,34 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
 
     stack_free(block);
 
-    generate_vertex_array(mesh, vertices, num_vertices, indices);
+    LOG("Vertices: %d Indices: %d\n", num_vertices, mesh->num_indices);
+    api.gl.glGenVertexArrays(1, &mesh->vao);
+    api.gl.glBindVertexArray(mesh->vao);
+
+    api.gl.glGenBuffers(1, &mesh->vbo);
+    api.gl.glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+    api.gl.glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct vertex),
+        vertices, GL_DYNAMIC_DRAW);
+
+    api.gl.glGenBuffers(1, &mesh->ibo);
+    api.gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
+    api.gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+        mesh->num_indices * sizeof(u32), indices, GL_DYNAMIC_DRAW);
+
+    api.gl.glEnableVertexAttribArray(0);
+    api.gl.glEnableVertexAttribArray(1);
+    api.gl.glEnableVertexAttribArray(2);
+    api.gl.glEnableVertexAttribArray(3);
+
+    // Todo: implement offsetof
+    api.gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void*)0);
+    api.gl.glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void*)12);
+    api.gl.glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void*)20);
+    api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
+        sizeof(struct vertex), (void*)32);
 
     gl_check_error("mesh_create");
 }
