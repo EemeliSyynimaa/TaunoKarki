@@ -18,7 +18,6 @@ struct level
     struct cube_data elevator_light;
 };
 
-
 b32 tile_inside_level_bounds(struct level* level, struct v2 position)
 {
     b32 result = false;

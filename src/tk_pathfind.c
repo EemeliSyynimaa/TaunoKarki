@@ -1,3 +1,7 @@
+#define MAX_PATH 256
+// Todo: this really depends on the level size
+#define MAX_NODES 1024
+
 struct node
 {
     // Todo: use integers instead?
@@ -8,9 +12,6 @@ struct node
     f32 f;
     b32 in_use;
 };
-
-// Todo: this really depends on the level size
-#define MAX_NODES 1024
 
 struct node* node_insert(struct node* node, struct node nodes[], u32 num_nodes)
 {
@@ -252,4 +253,50 @@ u32 path_find(struct level* level, struct v2 start, struct v2 goal,
     }
 
     return result;
+}
+
+void path_trim(struct collision_map* cols, struct v2 obj_start,
+    struct v2 path[], u32* path_size)
+{
+    if (!(*path_size))
+    {
+        return;
+    }
+
+    struct v2 result[MAX_PATH] = { 0 };
+    struct v2 start = obj_start;
+
+    u32 result_index = 0;
+    u32 path_index = 0;
+
+    while (path_index < (*path_size - 1))
+    {
+        struct v2 end = path[path_index + 1];
+
+        // Ray cast to each tile corner
+        f32 wall_half = WALL_SIZE * 0.5f;
+
+        struct v2 tl = { end.x - wall_half, end.y + wall_half };
+        struct v2 bl = { end.x - wall_half, end.y - wall_half };
+        struct v2 br = { end.x + wall_half, end.y - wall_half };
+        struct v2 tr = { end.x + wall_half, end.y + wall_half };
+
+        if (!ray_cast_position(cols, start, tl, NULL, COLLISION_STATIC) ||
+            !ray_cast_position(cols, start, bl, NULL, COLLISION_STATIC) ||
+            !ray_cast_position(cols, start, br, NULL, COLLISION_STATIC) ||
+            !ray_cast_position(cols, start, tr, NULL, COLLISION_STATIC))
+        {
+            start = result[result_index++] = path[path_index];
+        }
+        else
+        {
+            path_index++;
+        }
+    }
+
+    // Always insert the end node
+    result[result_index++] = path[*path_size - 1];
+
+    *path_size = result_index;
+    memory_copy(&result, path, *path_size * sizeof(struct v2));
 }

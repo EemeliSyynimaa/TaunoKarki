@@ -57,8 +57,6 @@ char enemy_state_str[][256] =
     "LOOK_FOR_PLAYER"
 };
 
-#define MAX_PATH 256
-
 struct enemy
 {
     struct rigid_body* body;
