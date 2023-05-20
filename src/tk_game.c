@@ -1504,226 +1504,6 @@ void cursor_render(struct game_state* state)
         state->shader_simple, colors[WHITE]);
 }
 
-b32 tile_ray_cast_to_direction(struct game_state* state, struct v2 start,
-    struct v2 direction, f32 length_max, struct ray_cast_collision* collision,
-    b32 render)
-{
-    // Returns true if the ray collides before length_max
-    b32 result = false;
-    f32 tile_size = WALL_SIZE;
-    u32 iteration = 0;
-
-    struct v2 current = start;
-    struct v2 step =
-    {
-        (direction.x > 0 ? tile_size : -tile_size),
-        (direction.y > 0 ? tile_size : -tile_size)
-    };
-    struct v2 wall =
-    {
-        direction.x ? (f32_round(current.x) + step.x * 0.5f) : current.x,
-        direction.y ? (f32_round(current.y) + step.y * 0.5f) : current.y
-    };
-
-    // LOG("Ray cast from %.2fx%.2f to %.2fx%.2f ", start.x, start.y, end.x,
-    //     end.y);
-
-    while (true)
-    {
-        struct v2 distance_to_wall = { wall.x - current.x, wall.y - current.y };
-        struct v2 previous = current;
-        struct v2 cut_x = wall;
-        struct v2 cut_y = wall;
-
-        if (direction.x)
-        {
-            cut_x.y = current.y + direction.y * (distance_to_wall.x /
-                direction.x);
-        }
-
-        if (direction.y)
-        {
-            cut_y.x = current.x + direction.x * (distance_to_wall.y /
-                direction.y);
-        }
-
-        b32 check_x = false;
-        b32 check_y = false;
-
-        if (direction.y && direction.x)
-        {
-            if (v2_distance(current, cut_x) < v2_distance(current, cut_y))
-            {
-                current.x = wall.x;
-                current.y = cut_x.y;
-
-                wall.x += step.x;
-
-                check_x = true;
-            }
-            else if (v2_distance(current, cut_x) > v2_distance(current, cut_y))
-            {
-                current.x = cut_y.x;
-                current.y = wall.y;
-
-                wall.y += step.y;
-
-                check_y = true;
-            }
-            else
-            {
-                current = wall;
-
-                wall.x += step.x;
-                wall.y += step.y;
-            }
-
-        }
-        else if (direction.x)
-        {
-            current.x = wall.x;
-            current.y = cut_x.y;
-
-            wall.x += step.x;
-
-            check_x = true;
-        }
-        else
-        {
-            current.x = cut_y.x;
-            current.y = wall.y;
-
-            wall.y += step.y;
-
-            check_y = true;
-        }
-
-        f32 ray_length = v2_distance(current, start);
-
-        if (ray_length > length_max)
-        {
-            current = v2_mul_f32(direction, length_max);
-            current.x += start.x;
-            current.y += start.y;
-
-            if (render)
-            {
-                line_render(state, previous, current,
-                    colors[4 + iteration++ % 2], 0.025f, 0.0125f);
-            }
-
-            if (collision)
-            {
-                collision->ray_length = length_max;
-            }
-
-            break;
-        }
-
-        if (render)
-        {
-            line_render(state, previous, current, colors[4 + iteration++ % 2],
-                0.025f, 0.0125f);
-        }
-
-        f32 epsilon = 0.001f;
-
-        struct level* level = &state->level;
-
-        // Todo: these both cases can possibly be merged
-        if (check_x)
-        {
-            struct v2 tile_left = { current.x - epsilon, current.y };
-            struct v2 tile_right = { current.x + epsilon, current.y };
-
-            if (!tile_is_free(level, tile_left) ||
-                !tile_is_free(level, tile_right))
-            {
-                if (collision)
-                {
-                    collision->ray_length = ray_length;
-                    collision->wall_start.x = current.x;
-                    collision->wall_end.x = current.x;
-                    collision->wall_start.y = wall.y - step.y;
-                    collision->wall_end.y = wall.y;
-                }
-
-                result = true;
-                break;
-            }
-        }
-
-        if (check_y)
-        {
-            struct v2 tile_top = { current.x, current.y + epsilon };
-            struct v2 tile_bottom = { current.x, current.y - epsilon };
-
-            if (!tile_is_free(level, tile_top) ||
-                !tile_is_free(level, tile_bottom))
-            {
-                if (collision)
-                {
-                    collision->ray_length = ray_length;
-                    collision->wall_start.y = current.y;
-                    collision->wall_end.y = current.y;
-                    collision->wall_start.x = wall.x - step.x;
-                    collision->wall_end.x = wall.x;
-                }
-
-                result = true;
-                break;
-            }
-        }
-    }
-
-    if (collision)
-    {
-        collision->position = current;
-    }
-
-    // LOG("length: %.2f\n", result);
-
-    return result;
-}
-
-b32 tile_ray_cast_to_angle(struct game_state* state, struct v2 start,
-     f32 angle, f32 length_max, struct ray_cast_collision* collision,
-     b32 render)
-{
-    // Returns true if the ray collides before length_max
-    b32 result = false;
-
-    struct v2 direction = v2_direction_from_angle(angle);
-
-    result = tile_ray_cast_to_direction(state, start, direction, length_max,
-        collision, render);
-
-    return result;
-}
-
-b32 tile_ray_cast_to_position(struct game_state* state, struct v2 start,
-    struct v2 end, struct ray_cast_collision* collision, b32 render)
-{
-    // Returns true if the ray is longer than the distance between start and end
-    b32 result = false;
-
-    struct v2 direction = v2_normalize(v2_direction(start, end));
-    struct ray_cast_collision temp = { 0 };
-    f32 length = v2_distance(end, start);
-
-    tile_ray_cast_to_direction(state, start, direction, length,
-        &temp, render);
-
-    result = f32_abs(temp.ray_length - length) < 0.01f;
-
-    if (collision)
-    {
-        *collision = temp;
-    }
-
-    return result;
-}
-
 b32 collision_point_to_aabb(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y,
     f32 max_y)
 {
@@ -2098,14 +1878,6 @@ void level_render(struct game_state* state, struct level* level)
                 { right, bottom },
                 { left, bottom }
             };
-
-            b32 collision_obb = collision_point_to_obb(state->mouse.world,
-                corners);
-
-            if (collision_obb)
-            {
-                color = colors[RED];
-            }
 
             u64 tile_index = y * level->width + x;
             u8 tile_type = level->tile_types[tile_index];
@@ -2770,12 +2542,12 @@ b32 enemy_hears_gun_shot(struct game_state* state, struct enemy* enemy)
     return result;
 }
 
-f32 enemy_reaction_time_get(struct game_state* state, u32 state_enemy)
+f32 enemy_reaction_time_get(u32 state)
 {
     f32 result = 0.0f;
     f32 reaction_multiplier = 1.0f;
 
-    switch (state_enemy)
+    switch (state)
     {
         case ENEMY_STATE_SHOOT:
         case ENEMY_STATE_RUSH_TO_TARGET:
@@ -2945,12 +2717,12 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         case ENEMY_STATE_REACT_TO_PLAYER_SEEN:
         {
             enemy->acceleration = 0.0f;
-            enemy->state_timer = enemy_reaction_time_get(state, state_old);
+            enemy->state_timer = enemy_reaction_time_get(state_old);
         } break;
         case ENEMY_STATE_REACT_TO_GUN_SHOT:
         {
             enemy->acceleration = 0.0f;
-            enemy->state_timer = enemy_reaction_time_get(state, state_old);
+            enemy->state_timer = enemy_reaction_time_get(state_old);
             enemy_look_towards_position(enemy, enemy->gun_shot_position);
         } break;
         case ENEMY_STATE_RUSH_TO_TARGET:
@@ -2972,7 +2744,7 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
         {
             enemy_look_towards_direction(enemy, enemy->hit_direction);
-            enemy->state_timer = enemy_reaction_time_get(state, state_old);
+            enemy->state_timer = enemy_reaction_time_get(state_old);
         } break;
         case ENEMY_STATE_LOOK_FOR_PLAYER:
         {
@@ -3072,7 +2844,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 else if (enemy->state == ENEMY_STATE_RUSH_TO_TARGET)
                 {
                     enemy->target = enemy->gun_shot_position;
-                    enemy_calculate_path_to_target(&state->cols, &state->level, enemy);
+                    enemy_calculate_path_to_target(&state->cols, &state->level,
+                        enemy);
                 }
                 else if (enemy->state != ENEMY_STATE_SHOOT)
                 {
@@ -3828,10 +3601,12 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
     struct v2 dir_left = v2_direction_from_angle(angle_start + angle_max);
     struct v2 dir_right = v2_direction_from_angle(angle_start - angle_max);
 
-    ray_cast_direction(&state->cols, position, dir_right, &collision, COLLISION_ALL);
+    ray_cast_direction(&state->cols, position, dir_right, &collision,
+        COLLISION_ALL);
     corners[num_corners++] = collision;
 
-    ray_cast_direction(&state->cols, position, dir_left, &collision, COLLISION_ALL);
+    ray_cast_direction(&state->cols, position, dir_left, &collision,
+        COLLISION_ALL);
     corners[num_corners++] = collision;
 
     for (u32 i = 0; i < state->cols.num_dynamics &&
