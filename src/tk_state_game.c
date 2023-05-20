@@ -253,7 +253,8 @@ void state_game_render(void* data)
 
     if (game->render_debug)
     {
-        collision_map_render(state->base);
+        collision_map_render(state->base, state->base->cols.statics,
+            state->base->cols.num_statics);
     }
 }
 

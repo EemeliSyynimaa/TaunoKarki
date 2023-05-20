@@ -60,6 +60,14 @@ struct gun_shot
 #define MAX_WALL_FACES 512
 #define MAX_GUN_SHOTS 64
 
+struct collision_map
+{
+    struct line_segment statics[MAX_STATICS];
+    struct line_segment dynamics[MAX_STATICS];
+    u32 num_statics;
+    u32 num_dynamics;
+};
+
 struct game_state
 {
     struct physics_world world;
@@ -77,8 +85,6 @@ struct game_state
     struct memory_block stack;
     struct v2 wall_corners[MAX_WALL_CORNERS];
     struct line_segment wall_faces[MAX_WALL_FACES];
-    struct line_segment cols_static[MAX_STATICS];
-    struct line_segment cols_dynamic[MAX_STATICS];
     struct cube_renderer cube_renderer;
     struct sprite_renderer sprite_renderer;
     struct particle_renderer particle_renderer;
@@ -86,6 +92,7 @@ struct game_state
     struct gun_shot gun_shots[MAX_GUN_SHOTS];
     struct level level;
     struct level level_mask;
+    struct collision_map cols;
     struct state_interface* state_current;
     b32 render_debug;
     b32 level_change;
@@ -110,8 +117,6 @@ struct game_state
     u32 num_enemies;
     u32 num_wall_corners;
     u32 num_wall_faces;
-    u32 num_cols_static;
-    u32 num_cols_dynamic;
     u32 num_gun_shots;
     u32 ticks_per_second;
     u32 level_current;
@@ -402,30 +407,30 @@ f32 ray_cast_to_direction(struct v2 start, struct v2 direction,
     return result;
 }
 
-f32 ray_cast_direction(struct game_state* state, struct v2 position,
+f32 ray_cast_direction(struct collision_map* cols, struct v2 position,
     struct v2 direction, struct v2* collision, u32 flags)
 {
     f32 result = F32_MAX;
 
     if (flags & COLLISION_STATIC)
     {
-        result = ray_cast_to_direction(position, direction, state->cols_static,
-            state->num_cols_static, collision, result, flags);
+        result = ray_cast_to_direction(position, direction, cols->statics,
+            cols->num_statics, collision, result, flags);
     }
 
     if (flags & COLLISION_DYNAMIC)
     {
-        result = ray_cast_to_direction(position, direction, state->cols_dynamic,
-            state->num_cols_dynamic, collision, result, flags);
+        result = ray_cast_to_direction(position, direction, cols->dynamics,
+            cols->num_dynamics, collision, result, flags);
     }
 
     return result;
 }
 
-f32 ray_cast_position(struct game_state* state, struct v2 start, struct v2 end,
-    struct v2* collision, u32 flags)
+f32 ray_cast_position(struct collision_map* cols, struct v2 start,
+    struct v2 end, struct v2* collision, u32 flags)
 {
-    f32 result = ray_cast_direction(state, start, v2_direction(start, end),
+    f32 result = ray_cast_direction(cols, start, v2_direction(start, end),
         collision, flags);
     f32 distance = v2_distance(start, end) - 0.1f;
 
@@ -437,7 +442,7 @@ f32 ray_cast_position(struct game_state* state, struct v2 start, struct v2 end,
     return result;
 }
 
-f32 ray_cast_body(struct game_state* state, struct v2 start,
+f32 ray_cast_body(struct collision_map* cols, struct v2 start,
     struct rigid_body* body, struct v2* collision, u32 flags)
 {
     f32 result = 0.0f;
@@ -456,7 +461,7 @@ f32 ray_cast_body(struct game_state* state, struct v2 start,
     f32 target = ray_cast_to_direction(start, direction, segments, 4, NULL,
         F32_MAX, flags) - 0.1f;
 
-    result = ray_cast_direction(state, start, direction, collision, flags);
+    result = ray_cast_direction(cols, start, direction, collision, flags);
 
     if (result < target)
     {
@@ -466,7 +471,7 @@ f32 ray_cast_body(struct game_state* state, struct v2 start,
     return result;
 }
 
-void path_trim(struct game_state* state, struct v2 obj_start, struct v2 path[],
+void path_trim(struct collision_map* cols, struct v2 obj_start, struct v2 path[],
     u32* path_size)
 {
     if (!(*path_size))
@@ -492,10 +497,10 @@ void path_trim(struct game_state* state, struct v2 obj_start, struct v2 path[],
         struct v2 br = { end.x + wall_half, end.y - wall_half };
         struct v2 tr = { end.x + wall_half, end.y + wall_half };
 
-        if (!ray_cast_position(state, start, tl, NULL, COLLISION_STATIC) ||
-            !ray_cast_position(state, start, bl, NULL, COLLISION_STATIC) ||
-            !ray_cast_position(state, start, br, NULL, COLLISION_STATIC) ||
-            !ray_cast_position(state, start, tr, NULL, COLLISION_STATIC))
+        if (!ray_cast_position(cols, start, tl, NULL, COLLISION_STATIC) ||
+            !ray_cast_position(cols, start, bl, NULL, COLLISION_STATIC) ||
+            !ray_cast_position(cols, start, br, NULL, COLLISION_STATIC) ||
+            !ray_cast_position(cols, start, tr, NULL, COLLISION_STATIC))
         {
             start = result[result_index++] = path[path_index];
         }
@@ -2146,13 +2151,13 @@ void level_render(struct game_state* state, struct level* level)
     cube_renderer_add(&state->cube_renderer, &level->elevator_light);
 }
 
-void collision_map_render(struct game_state* state)
+void collision_map_render(struct game_state* state, struct line_segment* cols,
+    u32 num_cols)
 {
-    for (u32 i = 0; i < state->num_cols_static; i++)
+    for (u32 i = 0; i < num_cols; i++)
     {
-        line_render(state, state->cols_static[i].start,
-            state->cols_static[i].end, colors[RED], WALL_SIZE + 0.01f,
-            0.025f);
+        line_render(state, cols[i].start, cols[i].end, colors[RED],
+            WALL_SIZE + 0.01f, 0.025f);
     }
 }
 
@@ -2717,7 +2722,7 @@ b32 weapon_level_up(struct weapon* weapon)
     return result;
 }
 
-b32 enemy_sees_player(struct game_state* state, struct enemy* enemy,
+b32 enemy_sees_player(struct collision_map* cols, struct enemy* enemy,
     struct player* player)
 {
     b32 result = false;
@@ -2733,7 +2738,7 @@ b32 enemy_sees_player(struct game_state* state, struct enemy* enemy,
     // Todo: enemy AI goes nuts if two enemies are on top of each other and all
     // collisions are checked. Check collision against static (walls) and player
     // for now
-    f32 player_ray_cast = ray_cast_body(state, enemy->eye_position,
+    f32 player_ray_cast = ray_cast_body(cols, enemy->eye_position,
         player->body, NULL, COLLISION_STATIC | COLLISION_PLAYER);
 
     result = enemy->state != ENEMY_STATE_SLEEP && player->alive &&
@@ -2852,13 +2857,12 @@ void enemy_look_towards_position(struct enemy* enemy, struct v2 position)
     enemy_look_towards_angle(enemy, f32_atan(direction.y, direction.x));
 }
 
-void enemy_calculate_path_to_target(struct game_state* state,
+void enemy_calculate_path_to_target(struct collision_map* cols,
     struct level* level, struct enemy* enemy)
 {
     enemy->path_length = path_find(level, enemy->body->position,
         enemy->target, enemy->path, MAX_PATH);
-    path_trim(state, enemy->body->position, enemy->path,
-        &enemy->path_length);
+    path_trim(cols, enemy->body->position, enemy->path, &enemy->path_length);
     enemy_look_towards_position(enemy, enemy->path[0]);
     enemy->path_index = 0;
 }
@@ -2952,13 +2956,13 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         case ENEMY_STATE_RUSH_TO_TARGET:
         {
             enemy->acceleration = ENEMY_ACCELERATION;
-            enemy_calculate_path_to_target(state, level, enemy);
+            enemy_calculate_path_to_target(&state->cols, level, enemy);
         } break;
         case ENEMY_STATE_WANDER_AROUND:
         {
             enemy->acceleration = ENEMY_ACCELERATION * 0.5f;
             enemy->target = tile_random_get(level, TILE_FLOOR);
-            enemy_calculate_path_to_target(state, level, enemy);
+            enemy_calculate_path_to_target(&state->cols, level, enemy);
         } break;
         case ENEMY_STATE_LOOK_AROUND:
         {
@@ -3039,7 +3043,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 continue;
             }
 
-            enemy->player_in_view = enemy_sees_player(state, enemy,
+            enemy->player_in_view = enemy_sees_player(&state->cols, enemy,
                 &state->player);
 
             enemy->gun_shot_heard = enemy_hears_gun_shot(state, enemy);
@@ -3068,7 +3072,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 else if (enemy->state == ENEMY_STATE_RUSH_TO_TARGET)
                 {
                     enemy->target = enemy->gun_shot_position;
-                    enemy_calculate_path_to_target(state, &state->level, enemy);
+                    enemy_calculate_path_to_target(&state->cols, &state->level, enemy);
                 }
                 else if (enemy->state != ENEMY_STATE_SHOOT)
                 {
@@ -3124,7 +3128,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 {
                     if (enemy->state_timer_finished)
                     {
-                        if (ray_cast_position(state, enemy->eye_position,
+                        if (ray_cast_position(&state->cols, enemy->eye_position,
                             enemy->gun_shot_position, NULL,
                             COLLISION_STATIC | COLLISION_PLAYER))
                         {
@@ -3298,7 +3302,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 {
                     if (enemy->state_timer_finished)
                     {
-                        f32 length = ray_cast_direction(state,
+                        f32 length = ray_cast_direction(&state->cols,
                             enemy->eye_position, enemy->hit_direction, NULL,
                             COLLISION_STATIC);
 
@@ -3742,7 +3746,7 @@ void collision_map_static_calculate(struct level* level,
 
 void collision_map_dynamic_calculate(struct game_state* state)
 {
-    state->num_cols_dynamic = 0;
+    state->cols.num_dynamics = 0;
     struct line_segment segments[4] = { 0 };
 
     if (state->player.alive)
@@ -3750,10 +3754,10 @@ void collision_map_dynamic_calculate(struct game_state* state)
         get_body_rectangle(state->player.body, PLAYER_RADIUS, PLAYER_RADIUS,
             segments);
 
-        for (u32 i = 0; i < 4 && state->num_cols_dynamic < MAX_STATICS; i++)
+        for (u32 i = 0; i < 4 && state->cols.num_dynamics < MAX_STATICS; i++)
         {
             segments[i].type = COLLISION_PLAYER;
-            state->cols_dynamic[state->num_cols_dynamic++] = segments[i];
+            state->cols.dynamics[state->cols.num_dynamics++] = segments[i];
         }
     }
 
@@ -3766,10 +3770,11 @@ void collision_map_dynamic_calculate(struct game_state* state)
             get_body_rectangle(enemy->body, PLAYER_RADIUS, PLAYER_RADIUS,
                 segments);
 
-            for (u32 i = 0; i < 4 && state->num_cols_dynamic < MAX_STATICS; i++)
+            for (u32 i = 0; i < 4 && state->cols.num_dynamics < MAX_STATICS;
+                i++)
             {
                 segments[i].type = COLLISION_ENEMY;
-                state->cols_dynamic[state->num_cols_dynamic++] = segments[i];
+                state->cols.dynamics[state->cols.num_dynamics++] = segments[i];
             }
         }
     }
@@ -3823,16 +3828,16 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
     struct v2 dir_left = v2_direction_from_angle(angle_start + angle_max);
     struct v2 dir_right = v2_direction_from_angle(angle_start - angle_max);
 
-    ray_cast_direction(state, position, dir_right, &collision, COLLISION_ALL);
+    ray_cast_direction(&state->cols, position, dir_right, &collision, COLLISION_ALL);
     corners[num_corners++] = collision;
 
-    ray_cast_direction(state, position, dir_left, &collision, COLLISION_ALL);
+    ray_cast_direction(&state->cols, position, dir_left, &collision, COLLISION_ALL);
     corners[num_corners++] = collision;
 
-    for (u32 i = 0; i < state->num_cols_dynamic &&
+    for (u32 i = 0; i < state->cols.num_dynamics &&
         num_corners < MAX_WALL_CORNERS; i++)
     {
-        struct v2 temp = state->cols_dynamic[i].start;
+        struct v2 temp = state->cols.dynamics[i].start;
 
         if (direction_in_range(v2_direction(position, temp), dir_left,
             dir_right))
@@ -3862,7 +3867,7 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
         f32 angle = f32_atan(direction.y, direction.x);
         f32 t = 0.00001f;
 
-        ray_cast_direction(state, position, direction, &collision,
+        ray_cast_direction(&state->cols, position, direction, &collision,
             COLLISION_ALL);
 
         struct v2 collision_temp = { 0 };
@@ -3874,8 +3879,8 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
                 0.005f, 0.005f);
         }
 
-        ray_cast_direction(state, position, v2_direction_from_angle(angle + t),
-            &collision_temp, COLLISION_ALL);
+        ray_cast_direction(&state->cols, position,
+            v2_direction_from_angle(angle + t), &collision_temp, COLLISION_ALL);
 
         if (v2_distance(collision_temp, collision) > 0.001f)
         {
@@ -3888,8 +3893,8 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
             finals[num_finals++] = collision_temp;
         }
 
-        ray_cast_direction(state, position, v2_direction_from_angle(angle - t),
-            &collision_temp, COLLISION_ALL);
+        ray_cast_direction(&state->cols, position,
+            v2_direction_from_angle(angle - t), &collision_temp, COLLISION_ALL);
 
         if (v2_distance(collision_temp, collision) > 0.001f)
         {
@@ -4097,8 +4102,8 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
                 flags |= COLLISION_PLAYER;
             }
 
-            f32 distance = ray_cast_direction(state, bullet->body->position,
-                v2_normalize(move_delta), NULL, flags);
+            f32 distance = ray_cast_direction(&state->cols,
+                bullet->body->position, v2_normalize(move_delta), NULL, flags);
 
             f32 fraction = 1.0f;
 
@@ -5296,18 +5301,13 @@ void level_init(struct game_state* state)
         sizeof(struct v2) * MAX_WALL_CORNERS, 0);
     memory_set(state->wall_faces,
         sizeof(struct line_segment) * MAX_WALL_FACES, 0);
-    memory_set(state->cols_static,
-        sizeof(struct line_segment) * MAX_STATICS, 0);
-    memory_set(state->cols_dynamic,
-        sizeof(struct line_segment) * MAX_STATICS, 0);
+    memory_set(&state->cols, sizeof(struct collision_map), 0);
     memory_set(state->gun_shots,
         sizeof(struct gun_shot) * MAX_GUN_SHOTS, 0);
 
     state->num_enemies = 0;
     state->num_wall_corners = 0;
     state->num_wall_faces = 0;
-    state->num_cols_static = 0;
-    state->num_cols_dynamic = 0;
     state->num_gun_shots = 0;
     state->free_bullet = 0;
     state->free_item = 0;
@@ -5382,14 +5382,14 @@ void level_init(struct game_state* state)
         -camera->position.z);
     camera->view_inverse = m4_inverse(camera->view);
 
-    collision_map_static_calculate(&state->level, state->cols_static,
-        MAX_STATICS, &state->num_cols_static);
+    collision_map_static_calculate(&state->level, state->cols.statics,
+        MAX_STATICS, &state->cols.num_statics);
 
-    LOG("Wall faces: %d/%d\n", state->num_cols_static, MAX_STATICS);
+    LOG("Wall faces: %d/%d\n", state->cols.num_statics, MAX_STATICS);
 
     get_wall_corners_from_faces(state->wall_corners, MAX_WALL_CORNERS,
-        &state->num_wall_corners, state->cols_static,
-        state->num_cols_static);
+        &state->num_wall_corners, state->cols.statics,
+        state->cols.num_statics);
 
     LOG("Wall corners: %d/%d\n", state->num_wall_corners, MAX_WALL_CORNERS);
 
