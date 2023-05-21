@@ -14,6 +14,8 @@ struct state_physics_data
 {
     struct game_state* base;
     struct frame frames[MAX_FRAMES];
+    struct mesh_render_info line_info;
+    struct camera* camera;
     u32 frame_current;
     u32 frame_max;
     u32 frame_min;
@@ -21,12 +23,12 @@ struct state_physics_data
 };
 
 void lines_render(struct line_segment lines[], u32 num_lines,
-    struct game_state* state)
+    struct mesh_render_info* info, struct m4 projection, struct m4 view)
 {
     for (u32 i = 0; i < num_lines; i++)
     {
-        line_render(state, lines[i].start, lines[i].end, colors[GREY], 1.25f,
-            0.0125f);
+        line_render(info, lines[i].start, lines[i].end, 1.25f, 0.0125f,
+            projection, view);
     }
 }
 
@@ -525,6 +527,8 @@ void circles_positions_update(struct circle circles[], u32 num_circles)
 void circles_render(struct circle circles[], u32 num_circles,
     struct game_state* state, b32 paused)
 {
+    // Todo: fix
+    #if 0
     for (u32 i = 0; i < num_circles; i++)
     {
         struct circle* circle = &circles[i];
@@ -537,7 +541,7 @@ void circles_render(struct circle circles[], u32 num_circles,
         model = m4_mul_m4(model, transform);
 
         struct m4 mvp = m4_mul_m4(model, state->camera.view);
-        mvp = m4_mul_m4(mvp, state->camera.projection);
+        mvp = m4_mul_m4(mvp, state->camera.ortho);
 
         u32 color = (i == 0) ? AQUA : (circle->dynamic ? WHITE : GREY);
 
@@ -580,7 +584,7 @@ void circles_render(struct circle circles[], u32 num_circles,
                     model = m4_mul_m4(model, transform);
 
                     struct m4 mvp = m4_mul_m4(model, state->camera.view);
-                    mvp = m4_mul_m4(mvp, state->camera.projection);
+                    mvp = m4_mul_m4(mvp, state->camera.ortho);
 
                     mesh_render(&state->floor, &mvp, state->texture_tileset,
                         state->shader_simple, colors[GREY]);
@@ -588,6 +592,7 @@ void circles_render(struct circle circles[], u32 num_circles,
             }
         }
     }
+    #endif
 }
 
 void state_physics_init(void* data)
@@ -670,16 +675,22 @@ void state_physics_init(void* data)
     f32 near = 0.1f;
     f32 far = 100.0f;
 
-    struct camera* camera = &state->base->camera;
-    camera->position = (struct v3){ 0.0f, 0.0f, 5.0f };
-    camera->projection = m4_orthographic(-size, size, -size, size, near, far);
-    camera->projection_inverse = m4_inverse(camera->projection);
-    camera->view = m4_look_at(camera->position,
-        (struct v3) { camera->position.xy, 0.0f },
+    state->camera = &state->base->camera;
+    state->camera->position = (struct v3){ 0.0f, 0.0f, 5.0f };
+    state->camera->ortho = m4_orthographic(-size, size, -size, size, near, far);
+    state->camera->ortho_inverse = m4_inverse(state->camera->ortho);
+    state->camera->view = m4_look_at(state->camera->position,
+        (struct v3) { state->camera->position.xy, 0.0f },
         (struct v3) { 0.0f, 1.0f, 0.0f });
-    camera->view_inverse = m4_inverse(camera->view);
+    state->camera->view_inverse = m4_inverse(state->camera->view);
 
     api.gl.glClearColor(0.25f, 0.0f, 0.0f, 0.0f);
+
+    state->line_info = (struct mesh_render_info)
+    {
+        colors[GREY], &state->base->floor, state->base->texture_tileset,
+        state->base->shader_simple
+    };
 
     // Start as paused
     state->paused = true;
@@ -820,7 +831,8 @@ void state_physics_render(void* data)
     struct frame* frame = &state->frames[state->frame_current];
     circles_render(frame->circles, frame->num_circles, state->base,
         state->paused);
-    lines_render(frame->lines, frame->num_lines, state->base);
+    lines_render(frame->lines, frame->num_lines, &state->line_info,
+        state->camera->perspective, state->camera->view);
 }
 
 struct state_interface state_physics_create(struct game_state* state)

@@ -102,9 +102,13 @@ void state_game_init(void* data)
     particle_emitter_create(&game->particle_system, &config, true);
 
     struct camera* camera = &game->camera;
-    camera->projection = m4_perspective(60.0f,
+    camera->perspective = m4_perspective(60.0f,
         (f32)camera->screen_width / (f32)camera->screen_height, 0.1f, 15.0f);
-    camera->projection_inverse = m4_inverse(camera->projection);
+    camera->perspective_inverse = m4_inverse(camera->perspective);
+    camera->ortho = m4_orthographic(0.0f, camera->screen_width, 0.0f,
+        camera->screen_height, 0.0f, 1.0f);
+    camera->ortho_inverse = m4_inverse(camera->ortho);
+
     game->render_debug = false;
 
     u32 num_colors = sizeof(colors) / sizeof(struct v4);
@@ -126,6 +130,8 @@ void state_game_update(void* data, struct game_input* input, f32 step)
 {
     struct state_game_data* state = (struct state_game_data*)data;
     struct game_state* game = state->base;
+
+    game->render_debug = input->enable_debug_rendering;
 
     if (game->level_clear_notify <= 0.0f)
     {
@@ -243,11 +249,11 @@ void state_game_render(void* data)
     particle_renderer_sort(&game->particle_renderer);
 
     cube_renderer_flush(&game->cube_renderer, &camera->view,
-        &camera->projection);
+        &camera->perspective);
     sprite_renderer_flush(&game->sprite_renderer, &camera->view,
-        &camera->projection);
+        &camera->perspective);
     particle_renderer_flush(&game->particle_renderer, &camera->view,
-        &camera->projection);
+        &camera->perspective);
 
     particle_lines_render(state->base);
 

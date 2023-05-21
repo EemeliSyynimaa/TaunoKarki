@@ -645,6 +645,9 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                         {
                             new_input.enable_debug_rendering =
                                 !new_input.enable_debug_rendering;
+                            LOG("Enable debug rendering: %s\n",
+                                new_input.enable_debug_rendering ? "yes" :
+                                    "no");
                         }
                         else if (msg.wParam == 0x50 && !was_down)
                         {
