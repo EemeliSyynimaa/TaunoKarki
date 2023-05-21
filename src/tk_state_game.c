@@ -240,10 +240,16 @@ void state_game_render(void* data)
     struct game_state* game = state->base;
     struct camera* camera = &game->camera;
 
-    level_render(state->base, &game->level);
-    player_render(state->base);
-    enemies_render(state->base);
-    items_render(state->base);
+    if (game->level_cleared)
+    {
+        cube_data_color_update(&game->level.elevator_light, LIME);
+    }
+
+    level_render(&game->level, &game->sprite_renderer, &game->cube_renderer,
+        camera->perspective, camera->view);
+    player_render(game);
+    enemies_render(game);
+    items_render(game);
     particle_system_render(&game->particle_system, &game->particle_renderer);
 
     particle_renderer_sort(&game->particle_renderer);
@@ -255,12 +261,11 @@ void state_game_render(void* data)
     particle_renderer_flush(&game->particle_renderer, &camera->view,
         &camera->perspective);
 
-    particle_lines_render(state->base);
+    particle_lines_render(game);
 
     if (game->render_debug)
     {
-        collision_map_render(state->base, state->base->cols.statics,
-            state->base->cols.num_statics);
+        collision_map_render(game, game->cols.statics, game->cols.num_statics);
     }
 }
 
