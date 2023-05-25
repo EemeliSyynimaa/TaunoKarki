@@ -1,3 +1,29 @@
+enum
+{
+    ENEMY_STATE_SHOOT,
+    ENEMY_STATE_WANDER_AROUND,
+    ENEMY_STATE_RUSH_TO_TARGET,
+    ENEMY_STATE_SLEEP,
+    ENEMY_STATE_REACT_TO_PLAYER_SEEN,
+    ENEMY_STATE_REACT_TO_GUN_SHOT,
+    ENEMY_STATE_REACT_TO_BEING_SHOT_AT,
+    ENEMY_STATE_LOOK_AROUND,
+    ENEMY_STATE_LOOK_FOR_PLAYER
+};
+
+char enemy_state_str[][256] =
+{
+    "SHOOT",
+    "WANDER AROUND",
+    "RUSH TO TARGET",
+    "SLEEP",
+    "REACT_TO_PLAYER_SEEN",
+    "REACT_TO_GUN_SHOT",
+    "REACT_TO_BEING_SHOT_AT",
+    "LOOK_AROUND",
+    "LOOK_FOR_PLAYER"
+};
+
 b32 enemy_sees_player(struct collision_map* cols, struct enemy* enemy,
     struct player* player)
 {

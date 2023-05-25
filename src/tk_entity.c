@@ -1,5 +1,25 @@
 // Todo: player, bullet, item and enemy are entities that have a rigid body
 // Todo: create proper entity system
+struct weapon
+{
+    struct v2 position;
+    struct v2 velocity;
+    struct v2 direction;
+    u32 type;
+    u32 level;
+    u32 ammo;
+    u32 ammo_max;
+    f32 last_shot;
+    f32 fire_rate;
+    f32 reload_time;
+    f32 spread;
+    f32 projectile_size;
+    f32 projectile_speed;
+    f32 projectile_damage;
+    b32 fired;
+    b32 reloading;
+};
+
 struct player
 {
     struct rigid_body* body;
@@ -29,32 +49,6 @@ struct item
     f32 alive;
     f32 flash_timer;
     b32 flash_hide;
-};
-
-enum
-{
-    ENEMY_STATE_SHOOT,
-    ENEMY_STATE_WANDER_AROUND,
-    ENEMY_STATE_RUSH_TO_TARGET,
-    ENEMY_STATE_SLEEP,
-    ENEMY_STATE_REACT_TO_PLAYER_SEEN,
-    ENEMY_STATE_REACT_TO_GUN_SHOT,
-    ENEMY_STATE_REACT_TO_BEING_SHOT_AT,
-    ENEMY_STATE_LOOK_AROUND,
-    ENEMY_STATE_LOOK_FOR_PLAYER
-};
-
-char enemy_state_str[][256] =
-{
-    "SHOOT",
-    "WANDER AROUND",
-    "RUSH TO TARGET",
-    "SLEEP",
-    "REACT_TO_PLAYER_SEEN",
-    "REACT_TO_GUN_SHOT",
-    "REACT_TO_BEING_SHOT_AT",
-    "LOOK_AROUND",
-    "LOOK_FOR_PLAYER"
 };
 
 struct enemy

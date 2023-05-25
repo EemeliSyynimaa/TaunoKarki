@@ -5,6 +5,14 @@ struct memory_block
     s8* current;
 };
 
+struct object_pool
+{
+    void* data;
+    u32 size;
+    u32 count;
+    u32 next;
+};
+
 void* stack_alloc(struct memory_block* block, u64 size)
 {
     // Todo: add alignment
@@ -61,4 +69,30 @@ void memory_copy(void* src, void* dest, u64 size)
     {
         *((u8*)dest + i) = *((u8*)src + i);
     }
+}
+
+void object_pool_init(struct object_pool* pool, u32 object_size,
+    u32 object_count, struct memory_block* block)
+{
+    pool->size = object_size;
+    pool->count = object_count;
+    pool->next = 0;
+    pool->data = stack_alloc(block, object_size * object_count);
+}
+
+void* object_pool_get_next(struct object_pool* pool)
+{
+    void* result = 0;
+
+    if (pool->data)
+    {
+        result = (void*)((u8*)pool->data + pool->next * pool->size);
+
+        if (++pool->next > pool->count)
+        {
+            pool->next = 0;
+        }
+    }
+
+    return result;
 }
