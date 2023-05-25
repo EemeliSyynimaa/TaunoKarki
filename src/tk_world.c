@@ -382,3 +382,38 @@ void level_render(struct level* level, struct sprite_renderer* sprite_renderer,
 
     cube_renderer_add(cube_renderer, &level->elevator_light);
 }
+
+void level_mask_init(struct level* mask)
+{
+    // Inited once per game round e.g. until the player has died
+
+    // Todo: now hard coded, randomize in the future
+    mask->width = 8;
+    mask->height = 8;
+    mask->start_pos = (struct v2) { 1.0f, 1.0f };
+
+    // Level mask mask is used to make each level structurally compatible.
+    // The outer walls and start room location will be the same for each
+    // level but the inner walls may differ.
+    {
+        u32 width = mask->width;
+        u32 height = mask->height;
+        u32 start_x = (u32)mask->start_pos.x;
+        u32 start_y = (u32)mask->start_pos.y;
+
+        u64 size = width * height;
+        u8* data = mask->tile_types;
+
+        memory_set(data, size, 1);
+
+        {
+            data[5 * width + 3] = 0;
+            data[5 * width + 4] = 0;
+            data[6 * width + 3] = 0;
+            data[6 * width + 4] = 0;
+        }
+
+        // Reserve space for the starting room
+        data[start_y * width + start_x] = 0;
+    }
+}

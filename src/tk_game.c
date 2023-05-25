@@ -4,6 +4,7 @@
 #include "tk_random.h"
 #include "tk_memory.h"
 #include "tk_config.h"
+#include "tk_color.h"
 
 // Todo: global for now
 struct api api;
@@ -11,47 +12,6 @@ struct api api;
 #include "tk_mesh.c"
 #include "tk_resources.c"
 #include "tk_camera.c"
-
-// Todo: clean this, not very nice
-struct v4 colors[] =
-{
-    { 0.0,  0.0,  0.0,  1.0 },
-    { 0.0,  0.0,  0.5,  1.0 },
-    { 0.0,  0.0,  1.0,  1.0 },
-    { 0.0,  0.5,  0.0,  1.0 },
-    { 0.0,  0.5,  0.5,  1.0 },
-    { 0.0,  1.0,  0.0,  1.0 },
-    { 0.0,  1.0,  1.0,  1.0 },
-    { 0.5,  0.0,  0.0,  1.0 },
-    { 0.5,  0.0,  0.5,  1.0 },
-    { 0.5,  0.5,  0.0,  1.0 },
-    { 0.5,  0.5,  0.5,  1.0 },
-    { 0.75, 0.75, 0.75, 1.0 },
-    { 1.0,  0.0,  0.0,  1.0 },
-    { 1.0,  0.0,  1.0,  1.0 },
-    { 1.0,  1.0,  0.0,  1.0 },
-    { 1.0,  1.0,  1.0,  1.0 }
-};
-
-enum
-{
-    BLACK,
-    NAVY,
-    BLUE,
-    GREEN,
-    TEAL,
-    LIME,
-    AQUA,
-    MAROON,
-    PURPLE,
-    OLIVE,
-    GREY,
-    SILVER,
-    RED,
-    FUCHSIA,
-    YELLOW,
-    WHITE
-};
 
 // Todo: create mesh_renderer that can be configured to work with particles,
 // cubes, sprites and more
@@ -63,6 +23,7 @@ enum
 #include "tk_physics.c"
 #include "tk_level.c"
 #include "tk_input.c"
+#include "tk_entity.c"
 #include "tk_collision.c"
 
 // Todo: where to store these?
@@ -73,7 +34,6 @@ struct gun_shot
 };
 
 #include "tk_pathfind.c"
-#include "tk_entity.c"
 #include "tk_weapon.c"
 #include "tk_world.c"
 
@@ -759,331 +719,6 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                         }
                     }
                 }
-            }
-        }
-    }
-}
-
-b32 insert_corner(struct v2 corner, struct v2 corners[], u32 max, u32* count)
-{
-    b32 result = false;
-
-    if (*count < max)
-    {
-        b32 found = false;
-
-        for (u32 i = 0; i < *count; i++)
-        {
-            if (v2_equals(corner, corners[i]))
-            {
-                found = true;
-                break;
-            }
-        }
-
-        if (!found)
-        {
-            corners[(*count)++] = corner;
-        }
-
-        result = true;
-    }
-
-    return result;
-}
-
-void get_wall_corners(struct level* level, struct v2 corners[], u32 max,
-    u32* count)
-{
-    for (u32 y = 0; y < level->height; y++)
-    {
-        for (u32 x = 0; x < level->width; x++)
-        {
-            struct v2 tile = { (f32)x, (f32)y };
-
-            if (tile_is_of_type(level, tile, TILE_WALL))
-            {
-                f32 t = WALL_SIZE * 0.5f;
-
-                if (!insert_corner((struct v2){ tile.x + t, tile.y + t},
-                    corners, max, count))
-                {
-                    return;
-                }
-
-                if (!insert_corner((struct v2){ tile.x - t, tile.y - t},
-                    corners, max, count))
-                {
-                    return;
-                }
-
-                if (!insert_corner((struct v2){ tile.x + t, tile.y - t},
-                    corners, max, count))
-                {
-                    return;
-                }
-
-                if (!insert_corner((struct v2){ tile.x - t, tile.y + t},
-                    corners, max, count))
-                {
-                    return;
-                }
-            }
-        }
-    }
-}
-
-b32 line_segment_equals(struct line_segment a, struct line_segment b)
-{
-    b32 result = v2_equals(a.start, b.start) && v2_equals(a.end, b.end);
-
-    return result;
-}
-
-b32 line_segment_empty(struct line_segment a)
-{
-    b32 result = a.start.x == 0.0f && a.start.y == 0.0f && a.end.x == 0.0f &&
-        a.end.y == 0.0f;
-
-    return result;
-}
-
-b32 insert_face(struct line_segment* face, struct line_segment faces[], u32 max,
-    u32* count)
-{
-    b32 result = false;
-
-    if (line_segment_empty(*face))
-    {
-        result = true;
-    }
-    else if (*count < max)
-    {
-        b32 found = false;
-
-        for (u32 i = 0; i < *count; i++)
-        {
-            if (line_segment_equals(*face, faces[i]))
-            {
-                found = true;
-                break;
-            }
-        }
-
-        if (!found)
-        {
-            faces[(*count)++] = *face;
-            *face = (struct line_segment) { 0.0f };
-        }
-
-        result = true;
-    }
-
-    return result;
-}
-
-void collision_map_static_calculate(struct level* level,
-    struct line_segment faces[], u32 max, u32* count)
-{
-    for (u32 y = 0; y < level->height; y++)
-    {
-        struct line_segment face_top    = { 0.0f };
-        struct line_segment face_bottom = { 0.0f };
-
-        for (u32 x = 0; x <= level->width; x++)
-        {
-            struct v2 tile = { (f32)x, (f32)y };
-            face_top.type = COLLISION_STATIC;
-            face_bottom.type = COLLISION_STATIC;
-
-            if (tile_is_of_type(level, tile, TILE_WALL))
-            {
-                f32 t = WALL_SIZE * 0.5f;
-
-                struct v2 tile_top    = { tile.x, tile.y + WALL_SIZE };
-                struct v2 tile_bottom = { tile.x, tile.y - WALL_SIZE };
-
-                if (tile_inside_level_bounds(level, tile_bottom) &&
-                    tile_is_free(level, tile_bottom))
-                {
-                    if (line_segment_empty(face_bottom))
-                    {
-                        face_bottom.start =
-                            (struct v2){ tile.x - t, tile.y - t };
-                    }
-
-                    face_bottom.end = (struct v2){ tile.x + t, tile.y - t };
-                }
-                else if (!insert_face(&face_bottom, faces, max, count))
-                {
-                    return;
-                }
-
-                if (tile_inside_level_bounds(level, tile_top) &&
-                    tile_is_free(level, tile_top))
-                {
-                    if (line_segment_empty(face_top))
-                    {
-                        face_top.start = (struct v2){ tile.x - t, tile.y + t };
-                    }
-
-                    face_top.end = (struct v2){ tile.x + t, tile.y + t };
-                }
-                else if (!insert_face(&face_top, faces, max, count))
-                {
-                    return;
-                }
-            }
-            else
-            {
-                if (!insert_face(&face_top, faces, max, count))
-                {
-                    return;
-                }
-
-                if (!insert_face(&face_bottom, faces, max, count))
-                {
-                    return;
-                }
-            }
-        }
-    }
-
-    for (u32 x = 0; x < level->width; x++)
-    {
-        struct line_segment face_left  = { 0.0f };
-        struct line_segment face_right = { 0.0f };
-
-        for (u32 y = 0; y < level->height; y++)
-        {
-            struct v2 tile = { (f32)x, (f32)y };
-            face_left.type = COLLISION_STATIC;
-            face_right.type = COLLISION_STATIC;
-
-            if (tile_is_of_type(level, tile, TILE_WALL))
-            {
-                f32 t = WALL_SIZE * 0.5f;
-
-                struct v2 tile_left  = { tile.x - WALL_SIZE, tile.y };
-                struct v2 tile_right = { tile.x + WALL_SIZE, tile.y };
-
-                if (tile_inside_level_bounds(level, tile_left) &&
-                    tile_is_free(level, tile_left))
-                {
-                    if (line_segment_empty(face_left))
-                    {
-                        face_left.start =
-                            (struct v2){ tile.x - t, tile.y - t };
-                    }
-
-                    face_left.end = (struct v2){ tile.x - t, tile.y + t };
-                }
-                else if (!insert_face(&face_left, faces, max, count))
-                {
-                    return;
-                }
-
-                if (tile_inside_level_bounds(level, tile_right) &&
-                    tile_is_free(level, tile_right))
-                {
-                    if (line_segment_empty(face_right))
-                    {
-                        face_right.start =
-                            (struct v2){ tile.x + t, tile.y - t };
-                    }
-
-                    face_right.end = (struct v2){ tile.x + t, tile.y + t };
-                }
-                else if (!insert_face(&face_right, faces, max, count))
-                {
-                    return;
-                }
-            }
-            else
-            {
-                if (!insert_face(&face_right, faces, max, count))
-                {
-                    return;
-                }
-
-                if (!insert_face(&face_left, faces, max, count))
-                {
-                    return;
-                }
-            }
-        }
-    }
-}
-
-void collision_map_dynamic_calculate(struct game_state* state)
-{
-    state->cols.num_dynamics = 0;
-    struct line_segment segments[4] = { 0 };
-
-    if (state->player.alive)
-    {
-        get_body_rectangle(state->player.body, PLAYER_RADIUS, PLAYER_RADIUS,
-            segments);
-
-        for (u32 i = 0; i < 4 && state->cols.num_dynamics < MAX_STATICS; i++)
-        {
-            segments[i].type = COLLISION_PLAYER;
-            state->cols.dynamics[state->cols.num_dynamics++] = segments[i];
-        }
-    }
-
-    for (u32 i = 0; i < state->num_enemies; i++)
-    {
-        struct enemy* enemy = &state->enemies[i];
-
-        if (enemy->alive)
-        {
-            get_body_rectangle(enemy->body, PLAYER_RADIUS, PLAYER_RADIUS,
-                segments);
-
-            for (u32 i = 0; i < 4 && state->cols.num_dynamics < MAX_STATICS;
-                i++)
-            {
-                segments[i].type = COLLISION_ENEMY;
-                state->cols.dynamics[state->cols.num_dynamics++] = segments[i];
-            }
-        }
-    }
-}
-
-void get_wall_corners_from_faces(struct v2 corners[], u32 max, u32* count,
-    struct line_segment faces[], u32 num_faces)
-{
-    for (u32 i = 0; i < num_faces; i++)
-    {
-        if (!insert_corner(faces[i].start, corners, max, count))
-        {
-            return;
-        }
-
-        if (!insert_corner(faces[i].end, corners, max, count))
-        {
-            return;
-        }
-    }
-}
-
-b32 direction_in_range(struct v2 dir, struct v2 left, struct v2 right)
-{
-    b32 result = v2_cross(left, dir) < 0.0f && v2_cross(right, dir) > 0.0f;
-
-    return result;
-}
-
-void reorder_corners_ccw(struct v2* corners, u32 count, struct v2 position)
-{
-    for (u32 i = 0; i < count - 1; i++)
-    {
-        for (u32 j = i + 1; j < count; j++)
-        {
-            if (f32_triangle_area_signed(position, corners[i], corners[j]) < 0)
-            {
-                v2_swap(&corners[i], &corners[j]);
             }
         }
     }
@@ -1956,46 +1591,11 @@ void particle_lines_render(struct game_state* state)
     }
 }
 
-void level_mask_init(struct level* mask)
-{
-    // Inited once per game round e.g. until the player has died
-
-    // Todo: now hard coded, randomize in the future
-    mask->width = 8;
-    mask->height = 8;
-    mask->start_pos = (struct v2) { 1.0f, 1.0f };
-
-    // Level mask mask is used to make each level structurally compatible.
-    // The outer walls and start room location will be the same for each
-    // level but the inner walls may differ.
-    {
-        u32 width = mask->width;
-        u32 height = mask->height;
-        u32 start_x = (u32)mask->start_pos.x;
-        u32 start_y = (u32)mask->start_pos.y;
-
-        u64 size = width * height;
-        u8* data = mask->tile_types;
-
-        memory_set(data, size, 1);
-
-        {
-            data[5 * width + 3] = 0;
-            data[5 * width + 4] = 0;
-            data[6 * width + 3] = 0;
-            data[6 * width + 4] = 0;
-        }
-
-        // Reserve space for the starting room
-        data[start_y * width + start_x] = 0;
-    }
-}
-
 void level_init(struct game_state* state)
 {
     // Clear everything
-    memory_set(state->bullet_pool.data,
-        sizeof(struct bullet) * state->bullet_pool.count, 0);
+    object_pool_reset(&state->bullet_pool);
+
     memory_set(state->enemies,
         sizeof(struct enemy) * MAX_ENEMIES, 0);
     memory_set(state->items,

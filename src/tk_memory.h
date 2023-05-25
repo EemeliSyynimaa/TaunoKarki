@@ -80,6 +80,12 @@ void object_pool_init(struct object_pool* pool, u32 object_size,
     pool->data = stack_alloc(block, object_size * object_count);
 }
 
+void object_pool_reset(struct object_pool* pool)
+{
+    memory_set(pool->data, pool->size * pool->count, 0);
+    pool->next = 0;
+}
+
 void* object_pool_get_next(struct object_pool* pool)
 {
     void* result = 0;

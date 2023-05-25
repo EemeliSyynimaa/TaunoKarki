@@ -54,3 +54,6 @@ u32 WEAPON_LEVEL_MAX = 10;
 #define MAX_WALL_CORNERS 512
 #define MAX_WALL_FACES 512
 #define MAX_GUN_SHOTS 64
+#define MAX_PATH 256
+// Todo: this really depends on the level size
+#define MAX_NODES 1024

@@ -220,7 +220,8 @@ void state_game_update(void* data, struct game_input* input, f32 step)
     mouse->world = calculate_world_pos((f32)input->mouse_x,
         (f32)input->mouse_y, camera);
 
-    collision_map_dynamic_calculate(game);
+    collision_map_dynamic_calculate(&game->cols, &game->player, game->enemies,
+        game->num_enemies);
 
     game->num_gun_shots = 0;
 

@@ -1,7 +1,3 @@
-#define MAX_PATH 256
-// Todo: this really depends on the level size
-#define MAX_NODES 1024
-
 struct node
 {
     // Todo: use integers instead?
