@@ -730,8 +730,8 @@ f32 enemy_look_around_delay_get(struct enemy* enemy)
     return result;
 }
 
-void enemy_state_transition(struct game_state* state, struct enemy* enemy,
-    u32 state_new)
+void enemy_state_transition(struct enemy* enemy, u32 state_new,
+    struct level* level, struct collision_map* cols)
 {
     if (state_new == enemy->state)
     {
@@ -743,8 +743,6 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
     enemy->state_timer = 0.0f;
     enemy->path_length = 0;
     enemy->state = state_new;
-
-    struct level* level = &state->level;
 
     // LOG("Enemy transition from %s to %s\n", enemy_state_str[state_old],
     //     enemy_state_str[state_new]);
@@ -765,13 +763,13 @@ void enemy_state_transition(struct game_state* state, struct enemy* enemy,
         case ENEMY_STATE_RUSH_TO_TARGET:
         {
             enemy->acceleration = ENEMY_ACCELERATION;
-            enemy_calculate_path_to_target(&state->cols, level, enemy);
+            enemy_calculate_path_to_target(cols, level, enemy);
         } break;
         case ENEMY_STATE_WANDER_AROUND:
         {
             enemy->acceleration = ENEMY_ACCELERATION * 0.5f;
             enemy->target = tile_random_get(level, TILE_FLOOR);
-            enemy_calculate_path_to_target(&state->cols, level, enemy);
+            enemy_calculate_path_to_target(cols, level, enemy);
         } break;
         case ENEMY_STATE_LOOK_AROUND:
         {
@@ -866,8 +864,9 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 if (enemy->state != ENEMY_STATE_SHOOT &&
                     enemy->state != ENEMY_STATE_SLEEP)
                 {
-                    enemy_state_transition(state, enemy,
-                        ENEMY_STATE_REACT_TO_PLAYER_SEEN);
+                    enemy_state_transition(enemy,
+                        ENEMY_STATE_REACT_TO_PLAYER_SEEN, &state->level,
+                        &state->cols);
                 }
             }
             else if (enemy->gun_shot_heard)
@@ -875,8 +874,9 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 // Todo: enemy should react only to the closest source of noise
                 if (enemy->state == ENEMY_STATE_SLEEP)
                 {
-                    enemy_state_transition(state, enemy,
-                        ENEMY_STATE_LOOK_FOR_PLAYER);
+                    enemy_state_transition(enemy,
+                        ENEMY_STATE_LOOK_FOR_PLAYER, &state->level,
+                        &state->cols);
                 }
                 else if (enemy->state == ENEMY_STATE_RUSH_TO_TARGET)
                 {
@@ -886,8 +886,9 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 }
                 else if (enemy->state != ENEMY_STATE_SHOOT)
                 {
-                    enemy_state_transition(state, enemy,
-                        ENEMY_STATE_REACT_TO_GUN_SHOT);
+                    enemy_state_transition(enemy,
+                        ENEMY_STATE_REACT_TO_GUN_SHOT, &state->level,
+                        &state->cols);
                 }
             }
             else if (enemy->got_hit)
@@ -895,13 +896,15 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 // Todo: react only if the source of bullet is not visible?
                 if (enemy->state == ENEMY_STATE_SLEEP)
                 {
-                    enemy_state_transition(state, enemy,
-                        ENEMY_STATE_LOOK_FOR_PLAYER);
+                    enemy_state_transition(enemy,
+                        ENEMY_STATE_LOOK_FOR_PLAYER, &state->level,
+                        &state->cols);
                 }
                 else if (enemy->state != ENEMY_STATE_SHOOT)
                 {
-                    enemy_state_transition(state, enemy,
-                        ENEMY_STATE_REACT_TO_BEING_SHOT_AT);
+                    enemy_state_transition(enemy,
+                        ENEMY_STATE_REACT_TO_BEING_SHOT_AT, &state->level,
+                        &state->cols);
                 }
 
                 enemy->got_hit = false;
@@ -918,14 +921,15 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     {
                         if (enemy->player_in_view)
                         {
-                            enemy_state_transition(state, enemy,
-                                ENEMY_STATE_SHOOT);
+                            enemy_state_transition(enemy, ENEMY_STATE_SHOOT,
+                                &state->level, &state->cols);
                         }
                         else
                         {
                             enemy->target = enemy->player_last_seen_position;
-                            enemy_state_transition(state, enemy,
-                                ENEMY_STATE_RUSH_TO_TARGET);
+                            enemy_state_transition(enemy,
+                                ENEMY_STATE_RUSH_TO_TARGET, &state->level,
+                                &state->cols);
                         }
                     }
                     else if (enemy->player_in_view)
@@ -942,14 +946,16 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                             enemy->gun_shot_position, NULL,
                             COLLISION_STATIC | COLLISION_PLAYER))
                         {
-                            enemy_state_transition(state, enemy,
-                                ENEMY_STATE_LOOK_FOR_PLAYER);
+                            enemy_state_transition(enemy,
+                                ENEMY_STATE_LOOK_FOR_PLAYER, &state->level,
+                                &state->cols);
                         }
                         else
                         {
                             enemy->target = enemy->gun_shot_position;
-                            enemy_state_transition(state, enemy,
-                                ENEMY_STATE_RUSH_TO_TARGET);
+                            enemy_state_transition(enemy,
+                                ENEMY_STATE_RUSH_TO_TARGET, &state->level,
+                                &state->cols);
 
                             // Here we can skip the last node since we only need
                             // to see the location where gun shot occured
@@ -1058,13 +1064,15 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     }
                     else if (!state->player.alive)
                     {
-                        enemy_state_transition(state, enemy,
-                            ENEMY_STATE_LOOK_FOR_PLAYER);
+                        enemy_state_transition(enemy,
+                            ENEMY_STATE_LOOK_FOR_PLAYER, &state->level,
+                            &state->cols);
                     }
                     else
                     {
-                        enemy_state_transition(state, enemy,
-                            ENEMY_STATE_REACT_TO_PLAYER_SEEN);
+                        enemy_state_transition(enemy,
+                            ENEMY_STATE_REACT_TO_PLAYER_SEEN, &state->level,
+                            &state->cols);
                     }
                 } break;
                 case ENEMY_STATE_RUSH_TO_TARGET:
@@ -1072,8 +1080,9 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     if (!enemy->path_length)
                     {
                         enemy_look_towards_position(enemy, enemy->target);
-                        enemy_state_transition(state, enemy,
-                            ENEMY_STATE_LOOK_FOR_PLAYER);
+                        enemy_state_transition(enemy,
+                            ENEMY_STATE_LOOK_FOR_PLAYER, &state->level,
+                            &state->cols);
                     }
                 } break;
                 case ENEMY_STATE_LOOK_AROUND:
@@ -1091,8 +1100,9 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                         }
                         else
                         {
-                            enemy_state_transition(state, enemy,
-                                ENEMY_STATE_WANDER_AROUND);
+                            enemy_state_transition(enemy,
+                                ENEMY_STATE_WANDER_AROUND, &state->level,
+                                &state->cols);
                         }
                     }
                     else if (enemy->state_timer <= 0.0f && !enemy->turn_amount)
@@ -1104,8 +1114,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 {
                     if (!enemy->path_length)
                     {
-                        enemy_state_transition(state, enemy,
-                            ENEMY_STATE_LOOK_AROUND);
+                        enemy_state_transition(enemy, ENEMY_STATE_LOOK_AROUND,
+                            &state->level, &state->cols);
                     }
                 } break;
                 case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
@@ -1122,8 +1132,9 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                         enemy->target = v2_add(enemy->eye_position,
                             v2_mul_f32(enemy->hit_direction, length));
 
-                        enemy_state_transition(state, enemy,
-                            ENEMY_STATE_RUSH_TO_TARGET);
+                        enemy_state_transition(enemy,
+                            ENEMY_STATE_RUSH_TO_TARGET, &state->level,
+                            &state->cols);
 
                         enemy->hit_direction = v2_zero;
                     }
@@ -1153,8 +1164,9 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                             }
                             else
                             {
-                                enemy_state_transition(state, enemy,
-                                    ENEMY_STATE_WANDER_AROUND);
+                                enemy_state_transition(enemy,
+                                    ENEMY_STATE_WANDER_AROUND, &state->level,
+                                    &state->cols);
                             }
                         }
                         else if (enemy->state_timer <= 0.0f &&
