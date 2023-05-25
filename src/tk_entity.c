@@ -82,4 +82,5 @@ struct enemy
     b32 alive;
     b32 shooting;
     b32 state_timer_finished;
+    b32 player_dead;
 };

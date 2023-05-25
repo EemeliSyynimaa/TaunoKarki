@@ -73,40 +73,6 @@ b32 enemy_hears_gun_shot(struct gun_shot* shots, u32 num_gun_shots,
     return result;
 }
 
-f32 enemy_reaction_time_get(u32 state)
-{
-    f32 result = 0.0f;
-    f32 reaction_multiplier = 1.0f;
-
-    switch (state)
-    {
-        case ENEMY_STATE_SHOOT:
-        case ENEMY_STATE_RUSH_TO_TARGET:
-        case ENEMY_STATE_REACT_TO_PLAYER_SEEN:
-        case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
-        case ENEMY_STATE_REACT_TO_GUN_SHOT:
-        {
-            // Lower reaction time
-            reaction_multiplier = 0.5f;
-        } break;
-        case ENEMY_STATE_SLEEP:
-        {
-            // Higher reaction time
-            reaction_multiplier = 2.0f;
-        } break;
-        default:
-        {
-            // Normal reaction time
-            reaction_multiplier = 1.0f;
-        } break;
-    }
-
-    result = f32_random(ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX) *
-        reaction_multiplier;
-
-    return result;
-}
-
 f32 turn_amount_calculate(f32 angle_from, f32 angle_to)
 {
     f32 circle = F64_PI * 2.0f;
@@ -168,6 +134,40 @@ void enemy_calculate_path_to_target(struct collision_map* cols,
     path_trim(cols, enemy->body->position, enemy->path, &enemy->path_length);
     enemy_look_towards_position(enemy, enemy->path[0]);
     enemy->path_index = 0;
+}
+
+f32 enemy_reaction_time_get(u32 state)
+{
+    f32 result = 0.0f;
+    f32 reaction_multiplier = 1.0f;
+
+    switch (state)
+    {
+        case ENEMY_STATE_SHOOT:
+        case ENEMY_STATE_RUSH_TO_TARGET:
+        case ENEMY_STATE_REACT_TO_PLAYER_SEEN:
+        case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
+        case ENEMY_STATE_REACT_TO_GUN_SHOT:
+        {
+            // Lower reaction time
+            reaction_multiplier = 0.5f;
+        } break;
+        case ENEMY_STATE_SLEEP:
+        {
+            // Higher reaction time
+            reaction_multiplier = 2.0f;
+        } break;
+        default:
+        {
+            // Normal reaction time
+            reaction_multiplier = 1.0f;
+        } break;
+    }
+
+    result = f32_random(ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX) *
+        reaction_multiplier;
+
+    return result;
 }
 
 f32 enemy_turn_speed_get(struct enemy* enemy)
@@ -280,5 +280,257 @@ void enemy_state_transition(struct enemy* enemy, u32 state_new,
             enemy->acceleration = 0.0f;
             enemy->turns_left = 5;
         } break;
+    }
+}
+
+void enemy_state_shoot_update(struct enemy* enemy, struct level* level,
+    struct collision_map* cols, struct object_pool* bullet_pool,
+    struct physics_world* world)
+{
+    enemy->acceleration = 0.0f;
+
+    if (enemy->player_in_view)
+    {
+        struct v2 target_forward = v2_direction( enemy->body->position,
+            enemy->player_last_seen_position);
+
+        if (v2_length(enemy->body->velocity))
+        {
+            // Todo: calculate right with cross product
+            f32 angle = F64_PI*1.5f;
+            f32 tsin = f32_sin(angle);
+            f32 tcos = f32_cos(angle);
+
+            struct v2 target_right =
+            {
+                target_forward.x * tcos - target_forward.y * tsin,
+                target_forward.x * tsin + target_forward.y * tcos
+            };
+
+            f32 initial_velocity = v2_dot(enemy->body->velocity, target_right);
+
+            struct v2 desired_velocity = { 0.0f };
+
+            if (PROJECTILE_SPEED > initial_velocity)
+            {
+                desired_velocity.x = -initial_velocity;
+            }
+            else
+            {
+                desired_velocity.x = PROJECTILE_SPEED;
+            }
+
+            if (desired_velocity.x)
+            {
+                desired_velocity.y = f32_sqrt(
+                    (PROJECTILE_SPEED * PROJECTILE_SPEED) -
+                    (desired_velocity.x * desired_velocity.x));
+            }
+            else
+            {
+                desired_velocity.y = -PROJECTILE_SPEED;
+            }
+
+            struct v2 target_right_rotate_back =
+            {
+                target_right.x, -target_right.y
+            };
+
+            struct v2 target_forward_rotate_back =
+            {
+                -target_forward.x, target_forward.y
+            };
+
+            struct v2 final_direction =
+            {
+                v2_dot(desired_velocity, target_right_rotate_back),
+                v2_dot(desired_velocity, target_forward_rotate_back)
+            };
+
+            enemy->direction_aim = v2_normalize(final_direction);
+        }
+        else
+        {
+            enemy->direction_aim = target_forward;
+        }
+
+        enemy_look_towards_direction(enemy, target_forward);
+
+        struct weapon* weapon = &enemy->weapon;
+
+        weapon->direction = enemy->direction_aim;
+        weapon->position = enemy->eye_position;
+        weapon->velocity = enemy->body->velocity;
+
+        if (weapon_shoot(bullet_pool, world, weapon, false))
+        {
+            // Todo: implement this
+            // gun_shot_register(state, weapon->position, 10.0f);
+        }
+
+        if (weapon->fired && enemy->trigger_release <= 0.0f)
+        {
+            enemy->trigger_release = 0.5f;
+        }
+    }
+    else
+    {
+        enemy_state_transition(enemy, ENEMY_STATE_REACT_TO_PLAYER_SEEN, level,
+            cols);
+    }
+}
+
+void enemy_state_wander_around_update(struct enemy* enemy, struct level* level,
+    struct collision_map* cols)
+{
+    if (!enemy->path_length)
+    {
+        enemy_state_transition(enemy, ENEMY_STATE_LOOK_AROUND, level, cols);
+    }
+}
+
+void enemy_state_rush_to_target_update(struct enemy* enemy, struct level* level,
+    struct collision_map* cols)
+{
+    if (!enemy->path_length)
+    {
+        enemy_look_towards_position(enemy, enemy->target);
+        enemy_state_transition(enemy, ENEMY_STATE_LOOK_FOR_PLAYER, level, cols);
+    }
+}
+
+void enemy_state_sleep_update(struct enemy* enemy, struct level* level,
+    struct collision_map* cols)
+{
+}
+
+void enemy_state_react_to_player_seen_update(struct enemy* enemy,
+    struct level* level, struct collision_map* cols)
+{
+    if (enemy->state_timer_finished)
+    {
+        if (enemy->player_in_view)
+        {
+            enemy_state_transition(enemy, ENEMY_STATE_SHOOT, level, cols);
+        }
+        else
+        {
+            enemy->target = enemy->player_last_seen_position;
+            enemy_state_transition(enemy, ENEMY_STATE_RUSH_TO_TARGET, level,
+                cols);
+        }
+    }
+    else if (enemy->player_in_view)
+    {
+        enemy_look_towards_position(enemy, enemy->player_last_seen_position);
+    }
+}
+
+void enemy_state_react_to_gun_shot_update(struct enemy* enemy,
+    struct level* level, struct collision_map* cols)
+{
+    if (enemy->state_timer_finished)
+    {
+        if (ray_cast_position(cols, enemy->eye_position,
+            enemy->gun_shot_position, NULL,
+            COLLISION_STATIC | COLLISION_PLAYER))
+        {
+            enemy_state_transition(enemy, ENEMY_STATE_LOOK_FOR_PLAYER, level,
+                cols);
+        }
+        else
+        {
+            enemy->target = enemy->gun_shot_position;
+            enemy_state_transition(enemy, ENEMY_STATE_RUSH_TO_TARGET, level,
+                cols);
+
+            // Here we can skip the last node since we only need
+            // to see the location where gun shot occured
+            if (enemy->path_length > 0)
+            {
+                enemy->path_length--;
+            }
+        }
+    }
+}
+
+void enemy_state_react_to_being_shot_at_update(struct enemy* enemy,
+    struct level* level, struct collision_map* cols)
+{
+    if (enemy->state_timer_finished)
+    {
+        f32 length = ray_cast_direction(cols, enemy->eye_position,
+            enemy->hit_direction, NULL, COLLISION_STATIC);
+
+        // Skip one tile so we don't find a path into a wall
+        length = MAX(0, length - 1.0f);
+
+        enemy->target = v2_add(enemy->eye_position,
+            v2_mul_f32(enemy->hit_direction, length));
+
+        enemy_state_transition(enemy, ENEMY_STATE_RUSH_TO_TARGET, level, cols);
+
+        enemy->hit_direction = v2_zero;
+    }
+}
+
+void enemy_state_look_around_update(struct enemy* enemy, struct level* level,
+    struct collision_map* cols)
+{
+    if (enemy->state_timer_finished)
+    {
+        if (enemy->turns_left)
+        {
+            f32 diff = f32_random(-F64_PI, F64_PI);
+            f32 angle_new = enemy->body->angle + diff;
+
+            enemy_look_towards_angle(enemy, angle_new);
+
+            enemy->turns_left--;
+        }
+        else
+        {
+            enemy_state_transition(enemy, ENEMY_STATE_WANDER_AROUND, level,
+                cols);
+        }
+    }
+    else if (enemy->state_timer <= 0.0f && !enemy->turn_amount)
+    {
+        enemy->state_timer = enemy_look_around_delay_get(enemy);
+    }
+}
+
+void enemy_state_look_for_player_update(struct enemy* enemy,
+    struct level* level, struct collision_map* cols)
+{
+    if (!v2_is_zero(enemy->player_last_seen_direction))
+    {
+        enemy_look_towards_direction(enemy, enemy->player_last_seen_direction);
+        enemy->player_last_seen_direction = v2_zero;
+        enemy->state_timer = enemy_look_around_delay_get(enemy);
+    }
+    else
+    {
+        if (enemy->state_timer_finished)
+        {
+            if (enemy->turns_left)
+            {
+                f32 diff = f32_random( -F64_PI, F64_PI);
+                f32 angle_new = enemy->body->angle + diff;
+
+                enemy_look_towards_angle(enemy, angle_new);
+
+                enemy->turns_left--;
+            }
+            else
+            {
+                enemy_state_transition(enemy, ENEMY_STATE_WANDER_AROUND, level,
+                    cols);
+            }
+        }
+        else if (enemy->state_timer <= 0.0f && !enemy->turn_amount)
+        {
+            enemy->state_timer = enemy_look_around_delay_get(enemy);
+        }
     }
 }
