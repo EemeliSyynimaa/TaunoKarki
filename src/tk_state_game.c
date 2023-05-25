@@ -275,7 +275,8 @@ struct state_interface state_game_create(struct game_state* state)
     result.init = state_game_init;
     result.update = state_game_update;
     result.render = state_game_render;
-    result.data = stack_alloc(&state->stack, sizeof(struct state_game_data));
+    result.data = stack_alloc(&state->stack_permanent,
+        sizeof(struct state_game_data));
 
     memory_set(result.data, sizeof(struct state_game_data), 0);
 

@@ -3,6 +3,7 @@
 #include "tk_state_interface.h"
 #include "tk_random.h"
 #include "tk_memory.h"
+#include "tk_config.h"
 
 // Todo: global for now
 struct api api;
@@ -65,14 +66,6 @@ enum
 #include "tk_collision.c"
 
 // Todo: where to store these?
-enum
-{
-    WEAPON_NONE = 0,
-    WEAPON_SHOTGUN = 1,
-    WEAPON_MACHINEGUN = 2,
-    WEAPON_PISTOL = 3,
-    WEAPON_COUNT = 4
-};
 
 struct weapon
 {
@@ -104,18 +97,46 @@ struct gun_shot
 #include "tk_entity.c"
 #include "tk_world.c"
 
-#define MAX_BULLETS 64
-#define MAX_ENEMIES 64
-#define MAX_ITEMS 256
-#define MAX_WALL_CORNERS 512
-#define MAX_WALL_FACES 512
-#define MAX_GUN_SHOTS 64
+#include "tk_enemy.c"
+
+struct object_pool
+{
+    void* data;
+    u32 size;
+    u32 count;
+    u32 next;
+};
+
+void object_pool_init(struct object_pool* pool, u32 object_size,
+    u32 object_count, struct memory_block* block)
+{
+    pool->size = object_size;
+    pool->count = object_count;
+    pool->next = 0;
+    pool->data = stack_alloc(block, object_size * object_count);
+}
+
+void* object_pool_get_next(struct object_pool* pool)
+{
+    void* result = 0;
+
+    if (pool->data)
+    {
+        result = (void*)((u8*)pool->data + pool->next * pool->size);
+
+        if (++pool->next > pool->count)
+        {
+            pool->next = 0;
+        }
+    }
+
+    return result;
+}
 
 struct game_state
 {
     struct physics_world world;
     struct player player;
-    struct bullet bullets[MAX_BULLETS];
     struct enemy enemies[MAX_ENEMIES];
     struct item items[MAX_ITEMS];
     struct particle_line particle_lines[MAX_PARTICLES];
@@ -125,7 +146,8 @@ struct game_state
     struct mesh wall;
     struct mesh floor;
     struct mesh triangle;
-    struct memory_block stack;
+    struct memory_block stack_temporary;
+    struct memory_block stack_permanent;
     struct v2 wall_corners[MAX_WALL_CORNERS];
     struct line_segment wall_faces[MAX_WALL_FACES];
     struct cube_renderer cube_renderer;
@@ -136,6 +158,7 @@ struct game_state
     struct level level;
     struct level level_mask;
     struct collision_map cols;
+    struct object_pool bullet_pool;
     struct state_interface* state_current;
 
     struct mesh_render_info render_info_health_bar;
@@ -158,10 +181,8 @@ struct game_state
     u32 texture_cube;
     u32 texture_sprite;
     u32 texture_particle;
-    u32 free_bullet;
     u32 free_item;
     u32 free_particle_line;
-    u32 free_particle_sphere;
     u32 num_enemies;
     u32 num_wall_corners;
     u32 num_wall_faces;
@@ -170,47 +191,6 @@ struct game_state
     u32 level_current;
     u32 random_seed;
 };
-
-f32 PLAYER_ACCELERATION = 40.0f;
-f32 PLAYER_RADIUS       = 0.25f;
-f32 PLAYER_HEALTH_MAX   = 100.0f;
-
-f32 ENEMY_ACCELERATION           = 35.0f;
-f32 ENEMY_LINE_OF_SIGHT_HALF     = F64_PI * 0.25f; // 45 degrees
-f32 ENEMY_LINE_OF_SIGHT_DISTANCE = 8.0f;
-f32 ENEMY_REACTION_TIME_MIN      = 0.25f;
-f32 ENEMY_REACTION_TIME_MAX      = 0.75f;
-f32 ENEMY_GUN_FIRE_HEAR_DISTANCE = 10.0f;
-f32 ENEMY_HEALTH_MAX             = 100.0f;
-f32 ENEMY_LOOK_AROUND_DELAY_MIN  = 0.5f;
-f32 ENEMY_LOOK_AROUND_DELAY_MAX  = 2.0f;
-
-f32 ITEM_RADIUS = 0.1;
-f32 ITEM_ALIVE_TIME = 10.0f;
-f32 ITEM_FLASH_TIME = 2.0f;
-f32 ITEM_FLASH_SPEED = 0.125f;
-
-f32 CAMERA_ACCELERATION = 15.0f;
-
-enum
-{
-    ITEM_NONE = 0,
-    ITEM_HEALTH = 1,
-    ITEM_SHOTGUN = 2,
-    ITEM_MACHINEGUN = 3,
-    ITEM_PISTOL = 4,
-    ITEM_WEAPON_LEVEL_UP = 5,
-    ITEM_COUNT = 6
-};
-
-u32 ITEAM_HEALTH_AMOUNT = 25;
-
-f32 PROJECTILE_RADIUS = 0.035f;
-f32 PROJECTILE_SPEED  = 50.0f;
-
-f32 FRICTION  = 10.0f;
-
-u32 WEAPON_LEVEL_MAX = 10;
 
 void collision_map_render(struct game_state* state, struct line_segment* cols,
     u32 num_cols)
@@ -249,22 +229,17 @@ void particle_line_create(struct game_state* state, struct v2 start,
     particle->time_current = particle->time_start;
 }
 
-void bullet_create(struct game_state* state, struct v2 position,
-    struct v2 start_velocity, struct v2 direction, f32 speed, f32 damage,
-    b32 player_owned, f32 size)
+void bullet_create(struct object_pool* pool, struct physics_world* world,
+    struct v2 position, struct v2 start_velocity, struct v2 direction,
+    f32 speed, f32 damage, b32 player_owned, f32 size)
 {
-    if (++state->free_bullet == MAX_BULLETS)
-    {
-        state->free_bullet = 0;
-    }
+    struct bullet* bullet = object_pool_get_next(pool);
 
     f32 color = f32_random(0.75f, 1.0f);
 
-    struct bullet* bullet = &state->bullets[state->free_bullet];
-
     if (!bullet->alive)
     {
-        bullet->body = rigid_body_get(&state->world);
+        bullet->body = rigid_body_get(world);
     }
 
     bullet->body->bullet = true;
@@ -405,9 +380,9 @@ void weapon_shoot(struct game_state* state, struct weapon* weapon, bool player)
             struct v2 randomized = v2_rotate(weapon->direction,
                 f32_random(-weapon->spread, weapon->spread));
 
-            bullet_create(state, weapon->position, weapon->velocity, randomized,
-                weapon->projectile_speed, weapon->projectile_damage, player,
-                weapon->projectile_size);
+            bullet_create(&state->bullet_pool, &state->world, weapon->position,
+                weapon->velocity, randomized, weapon->projectile_speed,
+                weapon->projectile_damage, player, weapon->projectile_size);
 
             weapon->fired = true;
 
@@ -432,9 +407,9 @@ void weapon_shoot(struct game_state* state, struct weapon* weapon, bool player)
             struct v2 randomized = v2_rotate(weapon->direction,
                 f32_random(-weapon->spread, weapon->spread));
 
-            bullet_create(state, weapon->position, weapon->velocity, randomized,
-                weapon->projectile_speed, weapon->projectile_damage, player,
-                weapon->projectile_size);
+            bullet_create(&state->bullet_pool, &state->world, weapon->position,
+                weapon->velocity, randomized, weapon->projectile_speed,
+                weapon->projectile_damage, player, weapon->projectile_size);
 
             if (--weapon->ammo == 0)
             {
@@ -465,9 +440,9 @@ void weapon_shoot(struct game_state* state, struct weapon* weapon, bool player)
                 f32 speed = f32_random(
                     0.75f * weapon->projectile_speed, weapon->projectile_speed);
 
-                bullet_create(state, weapon->position, weapon->velocity,
-                    randomized, speed, weapon->projectile_damage, player,
-                    weapon->projectile_size);
+                bullet_create(&state->bullet_pool, &state->world,
+                    weapon->position, weapon->velocity, randomized, speed,
+                    weapon->projectile_damage, player, weapon->projectile_size);
             }
 
             weapon->fired = true;
@@ -529,264 +504,6 @@ b32 weapon_level_up(struct weapon* weapon)
     }
 
     return result;
-}
-
-b32 enemy_sees_player(struct collision_map* cols, struct enemy* enemy,
-    struct player* player)
-{
-    b32 result = false;
-
-    // Todo: maybe use direction_in_range() here instead
-    struct v2 direction_player = v2_direction(enemy->body->position,
-        player->body->position);
-    struct v2 direction_current = v2_direction_from_angle(
-        enemy->body->angle);
-
-    f32 angle_player = v2_angle(direction_player, direction_current);
-
-    // Todo: enemy AI goes nuts if two enemies are on top of each other and all
-    // collisions are checked. Check collision against static (walls) and player
-    // for now
-    f32 player_ray_cast = ray_cast_body(cols, enemy->eye_position,
-        player->body, NULL, COLLISION_STATIC | COLLISION_PLAYER);
-
-    result = enemy->state != ENEMY_STATE_SLEEP && player->alive &&
-        angle_player < ENEMY_LINE_OF_SIGHT_HALF && player_ray_cast > 0.0f &&
-        player_ray_cast < ENEMY_LINE_OF_SIGHT_DISTANCE;
-
-    return result;
-}
-
-b32 enemy_hears_gun_shot(struct game_state* state, struct enemy* enemy)
-{
-    b32 result = false;
-    f32 closest = ENEMY_GUN_FIRE_HEAR_DISTANCE;
-
-    for (u32 i = 0; i < state->num_gun_shots; i++)
-    {
-        struct gun_shot* shot = &state->gun_shots[i];
-
-        f32 distance = v2_distance(enemy->body->position, shot->position);
-
-        if (distance < closest && distance < shot->volume)
-        {
-            enemy->gun_shot_position = shot->position;
-            closest = distance;
-            result = true;
-        }
-    }
-
-    return result;
-}
-
-f32 enemy_reaction_time_get(u32 state)
-{
-    f32 result = 0.0f;
-    f32 reaction_multiplier = 1.0f;
-
-    switch (state)
-    {
-        case ENEMY_STATE_SHOOT:
-        case ENEMY_STATE_RUSH_TO_TARGET:
-        case ENEMY_STATE_REACT_TO_PLAYER_SEEN:
-        case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
-        case ENEMY_STATE_REACT_TO_GUN_SHOT:
-        {
-            // Lower reaction time
-            reaction_multiplier = 0.5f;
-        } break;
-        case ENEMY_STATE_SLEEP:
-        {
-            // Higher reaction time
-            reaction_multiplier = 2.0f;
-        } break;
-        default:
-        {
-            // Normal reaction time
-            reaction_multiplier = 1.0f;
-        } break;
-    }
-
-    result = f32_random(ENEMY_REACTION_TIME_MIN, ENEMY_REACTION_TIME_MAX) *
-        reaction_multiplier;
-
-    return result;
-}
-
-f32 turn_amount_calculate(f32 angle_from, f32 angle_to)
-{
-    f32 circle = F64_PI * 2.0f;
-    f32 result = 0.0f;
-
-    while (angle_to < 0.0f)
-    {
-        angle_to += circle;
-    }
-
-    while (angle_from < 0.0f)
-    {
-        angle_from += circle;
-    }
-
-    f32 diff_clockwise = 0.0f;
-    f32 diff_counter_clockwise = 0.0f;
-
-    if (angle_to < angle_from)
-    {
-        diff_clockwise = angle_to + circle - angle_from;
-        diff_counter_clockwise = angle_from - angle_to;
-    }
-    else
-    {
-        diff_clockwise = angle_to - angle_from;
-        diff_counter_clockwise = angle_from + circle -
-            angle_to;
-    }
-
-    result = MIN(diff_clockwise, diff_counter_clockwise);
-    result *= diff_clockwise > diff_counter_clockwise ? 1.0f : -1.0f;
-
-    return result;
-}
-
-void enemy_look_towards_angle(struct enemy* enemy, f32 angle)
-{
-    enemy->turn_amount = turn_amount_calculate(enemy->body->angle, angle);
-}
-
-void enemy_look_towards_direction(struct enemy* enemy, struct v2 direction)
-{
-    enemy_look_towards_angle(enemy, f32_atan(direction.y, direction.x));
-}
-
-void enemy_look_towards_position(struct enemy* enemy, struct v2 position)
-{
-    struct v2 direction = v2_direction(enemy->body->position, position);
-
-    enemy_look_towards_angle(enemy, f32_atan(direction.y, direction.x));
-}
-
-void enemy_calculate_path_to_target(struct collision_map* cols,
-    struct level* level, struct enemy* enemy)
-{
-    enemy->path_length = path_find(level, enemy->body->position,
-        enemy->target, enemy->path, MAX_PATH);
-    path_trim(cols, enemy->body->position, enemy->path, &enemy->path_length);
-    enemy_look_towards_position(enemy, enemy->path[0]);
-    enemy->path_index = 0;
-}
-
-f32 enemy_turn_speed_get(struct enemy* enemy)
-{
-    f32 result = 0.0f;
-    f32 speed_multiplier = 1.0f;
-
-    switch (enemy->state)
-    {
-        case ENEMY_STATE_SHOOT:
-        case ENEMY_STATE_RUSH_TO_TARGET:
-        case ENEMY_STATE_REACT_TO_PLAYER_SEEN:
-        case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
-        case ENEMY_STATE_REACT_TO_GUN_SHOT:
-        case ENEMY_STATE_LOOK_FOR_PLAYER:
-        {
-            // Fast turning
-            speed_multiplier = 1.5f;
-        } break;
-        case ENEMY_STATE_SLEEP:
-        {
-            // Don't turn when sleeping
-            speed_multiplier = 0.0f;
-        } break;
-        case ENEMY_STATE_LOOK_AROUND:
-        case ENEMY_STATE_WANDER_AROUND:
-        {
-            // Chilling speed
-            speed_multiplier = 0.5f;
-        } break;
-        default:
-        {
-            // Normal turn speed
-            speed_multiplier = 1.0f;
-        } break;
-    };
-
-    // One full turn per second * multiplier
-    result = (f32)F64_PI * 2.0f * speed_multiplier;
-
-    return result;
-}
-
-f32 enemy_look_around_delay_get(struct enemy* enemy)
-{
-    f32 result = f32_random(ENEMY_LOOK_AROUND_DELAY_MIN,
-        ENEMY_LOOK_AROUND_DELAY_MAX);
-
-    if (enemy->state == ENEMY_STATE_LOOK_FOR_PLAYER)
-    {
-        result *= 0.5f;
-    }
-
-    return result;
-}
-
-void enemy_state_transition(struct enemy* enemy, u32 state_new,
-    struct level* level, struct collision_map* cols)
-{
-    if (state_new == enemy->state)
-    {
-        return;
-    }
-
-    u32 state_old = enemy->state;
-
-    enemy->state_timer = 0.0f;
-    enemy->path_length = 0;
-    enemy->state = state_new;
-
-    // LOG("Enemy transition from %s to %s\n", enemy_state_str[state_old],
-    //     enemy_state_str[state_new]);
-
-    switch (state_new)
-    {
-        case ENEMY_STATE_REACT_TO_PLAYER_SEEN:
-        {
-            enemy->acceleration = 0.0f;
-            enemy->state_timer = enemy_reaction_time_get(state_old);
-        } break;
-        case ENEMY_STATE_REACT_TO_GUN_SHOT:
-        {
-            enemy->acceleration = 0.0f;
-            enemy->state_timer = enemy_reaction_time_get(state_old);
-            enemy_look_towards_position(enemy, enemy->gun_shot_position);
-        } break;
-        case ENEMY_STATE_RUSH_TO_TARGET:
-        {
-            enemy->acceleration = ENEMY_ACCELERATION;
-            enemy_calculate_path_to_target(cols, level, enemy);
-        } break;
-        case ENEMY_STATE_WANDER_AROUND:
-        {
-            enemy->acceleration = ENEMY_ACCELERATION * 0.5f;
-            enemy->target = tile_random_get(level, TILE_FLOOR);
-            enemy_calculate_path_to_target(cols, level, enemy);
-        } break;
-        case ENEMY_STATE_LOOK_AROUND:
-        {
-            enemy->acceleration = 0.0f;
-            enemy->turns_left = 3;
-        } break;
-        case ENEMY_STATE_REACT_TO_BEING_SHOT_AT:
-        {
-            enemy_look_towards_direction(enemy, enemy->hit_direction);
-            enemy->state_timer = enemy_reaction_time_get(state_old);
-        } break;
-        case ENEMY_STATE_LOOK_FOR_PLAYER:
-        {
-            enemy->acceleration = 0.0f;
-            enemy->turns_left = 5;
-        } break;
-    }
 }
 
 void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
@@ -853,7 +570,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
             enemy->player_in_view = enemy_sees_player(&state->cols, enemy,
                 &state->player);
 
-            enemy->gun_shot_heard = enemy_hears_gun_shot(state, enemy);
+            enemy->gun_shot_heard = enemy_hears_gun_shot(state->gun_shots,
+                state->num_gun_shots, enemy);
 
             if (enemy->player_in_view)
             {
@@ -1921,9 +1639,11 @@ void enemies_render(struct game_state* state)
 
 void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
 {
-    for (u32 i = 0; i < MAX_BULLETS; i++)
+    struct bullet* bullets = state->bullet_pool.data;
+
+    for (u32 i = 0; i < state->bullet_pool.count; i++)
     {
-        struct bullet* bullet = &state->bullets[i];
+        struct bullet* bullet = &bullets[i];
 
         if (bullet->alive)
         {
@@ -2082,9 +1802,11 @@ void bullets_render(struct game_state* state)
     info.texture = state->texture_sphere;
     info.shader = state->shader;
 
-    for (u32 i = 0; i < MAX_BULLETS; i++)
+    struct bullet* bullets = state->bullet_pool.data;
+
+    for (u32 i = 0; i < state->bullet_pool.count; i++)
     {
-        struct bullet* bullet = &state->bullets[i];
+        struct bullet* bullet = &bullets[i];
 
         if (bullet->alive)
         {
@@ -2538,8 +2260,8 @@ void level_mask_init(struct level* mask)
 void level_init(struct game_state* state)
 {
     // Clear everything
-    memory_set(state->bullets,
-        sizeof(struct bullet) * MAX_BULLETS, 0);
+    memory_set(state->bullet_pool.data,
+        sizeof(struct bullet) * state->bullet_pool.count, 0);
     memory_set(state->enemies,
         sizeof(struct enemy) * MAX_ENEMIES, 0);
     memory_set(state->items,
@@ -2558,10 +2280,8 @@ void level_init(struct game_state* state)
     state->num_wall_corners = 0;
     state->num_wall_faces = 0;
     state->num_gun_shots = 0;
-    state->free_bullet = 0;
     state->free_item = 0;
     state->free_particle_line = 0;
-    state->free_particle_sphere = 0;
 
     // Inited once per level
     u32 enemies_min = state->level_current;
@@ -2571,7 +2291,7 @@ void level_init(struct game_state* state)
 
     LOG("%u enemies\n", state->num_enemies);
 
-    level_generate(&state->stack, &state->level, &state->level_mask);
+    level_generate(&state->stack_temporary, &state->level, &state->level_mask);
 
     state->level.wall_info.mesh = &state->wall;
     state->level.wall_info.texture = state->texture_tileset;
@@ -2727,53 +2447,59 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->camera.screen_width = (f32)init->screen_width;
         state->camera.screen_height = (f32)init->screen_height;
 
-        // Init stack allocator
-        state->stack.base = (s8*)state + sizeof(struct game_state);
-        state->stack.current = state->stack.base;
-        state->stack.size = MEGABYTES(512);
+        // Init permanent stack allocator
+        state->stack_permanent.base = (s8*)state + sizeof(struct game_state);
+        state->stack_permanent.current = state->stack_permanent.base;
+        state->stack_permanent.size = MEGABYTES(256);
+
+        // Init temporary stack allocator
+        state->stack_temporary.base = (s8*)state + sizeof(struct game_state) +
+            state->stack_permanent.size;
+        state->stack_temporary.current = state->stack_temporary.base;
+        state->stack_temporary.size = MEGABYTES(256);
 
         // Init random seed
         state->random_seed = (u32)init->init_time;
 
         // Init resources
-        state->shader = program_create(&state->stack,
+        state->shader = program_create(&state->stack_temporary,
             "assets/shaders/vertex.glsl",
             "assets/shaders/fragment.glsl");
 
-        state->shader_simple = program_create(&state->stack,
+        state->shader_simple = program_create(&state->stack_temporary,
             "assets/shaders/vertex.glsl",
             "assets/shaders/fragment_simple.glsl");
 
-        state->shader_cube = program_create(&state->stack,
+        state->shader_cube = program_create(&state->stack_temporary,
             "assets/shaders/vertex_cube.glsl",
             "assets/shaders/fragment_cube.glsl");
 
-        state->shader_sprite = program_create(&state->stack,
+        state->shader_sprite = program_create(&state->stack_temporary,
             "assets/shaders/vertex_sprite.glsl",
             "assets/shaders/fragment_sprite.glsl");
 
-        state->shader_particle = program_create(&state->stack,
+        state->shader_particle = program_create(&state->stack_temporary,
             "assets/shaders/vertex_particle.glsl",
             "assets/shaders/fragment_particle.glsl");
 
-        state->texture_tileset = texture_create(&state->stack,
+        state->texture_tileset = texture_create(&state->stack_temporary,
             "assets/textures/tileset.tga");
-        state->texture_sphere = texture_create(&state->stack,
+        state->texture_sphere = texture_create(&state->stack_temporary,
             "assets/textures/sphere.tga");
-        state->texture_cube = texture_array_create(&state->stack,
+        state->texture_cube = texture_array_create(&state->stack_temporary,
             "assets/textures/cube.tga", 4, 4);
-        state->texture_sprite = texture_array_create(&state->stack,
+        state->texture_sprite = texture_array_create(&state->stack_temporary,
             "assets/textures/tileset.tga", 8, 8);
-        state->texture_particle = texture_array_create(&state->stack,
+        state->texture_particle = texture_array_create(&state->stack_temporary,
             "assets/textures/particles.tga", 8, 8);
 
-        mesh_create(&state->stack, "assets/meshes/sphere.mesh",
+        mesh_create(&state->stack_temporary, "assets/meshes/sphere.mesh",
             &state->sphere);
-        mesh_create(&state->stack, "assets/meshes/wall.mesh",
+        mesh_create(&state->stack_temporary, "assets/meshes/wall.mesh",
             &state->wall);
-        mesh_create(&state->stack, "assets/meshes/floor.mesh",
+        mesh_create(&state->stack_temporary, "assets/meshes/floor.mesh",
             &state->floor);
-        mesh_create(&state->stack, "assets/meshes/triangle.mesh",
+        mesh_create(&state->stack_temporary, "assets/meshes/triangle.mesh",
             &state->triangle);
 
         state->render_info_health_bar = (struct mesh_render_info)
@@ -2791,6 +2517,9 @@ void game_init(struct game_memory* memory, struct game_init* init)
             colors[LIME], &state->floor, state->texture_tileset,
             state->shader_simple
         };
+
+        object_pool_init(&state->bullet_pool, sizeof(struct bullet),
+            MAX_BULLETS, &state->stack_permanent);
 
         state_physics = state_physics_create(state);
         state_game = state_game_create(state);

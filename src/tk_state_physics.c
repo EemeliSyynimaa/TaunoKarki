@@ -841,7 +841,8 @@ struct state_interface state_physics_create(struct game_state* state)
     result.init = state_physics_init;
     result.update = state_physics_update;
     result.render = state_physics_render;
-    result.data = stack_alloc(&state->stack, sizeof(struct state_physics_data));
+    result.data = stack_alloc(&state->stack_permanent,
+        sizeof(struct state_physics_data));
 
     memory_set(result.data, sizeof(struct state_physics_data), 0);
 

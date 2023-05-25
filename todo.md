@@ -13,7 +13,8 @@ Code maintenance
    - [ ] Render primitives
  - [ ] Create proper game world
    - [ ] Store multiple levels
- - [ ] Store game config in one file
+ - [X] Store game config in one header file
+ - [ ] Redefine memory management
 
 Fix remaining issues with collisions
  - [ ] Use the test bench and new tools
