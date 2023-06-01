@@ -142,7 +142,7 @@ void state_game_update(void* data, struct game_input* input, f32 step)
         player_update(game, input, step);
         enemies_update(game, input, step);
         bullets_update(game, input, step);
-        items_update(game, input, step);
+        items_update(&game->item_pool, &game->player, input, step);
         particle_lines_update(game, input, step);
         particle_system_update(&game->particle_system, step);
 
@@ -250,7 +250,7 @@ void state_game_render(void* data)
         camera->perspective, camera->view);
     player_render(game);
     enemies_render(game);
-    items_render(game);
+    items_render(&game->item_pool, &game->cube_renderer);
     particle_system_render(&game->particle_system, &game->particle_renderer);
 
     particle_renderer_sort(&game->particle_renderer);

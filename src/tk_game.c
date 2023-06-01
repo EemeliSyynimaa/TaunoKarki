@@ -44,7 +44,6 @@ struct game_state
     struct physics_world world;
     struct player player;
     struct enemy enemies[MAX_ENEMIES];
-    struct item items[MAX_ITEMS];
     struct particle_line particle_lines[MAX_PARTICLES];
     struct camera camera;
     struct mouse mouse;
@@ -65,6 +64,7 @@ struct game_state
     struct level level_mask;
     struct collision_map cols;
     struct object_pool bullet_pool;
+    struct object_pool item_pool;
     struct state_interface* state_current;
 
     struct mesh_render_info render_info_health_bar;
@@ -135,22 +135,18 @@ void particle_line_create(struct game_state* state, struct v2 start,
     particle->time_current = particle->time_start;
 }
 
-struct item* item_create(struct game_state* state, struct v2 position, u32 type)
+struct item* item_create(struct physics_world* world,
+    struct object_pool* item_pool, struct v2 position, u32 type)
 {
     struct item* result = NULL;
 
     if (type > ITEM_NONE && type < ITEM_COUNT)
     {
-        if (++state->free_item == MAX_ITEMS)
-        {
-            state->free_item = 0;
-        }
-
-        result = &state->items[state->free_item];
+        result = object_pool_get_next(item_pool);
 
         if (!result->alive)
         {
-            result->body = rigid_body_get(&state->world);
+            result->body = rigid_body_get(world);
         }
 
         result->body->position = position;
@@ -228,8 +224,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     }
                 }
 
-                item_create(state, enemy->body->position,
-                    ITEM_HEALTH + enemy->weapon.type);
+                item_create(&state->world, &state->item_pool,
+                    enemy->body->position, ITEM_HEALTH + enemy->weapon.type);
 
                 u32 random_item_count = u32_random(0, 3);
 
@@ -248,7 +244,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                     random_item_type =
                         random_item_type ? ITEM_HEALTH : ITEM_WEAPON_LEVEL_UP;
 
-                    item_create(state, position, random_item_type);
+                    item_create(&state->world, &state->item_pool, position,
+                        random_item_type);
                 }
 
                 continue;
@@ -1221,11 +1218,14 @@ void player_render(struct game_state* state)
     }
 }
 
-void items_update(struct game_state* state, struct game_input* input, f32 dt)
+void items_update(struct object_pool* item_pool, struct player* player,
+    struct game_input* input, f32 dt)
 {
-    for (u32 i = 0; i < MAX_ITEMS; i++)
+    struct item* items = item_pool->data;
+
+    for (u32 i = 0; i < item_pool->count; i++)
     {
-        struct item* item = &state->items[i];
+        struct item* item = &items[i];
 
         if (item->alive)
         {
@@ -1249,8 +1249,6 @@ void items_update(struct game_state* state, struct game_input* input, f32 dt)
                 }
             }
 
-            struct player* player = &state->player;
-
             if (player->alive && collision_circle_to_circle(
                 item->body->position, ITEM_RADIUS, player->body->position,
                 PLAYER_RADIUS))
@@ -1268,11 +1266,13 @@ void items_update(struct game_state* state, struct game_input* input, f32 dt)
     }
 }
 
-void items_render(struct game_state* state)
+void items_render(struct object_pool* item_pool, struct cube_renderer* renderer)
 {
-    for (u32 i = 0; i < MAX_ITEMS; i++)
+    struct item* items = item_pool->data;
+
+    for (u32 i = 0; i < item_pool->count; i++)
     {
-        struct item* item = &state->items[i];
+        struct item* item = &items[i];
 
         if (item->alive && !item->flash_hide)
         {
@@ -1288,7 +1288,7 @@ void items_render(struct game_state* state)
 
             item->cube.model = model;
 
-            cube_renderer_add(&state->cube_renderer, &item->cube);
+            cube_renderer_add(renderer, &item->cube);
         }
     }
 }
@@ -1358,11 +1358,10 @@ void level_init(struct game_state* state)
 {
     // Clear everything
     object_pool_reset(&state->bullet_pool);
+    object_pool_reset(&state->item_pool);
 
     memory_set(state->enemies,
         sizeof(struct enemy) * MAX_ENEMIES, 0);
-    memory_set(state->items,
-        sizeof(struct item) * MAX_ITEMS, 0);
     memory_set(state->particle_lines,
         sizeof(struct particle_line) * MAX_PARTICLES, 0);
     memory_set(state->wall_corners,
@@ -1617,6 +1616,8 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         object_pool_init(&state->bullet_pool, sizeof(struct bullet),
             MAX_BULLETS, &state->stack_permanent);
+        object_pool_init(&state->item_pool, sizeof(struct item),
+            MAX_ITEMS, &state->stack_permanent);
 
         state_physics = state_physics_create(state);
         state_game = state_game_create(state);
