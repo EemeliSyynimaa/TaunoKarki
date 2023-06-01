@@ -94,7 +94,7 @@ void* object_pool_get_next(struct object_pool* pool)
     {
         result = (void*)((u8*)pool->data + pool->next * pool->size);
 
-        if (++pool->next > pool->count)
+        if (++pool->next >= pool->count)
         {
             pool->next = 0;
         }
