@@ -1,15 +1,3 @@
-struct rigid_body
-{
-    struct v2 position;
-    struct v2 velocity;
-    struct v2 acceleration;
-    f32 friction;
-    f32 radius;
-    f32 angle;
-    b32 alive;
-    b32 bullet;
-};
-
 struct line_segment
 {
     struct v2 start;
@@ -22,11 +10,23 @@ struct line_segment
 
 struct contact
 {
-    struct circle* a;
-    struct circle* b;
+    struct rigid_body* a;
+    struct rigid_body* b;
     struct line_segment* line;
     struct v2 position;
     f32 t;
+};
+
+struct collider_circle
+{
+    struct v2 position;
+    f32 radius;
+};
+
+struct collider_line
+{
+    struct v2 a;
+    struct v2 b;
 };
 
 struct circle
@@ -42,13 +42,31 @@ struct circle
     b32 dynamic;
 };
 
+struct rigid_body
+{
+    struct contact* contact;
+    struct v2 position;
+    struct v2 velocity;
+    struct v2 acceleration;
+    struct v2 move_delta;
+    f32 friction;
+    f32 radius;
+    f32 mass;
+    f32 angle;
+    b32 alive;
+    b32 bullet;
+};
+
 #define MAX_STATICS 1024
 #define MAX_BODIES 512
 
 struct physics_world
 {
     struct rigid_body bodies[MAX_BODIES];
-    struct line_segment walls[MAX_STATICS];
+    struct line_segment* walls;
+    struct contact contacts[MAX_CONTACTS];
+    u32 num_walls;
+    u32 num_contacts;
 };
 
 struct rigid_body* rigid_body_get(struct physics_world* world)
@@ -62,6 +80,7 @@ struct rigid_body* rigid_body_get(struct physics_world* world)
             result = &world->bodies[i];
             *result = (struct rigid_body){ 0 };
             result->alive = true;
+            result->mass = 1.0f;
 
             break;
         }

@@ -87,7 +87,6 @@ struct game_state
     u32 texture_cube;
     u32 texture_sprite;
     u32 texture_particle;
-    u32 free_item;
     u32 free_particle_line;
     u32 num_enemies;
     u32 num_wall_corners;
@@ -1378,7 +1377,6 @@ void level_init(struct game_state* state)
     state->num_wall_corners = 0;
     state->num_wall_faces = 0;
     state->num_gun_shots = 0;
-    state->free_item = 0;
     state->free_particle_line = 0;
 
     // Inited once per level
@@ -1457,6 +1455,9 @@ void level_init(struct game_state* state)
     collision_map_static_calculate(&state->level, state->cols.statics,
         MAX_STATICS, &state->cols.num_statics);
 
+    state->world.walls = state->cols.statics;
+    state->world.num_walls = state->cols.num_statics;
+
     LOG("Wall faces: %d/%d\n", state->cols.num_statics, MAX_STATICS);
 
     get_wall_corners_from_faces(state->wall_corners, MAX_WALL_CORNERS,
@@ -1480,7 +1481,7 @@ void level_init(struct game_state* state)
 }
 
 #include "tk_state_game.c"
-#include "tk_state_physics.c"
+// #include "tk_state_physics.c"
 
 b32 PHYSICS_DEBUG = false;
 
@@ -1621,7 +1622,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         object_pool_init(&state->item_pool, sizeof(struct item),
             MAX_ITEMS, &state->stack_permanent);
 
-        state_physics = state_physics_create(state);
+        // state_physics = state_physics_create(state);
         state_game = state_game_create(state);
 
         state->state_current = PHYSICS_DEBUG ? &state_physics : &state_game;

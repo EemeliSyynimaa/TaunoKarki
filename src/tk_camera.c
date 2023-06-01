@@ -1,3 +1,4 @@
+// Todo: separate ortho and perspective cameras
 struct camera
 {
     struct m4 perspective;
