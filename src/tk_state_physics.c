@@ -23,12 +23,12 @@ struct state_physics_data
 };
 
 void lines_render(struct line_segment lines[], u32 num_lines,
-    struct mesh_render_info* info, struct m4 projection, struct m4 view)
+    struct mesh_render_info* info, struct m4 view_projection)
 {
     for (u32 i = 0; i < num_lines; i++)
     {
         line_render(info, lines[i].start, lines[i].end, 1.25f, 0.0125f,
-            projection, view);
+            view_projection);
     }
 }
 
@@ -832,7 +832,7 @@ void state_physics_render(void* data)
     circles_render(frame->circles, frame->num_circles, state->base,
         state->paused);
     lines_render(frame->lines, frame->num_lines, &state->line_info,
-        state->camera->perspective, state->camera->view);
+        m4_mul_m4(state->camera->view, state->camera->perspective));
 }
 
 struct state_interface state_physics_create(struct game_state* state)

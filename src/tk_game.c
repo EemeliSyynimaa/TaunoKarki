@@ -107,10 +107,12 @@ void collision_map_render(struct game_state* state, struct line_segment* cols,
     info.texture = state->texture_tileset;
     info.shader = state->shader_simple;
 
+    struct m4 vp = m4_mul_m4(state->camera.view, state->camera.perspective);
+
     for (u32 i = 0; i < num_cols; i++)
     {
         line_render(&info, cols[i].start, cols[i].end, WALL_SIZE + 0.01f,
-            0.025f, state->camera.perspective, state->camera.view);
+            0.025f, vp);
     }
 }
 
@@ -526,8 +528,6 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
         }
     }
 
-    static u32 lel = 0;
-
     struct v2 finals[MAX_WALL_CORNERS] = { 0 };
     u32 num_finals = 0;
 
@@ -540,6 +540,8 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
     struct mesh_render_info info_triangle = { 0 };
     info_triangle.color = color;
     info_triangle.shader = state->shader_simple;
+
+    struct m4 vp = m4_mul_m4(state->camera.view, state->camera.perspective);
 
     for (u32 i = 0; i < num_corners; i++)
     {
@@ -555,8 +557,7 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
 
         if (render_lines)
         {
-            line_render(&info, position, collision,0.005f, 0.005f,
-                state->camera.perspective, state->camera.view);
+            line_render(&info, position, collision, 0.005f, 0.005f, vp);
         }
 
         ray_cast_direction(&state->cols, position,
@@ -567,7 +568,7 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
             if (render_lines)
             {
                 line_render(&info, position, collision_temp, 0.005f, 0.005f,
-                    state->camera.perspective, state->camera.view);
+                    vp);
             }
 
             finals[num_finals++] = collision_temp;
@@ -581,7 +582,7 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
             if (render_lines)
             {
                 line_render(&info, position, collision_temp, 0.005f, 0.005f,
-                    state->camera.perspective, state->camera.view);
+                    vp);
             }
 
             finals[num_finals++] = collision_temp;
@@ -593,7 +594,7 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
     for (u32 i = 0; i < num_finals-1; i++)
     {
         triangle_render(&info_triangle, position, finals[i], finals[i+1],
-            0.0025f, state->camera.perspective, state->camera.view);
+            0.0025f, vp);
     }
 }
 
@@ -1337,6 +1338,8 @@ void particle_lines_render(struct game_state* state)
     info.texture = state->texture_tileset;
     info.shader = state->shader_simple;
 
+    struct m4 vp = m4_mul_m4(state->camera.view, state->camera.perspective);
+
     for (u32 i = 0; i < MAX_PARTICLES; i++)
     {
         struct particle_line* particle = &state->particle_lines[i];
@@ -1348,8 +1351,7 @@ void particle_lines_render(struct game_state* state)
             info.color = particle->color_current;
 
             line_render(&info, particle->start, particle->end,
-                PLAYER_RADIUS + depth, PROJECTILE_RADIUS * 0.5f,
-                state->camera.perspective, state->camera.view);
+                PLAYER_RADIUS + depth, PROJECTILE_RADIUS * 0.5f, vp);
         }
     }
 }

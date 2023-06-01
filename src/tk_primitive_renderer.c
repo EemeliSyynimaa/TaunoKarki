@@ -46,7 +46,7 @@ void mesh_render(struct mesh_render_info* info, struct m4* mvp)
 }
 
 void line_render(struct mesh_render_info* info, struct v2 start, struct v2 end,
-    f32 depth, f32 thickness, struct m4 projection, struct m4 view)
+    f32 depth, f32 thickness, struct m4 view_projection)
 {
     struct v2 direction = v2_direction(start, end);
 
@@ -64,8 +64,7 @@ void line_render(struct mesh_render_info* info, struct v2 start, struct v2 end,
     struct m4 model = m4_mul_m4(scale, rotation);
     model = m4_mul_m4(model, transform);
 
-    struct m4 mvp = m4_mul_m4(model, view);
-    mvp = m4_mul_m4(mvp, projection);
+    struct m4 mvp = m4_mul_m4(model, view_projection);
 
     mesh_render(info, &mvp);
 }
@@ -156,7 +155,7 @@ void weapon_level_bar_render(struct mesh_render_info* info,
 }
 
 void sphere_render(struct mesh_render_info* info, struct v2 position,
-    f32 radius, f32 depth, struct m4 projection, struct m4 view)
+    f32 radius, f32 depth, struct m4 view_projection)
 {
     struct m4 transform = m4_translate(position.x, position.y, depth);
     struct m4 rotation = m4_rotate_z(0);
@@ -165,14 +164,13 @@ void sphere_render(struct mesh_render_info* info, struct v2 position,
     struct m4 model = m4_mul_m4(scale, rotation);
     model = m4_mul_m4(model, transform);
 
-    struct m4 mvp = m4_mul_m4(model, view);
-    mvp = m4_mul_m4(mvp, projection);
+    struct m4 mvp = m4_mul_m4(model, view_projection);
 
     mesh_render(info, &mvp);
 }
 
 void triangle_render(struct mesh_render_info* info, struct v2 a, struct v2 b,
-    struct v2 c, f32 depth, struct m4 projection, struct m4 view)
+    struct v2 c, f32 depth, struct m4 view_projection)
 {
     // Todo: clean
     u32 vao;
@@ -225,10 +223,9 @@ void triangle_render(struct mesh_render_info* info, struct v2 a, struct v2 b,
     u32 uniform_color = api.gl.glGetUniformLocation(info->shader,
         "uniform_color");
 
-    struct m4 vp = m4_mul_m4(view, projection);
-
     api.gl.glUniform1i(uniform_texture, 0);
-    api.gl.glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE, (GLfloat*)&vp);
+    api.gl.glUniformMatrix4fv(uniform_mvp, 1, GL_FALSE,
+        (GLfloat*)&view_projection);
     api.gl.glUniform4fv(uniform_color, 1, (GLfloat*)&info->color);
 
     api.gl.glActiveTexture(GL_TEXTURE0);
