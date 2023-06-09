@@ -1,3 +1,13 @@
+#define MAX_STATICS 1024
+#define MAX_BODIES 512
+
+struct line_segment
+{
+    struct v2 start;
+    struct v2 end;
+    u32 type;
+};
+
 struct ray_cast_collision
 {
     struct v2 position;
@@ -21,31 +31,6 @@ u32 COLLISION_ENEMY   = 4;
 u32 COLLISION_BULLET  = 8;
 u32 COLLISION_DYNAMIC = 14;
 u32 COLLISION_ALL     = 255;
-
-void get_body_rectangle(struct rigid_body* body, f32 width_half,
-    f32 height_half, struct line_segment* segments)
-{
-    struct v2 corners[4] =
-    {
-        { -width_half,  height_half },
-        {  width_half,  height_half },
-        {  width_half, -height_half },
-        { -width_half, -height_half }
-    };
-
-    for (u32 i = 0; i < 4; i++)
-    {
-        corners[i] = v2_rotate(corners[i], body->angle);
-        corners[i].x += body->position.x;
-        corners[i].y += body->position.y;
-    }
-
-    for (u32 i = 0; i < 4; i++)
-    {
-        segments[i].start = corners[i];
-        segments[i].end   = corners[(i+1) % 4];
-    }
-}
 
 b32 intersect_line_to_line(struct line_segment line_a,
     struct line_segment line_b, struct v2* collision)
@@ -240,34 +225,6 @@ f32 ray_cast_position(struct collision_map* cols, struct v2 start,
     return result;
 }
 
-f32 ray_cast_body(struct collision_map* cols, struct v2 start,
-    struct rigid_body* body, struct v2* collision, u32 flags)
-{
-    f32 result = 0.0f;
-
-    struct line_segment segments[4] = { 0 };
-
-    get_body_rectangle(body, body->radius, body->radius, segments);
-
-    for (u32 i = 0; i < 4; i++)
-    {
-        segments[i].type = flags;
-    }
-
-    struct v2 direction = v2_direction(start, body->position);
-
-    f32 target = ray_cast_to_direction(start, direction, segments, 4, NULL,
-        F32_MAX, flags) - 0.1f;
-
-    result = ray_cast_direction(cols, start, direction, collision, flags);
-
-    if (result < target)
-    {
-        result = 0.0f;
-    }
-
-    return result;
-}
 
 b32 collision_point_to_aabb(f32 x, f32 y, f32 min_x, f32 max_x, f32 min_y,
     f32 max_y)
@@ -801,43 +758,6 @@ void collision_map_static_calculate(struct level* level,
                 {
                     return;
                 }
-            }
-        }
-    }
-}
-
-void collision_map_dynamic_calculate(struct collision_map* cols,
-    struct player* player, struct enemy* enemies, u32 num_enemies)
-{
-    cols->num_dynamics = 0;
-    struct line_segment segments[4] = { 0 };
-
-    if (player->alive)
-    {
-        get_body_rectangle(player->body, PLAYER_RADIUS, PLAYER_RADIUS,
-            segments);
-
-        for (u32 i = 0; i < 4 && cols->num_dynamics < MAX_STATICS; i++)
-        {
-            segments[i].type = COLLISION_PLAYER;
-            cols->dynamics[cols->num_dynamics++] = segments[i];
-        }
-    }
-
-    for (u32 i = 0; i < num_enemies; i++)
-    {
-        struct enemy* enemy = &enemies[i];
-
-        if (enemy->alive)
-        {
-            get_body_rectangle(enemy->body, PLAYER_RADIUS, PLAYER_RADIUS,
-                segments);
-
-            for (u32 i = 0; i < 4 && cols->num_dynamics < MAX_STATICS;
-                i++)
-            {
-                segments[i].type = COLLISION_ENEMY;
-                cols->dynamics[cols->num_dynamics++] = segments[i];
             }
         }
     }

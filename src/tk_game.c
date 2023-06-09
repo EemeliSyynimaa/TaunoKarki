@@ -20,11 +20,11 @@ struct api api;
 #include "tk_cube_renderer.c"
 #include "tk_particle.c"
 
-#include "tk_physics.c"
 #include "tk_level.c"
+#include "tk_collision.c"
+#include "tk_physics.c"
 #include "tk_input.c"
 #include "tk_entity.c"
-#include "tk_collision.c"
 
 // Todo: where to store these?
 struct gun_shot
