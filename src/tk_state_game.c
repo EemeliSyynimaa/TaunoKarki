@@ -196,7 +196,7 @@ u32 body_collisions_check(struct rigid_body bodies[], u32 num_bodies,
                 for (u32 j = i + 1; j < num_bodies; j++)
                 {
                     // Todo: we don't need to check the collisions if neither
-                    // circle is moving
+                    // body is moving
                     struct rigid_body* other = &bodies[j];
                     struct contact contact = { 0 };
 
@@ -208,6 +208,13 @@ u32 body_collisions_check(struct rigid_body bodies[], u32 num_bodies,
                     if (collision_detect_circle_circle(body, other, &contact))
                     {
                         LOG("COLLISION: body %d and body %d\n", i, j);
+
+                        if (body->trigger || other->trigger)
+                        {
+                            // Todo: implement collision callbacks
+                            continue;
+                        }
+
                         if ((!body->contact ||
                             contact.t < body->contact->t) &&
                             (!other->contact || contact.t < other->contact->t))
@@ -548,7 +555,7 @@ void state_game_update(void* data, struct game_input* input, f32 step)
 
         for (u32 i = 0; i < max_iterations; i++)
         {
-            LOG("Checking collisions, iteration %d\n", i + 1);
+            // LOG("Checking collisions, iteration %d\n", i + 1);
 
             // Todo: sometimes, for some reasons, a collision
             // between two objects happens again in the following
@@ -568,7 +575,7 @@ void state_game_update(void* data, struct game_input* input, f32 step)
             }
             else
             {
-                LOG("No contacts!\n");
+                // LOG("No contacts!\n");
                 break;
             }
         }

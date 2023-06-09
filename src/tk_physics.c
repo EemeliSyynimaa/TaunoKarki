@@ -55,6 +55,7 @@ struct rigid_body
     f32 angle;
     b32 alive;
     b32 bullet;
+    b32 trigger;
 };
 
 #define MAX_STATICS 1024

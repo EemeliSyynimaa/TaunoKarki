@@ -151,6 +151,8 @@ struct item* item_create(struct physics_world* world,
         }
 
         result->body->position = position;
+        result->body->radius = ITEM_RADIUS;
+        result->body->trigger = true;
         result->alive = ITEM_ALIVE_TIME;
         result->type = type;
 
@@ -1235,6 +1237,8 @@ void items_update(struct object_pool* item_pool, struct player* player,
             if (item->alive < 0.0f)
             {
                 item->alive = 0.0f;
+
+                rigid_body_free(item->body);
             }
             else if (item->alive < ITEM_FLASH_TIME)
             {
@@ -1257,7 +1261,7 @@ void items_update(struct object_pool* item_pool, struct player* player,
                     key_times_pressed(&input->weapon_pick))
                 {
                     player->item_picked = item->type;
-                    item->alive = false;
+                    item->alive = 0;
 
                     rigid_body_free(item->body);
                 }
