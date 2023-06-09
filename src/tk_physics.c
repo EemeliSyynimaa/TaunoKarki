@@ -356,7 +356,7 @@ f32 get_distance_to_closest_point_on_line_segment(struct v2 point,
     return result;
 }
 
-b32 collision_detect_circle_line(struct rigid_body* a, struct line_segment* b,
+b32 collision_detect_circle_line(struct rigid_body* a, struct rigid_body* b,
     struct contact* contact)
 {
     b32 result = false;
@@ -366,19 +366,25 @@ b32 collision_detect_circle_line(struct rigid_body* a, struct line_segment* b,
         v2_add(a->position, a->move_delta)
     };
 
+    struct line_segment line_b =
+    {
+        b->collider.line.a,
+        b->collider.line.b
+    };
+
     f32 r = a->collider.circle.radius;
 
-    if (intersect_line_segment_to_line_segment(line, *b, NULL) ||
-        get_distance_to_closest_point_on_line_segment(line.end, *b) < r ||
-        get_distance_to_closest_point_on_line_segment(b->start, line) < r ||
-        get_distance_to_closest_point_on_line_segment(b->end, line) < r )
+    if (intersect_line_segment_to_line_segment(line, line_b, NULL) ||
+        get_distance_to_closest_point_on_line_segment(line.end, line_b) < r ||
+        get_distance_to_closest_point_on_line_segment(line_b.start, line) < r ||
+        get_distance_to_closest_point_on_line_segment(line_b.end, line) < r )
     {
         struct v2 line_intersection = { 0 };
 
-        intersect_line_to_line(line, *b, &line_intersection);
+        intersect_line_to_line(line, line_b, &line_intersection);
 
-        struct v2 closest = get_closest_point_on_line(a->position, b->start,
-            b->end);
+        struct v2 closest = get_closest_point_on_line(a->position, line_b.start,
+            line_b.end);
 
         f32 distance_to_closest = v2_distance(a->position, closest);
         f32 distance_to_intersection = v2_distance(a->position,
@@ -393,8 +399,10 @@ b32 collision_detect_circle_line(struct rigid_body* a, struct line_segment* b,
             distance_to_contact));
 
         contact->t = v2_distance(c, a->position) / v2_length(a->move_delta);
-        contact->position = get_closest_point_on_line_segment(c, b->start,
-            b->end);
+        contact->position = get_closest_point_on_line_segment(c, line_b.start,
+            line_b.end);
+        contact->a = a;
+        contact->b = b;
 
         // Todo: collisions with corners are not perfect, the circle may get
         // stuck
@@ -411,7 +419,7 @@ u32 body_collisions_check(struct rigid_body bodies[], u32 num_bodies,
     u32 result = 0;
 
     // Todo: this looks horrible, refactor and clean
-    for (u32 i = 0; i < num_bodies; i++)
+    for (u32 i = 0; i < num_bodies - 1; i++)
     {
         struct rigid_body* body = &bodies[i];
 
@@ -420,132 +428,101 @@ u32 body_collisions_check(struct rigid_body bodies[], u32 num_bodies,
             continue;
         }
 
-        if (result < MAX_CONTACTS)
+        if (result >= MAX_CONTACTS)
         {
-            if (i < num_bodies - 1)
+            LOG("Maximum number of contacts reached!\n");
+            break;
+        }
+
+        // Check collisions against other bodies
+        for (u32 j = i + 1; j < num_bodies; j++)
+        {
+            // Todo: we don't need to check the collisions if neither
+            // body is moving
+            struct rigid_body* other = &bodies[j];
+            struct contact contact = { 0 };
+
+            if (!other->alive || other->bullet)
             {
-                // Check collisions against other bodies
-                for (u32 j = i + 1; j < num_bodies; j++)
-                {
-                    // Todo: we don't need to check the collisions if neither
-                    // body is moving
-                    struct rigid_body* other = &bodies[j];
-                    struct contact contact = { 0 };
-
-                    if (!other->alive || other->bullet)
-                    {
-                        continue;
-                    }
-
-                    if (collision_detect_circle_circle(body, other, &contact))
-                    {
-                        LOG("COLLISION: body %d and body %d\n", i, j);
-
-                        if (body->trigger || other->trigger)
-                        {
-                            // Todo: implement collision callbacks
-                            continue;
-                        }
-
-                        if ((!body->contact ||
-                            contact.t < body->contact->t) &&
-                            (!other->contact || contact.t < other->contact->t))
-                        {
-                            if (!body->contact && !other->contact)
-                            {
-                                body->contact = &contacts[result++];
-                                other->contact = body->contact;
-                            }
-                            else
-                            {
-                                if (body->contact)
-                                {
-                                    if (body->contact->a &&
-                                        body->contact->a != body)
-                                    {
-                                        body->contact->a->contact = NULL;
-                                    }
-
-                                    if (body->contact->b &&
-                                        body->contact->b != body)
-                                    {
-                                        body->contact->b->contact = NULL;
-                                    }
-
-                                    other->contact = body->contact;
-                                }
-                                else
-                                {
-                                    if (other->contact->a &&
-                                        other->contact->a != other)
-                                    {
-                                        other->contact->a->contact = NULL;
-                                    }
-
-                                    if (other->contact->b &&
-                                        other->contact->b != other)
-                                    {
-                                        other->contact->b->contact = NULL;
-                                    }
-
-                                    body->contact = other->contact;
-                                }
-                            }
-
-                            *body->contact = contact;
-                        }
-                    }
-                }
+                continue;
             }
 
-            // Todo: we don't need to check these collisions if the circle
-            // is not moving
+            b32 collision = false;
 
-            // Check collisions against static walls
-            for (u32 j = 0; j < num_lines; j++)
+            if (body->collider.type == COLLIDER_CIRCLE &&
+                other->collider.type == COLLIDER_CIRCLE )
             {
-                struct line_segment* other = &lines[j];
-                struct contact contact = { 0 };
+                collision = collision_detect_circle_circle(body, other,
+                    &contact);
+            }
+            else if (body->collider.type == COLLIDER_LINE &&
+                other->collider.type == COLLIDER_CIRCLE )
+            {
+                collision = collision_detect_circle_line(other, body,
+                    &contact);
+            }
+            else if (body->collider.type == COLLIDER_CIRCLE &&
+                other->collider.type == COLLIDER_LINE )
+            {
+                collision = collision_detect_circle_line(body, other,
+                    &contact);
+            }
 
-                if (collision_detect_circle_line(body, other, &contact))
+            if (collision)
+            {
+                LOG("COLLISION: body %d and body %d\n", i, j);
+
+                if (body->trigger || other->trigger)
                 {
-                    contact.a = body;
-                    contact.b = NULL;
-                    contact.line = other;
+                    // Todo: implement collision callbacks
+                    continue;
+                }
 
-                    // Todo: HERE RECURSIVELY CHCECK THAT EACH CONTACT IS
-                    // NULLIFIED FOR ALL PARTIES
-                    LOG("COLLISION: body %d and line %d\n", i, j);
-                    if (!body->contact || contact.t < body->contact->t)
+                // Todo: set contact for circle-line collisions
+
+                if ((!body->contact || contact.t < body->contact->t) &&
+                    (!other->contact || contact.t < other->contact->t))
+                {
+                    if (!body->contact && !other->contact)
+                    {
+                        body->contact = &contacts[result++];
+                        other->contact = body->contact;
+                    }
+                    else
                     {
                         if (body->contact)
                         {
-                            if (body->contact->a &&
-                                body->contact->a != body)
+                            if (body->contact->a && body->contact->a != body)
                             {
                                 body->contact->a->contact = NULL;
                             }
 
-                            if (body->contact->b &&
-                                body->contact->b != body)
+                            if (body->contact->b && body->contact->b != body)
                             {
                                 body->contact->b->contact = NULL;
                             }
+
+                            other->contact = body->contact;
                         }
                         else
                         {
-                            body->contact = &contacts[result++];
-                        }
+                            if (other->contact->a && other->contact->a != other)
+                            {
+                                other->contact->a->contact = NULL;
+                            }
 
-                        *body->contact = contact;
+                            if (other->contact->b && other->contact->b != other)
+                            {
+                                other->contact->b->contact = NULL;
+                            }
+
+                            body->contact = other->contact;
+                        }
                     }
+
+                    *body->contact = contact;
                 }
             }
-        }
-        else
-        {
-            LOG("Maximum number of contacts reached!\n");
-            break;
         }
     }
 
@@ -564,10 +541,10 @@ void body_collisions_resolve(struct contact contacts[], u32 num_contacts,
 
         struct rigid_body* a = contact->a;
         struct rigid_body* b = contact->b;
-        struct line_segment* line = contact->line;
 
         // Circle - circle
-        if (a && b)
+        if (a->collider.type == COLLIDER_CIRCLE &&
+            b->collider.type == COLLIDER_CIRCLE)
         {
             // Todo: when circle cannot move, if it's in a corner for example,
             // it should be regarded as static!
@@ -596,7 +573,8 @@ void body_collisions_resolve(struct contact contacts[], u32 num_contacts,
             b->move_delta = v2_mul_f32(b->velocity, t_remaining * dt);
         }
         // Circle - line
-        else if (a && line)
+        else if (a->collider.type == COLLIDER_CIRCLE &&
+            b->collider.type == COLLIDER_LINE)
         {
             a->position = v2_add(a->position,
                 v2_mul_f32(a->move_delta, contact->t));
@@ -612,7 +590,6 @@ void body_collisions_resolve(struct contact contacts[], u32 num_contacts,
 
             a->move_delta = v2_mul_f32(
                 v2_sub(a->move_delta, v2_mul_f32(n, mvdot_a)), t_remaining);
-
         }
         // No collision??
         else
@@ -702,4 +679,23 @@ void world_update(struct physics_world* world, f32 step)
     }
 
     body_positions_update(world->bodies, MAX_BODIES);
+}
+
+void world_wall_bodies_create(struct physics_world* world,
+    struct line_segment* walls, u32 num_walls)
+{
+    for (u32 i = 0; i < num_walls; i++)
+    {
+        // Todo: should we store the wall bodies...?
+        struct rigid_body* body = rigid_body_get(world);
+        body->type = RIGID_BODY_STATIC;
+        body->collider.type = COLLIDER_LINE;
+        body->collider.line.a = walls[i].start;
+        body->collider.line.b = walls[i].end;
+    }
+}
+
+void world_init(struct physics_world* world)
+{
+    memory_set(world->bodies, sizeof(struct rigid_body) * MAX_BODIES, 0);
 }

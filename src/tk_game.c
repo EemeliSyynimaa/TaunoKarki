@@ -150,6 +150,7 @@ struct item* item_create(struct physics_world* world,
             result->body = rigid_body_get(world);
         }
 
+        result->body->type = RIGID_BODY_DYNAMIC;
         result->body->position = position;
         result->body->trigger = true;
         result->body->collider.type = COLLIDER_CIRCLE;
@@ -1405,10 +1406,13 @@ void level_init(struct game_state* state)
     u32 color_player = cube_renderer_color_add(&state->cube_renderer,
         (struct v4){ 1.0f, 0.4f, 0.9f, 1.0f });
 
+    world_init(&state->world);
+
     for (u32 i = 0; i < state->num_enemies; i++)
     {
         struct enemy* enemy = &state->enemies[i];
         enemy->body = rigid_body_get(&state->world);
+        enemy->body->type = RIGID_BODY_DYNAMIC;
         enemy->body->position = tile_random_get(&state->level, TILE_FLOOR);
         enemy->body->friction = FRICTION;
         enemy->body->collider.type = COLLIDER_CIRCLE;
@@ -1440,6 +1444,7 @@ void level_init(struct game_state* state)
     if (!state->player.alive)
     {
         state->player.body = rigid_body_get(&state->world);
+        state->player.body->type = RIGID_BODY_DYNAMIC;
         state->player.body->position = state->level.start_pos;
         state->player.body->friction = FRICTION;
         state->player.body->collider.type = COLLIDER_CIRCLE;
@@ -1465,8 +1470,11 @@ void level_init(struct game_state* state)
     collision_map_static_calculate(&state->level, state->cols.statics,
         MAX_STATICS, &state->cols.num_statics);
 
-    state->world.walls = state->cols.statics;
-    state->world.num_walls = state->cols.num_statics;
+    // state->world.walls = state->cols.statics;
+    // state->world.num_walls = state->cols.num_statics;
+
+    world_wall_bodies_create(&state->world, state->cols.statics,
+        state->cols.num_statics);
 
     LOG("Wall faces: %d/%d\n", state->cols.num_statics, MAX_STATICS);
 
