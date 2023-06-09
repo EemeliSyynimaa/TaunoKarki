@@ -151,8 +151,10 @@ struct item* item_create(struct physics_world* world,
         }
 
         result->body->position = position;
-        result->body->radius = ITEM_RADIUS;
         result->body->trigger = true;
+        result->body->collider.type = COLLIDER_CIRCLE;
+        result->body->collider.circle.position = v2_zero;
+        result->body->collider.circle.radius = ITEM_RADIUS;
         result->alive = ITEM_ALIVE_TIME;
         result->type = type;
 
@@ -1409,7 +1411,9 @@ void level_init(struct game_state* state)
         enemy->body = rigid_body_get(&state->world);
         enemy->body->position = tile_random_get(&state->level, TILE_FLOOR);
         enemy->body->friction = FRICTION;
-        enemy->body->radius = PLAYER_RADIUS;
+        enemy->body->collider.type = COLLIDER_CIRCLE;
+        enemy->body->collider.circle.position = v2_zero;
+        enemy->body->collider.circle.radius = PLAYER_RADIUS;
         enemy->alive = true;
         enemy->health = ENEMY_HEALTH_MAX;
         enemy->vision_cone_size = 0.2f * i;
@@ -1438,7 +1442,9 @@ void level_init(struct game_state* state)
         state->player.body = rigid_body_get(&state->world);
         state->player.body->position = state->level.start_pos;
         state->player.body->friction = FRICTION;
-        state->player.body->radius = PLAYER_RADIUS;
+        state->player.body->collider.type = COLLIDER_CIRCLE;
+        state->player.body->collider.circle.position = v2_zero;
+        state->player.body->collider.circle.radius = PLAYER_RADIUS;
         state->player.alive = true;
         state->player.health = PLAYER_HEALTH_MAX;
         state->player.cube.faces[0].texture = 11;
