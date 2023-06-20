@@ -153,13 +153,9 @@ struct item* item_create(struct physics_world* world,
         result->body->type = RIGID_BODY_DYNAMIC;
         result->body->position = position;
         result->body->trigger = true;
-        result->body->num_colliders = 1;
-        result->body->colliders[0].type = COLLIDER_CIRCLE;
-        result->body->colliders[0].circle.position = v2_zero;
-        result->body->colliders[0].circle.radius = ITEM_RADIUS;
-        result->body->colliders[0].body = result->body;
         result->alive = ITEM_ALIVE_TIME;
         result->type = type;
+        body_add_circle_collider(result->body, v2_zero, ITEM_RADIUS);
 
         result->cube.faces[0].texture = 4 + type - 1;
 
@@ -1417,11 +1413,6 @@ void level_init(struct game_state* state)
         enemy->body->type = RIGID_BODY_DYNAMIC;
         enemy->body->position = tile_random_get(&state->level, TILE_FLOOR);
         enemy->body->friction = FRICTION;
-        enemy->body->num_colliders = 1;
-        enemy->body->colliders[0].type = COLLIDER_CIRCLE;
-        enemy->body->colliders[0].circle.position = v2_zero;
-        enemy->body->colliders[0].circle.radius = PLAYER_RADIUS;
-        enemy->body->colliders[0].body = enemy->body;
         enemy->alive = true;
         enemy->health = ENEMY_HEALTH_MAX;
         enemy->vision_cone_size = 0.2f * i;
@@ -1429,7 +1420,7 @@ void level_init(struct game_state* state)
         enemy->cube.faces[0].texture = 13;
         enemy->state = u32_random(0, 1) ? ENEMY_STATE_SLEEP :
             ENEMY_STATE_WANDER_AROUND;
-        // enemy->state = ENEMY_STATE_WANDER_AROUND;
+        body_add_circle_collider(enemy->body, v2_zero, PLAYER_RADIUS);
 
         LOG("Enemy %u is %s\n", i,
             enemy->state == ENEMY_STATE_SLEEP ? "sleeping" : "wandering");
@@ -1451,14 +1442,10 @@ void level_init(struct game_state* state)
         state->player.body->type = RIGID_BODY_DYNAMIC;
         state->player.body->position = state->level.start_pos;
         state->player.body->friction = FRICTION;
-        state->player.body->num_colliders = 1;
-        state->player.body->colliders[0].type = COLLIDER_CIRCLE;
-        state->player.body->colliders[0].circle.position = v2_zero;
-        state->player.body->colliders[0].circle.radius = PLAYER_RADIUS;
-        state->player.body->colliders[0].body = state->player.body;
         state->player.alive = true;
         state->player.health = PLAYER_HEALTH_MAX;
         state->player.cube.faces[0].texture = 11;
+        body_add_circle_collider(state->player.body, v2_zero, PLAYER_RADIUS);
     }
 
     cube_data_color_update(&state->player.cube, color_player);

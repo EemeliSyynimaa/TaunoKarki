@@ -13,11 +13,6 @@ void bullet_create(struct object_pool* pool, struct physics_world* world,
     }
 
     bullet->body->type = RIGID_BODY_DYNAMIC;
-    bullet->body->num_colliders = 1;
-    bullet->body->colliders[0].type = COLLIDER_CIRCLE;
-    bullet->body->colliders[0].circle.position = v2_zero;
-    bullet->body->colliders[0].circle.radius = PROJECTILE_RADIUS;
-    bullet->body->colliders[0].body = bullet->body;
     bullet->body->bullet = true;
     bullet->body->position = position;
     bullet->body->velocity = start_velocity;
@@ -28,6 +23,7 @@ void bullet_create(struct object_pool* pool, struct physics_world* world,
     bullet->player_owned = player_owned;
     bullet->start = bullet->body->position;
     bullet->color = (struct v4){ color, color, color, 1.0f };
+    body_add_circle_collider(bullet->body, v2_zero, PROJECTILE_RADIUS);
 
     // Todo: add a fancy particle effect here
 }

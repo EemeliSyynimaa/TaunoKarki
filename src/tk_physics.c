@@ -669,6 +669,58 @@ void body_positions_update(struct rigid_body bodies[], u32 num_bodies)
     }
 }
 
+struct collider* body_add_circle_collider(struct rigid_body* body,
+    struct v2 position, f32 radius)
+{
+    struct collider* result = NULL;
+
+    if (body->num_colliders < MAX_COLLIDERS)
+    {
+        result = &body->colliders[body->num_colliders++];
+        result->type = COLLIDER_CIRCLE;
+        result->circle.position = position;
+        result->circle.radius = radius;
+        result->body = body;
+    }
+
+    return result;
+}
+
+struct collider* body_add_line_collider(struct rigid_body* body,
+    struct v2 start, struct v2 end)
+{
+    struct collider* result = NULL;
+
+    if (body->num_colliders < MAX_COLLIDERS)
+    {
+        result = &body->colliders[body->num_colliders++];
+        result->type = COLLIDER_LINE;
+        result->line.a = start;
+        result->line.b = end;
+        result->body = body;
+    }
+
+    return result;
+}
+
+struct collider* body_add_rect_collider(struct rigid_body* body,
+    struct v2 position, f32 half_width, f32 half_height)
+{
+    struct collider* result = NULL;
+
+    if (body->num_colliders < MAX_COLLIDERS)
+    {
+        result = &body->colliders[body->num_colliders++];
+        result->type = COLLIDER_RECT;
+        result->rect.position = position;
+        result->rect.half_width = half_width;
+        result->rect.half_height = half_height;
+        result->body = body;
+    }
+
+    return result;
+}
+
 void world_update(struct physics_world* world, f32 step)
 {
     body_velocities_update(world->bodies, MAX_BODIES, step);
