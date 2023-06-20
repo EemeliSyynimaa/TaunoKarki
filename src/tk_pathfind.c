@@ -277,10 +277,10 @@ void path_trim(struct collision_map* cols, struct v2 obj_start,
         struct v2 br = { end.x + wall_half, end.y - wall_half };
         struct v2 tr = { end.x + wall_half, end.y + wall_half };
 
-        if (!ray_cast_position(cols, start, tl, NULL, COLLISION_STATIC) ||
-            !ray_cast_position(cols, start, bl, NULL, COLLISION_STATIC) ||
-            !ray_cast_position(cols, start, br, NULL, COLLISION_STATIC) ||
-            !ray_cast_position(cols, start, tr, NULL, COLLISION_STATIC))
+        if (!ray_cast_position(cols, start, tl, NULL, COLLISION_WALL) ||
+            !ray_cast_position(cols, start, bl, NULL, COLLISION_WALL) ||
+            !ray_cast_position(cols, start, br, NULL, COLLISION_WALL) ||
+            !ray_cast_position(cols, start, tr, NULL, COLLISION_WALL))
         {
             start = result[result_index++] = path[path_index];
         }

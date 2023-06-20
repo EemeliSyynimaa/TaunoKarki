@@ -155,7 +155,8 @@ struct item* item_create(struct physics_world* world,
         result->body->trigger = true;
         result->alive = ITEM_ALIVE_TIME;
         result->type = type;
-        body_add_circle_collider(result->body, v2_zero, ITEM_RADIUS);
+        body_add_circle_collider(result->body, v2_zero, ITEM_RADIUS,
+            COLLISION_ITEM, COLLISION_PLAYER);
 
         result->cube.faces[0].texture = 4 + type - 1;
 
@@ -783,7 +784,7 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
             };
 
             f32 distance_target = v2_length(move_delta);
-            u32 flags = COLLISION_STATIC;
+            u32 flags = COLLISION_WALL;
 
             if (bullet->player_owned)
             {
@@ -1420,7 +1421,9 @@ void level_init(struct game_state* state)
         enemy->cube.faces[0].texture = 13;
         enemy->state = u32_random(0, 1) ? ENEMY_STATE_SLEEP :
             ENEMY_STATE_WANDER_AROUND;
-        body_add_circle_collider(enemy->body, v2_zero, PLAYER_RADIUS);
+        body_add_circle_collider(enemy->body, v2_zero, PLAYER_RADIUS,
+            COLLISION_ENEMY,
+            (COLLISION_ENEMY | COLLISION_PLAYER | COLLISION_WALL));
 
         LOG("Enemy %u is %s\n", i,
             enemy->state == ENEMY_STATE_SLEEP ? "sleeping" : "wandering");
@@ -1445,7 +1448,9 @@ void level_init(struct game_state* state)
         state->player.alive = true;
         state->player.health = PLAYER_HEALTH_MAX;
         state->player.cube.faces[0].texture = 11;
-        body_add_circle_collider(state->player.body, v2_zero, PLAYER_RADIUS);
+        body_add_circle_collider(state->player.body, v2_zero, PLAYER_RADIUS,
+            COLLISION_PLAYER,
+            (COLLISION_ENEMY | COLLISION_ITEM | COLLISION_WALL));
     }
 
     cube_data_color_update(&state->player.cube, color_player);

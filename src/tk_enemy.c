@@ -41,7 +41,7 @@ b32 enemy_sees_player(struct collision_map* cols, struct enemy* enemy,
     // collisions are checked. Check collision against static (walls) and player
     // for now
     f32 player_ray_cast = ray_cast_body(cols, enemy->eye_position,
-        player->body, NULL, COLLISION_STATIC | COLLISION_PLAYER);
+        player->body, NULL, COLLISION_WALL | COLLISION_PLAYER);
 
     result = enemy->state != ENEMY_STATE_SLEEP && player->alive &&
         angle_player < ENEMY_LINE_OF_SIGHT_HALF && player_ray_cast > 0.0f &&
@@ -433,7 +433,7 @@ void enemy_state_react_to_gun_shot_update(struct enemy* enemy,
     {
         if (ray_cast_position(cols, enemy->eye_position,
             enemy->gun_shot_position, NULL,
-            COLLISION_STATIC | COLLISION_PLAYER))
+            COLLISION_WALL | COLLISION_PLAYER))
         {
             enemy_state_transition(enemy, ENEMY_STATE_LOOK_FOR_PLAYER, level,
                 cols);
@@ -460,7 +460,7 @@ void enemy_state_react_to_being_shot_at_update(struct enemy* enemy,
     if (enemy->state_timer_finished)
     {
         f32 length = ray_cast_direction(cols, enemy->eye_position,
-            enemy->hit_direction, NULL, COLLISION_STATIC);
+            enemy->hit_direction, NULL, COLLISION_WALL);
 
         // Skip one tile so we don't find a path into a wall
         length = MAX(0, length - 1.0f);

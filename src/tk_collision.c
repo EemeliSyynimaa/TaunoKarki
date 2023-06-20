@@ -25,12 +25,17 @@ struct collision_map
     u32 num_dynamics;
 };
 
-u32 COLLISION_STATIC  = 1;
-u32 COLLISION_PLAYER  = 2;
-u32 COLLISION_ENEMY   = 4;
-u32 COLLISION_BULLET  = 8;
-u32 COLLISION_DYNAMIC = 14;
-u32 COLLISION_ALL     = 255;
+u32 COLLISION_NONE          = 0;
+u32 COLLISION_WALL          = 1;
+u32 COLLISION_PLAYER        = 2;
+u32 COLLISION_PLAYER_HITBOX = 4;
+u32 COLLISION_ENEMY         = 8;
+u32 COLLISION_ENEMY_HITBOX  = 16;
+u32 COLLISION_BULLET_PLAYER = 32;
+u32 COLLISION_BULLET_ENEMY  = 64;
+u32 COLLISION_ITEM          = 128;
+u32 COLLISION_DYNAMIC       = 254;
+u32 COLLISION_ALL           = 255;
 
 b32 intersect_line_to_line(struct line_segment line_a,
     struct line_segment line_b, struct v2* collision)
@@ -195,7 +200,7 @@ f32 ray_cast_direction(struct collision_map* cols, struct v2 position,
 {
     f32 result = F32_MAX;
 
-    if (flags & COLLISION_STATIC)
+    if (flags & COLLISION_WALL)
     {
         result = ray_cast_to_direction(position, direction, cols->statics,
             cols->num_statics, collision, result, flags);
@@ -641,8 +646,8 @@ void collision_map_static_calculate(struct level* level,
         for (u32 x = 0; x <= level->width; x++)
         {
             struct v2 tile = { (f32)x, (f32)y };
-            face_top.type = COLLISION_STATIC;
-            face_bottom.type = COLLISION_STATIC;
+            face_top.type = COLLISION_WALL;
+            face_bottom.type = COLLISION_WALL;
 
             if (tile_is_of_type(level, tile, TILE_WALL))
             {
@@ -705,8 +710,8 @@ void collision_map_static_calculate(struct level* level,
         for (u32 y = 0; y < level->height; y++)
         {
             struct v2 tile = { (f32)x, (f32)y };
-            face_left.type = COLLISION_STATIC;
-            face_right.type = COLLISION_STATIC;
+            face_left.type = COLLISION_WALL;
+            face_right.type = COLLISION_WALL;
 
             if (tile_is_of_type(level, tile, TILE_WALL))
             {

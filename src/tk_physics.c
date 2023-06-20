@@ -8,7 +8,7 @@ struct collider
 {
     u32 type;
 
-    u32 collisionType;
+    u32 tag;
     u32 collidesWith;
 
     struct rigid_body* body;
@@ -460,12 +460,23 @@ u32 body_collisions_check(struct rigid_body bodies[], u32 num_bodies,
 
             for (u32 k = 0; k < body->num_colliders; k++)
             {
+                struct collider* a = &body->colliders[k];
+
+                if (a->collidesWith == COLLISION_NONE)
+                {
+                    continue;
+                }
+
                 for (u32 l = 0; l < other->num_colliders; l++)
                 {
-                    b32 collision = false;
-
-                    struct collider* a = &body->colliders[k];
                     struct collider* b = &other->colliders[l];
+
+                    if (!(a->collidesWith & b->tag))
+                    {
+                        continue;
+                    }
+
+                    b32 collision = false;
 
                     if (a->type == COLLIDER_CIRCLE &&
                         b->type == COLLIDER_CIRCLE )
@@ -515,7 +526,7 @@ u32 body_collisions_check(struct rigid_body bodies[], u32 num_bodies,
                                     }
 
                                     if (body->contact->b &&
-                                        body->contact->b != b)
+                                        body->contact->b != a)
                                     {
                                         body->contact->b->body->contact = NULL;
                                     }
@@ -670,7 +681,7 @@ void body_positions_update(struct rigid_body bodies[], u32 num_bodies)
 }
 
 struct collider* body_add_circle_collider(struct rigid_body* body,
-    struct v2 position, f32 radius)
+    struct v2 position, f32 radius, u32 tag, u32 collidesWith)
 {
     struct collider* result = NULL;
 
@@ -678,6 +689,8 @@ struct collider* body_add_circle_collider(struct rigid_body* body,
     {
         result = &body->colliders[body->num_colliders++];
         result->type = COLLIDER_CIRCLE;
+        result->tag = tag;
+        result->collidesWith = collidesWith;
         result->circle.position = position;
         result->circle.radius = radius;
         result->body = body;
@@ -687,7 +700,7 @@ struct collider* body_add_circle_collider(struct rigid_body* body,
 }
 
 struct collider* body_add_line_collider(struct rigid_body* body,
-    struct v2 start, struct v2 end)
+    struct v2 start, struct v2 end, u32 tag, u32 collidesWith)
 {
     struct collider* result = NULL;
 
@@ -695,6 +708,8 @@ struct collider* body_add_line_collider(struct rigid_body* body,
     {
         result = &body->colliders[body->num_colliders++];
         result->type = COLLIDER_LINE;
+        result->tag = tag;
+        result->collidesWith = collidesWith;
         result->line.a = start;
         result->line.b = end;
         result->body = body;
@@ -704,7 +719,8 @@ struct collider* body_add_line_collider(struct rigid_body* body,
 }
 
 struct collider* body_add_rect_collider(struct rigid_body* body,
-    struct v2 position, f32 half_width, f32 half_height)
+    struct v2 position, f32 half_width, f32 half_height, u32 tag,
+    u32 collidesWith)
 {
     struct collider* result = NULL;
 
@@ -712,6 +728,8 @@ struct collider* body_add_rect_collider(struct rigid_body* body,
     {
         result = &body->colliders[body->num_colliders++];
         result->type = COLLIDER_RECT;
+        result->tag = tag;
+        result->collidesWith = collidesWith;
         result->rect.position = position;
         result->rect.half_width = half_width;
         result->rect.half_height = half_height;
@@ -765,11 +783,10 @@ void world_wall_bodies_create(struct physics_world* world,
         // Todo: should we store the wall bodies...?
         struct rigid_body* body = rigid_body_get(world);
         body->type = RIGID_BODY_STATIC;
-        body->num_colliders = 1;
-        body->colliders[0].type = COLLIDER_LINE;
-        body->colliders[0].line.a = walls[i].start;
-        body->colliders[0].line.b = walls[i].end;
-        body->colliders[0].body = body;
+        body_add_line_collider(body, walls[i].start, walls[i].end,
+            COLLISION_WALL,
+            (COLLISION_PLAYER | COLLISION_ENEMY | COLLISION_BULLET_ENEMY |
+                COLLISION_BULLET_PLAYER));
     }
 }
 

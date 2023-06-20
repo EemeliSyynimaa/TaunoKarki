@@ -23,7 +23,18 @@ void bullet_create(struct object_pool* pool, struct physics_world* world,
     bullet->player_owned = player_owned;
     bullet->start = bullet->body->position;
     bullet->color = (struct v4){ color, color, color, 1.0f };
-    body_add_circle_collider(bullet->body, v2_zero, PROJECTILE_RADIUS);
+
+    u32 tag = COLLISION_BULLET_PLAYER;
+    u32 collidesWith = (COLLISION_ENEMY_HITBOX | COLLISION_WALL);
+
+    if (!player_owned)
+    {
+        tag = COLLISION_BULLET_ENEMY;
+        collidesWith = (COLLISION_PLAYER_HITBOX | COLLISION_WALL);
+    }
+
+    body_add_circle_collider(bullet->body, v2_zero, PROJECTILE_RADIUS, tag,
+        collidesWith);
 
     // Todo: add a fancy particle effect here
 }
