@@ -5,23 +5,31 @@ void bullet_create(struct object_pool* pool, struct physics_world* world,
 {
     struct bullet* bullet = object_pool_get_next(pool);
 
+    bullet->header.type = ENTITY_BULLET;
+
     f32 color = f32_random(0.75f, 1.0f);
+
+    struct rigid_body* body = bullet->header.body;
 
     if (!bullet->alive)
     {
-        bullet->body = rigid_body_get(world);
+        body = entity_add_body(&bullet->header, world);
+    }
+    else
+    {
+        *body = (struct rigid_body){ 0 };
     }
 
-    bullet->body->type = RIGID_BODY_DYNAMIC;
-    bullet->body->bullet = true;
-    bullet->body->position = position;
-    bullet->body->velocity = start_velocity;
-    bullet->body->velocity.x += direction.x * speed;
-    bullet->body->velocity.y += direction.y * speed;
+    body->type = RIGID_BODY_DYNAMIC;
+    // bullet->body->bullet = true;
+    body->position = position;
+    body->velocity = start_velocity;
+    body->velocity.x += direction.x * speed;
+    body->velocity.y += direction.y * speed;
     bullet->alive = true;
     bullet->damage = damage;
     bullet->player_owned = player_owned;
-    bullet->start = bullet->body->position;
+    bullet->start = body->position;
     bullet->color = (struct v4){ color, color, color, 1.0f };
 
     u32 tag = COLLISION_BULLET_PLAYER;
@@ -33,7 +41,7 @@ void bullet_create(struct object_pool* pool, struct physics_world* world,
         collidesWith = (COLLISION_PLAYER_HITBOX | COLLISION_WALL);
     }
 
-    body_add_circle_collider(bullet->body, v2_zero, PROJECTILE_RADIUS, tag,
+    body_add_circle_collider(body, v2_zero, PROJECTILE_RADIUS, tag,
         collidesWith);
 
     // Todo: add a fancy particle effect here

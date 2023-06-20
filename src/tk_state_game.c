@@ -120,7 +120,7 @@ void state_game_update(void* data, struct game_input* input, f32 step)
 
     struct v2 start_min = v2_sub_f32(game->level.start_pos, 2.0f);
     struct v2 start_max = v2_add_f32(game->level.start_pos, 2.0f);
-    struct v2 plr_pos = game->player.body->position;
+    struct v2 plr_pos = game->player.header.body->position;
 
     game->player_in_start_room = plr_pos.x > start_min.x &&
         plr_pos.x < start_max.x && plr_pos.y > start_min.y &&
@@ -146,25 +146,21 @@ void state_game_update(void* data, struct game_input* input, f32 step)
     {
         f32 distance_to_activate = 0.0f;
 
-        struct v2 direction_to_mouse = v2_normalize(v2_direction(
-            game->player.body->position, mouse->world));
+        struct v2 direction_to_mouse = v2_normalize(v2_direction(plr_pos,
+            mouse->world));
 
-        struct v2 target_pos = v2_average(mouse->world,
-            game->player.body->position);
+        struct v2 target_pos = v2_average(mouse->world, plr_pos);
 
-        f32 distance_to_target = v2_distance(target_pos,
-            game->player.body->position);
+        f32 distance_to_target = v2_distance(target_pos, plr_pos);
 
         distance_to_target -= distance_to_activate;
 
-        struct v2 target = game->player.body->position;
+        struct v2 target = plr_pos;
 
         if (distance_to_target > 0)
         {
-            target.x = game->player.body->position.x +
-                direction_to_mouse.x * distance_to_target;
-            target.y = game->player.body->position.y +
-                direction_to_mouse.y * distance_to_target;
+            target.x = plr_pos.x + direction_to_mouse.x * distance_to_target;
+            target.y = plr_pos.y + direction_to_mouse.y * distance_to_target;
         }
 
         camera->target.xy = target;

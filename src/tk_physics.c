@@ -3,6 +3,7 @@
 #define MAX_COLLIDERS 8
 
 struct rigid_body;
+struct entity;
 
 struct collider
 {
@@ -92,13 +93,13 @@ struct rigid_body
     struct v2 velocity;
     struct v2 acceleration;
     struct v2 move_delta;
+    struct entity* owner;
     u32 type;
     u32 num_colliders;
     f32 friction;
     f32 mass;
     f32 angle;
     b32 alive;
-    b32 bullet;
     b32 trigger;
 };
 
@@ -434,7 +435,7 @@ u32 body_collisions_check(struct rigid_body bodies[], u32 num_bodies,
     {
         struct rigid_body* body = &bodies[i];
 
-        if (!body->alive || body->bullet)
+        if (!body->alive)
         {
             continue;
         }
@@ -453,7 +454,7 @@ u32 body_collisions_check(struct rigid_body bodies[], u32 num_bodies,
             struct rigid_body* other = &bodies[j];
             struct contact contact = { 0 };
 
-            if (!other->alive || other->bullet)
+            if (!other->alive)
             {
                 continue;
             }
@@ -487,7 +488,7 @@ u32 body_collisions_check(struct rigid_body bodies[], u32 num_bodies,
                     else if (a->type == COLLIDER_LINE &&
                         b->type == COLLIDER_CIRCLE )
                     {
-                        collision = collision_detect_circle_line(a, b,
+                        collision = collision_detect_circle_line(b, a,
                             &contact);
                     }
                     else if (a->type == COLLIDER_CIRCLE &&
@@ -574,6 +575,21 @@ void body_collisions_resolve(struct contact contacts[], u32 num_contacts,
 
         struct collider* a = contact->a;
         struct collider* b = contact->b;
+
+        // Todo: temporary hax to destroy bullets!!
+        if (a->body->owner && *(u32*)(a->body->owner) == 3)
+        {
+            struct bullet* bullet = (struct bullet*)a->body->owner;
+            rigid_body_free(a->body);
+            bullet->alive = false;
+        }
+
+        if (b->body->owner && *(u32*)(b->body->owner) == 3)
+        {
+            struct bullet* bullet = (struct bullet*)b->body->owner;
+            rigid_body_free(b->body);
+            bullet->alive = false;
+        }
 
         // Circle - circle
         if (a->type == COLLIDER_CIRCLE && b->type == COLLIDER_CIRCLE)
@@ -793,4 +809,16 @@ void world_wall_bodies_create(struct physics_world* world,
 void world_init(struct physics_world* world)
 {
     memory_set(world->bodies, sizeof(struct rigid_body) * MAX_BODIES, 0);
+}
+
+// Todo: temporarily here, move
+struct rigid_body* entity_add_body(struct entity* entity,
+    struct physics_world* world)
+{
+    struct rigid_body* result = rigid_body_get(world);
+
+    entity->body = result;
+    entity->body->owner = entity;
+
+    return result;
 }

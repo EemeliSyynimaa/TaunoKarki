@@ -30,10 +30,10 @@ b32 enemy_sees_player(struct collision_map* cols, struct enemy* enemy,
     b32 result = false;
 
     // Todo: maybe use direction_in_range() here instead
-    struct v2 direction_player = v2_direction(enemy->body->position,
-        player->body->position);
+    struct v2 direction_player = v2_direction(enemy->header.body->position,
+        player->header.body->position);
     struct v2 direction_current = v2_direction_from_angle(
-        enemy->body->angle);
+        enemy->header.body->angle);
 
     f32 angle_player = v2_angle(direction_player, direction_current);
 
@@ -41,7 +41,7 @@ b32 enemy_sees_player(struct collision_map* cols, struct enemy* enemy,
     // collisions are checked. Check collision against static (walls) and player
     // for now
     f32 player_ray_cast = ray_cast_body(cols, enemy->eye_position,
-        player->body, NULL, COLLISION_WALL | COLLISION_PLAYER);
+        player->header.body, NULL, COLLISION_WALL | COLLISION_PLAYER);
 
     result = enemy->state != ENEMY_STATE_SLEEP && player->alive &&
         angle_player < ENEMY_LINE_OF_SIGHT_HALF && player_ray_cast > 0.0f &&
@@ -60,7 +60,8 @@ b32 enemy_hears_gun_shot(struct gun_shot* shots, u32 num_gun_shots,
     {
         struct gun_shot* shot = &shots[i];
 
-        f32 distance = v2_distance(enemy->body->position, shot->position);
+        f32 distance = v2_distance(enemy->header.body->position,
+            shot->position);
 
         if (distance < closest && distance < shot->volume)
         {
@@ -111,7 +112,8 @@ f32 turn_amount_calculate(f32 angle_from, f32 angle_to)
 
 void enemy_look_towards_angle(struct enemy* enemy, f32 angle)
 {
-    enemy->turn_amount = turn_amount_calculate(enemy->body->angle, angle);
+    enemy->turn_amount = turn_amount_calculate(enemy->header.body->angle,
+        angle);
 }
 
 void enemy_look_towards_direction(struct enemy* enemy, struct v2 direction)
@@ -121,7 +123,7 @@ void enemy_look_towards_direction(struct enemy* enemy, struct v2 direction)
 
 void enemy_look_towards_position(struct enemy* enemy, struct v2 position)
 {
-    struct v2 direction = v2_direction(enemy->body->position, position);
+    struct v2 direction = v2_direction(enemy->header.body->position, position);
 
     enemy_look_towards_angle(enemy, f32_atan(direction.y, direction.x));
 }
@@ -129,9 +131,10 @@ void enemy_look_towards_position(struct enemy* enemy, struct v2 position)
 void enemy_calculate_path_to_target(struct collision_map* cols,
     struct level* level, struct enemy* enemy)
 {
-    enemy->path_length = path_find(level, enemy->body->position,
+    enemy->path_length = path_find(level, enemy->header.body->position,
         enemy->target, enemy->path, MAX_PATH);
-    path_trim(cols, enemy->body->position, enemy->path, &enemy->path_length);
+    path_trim(cols, enemy->header.body->position, enemy->path,
+        &enemy->path_length);
     enemy_look_towards_position(enemy, enemy->path[0]);
     enemy->path_index = 0;
 }
@@ -291,10 +294,10 @@ void enemy_state_shoot_update(struct enemy* enemy, struct level* level,
 
     if (enemy->player_in_view)
     {
-        struct v2 target_forward = v2_direction( enemy->body->position,
+        struct v2 target_forward = v2_direction( enemy->header.body->position,
             enemy->player_last_seen_position);
 
-        if (v2_length(enemy->body->velocity))
+        if (v2_length(enemy->header.body->velocity))
         {
             // Todo: calculate right with cross product
             f32 angle = F64_PI*1.5f;
@@ -307,7 +310,8 @@ void enemy_state_shoot_update(struct enemy* enemy, struct level* level,
                 target_forward.x * tsin + target_forward.y * tcos
             };
 
-            f32 initial_velocity = v2_dot(enemy->body->velocity, target_right);
+            f32 initial_velocity = v2_dot(enemy->header.body->velocity,
+                target_right);
 
             struct v2 desired_velocity = { 0.0f };
 
@@ -360,7 +364,7 @@ void enemy_state_shoot_update(struct enemy* enemy, struct level* level,
 
         weapon->direction = enemy->direction_aim;
         weapon->position = enemy->eye_position;
-        weapon->velocity = enemy->body->velocity;
+        weapon->velocity = enemy->header.body->velocity;
 
         if (weapon_shoot(bullet_pool, world, weapon, false))
         {
@@ -482,7 +486,7 @@ void enemy_state_look_around_update(struct enemy* enemy, struct level* level,
         if (enemy->turns_left)
         {
             f32 diff = f32_random(-F64_PI, F64_PI);
-            f32 angle_new = enemy->body->angle + diff;
+            f32 angle_new = enemy->header.body->angle + diff;
 
             enemy_look_towards_angle(enemy, angle_new);
 
@@ -516,7 +520,7 @@ void enemy_state_look_for_player_update(struct enemy* enemy,
             if (enemy->turns_left)
             {
                 f32 diff = f32_random( -F64_PI, F64_PI);
-                f32 angle_new = enemy->body->angle + diff;
+                f32 angle_new = enemy->header.body->angle + diff;
 
                 enemy_look_towards_angle(enemy, angle_new);
 

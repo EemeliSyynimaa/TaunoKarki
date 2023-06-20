@@ -20,9 +20,25 @@ struct weapon
     b32 reloading;
 };
 
+enum
+{
+    ENTITY_NONE = 0,
+    ENTITY_PLAYER,
+    ENTITY_ENEMY,
+    ENTITY_BULLET,
+    ENTITY_ITEM,
+    ENTITY_COUNT
+};
+
+struct entity
+{
+    u32 type;
+    struct rigid_body* body;
+};
+
 struct player
 {
-    struct rigid_body* body;
+    struct entity header;
     struct v2 eye_position;
     struct weapon weapon;
     struct cube_data cube;
@@ -33,7 +49,7 @@ struct player
 
 struct bullet
 {
-    struct rigid_body* body;
+    struct entity header;
     struct v4 color;
     struct v2 start;
     f32 damage;
@@ -43,7 +59,7 @@ struct bullet
 
 struct item
 {
-    struct rigid_body* body;
+    struct entity header;
     struct cube_data cube;
     u32 type;
     f32 alive;
@@ -53,7 +69,7 @@ struct item
 
 struct enemy
 {
-    struct rigid_body* body;
+    struct entity header;
     struct v2 path[MAX_PATH];
     struct v2 direction_aim;
     struct v2 direction_look;
