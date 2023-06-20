@@ -1,40 +1,17 @@
 #define MAX_CIRCLES 64
 #define MAX_CONTACTS 64
+#define MAX_COLLIDERS 8
 
-struct contact
-{
-    struct rigid_body* a;
-    struct rigid_body* b;
-    struct line_segment* line;
-    struct v2 position;
-    f32 t;
-
-    b32 active;
-};
-
-struct collider_circle
-{
-    struct v2 position;
-    f32 radius;
-};
-
-struct collider_line
-{
-    struct v2 a;
-    struct v2 b;
-};
-
-enum
-{
-    COLLIDER_NONE,
-    COLLIDER_CIRCLE,
-    COLLIDER_LINE,
-    COLLIDER_COUNT
-};
+struct rigid_body;
 
 struct collider
 {
     u32 type;
+
+    u32 collisionType;
+    u32 collidesWith;
+
+    struct rigid_body* body;
 
     union
     {
@@ -53,12 +30,39 @@ struct collider
             struct v2 b;
         } line;
 
+        // Rect collider
+        struct
+        {
+            struct v2 position;
+            f32 half_width;
+            f32 half_height;
+        } rect;
+
         // No collider
         struct
         {
             u32 unused[4];
         } none;
     };
+};
+
+struct contact
+{
+    struct collider* a;
+    struct collider* b;
+    struct v2 position;
+    f32 t;
+
+    b32 active;
+};
+
+enum
+{
+    COLLIDER_NONE,
+    COLLIDER_CIRCLE,
+    COLLIDER_LINE,
+    COLLIDER_RECT,
+    COLLIDER_COUNT
 };
 
 struct circle
@@ -83,12 +87,13 @@ enum
 struct rigid_body
 {
     struct contact* contact;
-    struct collider collider;
+    struct collider colliders[MAX_COLLIDERS];
     struct v2 position;
     struct v2 velocity;
     struct v2 acceleration;
     struct v2 move_delta;
     u32 type;
+    u32 num_colliders;
     f32 friction;
     f32 mass;
     f32 angle;
@@ -131,17 +136,22 @@ f32 ray_cast_body(struct collision_map* cols, struct v2 start,
     u32 num_segments = 0;
 
     // Todo: test
-    if (body->collider.type == COLLIDER_CIRCLE)
+    for (u32 j = 0; j < body->num_colliders; j++)
     {
-        get_body_rectangle(body, body->collider.circle.radius,
-            body->collider.circle.radius, segments);
-        num_segments = 4;
-    }
-    else if (body->collider.type == COLLIDER_LINE)
-    {
-        segments[0].start = body->collider.line.a;
-        segments[0].end = body->collider.line.b;
-        num_segments = 1;
+        struct collider* collider = &body->colliders[j];
+
+        if (collider->type == COLLIDER_CIRCLE)
+        {
+            get_body_rectangle(body, collider->circle.radius,
+                collider->circle.radius, segments);
+            num_segments = 4;
+        }
+        else if (collider->type == COLLIDER_LINE)
+        {
+            segments[0].start = collider->line.a;
+            segments[0].end = collider->line.b;
+            num_segments = 1;
+        }
     }
 
     for (u32 i = 0; i < num_segments; i++)
@@ -177,17 +187,22 @@ void collision_map_dynamic_calculate(struct collision_map* cols,
 
         if (body->alive && body->type == RIGID_BODY_DYNAMIC)
         {
-            if (body->collider.type == COLLIDER_CIRCLE)
+            for (u32 j = 0; j < body->num_colliders; j++)
             {
-                get_body_rectangle(body, body->collider.circle.radius,
-                    body->collider.circle.radius, segments);
-                num_segments = 4;
-            }
-            else if (body->collider.type == COLLIDER_LINE)
-            {
-                segments[0].start = body->collider.line.a;
-                segments[0].end = body->collider.line.b;
-                num_segments = 1;
+                struct collider* collider = &body->colliders[j];
+
+                if (collider->type == COLLIDER_CIRCLE)
+                {
+                    get_body_rectangle(body, collider->circle.radius,
+                        collider->circle.radius, segments);
+                    num_segments = 4;
+                }
+                else if (collider->type == COLLIDER_LINE)
+                {
+                    segments[0].start = collider->line.a;
+                    segments[0].end = collider->line.b;
+                    num_segments = 1;
+                }
             }
 
             for (u32 i = 0; i < num_segments &&
@@ -221,7 +236,7 @@ struct rigid_body* rigid_body_get(struct physics_world* world)
             *result = (struct rigid_body){ 0 };
             result->alive = true;
             result->mass = 1.0f;
-            result->collider.type = COLLIDER_NONE;
+            result->num_colliders = 0;
 
             break;
         }
@@ -235,7 +250,7 @@ void rigid_body_free(struct rigid_body* body)
     body->alive = false;
 }
 
-b32 collision_detect_circle_circle(struct rigid_body* a, struct rigid_body* b,
+b32 collision_detect_circle_circle(struct collider* a, struct collider* b,
     struct contact* contact)
 {
     b32 result = false;
@@ -244,34 +259,33 @@ b32 collision_detect_circle_circle(struct rigid_body* a, struct rigid_body* b,
     // - amount of movement is less distance between circles minus radii
 
     // Reduce the velocity of b from the velocity of a
-    struct v2 a_vel = v2_sub(a->move_delta, b->move_delta);
+    struct v2 a_vel = v2_sub(a->body->move_delta, b->body->move_delta);
 
     // Calculate velocity direction
     struct v2 a_dir = v2_normalize(a_vel);
 
     // Calculate vector from a to b
-    struct v2 ab = v2_direction(a->position, b->position);
+    struct v2 ab = v2_direction(a->body->position, b->body->position);
 
     // There cannot be collision if the circles are moving to different
     // directions
     if (v2_dot(ab, a_dir) > 0.0f)
     {
         // Calculate closest point to b on line in velocity direction
-        struct v2 d_pos = v2_add(a->position, v2_mul_f32(a_dir,
+        struct v2 d_pos = v2_add(a->body->position, v2_mul_f32(a_dir,
             v2_dot(ab, a_dir)));
 
         // Calculate velocity
         f32 a_len = v2_length(a_vel);
 
         // Calculate distance from circle a to d
-        f32 ad_len = v2_distance(a->position, d_pos);
+        f32 ad_len = v2_distance(a->body->position, d_pos);
 
         // Calculate squared distance from b to d
-        f32 bd_len = v2_distance_squared(b->position, d_pos);
+        f32 bd_len = v2_distance_squared(b->body->position, d_pos);
 
         // Calculate total squared radii of a and b
-        f32 rad_total = f32_square(
-            a->collider.circle.radius + b->collider.circle.radius);
+        f32 rad_total = f32_square(a->circle.radius + b->circle.radius);
 
         // There cannot be collision if the length between b and d is equal or
         // greater than the total radii
@@ -291,7 +305,7 @@ b32 collision_detect_circle_circle(struct rigid_body* a, struct rigid_body* b,
                 // Store contact position
                 if (contact)
                 {
-                    contact->position = v2_add(a->position,
+                    contact->position = v2_add(a->body->position,
                         v2_mul_f32(a_dir, ac_len));
                     contact->t = ac_len / a_len;
                     contact->a = a;
@@ -356,23 +370,19 @@ f32 get_distance_to_closest_point_on_line_segment(struct v2 point,
     return result;
 }
 
-b32 collision_detect_circle_line(struct rigid_body* a, struct rigid_body* b,
+b32 collision_detect_circle_line(struct collider* a, struct collider* b,
     struct contact* contact)
 {
     b32 result = false;
 
     struct line_segment line = {
-        a->position,
-        v2_add(a->position, a->move_delta)
+        a->body->position,
+        v2_add(a->body->position, a->body->move_delta)
     };
 
-    struct line_segment line_b =
-    {
-        b->collider.line.a,
-        b->collider.line.b
-    };
+    struct line_segment line_b = { b->line.a, b->line.b };
 
-    f32 r = a->collider.circle.radius;
+    f32 r = a->circle.radius;
 
     if (intersect_line_segment_to_line_segment(line, line_b, NULL) ||
         get_distance_to_closest_point_on_line_segment(line.end, line_b) < r ||
@@ -383,22 +393,23 @@ b32 collision_detect_circle_line(struct rigid_body* a, struct rigid_body* b,
 
         intersect_line_to_line(line, line_b, &line_intersection);
 
-        struct v2 closest = get_closest_point_on_line(a->position, line_b.start,
-            line_b.end);
+        struct v2 closest = get_closest_point_on_line(a->body->position,
+            line_b.start, line_b.end);
 
-        f32 distance_to_closest = v2_distance(a->position, closest);
-        f32 distance_to_intersection = v2_distance(a->position,
+        f32 distance_to_closest = v2_distance(a->body->position, closest);
+        f32 distance_to_intersection = v2_distance(a->body->position,
             line_intersection);
         f32 distance_to_contact =
             r * (distance_to_intersection / distance_to_closest);
 
         struct v2 i_to_a = v2_normalize(v2_direction(line_intersection,
-            a->position));
+            a->body->position));
 
         struct v2 c = v2_add(line_intersection, v2_mul_f32(i_to_a,
             distance_to_contact));
 
-        contact->t = v2_distance(c, a->position) / v2_length(a->move_delta);
+        contact->t = v2_distance(c, a->body->position) /
+            v2_length(a->body->move_delta);
         contact->position = get_closest_point_on_line_segment(c, line_b.start,
             line_b.end);
         contact->a = a;
@@ -447,80 +458,91 @@ u32 body_collisions_check(struct rigid_body bodies[], u32 num_bodies,
                 continue;
             }
 
-            b32 collision = false;
-
-            if (body->collider.type == COLLIDER_CIRCLE &&
-                other->collider.type == COLLIDER_CIRCLE )
+            for (u32 k = 0; k < body->num_colliders; k++)
             {
-                collision = collision_detect_circle_circle(body, other,
-                    &contact);
-            }
-            else if (body->collider.type == COLLIDER_LINE &&
-                other->collider.type == COLLIDER_CIRCLE )
-            {
-                collision = collision_detect_circle_line(other, body,
-                    &contact);
-            }
-            else if (body->collider.type == COLLIDER_CIRCLE &&
-                other->collider.type == COLLIDER_LINE )
-            {
-                collision = collision_detect_circle_line(body, other,
-                    &contact);
-            }
-
-            if (collision)
-            {
-                LOG("COLLISION: body %d and body %d\n", i, j);
-
-                if (body->trigger || other->trigger)
+                for (u32 l = 0; l < other->num_colliders; l++)
                 {
-                    // Todo: implement collision callbacks
-                    continue;
-                }
+                    b32 collision = false;
 
-                // Todo: set contact for circle-line collisions
+                    struct collider* a = &body->colliders[k];
+                    struct collider* b = &other->colliders[l];
 
-                if ((!body->contact || contact.t < body->contact->t) &&
-                    (!other->contact || contact.t < other->contact->t))
-                {
-                    if (!body->contact && !other->contact)
+                    if (a->type == COLLIDER_CIRCLE &&
+                        b->type == COLLIDER_CIRCLE )
                     {
-                        body->contact = &contacts[result++];
-                        other->contact = body->contact;
+                        collision = collision_detect_circle_circle(a, b,
+                            &contact);
                     }
-                    else
+                    else if (a->type == COLLIDER_LINE &&
+                        b->type == COLLIDER_CIRCLE )
                     {
-                        if (body->contact)
-                        {
-                            if (body->contact->a && body->contact->a != body)
-                            {
-                                body->contact->a->contact = NULL;
-                            }
-
-                            if (body->contact->b && body->contact->b != body)
-                            {
-                                body->contact->b->contact = NULL;
-                            }
-
-                            other->contact = body->contact;
-                        }
-                        else
-                        {
-                            if (other->contact->a && other->contact->a != other)
-                            {
-                                other->contact->a->contact = NULL;
-                            }
-
-                            if (other->contact->b && other->contact->b != other)
-                            {
-                                other->contact->b->contact = NULL;
-                            }
-
-                            body->contact = other->contact;
-                        }
+                        collision = collision_detect_circle_line(a, b,
+                            &contact);
+                    }
+                    else if (a->type == COLLIDER_CIRCLE &&
+                        b->type == COLLIDER_LINE )
+                    {
+                        collision = collision_detect_circle_line(a, b,
+                            &contact);
                     }
 
-                    *body->contact = contact;
+                    if (collision)
+                    {
+                        LOG("COLLISION: body %d and body %d\n", i, j);
+
+                        if (body->trigger || other->trigger)
+                        {
+                            // Todo: implement collision callbacks
+                            continue;
+                        }
+
+                        if ((!body->contact || contact.t < body->contact->t) &&
+                            (!other->contact || contact.t < other->contact->t))
+                        {
+                            if (!body->contact && !other->contact)
+                            {
+                                body->contact = &contacts[result++];
+                                other->contact = body->contact;
+                            }
+                            else
+                            {
+                                if (body->contact)
+                                {
+                                    if (body->contact->a &&
+                                        body->contact->a != a)
+                                    {
+                                        body->contact->a->body->contact = NULL;
+                                    }
+
+                                    if (body->contact->b &&
+                                        body->contact->b != b)
+                                    {
+                                        body->contact->b->body->contact = NULL;
+                                    }
+
+                                    other->contact = body->contact;
+                                }
+                                else
+                                {
+                                    if (other->contact->a &&
+                                        other->contact->a != b)
+                                    {
+                                        other->contact->a->body->contact = NULL;
+                                    }
+
+                                    if (other->contact->b &&
+                                        other->contact->b != b)
+                                    {
+                                        other->contact->b->body->contact = NULL;
+                                    }
+
+                                    body->contact = other->contact;
+                                }
+                            }
+
+                            *body->contact = contact;
+                        }
+                    }
                 }
             }
         }
@@ -539,57 +561,59 @@ void body_collisions_resolve(struct contact contacts[], u32 num_contacts,
         // with a new velocity
         f32 t_remaining = 1.0f - contact->t;
 
-        struct rigid_body* a = contact->a;
-        struct rigid_body* b = contact->b;
+        struct collider* a = contact->a;
+        struct collider* b = contact->b;
 
         // Circle - circle
-        if (a->collider.type == COLLIDER_CIRCLE &&
-            b->collider.type == COLLIDER_CIRCLE)
+        if (a->type == COLLIDER_CIRCLE && b->type == COLLIDER_CIRCLE)
         {
             // Todo: when circle cannot move, if it's in a corner for example,
             // it should be regarded as static!
 
             // Elastic collisions
             // Calculate new velocities
-            struct v2 n = v2_normalize(v2_direction(b->position, a->position));
+            struct v2 n = v2_normalize(v2_direction(b->body->position,
+                a->body->position));
 
-            f32 a1 = v2_dot(a->velocity, n);
-            f32 a2 = v2_dot(b->velocity, n);
+            f32 a1 = v2_dot(a->body->velocity, n);
+            f32 a2 = v2_dot(b->body->velocity, n);
 
-            f32 p = (2.0f * (a1 - a2)) / (a->mass + b->mass);
+            f32 p = (2.0f * (a1 - a2)) / (a->body->mass + b->body->mass);
 
-            a->velocity.x = a->velocity.x - p * b->mass * n.x;
-            a->velocity.y = a->velocity.y - p * b->mass * n.y;
+            a->body->velocity.x = a->body->velocity.x - p * b->body->mass * n.x;
+            a->body->velocity.y = a->body->velocity.y - p * b->body->mass * n.y;
 
-            b->velocity.x = b->velocity.x + p * a->mass * n.x;
-            b->velocity.y = b->velocity.y + p * a->mass * n.y;
+            b->body->velocity.x = b->body->velocity.x + p * a->body->mass * n.x;
+            b->body->velocity.y = b->body->velocity.y + p * a->body->mass * n.y;
 
-            a->move_delta = v2_mul_f32(a->move_delta, contact->t);
-            a->position = v2_add(a->position, a->move_delta);
-            a->move_delta = v2_mul_f32(a->velocity, t_remaining * dt);
+            a->body->move_delta = v2_mul_f32(a->body->move_delta, contact->t);
+            a->body->position = v2_add(a->body->position, a->body->move_delta);
+            a->body->move_delta = v2_mul_f32(a->body->velocity,
+                t_remaining * dt);
 
-            b->move_delta = v2_mul_f32(b->move_delta, contact->t);
-            b->position = v2_add(b->position, b->move_delta);
-            b->move_delta = v2_mul_f32(b->velocity, t_remaining * dt);
+            b->body->move_delta = v2_mul_f32(b->body->move_delta, contact->t);
+            b->body->position = v2_add(b->body->position, b->body->move_delta);
+            b->body->move_delta = v2_mul_f32(b->body->velocity,
+                t_remaining * dt);
         }
         // Circle - line
-        else if (a->collider.type == COLLIDER_CIRCLE &&
-            b->collider.type == COLLIDER_LINE)
+        else if (a->type == COLLIDER_CIRCLE && b->type == COLLIDER_LINE)
         {
-            a->position = v2_add(a->position,
-                v2_mul_f32(a->move_delta, contact->t));
+            a->body->position = v2_add(a->body->position,
+                v2_mul_f32(a->body->move_delta, contact->t));
 
-            struct v2 n = v2_normalize(v2_direction(a->position,
+            struct v2 n = v2_normalize(v2_direction(a->body->position,
                 contact->position));
 
-            f32 vdot_a = v2_dot(a->velocity, n);
+            f32 vdot_a = v2_dot(a->body->velocity, n);
 
-            a->velocity = v2_sub(a->velocity, v2_mul_f32(n, vdot_a));
+            a->body->velocity = v2_sub(a->body->velocity,
+                v2_mul_f32(n, vdot_a));
 
-            f32 mvdot_a = v2_dot(a->move_delta, n);
+            f32 mvdot_a = v2_dot(a->body->move_delta, n);
 
-            a->move_delta = v2_mul_f32(
-                v2_sub(a->move_delta, v2_mul_f32(n, mvdot_a)), t_remaining);
+            a->body->move_delta = v2_mul_f32(v2_sub(a->body->move_delta,
+                v2_mul_f32(n, mvdot_a)), t_remaining);
         }
         // No collision??
         else
@@ -599,12 +623,12 @@ void body_collisions_resolve(struct contact contacts[], u32 num_contacts,
 
         if (contact->a)
         {
-            contact->a->contact = NULL;
+            contact->a->body->contact = NULL;
         }
 
         if (contact->b)
         {
-            contact->b->contact = NULL;
+            contact->b->body->contact = NULL;
         }
     }
 }
@@ -689,9 +713,11 @@ void world_wall_bodies_create(struct physics_world* world,
         // Todo: should we store the wall bodies...?
         struct rigid_body* body = rigid_body_get(world);
         body->type = RIGID_BODY_STATIC;
-        body->collider.type = COLLIDER_LINE;
-        body->collider.line.a = walls[i].start;
-        body->collider.line.b = walls[i].end;
+        body->num_colliders = 1;
+        body->colliders[0].type = COLLIDER_LINE;
+        body->colliders[0].line.a = walls[i].start;
+        body->colliders[0].line.b = walls[i].end;
+        body->colliders[0].body = body;
     }
 }
 

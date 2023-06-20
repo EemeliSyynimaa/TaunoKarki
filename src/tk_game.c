@@ -153,9 +153,11 @@ struct item* item_create(struct physics_world* world,
         result->body->type = RIGID_BODY_DYNAMIC;
         result->body->position = position;
         result->body->trigger = true;
-        result->body->collider.type = COLLIDER_CIRCLE;
-        result->body->collider.circle.position = v2_zero;
-        result->body->collider.circle.radius = ITEM_RADIUS;
+        result->body->num_colliders = 1;
+        result->body->colliders[0].type = COLLIDER_CIRCLE;
+        result->body->colliders[0].circle.position = v2_zero;
+        result->body->colliders[0].circle.radius = ITEM_RADIUS;
+        result->body->colliders[0].body = result->body;
         result->alive = ITEM_ALIVE_TIME;
         result->type = type;
 
@@ -1051,7 +1053,7 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         }
 
         weapon->direction = dir;
-        weapon->position = player->eye_position;
+        weapon->position = player->body->position;
         weapon->velocity = player->body->velocity;
 
         if (key_times_pressed(&input->reload))
@@ -1415,9 +1417,11 @@ void level_init(struct game_state* state)
         enemy->body->type = RIGID_BODY_DYNAMIC;
         enemy->body->position = tile_random_get(&state->level, TILE_FLOOR);
         enemy->body->friction = FRICTION;
-        enemy->body->collider.type = COLLIDER_CIRCLE;
-        enemy->body->collider.circle.position = v2_zero;
-        enemy->body->collider.circle.radius = PLAYER_RADIUS;
+        enemy->body->num_colliders = 1;
+        enemy->body->colliders[0].type = COLLIDER_CIRCLE;
+        enemy->body->colliders[0].circle.position = v2_zero;
+        enemy->body->colliders[0].circle.radius = PLAYER_RADIUS;
+        enemy->body->colliders[0].body = enemy->body;
         enemy->alive = true;
         enemy->health = ENEMY_HEALTH_MAX;
         enemy->vision_cone_size = 0.2f * i;
@@ -1447,9 +1451,11 @@ void level_init(struct game_state* state)
         state->player.body->type = RIGID_BODY_DYNAMIC;
         state->player.body->position = state->level.start_pos;
         state->player.body->friction = FRICTION;
-        state->player.body->collider.type = COLLIDER_CIRCLE;
-        state->player.body->collider.circle.position = v2_zero;
-        state->player.body->collider.circle.radius = PLAYER_RADIUS;
+        state->player.body->num_colliders = 1;
+        state->player.body->colliders[0].type = COLLIDER_CIRCLE;
+        state->player.body->colliders[0].circle.position = v2_zero;
+        state->player.body->colliders[0].circle.radius = PLAYER_RADIUS;
+        state->player.body->colliders[0].body = state->player.body;
         state->player.alive = true;
         state->player.health = PLAYER_HEALTH_MAX;
         state->player.cube.faces[0].texture = 11;

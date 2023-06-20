@@ -13,9 +13,11 @@ void bullet_create(struct object_pool* pool, struct physics_world* world,
     }
 
     bullet->body->type = RIGID_BODY_DYNAMIC;
-    bullet->body->collider.type = COLLIDER_CIRCLE;
-    bullet->body->collider.circle.position = v2_zero;
-    bullet->body->collider.circle.radius = PROJECTILE_RADIUS;
+    bullet->body->num_colliders = 1;
+    bullet->body->colliders[0].type = COLLIDER_CIRCLE;
+    bullet->body->colliders[0].circle.position = v2_zero;
+    bullet->body->colliders[0].circle.radius = PROJECTILE_RADIUS;
+    bullet->body->colliders[0].body = bullet->body;
     bullet->body->bullet = true;
     bullet->body->position = position;
     bullet->body->velocity = start_velocity;
