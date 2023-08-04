@@ -1511,11 +1511,13 @@ void level_init(struct game_state* state)
 
 #include "tk_state_game.c"
 // #include "tk_state_physics.c"
+#include "tk_state_entity.c"
 
 b32 PHYSICS_DEBUG = false;
 
 struct state_interface state_physics;
 struct state_interface state_game;
+struct state_interface state_entity;
 
 void game_init(struct game_memory* memory, struct game_init* init)
 {
@@ -1653,8 +1655,10 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         // state_physics = state_physics_create(state);
         state_game = state_game_create(state);
+        state_entity = state_entity_create(state);
 
-        state->state_current = PHYSICS_DEBUG ? &state_physics : &state_game;
+        // state->state_current = PHYSICS_DEBUG ? &state_physics : &state_game;
+        state->state_current = &state_entity;
         state->state_current->init(state->state_current->data);
 
         memory->initialized = true;
