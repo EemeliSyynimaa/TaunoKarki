@@ -21,7 +21,8 @@ void* stack_alloc(struct memory_block* block, u64 size)
 
     if (bytes_needed > bytes_left)
     {
-        LOG("Not enough memory\n");
+        LOG("Not enough memory: %u requested, %u available\n",
+            bytes_needed, bytes_left);
 
         return 0;
     }
