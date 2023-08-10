@@ -95,7 +95,7 @@ b32 intersect_line_segment_to_line_segment(struct line_segment line_a,
     struct v2 r = v2_direction(line_a.start, line_a.end);
     struct v2 q = line_b.start;
     struct v2 s = v2_direction(line_b.start, line_b.end);
-    struct v2 qp = { q.x - p.x, q.y - p.y };
+    struct v2 pq = { q.x - p.x, q.y - p.y };
     f32 r_x_s = v2_cross(r, s);
 
     if (r_x_s == 0.0f)
@@ -104,11 +104,11 @@ b32 intersect_line_segment_to_line_segment(struct line_segment line_a,
     }
     else
     {
-        f32 qp_x_s = v2_cross(qp, s);
-        f32 qp_x_r = v2_cross(qp, r);
+        f32 pq_x_s = v2_cross(pq, s);
+        f32 pq_x_r = v2_cross(pq, r);
 
-        f32 t = qp_x_s / r_x_s;
-        f32 u = qp_x_r / r_x_s;
+        f32 t = pq_x_s / r_x_s;
+        f32 u = pq_x_r / r_x_s;
 
         if (t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f)
         {
@@ -134,22 +134,23 @@ b32 intersect_ray_to_line_segment(struct v2 start, struct v2 direction,
     struct v2 r = direction;
     struct v2 q = line_segment.start;
     struct v2 s = v2_direction(line_segment.start, line_segment.end);
-    struct v2 qp = { q.x - p.x, q.y - p.y };
+    struct v2 pq = { q.x - p.x, q.y - p.y };
     f32 r_x_s = v2_cross(r, s);
 
     if (r_x_s == 0.0f)
     {
-        // Todo: implement if necessary
+        // Todo: implement if necessary, we only need this if the ray and
+        // line segment are actually on the same line
     }
     else
     {
-        f32 qp_x_s = v2_cross(qp, s);
-        f32 qp_x_r = v2_cross(qp, r);
+        f32 pq_x_s = v2_cross(pq, s);
+        f32 pq_x_r = v2_cross(pq, r);
 
-        f32 t = qp_x_s / r_x_s;
-        f32 u = qp_x_r / r_x_s;
+        f32 t = pq_x_s / r_x_s;
+        f32 u = pq_x_r / r_x_s;
 
-        if (t > 0.0f && u > 0.0f && u < 1.0f)
+        if (t >= 0.0f && u >= 0.0f && u <= 1.0f)
         {
             collision->x = p.x + t * r.x;
             collision->y = p.y + t * r.y;
