@@ -219,9 +219,7 @@ void collision_map_dynamic_calculate(struct collision_map* cols,
 struct physics_world
 {
     struct rigid_body bodies[MAX_BODIES];
-    struct line_segment* walls;
     struct contact contacts[MAX_CONTACTS];
-    u32 num_walls;
     u32 num_contacts;
 };
 
@@ -426,7 +424,7 @@ b32 collision_detect_circle_line(struct collider* a, struct collider* b,
 }
 
 u32 body_collisions_check(struct rigid_body bodies[], u32 num_bodies,
-    struct contact contacts[], struct line_segment lines[], u32 num_lines)
+    struct contact contacts[])
 {
     u32 result = 0;
 
@@ -775,7 +773,7 @@ void world_update(struct physics_world* world, f32 step)
         // when multiple bodies are touching...?
 
         u32 num_contacts = body_collisions_check(world->bodies, MAX_BODIES,
-            world->contacts, world->walls, world->num_walls);
+            world->contacts);
 
         if (num_contacts)
         {
@@ -804,6 +802,64 @@ void world_wall_bodies_create(struct physics_world* world,
             (COLLISION_PLAYER | COLLISION_ENEMY | COLLISION_BULLET_ENEMY |
                 COLLISION_BULLET_PLAYER));
     }
+}
+
+struct ray_cast_collision
+{
+    struct rigid_body* body;
+    struct v2 position;
+    f32 length;
+};
+
+struct ray_cast_collision world_raycast(struct physics_world* world,
+    struct v2 start, struct v2 direction, u32 raycastWith)
+{
+    struct ray_cast_collision result = { 0 };
+
+    for (u32 i = 0; i < MAX_BODIES; i++)
+    {
+        struct rigid_body* body = &world->bodies[i];
+
+        if (!body->alive)
+        {
+            continue;
+        }
+
+        for (u32 j = 0; j < body->num_colliders; j++)
+        {
+            struct collider* collider = &body->colliders[j];
+
+            if (!(collider->tag & raycastWith))
+            {
+                continue;
+            }
+
+            // Todo: check raycast against other colliders too
+            if (collider->type == COLLIDER_LINE)
+            {
+                struct line_segment segment;
+                segment.start = collider->line.a;
+                segment.end = collider->line.b;
+
+                struct v2 position = { 0 };
+
+                if (intersect_ray_to_line_segment(start, direction, segment,
+                    &position))
+                {
+                    f32 length = v2_distance(start, position);
+
+                    if (!result.body || length < result.length)
+                    {
+                        result.body = body;
+                        result.length = length;
+                        result.position = position;
+                    }
+                }
+            }
+        }
+    }
+
+    return result;
 }
 
 void world_init(struct physics_world* world)

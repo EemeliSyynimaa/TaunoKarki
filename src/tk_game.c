@@ -498,17 +498,17 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
     struct v2 corners[MAX_WALL_CORNERS] = { 0 };
     u32 num_corners = 0;
 
-    struct v2 collision = { 0 };
+    struct ray_cast_collision collision = { 0 };
     struct v2 dir_left = v2_direction_from_angle(angle_start + angle_max);
     struct v2 dir_right = v2_direction_from_angle(angle_start - angle_max);
 
-    ray_cast_direction(&state->cols, position, dir_right, &collision,
+    collision = world_raycast(&state->world, position, dir_right,
         COLLISION_ALL);
-    corners[num_corners++] = collision;
+    corners[num_corners++] = collision.position;
 
-    ray_cast_direction(&state->cols, position, dir_left, &collision,
+    collision = world_raycast(&state->world, position, dir_left,
         COLLISION_ALL);
-    corners[num_corners++] = collision;
+    corners[num_corners++] = collision.position;
 
     for (u32 i = 0; i < state->cols.num_dynamics &&
         num_corners < MAX_WALL_CORNERS; i++)
@@ -555,43 +555,60 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
         f32 angle = f32_atan(direction.y, direction.x);
         f32 t = 0.00001f;
 
-        ray_cast_direction(&state->cols, position, direction, &collision,
+        collision = world_raycast(&state->world, position, direction,
             COLLISION_ALL);
 
-        struct v2 collision_temp = { 0 };
-        finals[num_finals++] = collision;
+        if (!collision.body)
+        {
+            LOG("Raycast returned zero!\n");
+        }
+
+        struct ray_cast_collision collision_temp = { 0 };
+        finals[num_finals++] = collision.position;
 
         if (render_lines)
         {
-            line_render(&info, position, collision, 0.005f, 0.005f, vp);
+            line_render(&info, position, collision.position, 0.005f, 0.005f,
+                vp);
         }
 
-        ray_cast_direction(&state->cols, position,
-            v2_direction_from_angle(angle + t), &collision_temp, COLLISION_ALL);
+        collision_temp = world_raycast(&state->world, position,
+            v2_direction_from_angle(angle + t), COLLISION_ALL);
 
-        if (v2_distance(collision_temp, collision) > 0.001f)
+
+        if (!collision_temp.body)
+        {
+            LOG("Raycast returned zero!\n");
+        }
+
+        if (v2_distance(collision_temp.position, collision.position) > 0.001f)
         {
             if (render_lines)
             {
-                line_render(&info, position, collision_temp, 0.005f, 0.005f,
-                    vp);
+                line_render(&info, position, collision_temp.position, 0.005f,
+                    0.005f, vp);
             }
 
-            finals[num_finals++] = collision_temp;
+            finals[num_finals++] = collision_temp.position;
         }
 
-        ray_cast_direction(&state->cols, position,
-            v2_direction_from_angle(angle - t), &collision_temp, COLLISION_ALL);
+        collision_temp = world_raycast(&state->world, position,
+            v2_direction_from_angle(angle - t), COLLISION_ALL);
 
-        if (v2_distance(collision_temp, collision) > 0.001f)
+        if (!collision_temp.body)
+        {
+            LOG("Raycast returned zero!\n");
+        }
+
+        if (v2_distance(collision_temp.position, collision.position) > 0.001f)
         {
             if (render_lines)
             {
-                line_render(&info, position, collision_temp, 0.005f, 0.005f,
-                    vp);
+                line_render(&info, position, collision_temp.position, 0.005f,
+                    0.005f, vp);
             }
 
-            finals[num_finals++] = collision_temp;
+            finals[num_finals++] = collision_temp.position;
         }
     }
 
@@ -651,18 +668,18 @@ void enemies_render(struct game_state* state)
 
             cube_renderer_add(&state->cube_renderer, &enemy->cube);
 
-            if (state->render_debug)
-            {
-                // Todo: calculate temporarily here
-                struct v2 eye = { PLAYER_RADIUS + 0.0001f, 0.0f };
-                eye = v2_rotate(eye, body->angle);
-                eye = v2_add(eye, body->position);
+            // if (state->render_debug)
+            // {
+            //     // Todo: calculate temporarily here
+            //     struct v2 eye = { PLAYER_RADIUS + 0.0001f, 0.0f };
+            //     eye = v2_rotate(eye, body->angle);
+            //     eye = v2_add(eye, body->position);
 
-                line_of_sight_render(state, eye, body->angle,
-                    enemy->vision_cone_size * ENEMY_LINE_OF_SIGHT_HALF,
-                    enemy->player_in_view ? colors[PURPLE] : colors[TEAL],
-                    true);
-            }
+            //     line_of_sight_render(state, eye, body->angle,
+            //         enemy->vision_cone_size * ENEMY_LINE_OF_SIGHT_HALF,
+            //         enemy->player_in_view ? colors[PURPLE] : colors[TEAL],
+            //         true);
+            // }
 
             health_bar_render(&state->render_info_health_bar, &state->camera,
                 body->position, enemy->health, ENEMY_HEALTH_MAX);
@@ -1436,6 +1453,8 @@ void level_init(struct game_state* state)
             ENEMY_STATE_WANDER_AROUND;
         body_add_circle_collider(body, v2_zero, PLAYER_RADIUS, COLLISION_ENEMY,
             (COLLISION_ENEMY | COLLISION_PLAYER | COLLISION_WALL));
+        body_add_rect_collider(body, v2_zero, PLAYER_RADIUS, PLAYER_RADIUS,
+            COLLISION_ENEMY_HITBOX, COLLISION_NONE);
 
         LOG("Enemy %u is %s\n", i,
             enemy->state == ENEMY_STATE_SLEEP ? "sleeping" : "wandering");
@@ -1464,6 +1483,8 @@ void level_init(struct game_state* state)
         state->player.cube.faces[0].texture = 11;
         body_add_circle_collider(body, v2_zero, PLAYER_RADIUS, COLLISION_PLAYER,
             (COLLISION_ENEMY | COLLISION_ITEM | COLLISION_WALL));
+        body_add_rect_collider(body, v2_zero, PLAYER_RADIUS, PLAYER_RADIUS,
+            COLLISION_PLAYER_HITBOX, COLLISION_NONE);
     }
 
     cube_data_color_update(&state->player.cube, color_player);

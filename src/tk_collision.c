@@ -8,15 +8,6 @@ struct line_segment
     u32 type;
 };
 
-struct ray_cast_collision
-{
-    struct v2 position;
-    struct v2 wall_start;
-    struct v2 wall_end;
-    // Todo: add wall normal? Could be nice
-    f32 ray_length;
-};
-
 struct collision_map
 {
     struct line_segment statics[MAX_STATICS];
@@ -137,6 +128,7 @@ b32 intersect_line_segment_to_line_segment(struct line_segment line_a,
 b32 intersect_ray_to_line_segment(struct v2 start, struct v2 direction,
     struct line_segment line_segment, struct v2* collision)
 {
+    // Todo: review this, sometimes returns no collision
     b32 result = false;
     struct v2 p = start;
     struct v2 r = direction;
