@@ -110,7 +110,10 @@ b32 intersect_line_segment_to_line_segment(struct line_segment line_a,
         f32 t = pq_x_s / r_x_s;
         f32 u = pq_x_r / r_x_s;
 
-        if (t >= 0.0f && t <= 1.0f && u >= 0.0f && u <= 1.0f)
+        // Note: this is for rounding errors
+        f32 e = 0.00001f;
+
+        if (t >= 0.0f && t <= 1.0f && u >= -e && u <= 1.0f + e)
         {
             if (collision)
             {
@@ -128,7 +131,6 @@ b32 intersect_line_segment_to_line_segment(struct line_segment line_a,
 b32 intersect_ray_to_line_segment(struct v2 start, struct v2 direction,
     struct line_segment line_segment, struct v2* collision)
 {
-    // Todo: review this, sometimes returns no collision
     b32 result = false;
     struct v2 p = start;
     struct v2 r = direction;
@@ -150,7 +152,10 @@ b32 intersect_ray_to_line_segment(struct v2 start, struct v2 direction,
         f32 t = pq_x_s / r_x_s;
         f32 u = pq_x_r / r_x_s;
 
-        if (t >= 0.0f && u >= 0.0f && u <= 1.0f)
+        // Note: this is for rounding errors
+        f32 e = 0.00001f;
+
+        if (t >= 0.0f && u >= -e && u <= 1.0f + e)
         {
             collision->x = p.x + t * r.x;
             collision->y = p.y + t * r.y;

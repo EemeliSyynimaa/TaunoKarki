@@ -553,14 +553,16 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
     {
         struct v2 direction = v2_direction(position, corners[i]);
         f32 angle = f32_atan(direction.y, direction.x);
-        f32 t = 0.00001f;
+        f32 t = 0.001f;
 
         collision = world_raycast(&state->world, position, direction,
             COLLISION_ALL);
 
         if (!collision.body)
         {
-            LOG("Raycast returned zero!\n");
+            LOG("Raycast returned zero! Pos: %f %f Dir: %f %f Len: %f\n",
+                position.x, position.y, direction.x, direction.y,
+                v2_length(direction));
         }
 
         struct ray_cast_collision collision_temp = { 0 };
