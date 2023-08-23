@@ -128,53 +128,6 @@ void get_body_rectangle(struct rigid_body* body, f32 width_half,
     }
 }
 
-f32 ray_cast_body(struct collision_map* cols, struct v2 start,
-    struct rigid_body* body, struct v2* collision, u32 flags)
-{
-    f32 result = 0.0f;
-
-    struct line_segment segments[4] = { 0 };
-    u32 num_segments = 0;
-
-    // Todo: test
-    for (u32 j = 0; j < body->num_colliders; j++)
-    {
-        struct collider* collider = &body->colliders[j];
-
-        if (collider->type == COLLIDER_CIRCLE)
-        {
-            get_body_rectangle(body, collider->circle.radius,
-                collider->circle.radius, segments);
-            num_segments = 4;
-        }
-        else if (collider->type == COLLIDER_LINE)
-        {
-            segments[0].start = collider->line.a;
-            segments[0].end = collider->line.b;
-            num_segments = 1;
-        }
-    }
-
-    for (u32 i = 0; i < num_segments; i++)
-    {
-        segments[i].type = flags;
-    }
-
-    struct v2 direction = v2_direction(start, body->position);
-
-    f32 target = ray_cast_to_direction(start, direction, segments, num_segments,
-        NULL, F32_MAX, flags) - 0.1f;
-
-    result = ray_cast_direction(cols, start, direction, collision, flags);
-
-    if (result < target)
-    {
-        result = 0.0f;
-    }
-
-    return result;
-}
-
 void collision_map_dynamic_calculate(struct collision_map* cols,
     struct rigid_body* bodies, u32 num_bodies)
 {
@@ -811,6 +764,53 @@ struct ray_cast_collision
     f32 length;
 };
 
+f32 ray_cast_body(struct collision_map* cols, struct v2 start,
+    struct rigid_body* body, struct v2* collision, u32 flags)
+{
+    f32 result = 0.0f;
+
+    struct line_segment segments[4] = { 0 };
+    u32 num_segments = 0;
+
+    // Todo: test
+    for (u32 j = 0; j < body->num_colliders; j++)
+    {
+        struct collider* collider = &body->colliders[j];
+
+        if (collider->type == COLLIDER_CIRCLE)
+        {
+            get_body_rectangle(body, collider->circle.radius,
+                collider->circle.radius, segments);
+            num_segments = 4;
+        }
+        else if (collider->type == COLLIDER_LINE)
+        {
+            segments[0].start = collider->line.a;
+            segments[0].end = collider->line.b;
+            num_segments = 1;
+        }
+    }
+
+    for (u32 i = 0; i < num_segments; i++)
+    {
+        segments[i].type = flags;
+    }
+
+    struct v2 direction = v2_direction(start, body->position);
+
+    f32 target = ray_cast_to_direction(start, direction, segments, num_segments,
+        NULL, F32_MAX, flags) - 0.1f;
+
+    result = ray_cast_direction(cols, start, direction, collision, flags);
+
+    if (result < target)
+    {
+        result = 0.0f;
+    }
+
+    return result;
+}
+
 struct ray_cast_collision world_raycast(struct physics_world* world,
     struct v2 start, struct v2 direction, u32 raycastWith)
 {
@@ -853,6 +853,31 @@ struct ray_cast_collision world_raycast(struct physics_world* world,
                         result.body = body;
                         result.length = length;
                         result.position = position;
+                    }
+                }
+            }
+            else if (collider->type == COLLIDER_RECT)
+            {
+                struct line_segment segments[4];
+
+                 get_body_rectangle(body, collider->rect.half_width,
+                    collider->rect.half_height, segments);
+
+                for (u32 i = 0; i < 4; i++)
+                {
+                    struct v2 position = { 0 };
+
+                    if (intersect_ray_to_line_segment(start, direction,
+                        segments[i], &position))
+                    {
+                        f32 length = v2_distance(start, position);
+
+                        if (!result.body || length < result.length)
+                        {
+                            result.body = body;
+                            result.length = length;
+                            result.position = position;
+                        }
                     }
                 }
             }

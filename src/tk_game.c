@@ -259,7 +259,7 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
                 continue;
             }
 
-            enemy->player_in_view = enemy_sees_player(&state->cols, enemy,
+            enemy->player_in_view = enemy_sees_player(&state->world, enemy,
                 &state->player);
 
             enemy->gun_shot_heard = enemy_hears_gun_shot(state->gun_shots,
@@ -267,7 +267,8 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
 
             if (enemy->player_in_view)
             {
-                enemy->player_last_seen_position = body->position;
+                enemy->player_last_seen_position =
+                    state->player.header.body->position;
                 enemy->player_last_seen_direction = v2_normalize(
                     body->velocity);
 

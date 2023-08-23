@@ -24,28 +24,37 @@ char enemy_state_str[][256] =
     "LOOK_FOR_PLAYER"
 };
 
-b32 enemy_sees_player(struct collision_map* cols, struct enemy* enemy,
+b32 enemy_sees_player(struct physics_world* world, struct enemy* enemy,
     struct player* player)
 {
     b32 result = false;
 
-    // Todo: maybe use direction_in_range() here instead
-    struct v2 direction_player = v2_direction(enemy->header.body->position,
-        player->header.body->position);
-    struct v2 direction_current = v2_direction_from_angle(
-        enemy->header.body->angle);
+    if (player->alive && enemy->state != ENEMY_STATE_SLEEP)
+    {
+        // Todo: maybe use direction_in_range() here instead
+        struct v2 direction_player = v2_direction(enemy->header.body->position,
+            player->header.body->position);
+        struct v2 direction_current = v2_direction_from_angle(
+            enemy->header.body->angle);
 
-    f32 angle_player = v2_angle(direction_player, direction_current);
+        f32 angle_player = v2_angle(direction_player, direction_current);
+        f32 distance_player = v2_distance(enemy->header.body->position,
+            player->header.body->position);
 
-    // Todo: enemy AI goes nuts if two enemies are on top of each other and all
-    // collisions are checked. Check collision against static (walls) and player
-    // for now
-    f32 player_ray_cast = ray_cast_body(cols, enemy->eye_position,
-        player->header.body, NULL, COLLISION_WALL | COLLISION_PLAYER);
+        // Todo: enemy AI goes nuts if two enemies are on top of each other
+        // and all collisions are checked. Check collision against static
+        // (walls) and player for now
+        if (angle_player < ENEMY_LINE_OF_SIGHT_HALF &&
+            distance_player < ENEMY_LINE_OF_SIGHT_DISTANCE)
+        {
+            struct ray_cast_collision collision = world_raycast(world,
+                enemy->eye_position, direction_player,
+                COLLISION_WALL | COLLISION_PLAYER_HITBOX);
 
-    result = enemy->state != ENEMY_STATE_SLEEP && player->alive &&
-        angle_player < ENEMY_LINE_OF_SIGHT_HALF && player_ray_cast > 0.0f &&
-        player_ray_cast < ENEMY_LINE_OF_SIGHT_DISTANCE;
+            result = collision.body->owner &&
+                *(u32*)(collision.body->owner) == ENTITY_PLAYER;
+        }
+    }
 
     return result;
 }
