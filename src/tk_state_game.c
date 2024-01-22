@@ -1,3 +1,4 @@
+#if 0
 // Todo: move data specific for this state from game state to here
 struct state_game_data
 {
@@ -252,3 +253,4 @@ struct state_interface state_game_create(struct game_state* state)
 
     return result;
 }
+#endif

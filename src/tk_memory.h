@@ -1,3 +1,4 @@
+#if 0
 struct memory_block
 {
     u64 size;
@@ -102,3 +103,4 @@ void* object_pool_get_next(struct object_pool* pool)
 
     return result;
 }
+#endif

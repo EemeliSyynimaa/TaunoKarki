@@ -1,3 +1,4 @@
+#if 0
 #include "tk_platform.h"
 #include "tk_math.h"
 #include "tk_state_interface.h"
@@ -1723,3 +1724,4 @@ void game_update(struct game_memory* memory, struct game_input* input)
         LOG("game_update: memory not initialized!\n");
     }
 }
+#endif

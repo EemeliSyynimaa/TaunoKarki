@@ -1,3 +1,4 @@
+#if 0
 #define MAX_SPRITES 1024
 
 struct sprite_vertex_data
@@ -167,3 +168,4 @@ void sprite_renderer_flush(struct sprite_renderer* renderer, struct m4* view,
         renderer->num_sprites = 0;
     }
 }
+#endif

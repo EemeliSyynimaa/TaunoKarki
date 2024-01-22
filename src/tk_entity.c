@@ -1,3 +1,4 @@
+#if 0
 // Todo: player, bullet, item and enemy are entities that have a rigid body
 // Todo: create proper entity system
 struct weapon
@@ -100,3 +101,4 @@ struct enemy
     b32 state_timer_finished;
     b32 player_dead;
 };
+#endif

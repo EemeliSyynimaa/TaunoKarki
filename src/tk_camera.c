@@ -1,3 +1,4 @@
+#if 0
 // Todo: separate ortho and perspective cameras
 struct camera
 {
@@ -57,3 +58,4 @@ struct v2 calculate_screen_pos(f32 pos_x, f32 pos_y, f32 pos_z,
 
     return result;
 }
+#endif

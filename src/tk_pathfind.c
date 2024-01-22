@@ -1,3 +1,4 @@
+#if 0
 struct node
 {
     // Todo: use integers instead?
@@ -296,3 +297,4 @@ void path_trim(struct collision_map* cols, struct v2 obj_start,
     *path_size = result_index;
     memory_copy(&result, path, *path_size * sizeof(struct v2));
 }
+#endif

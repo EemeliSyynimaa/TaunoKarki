@@ -1,4 +1,5 @@
 
+#if 0
 typedef u64 file_handle;
 
 typedef void type_file_open(file_handle* file, char* path, b32 read);
@@ -14,3 +15,4 @@ struct file_functions
     type_file_read* file_read;
     type_file_size_get* file_size_get;
 };
+#endif

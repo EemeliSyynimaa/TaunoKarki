@@ -1,3 +1,4 @@
+#if 0
 // Todo: clean this, not very nice
 struct v4 colors[] =
 {
@@ -38,3 +39,4 @@ enum
     YELLOW,
     WHITE
 };
+#endif

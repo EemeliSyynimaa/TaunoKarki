@@ -1,3 +1,4 @@
+#if 0
 #define MAX_PARTICLES 1024*32
 #define MAX_PARTICLE_EMITTERS 128
 #define INDEFINITE -1
@@ -555,3 +556,4 @@ void particle_renderer_flush(struct particle_renderer* renderer,
         renderer->num_particles = 0;
     }
 }
+#endif

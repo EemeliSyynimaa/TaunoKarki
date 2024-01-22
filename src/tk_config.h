@@ -1,3 +1,4 @@
+#if 0
 f32 PLAYER_ACCELERATION = 40.0f;
 f32 PLAYER_RADIUS       = 0.25f;
 f32 PLAYER_HEALTH_MAX   = 100.0f;
@@ -57,3 +58,4 @@ u32 WEAPON_LEVEL_MAX = 10;
 #define MAX_PATH 256
 // Todo: this really depends on the level size
 #define MAX_NODES 1024
+#endif

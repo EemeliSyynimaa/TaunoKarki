@@ -1,3 +1,4 @@
+#if 0
 // Todo: this is not really a particle thing but a primitive
 // Todo: create a primitive renderer
 struct particle_line
@@ -236,3 +237,4 @@ void triangle_render(struct mesh_render_info* info, struct v2 a, struct v2 b,
     api.gl.glUseProgram(0);
     api.gl.glBindVertexArray(0);
 }
+#endif

@@ -1,3 +1,4 @@
+#if 0
 #define MAX_LEVEL_SIZE 256
 
 f32 WALL_SIZE = 1.0f;
@@ -91,3 +92,4 @@ struct v2 tile_random_get(struct level* level, u32 type)
 
     return result;
 }
+#endif

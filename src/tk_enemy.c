@@ -1,3 +1,4 @@
+#if 0
 enum
 {
     ENEMY_STATE_SHOOT,
@@ -547,3 +548,4 @@ void enemy_state_look_for_player_update(struct enemy* enemy,
         }
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if 0
 struct vertex
 {
     struct v3 position;
@@ -13,3 +14,4 @@ struct mesh
     u32 ibo;
     u32 num_indices;
 };
+#endif

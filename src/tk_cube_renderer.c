@@ -1,3 +1,4 @@
+#if 0
 #define MAX_CUBES 1024
 #define MAX_CUBE_COLORS 2048
 
@@ -380,3 +381,4 @@ void cube_data_color_update(struct cube_data* cube, u32 color)
         cube->faces[i].color = color;
     }
 }
+#endif

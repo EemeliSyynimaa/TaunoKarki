@@ -1,3 +1,4 @@
+#if 0
 struct frame
 {
     struct circle circles[MAX_CIRCLES];
@@ -852,3 +853,4 @@ struct state_interface state_physics_create(struct game_state* state)
 
     return result;
 }
+#endif

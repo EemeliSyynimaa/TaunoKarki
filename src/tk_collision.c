@@ -1,3 +1,4 @@
+#if 0
 #define MAX_STATICS 1024
 #define MAX_BODIES 512
 
@@ -803,3 +804,4 @@ void reorder_corners_ccw(struct v2* corners, u32 count, struct v2 position)
         }
     }
 }
+#endif

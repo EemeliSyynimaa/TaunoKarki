@@ -1,9 +1,9 @@
+#if 0
 struct mouse
 {
     struct v2 world;
     struct v2 screen;
 };
-
 
 u32 key_times_pressed(struct key_state* state)
 {
@@ -25,3 +25,4 @@ f32 time_elapsed_seconds(u64 ticks_start, u64 ticks_end)
 
     return result;
 }
+#endif

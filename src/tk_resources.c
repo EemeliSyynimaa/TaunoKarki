@@ -1,3 +1,4 @@
+#if 0
 bool gl_check_error(char* t)
 {
     bool result = true;
@@ -679,3 +680,4 @@ u32 program_create(struct memory_block* block, char* vertex_shader_path,
 
     return program;
 }
+#endif

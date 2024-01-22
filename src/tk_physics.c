@@ -1,3 +1,4 @@
+#if 0
 #define MAX_CIRCLES 64
 #define MAX_CONTACTS 64
 #define MAX_COLLIDERS 8
@@ -856,3 +857,4 @@ struct rigid_body* entity_add_body(struct entity* entity,
 
     return result;
 }
+#endif

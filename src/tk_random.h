@@ -1,3 +1,4 @@
+#if 0
 // Todo: this is in global space, scary
 struct random_number_generator
 {
@@ -27,3 +28,4 @@ f32 f32_random(f32 min, f32 max)
 
     return result;
 }
+#endif

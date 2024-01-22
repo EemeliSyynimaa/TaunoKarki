@@ -1,3 +1,4 @@
+#if 0
 // Todo: maybe rename these to world, floor or smth...
 void level_generate(struct memory_block* stack, struct level* level,
     struct level* layout_mask)
@@ -417,3 +418,4 @@ void level_mask_init(struct level* mask)
         data[start_y * width + start_x] = 0;
     }
 }
+#endif

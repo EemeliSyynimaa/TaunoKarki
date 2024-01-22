@@ -1,4 +1,4 @@
-
+#if 0
 void bullet_create(struct object_pool* pool, struct physics_world* world,
     struct v2 position, struct v2 start_velocity, struct v2 direction,
     f32 speed, f32 damage, b32 player_owned, f32 size)
@@ -243,3 +243,4 @@ b32 weapon_level_up(struct weapon* weapon)
 
     return result;
 }
+#endif
