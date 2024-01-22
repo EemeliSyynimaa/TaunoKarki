@@ -1,3 +1,6 @@
+#ifndef __TK_PLATFORM_H__
+#define __TK_PLATFORM_H__
+
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -110,3 +113,5 @@ struct game_memory
     void* base;
     u64 size;
 };
+
+#endif
