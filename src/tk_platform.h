@@ -25,10 +25,16 @@ typedef bool        b32;
 #define TERABYTES(X) (GIGABYTES(X) * 1024)
 
 #include "tk_opengl_api.h"
-#include "tk_file_api.h"
-#include "tk_time_api.h"
 
+typedef u64 file_handle;
+
+typedef void type_file_open(file_handle* file, char* path, b32 read);
+typedef void type_file_close(file_handle* file);
+typedef void type_file_read(file_handle* file, s8* data, u64 bytes_max,
+    u64* bytes_read);
+typedef void type_file_size_get(file_handle* file, u64* file_size);
 typedef void type_log(char*, ...);
+typedef u64 type_ticks_get();
 
 struct key_state
 {
@@ -83,14 +89,17 @@ struct game_input
 struct api
 {
     struct gl_api gl;
-    struct file_functions file;
-    struct time_functions time;
+    type_file_open* file_open;
+    type_file_close* file_close;
+    type_file_read* file_read;
+    type_file_size_get* file_size_get;
+    type_ticks_get* ticks_get;
+    type_log* log;
 };
 
 struct game_init
 {
     struct api api;
-    type_log* log;
     s32 screen_width;
     s32 screen_height;
     u64 init_time;
@@ -98,11 +107,6 @@ struct game_init
 
 struct game_memory
 {
-    b32 initialized;
     void* base;
     u64 size;
 };
-
-type_log* _log;
-
-#define LOG(...) _log(__VA_ARGS__);

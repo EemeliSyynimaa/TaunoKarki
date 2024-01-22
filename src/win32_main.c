@@ -51,7 +51,7 @@ void win32_log(char* format, ...)
 
     // Note: write log to both debug and stdout
     OutputDebugStringA(buffer);
-    fprintf(stdout, buffer);
+    fprintf(stdout, "%s", buffer);
     fflush(stdout);
 }
 
@@ -74,7 +74,7 @@ b32 win32_game_lib_load()
     {
         game_lib_write_time_last = game_lib_write_time;
 
-        LOG("Trying to load new game lib...");
+        win32_log("Trying to load new game lib...");
 
         if (game_lib)
         {
@@ -92,7 +92,7 @@ b32 win32_game_lib_load()
             "game_update");
         game_init = (type_game_init*)GetProcAddress(game_lib, "game_init");
 
-        LOG("done\n");
+        win32_log("done\n");
 
         return true;
     }
@@ -187,7 +187,7 @@ void win32_file_open(file_handle* file, char* path, b32 read)
     else
     {
         // Todo: return error value
-        LOG("Could not open file: %s\n", path);
+        win32_log("Could not open file: %s\n", path);
     }
 }
 
@@ -202,7 +202,7 @@ void win32_file_close(file_handle* file)
     else
     {
         // Todo: return error value
-        LOG("Handle of invalid value\n");
+        win32_log("Handle of invalid value\n");
     }
 }
 
@@ -220,12 +220,12 @@ void win32_file_read(file_handle* file, s8* data, u64 bytes_max,
         if (ReadFile(*win32_handle, data, (DWORD)bytes_max,
             (LPDWORD)&num_bytes_read, 0))
         {
-            LOG("Read %llu/%llu bytes\n", num_bytes_read, bytes_max);
+            win32_log("Read %llu/%llu bytes\n", num_bytes_read, bytes_max);
         }
         else
         {
             // Todo: return error value
-            LOG("Could not read from file\n");
+            win32_log("Could not read from file\n");
         }
 
         *bytes_read = num_bytes_read;
@@ -241,7 +241,7 @@ void win32_file_read(file_handle* file, s8* data, u64 bytes_max,
     else
     {
         // Todo: return error value
-        LOG("Handle of invalid value\n");
+        win32_log("Handle of invalid value\n");
     }
 }
 
@@ -256,18 +256,18 @@ void win32_file_write(file_handle* file, s8* data, u64 bytes)
         if (WriteFile(*win32_handle, data, (DWORD)bytes,
             (LPDWORD)&num_bytes_written, 0))
         {
-            LOG("Wrote %llu/%llu bytes\n", num_bytes_written, bytes);
+            win32_log("Wrote %llu/%llu bytes\n", num_bytes_written, bytes);
         }
         else
         {
             // Todo: return error value
-            LOG("Could not write to file\n");
+            win32_log("Could not write to file\n");
         }
     }
     else
     {
         // Todo: return error value
-        LOG("Handle of invalid value\n");
+        win32_log("Handle of invalid value\n");
     }
 }
 
@@ -286,13 +286,13 @@ void win32_file_size_get(file_handle* handle, u64* file_size)
         else
         {
             // Todo: return error value
-            LOG("Could not read file size\n");
+            win32_log("Could not read file size\n");
         }
     }
     else
     {
         // Todo: return error value
-        LOG("Handle of invalid value\n");
+        win32_log("Handle of invalid value\n");
     }
 }
 
@@ -351,9 +351,6 @@ LRESULT CALLBACK MainWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam,
 s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, 
     LPSTR lpCmdLine, int nCmdShow)
 {
-    // Todo: clean function
-    _log = win32_log;
-
     WNDCLASSA dummy_class = { 0 };
     dummy_class.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
     dummy_class.lpfnWndProc = DefWindowProcA;
@@ -426,13 +423,14 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
     if (GetClientRect(hwnd, &client_area))
     {
-        LOG("Read client area: %dx%d\n", client_area.right, client_area.bottom);
+        win32_log("Read client area: %dx%d\n", client_area.right,
+            client_area.bottom);
         client_width = client_area.right;
         client_height = client_area.bottom;
     }
     else
     {
-        LOG("Reading client area failed, using %dx%d\n", screen_width, 
+        win32_log("Reading client area failed, using %dx%d\n", screen_width,
             screen_height);
     }
 
@@ -533,16 +531,17 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     
     ShowWindow(hwnd, nCmdShow);
 
-    api.file.file_open = win32_file_open;
-    api.file.file_close = win32_file_close;
-    api.file.file_read = win32_file_read;
-    api.file.file_size_get = win32_file_size_get;
+    api.file_open = win32_file_open;
+    api.file_close = win32_file_close;
+    api.file_read = win32_file_read;
+    api.file_size_get = win32_file_size_get;
 
-    api.time.ticks_get = win32_ticks_get;
+    api.ticks_get = win32_ticks_get;
+
+    api.log = win32_log;
 
     struct game_init init = { 0 };
     init.api = api;
-    init.log = win32_log;
     init.screen_width = client_width;
     init.screen_height = client_height;
 
@@ -638,14 +637,14 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                         {
                             running = false;
                             // input_process(&new_input.back, is_down);
-                            LOG("ESCAPE - %s\n", 
+                            win32_log("ESCAPE - %s\n",
                                 is_down ? "down" :"up");
                         }
                         else if (msg.wParam == VK_F1 && !was_down)
                         {
                             new_input.enable_debug_rendering =
                                 !new_input.enable_debug_rendering;
-                            LOG("Enable debug rendering: %s\n",
+                            win32_log("Enable debug rendering: %s\n",
                                 new_input.enable_debug_rendering ? "yes" :
                                     "no");
                         }
@@ -667,7 +666,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                         new_input.mouse_x = 0;
                                         new_input.mouse_y = 0;
                                     }
-                                    LOG("Playback: stop\n");
+                                    win32_log("Playback: stop\n");
                                 }
                                 else
                                 {
@@ -680,12 +679,14 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                             sizeof(
                                                 struct win32_recorded_inputs));
 
-                                        LOG("Playback: start\n");
+                                        win32_log("Playback: start\n");
                                         playing = true;
                                     }
                                     else
                                     {
-                                        LOG("Playback: no recorded inputs\n");
+                                        win32_log(
+                                            "Playback: no recorded inputs\n"
+                                        );
                                     }
                                 }
                             }
@@ -697,13 +698,13 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                 if (recording)
                                 {
                                     recording = false;
-                                    LOG("Record: stop\n");
+                                    win32_log("Record: stop\n");
                                 }
                                 else
                                 {
                                     CopyMemory(memory_recorded, memory.base,
                                         memory.size);
-                                    LOG("Record: start\n");
+                                    win32_log("Record: start\n");
                                     recording = true;
                                     inputs_recorded.count = 0;
                                     inputs_recorded.current = 0;
@@ -727,7 +728,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             {
                                 if (debug)
                                 {
-                                    LOG("W - %s\n", is_down ? "down" : "up");
+                                    win32_log("W - %s\n",
+                                        is_down ? "down" : "up");
                                 }
                                 win32_input_process(&new_input.move_up, 
                                     is_down);
@@ -736,7 +738,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             {
                                 if (debug)
                                 {
-                                    LOG("A - %s\n", is_down ? "down" : "up");
+                                    win32_log("A - %s\n",
+                                        is_down ? "down" : "up");
                                 }
                                 win32_input_process(&new_input.move_left, 
                                     is_down);
@@ -745,7 +748,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             {
                                 if (debug)
                                 {
-                                    LOG("S - %s\n", is_down ? "down" : "up");
+                                    win32_log("S - %s\n",
+                                        is_down ? "down" : "up");
                                 }
                                 win32_input_process(&new_input.move_down, 
                                     is_down);
@@ -754,7 +758,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             {
                                 if (debug)
                                 {
-                                    LOG("D - %s\n", is_down ? "down" : "up");
+                                    win32_log("D - %s\n",
+                                        is_down ? "down" : "up");
                                 }
                                 win32_input_process(&new_input.move_right, 
                                     is_down);
@@ -763,7 +768,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             {
                                 if (debug)
                                 {
-                                    LOG("R - %s\n", is_down ? "down" : "up");
+                                    win32_log("R - %s\n",
+                                        is_down ? "down" : "up");
                                 }
                                 win32_input_process(&new_input.reload, 
                                     is_down);
@@ -772,7 +778,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             {
                                 if (debug)
                                 {
-                                    LOG("1 - %s\n", is_down ? "down" : "up");
+                                    win32_log("1 - %s\n",
+                                        is_down ? "down" : "up");
                                 }
                                 win32_input_process(&new_input.weapon_slot_1,
                                     is_down);
@@ -781,7 +788,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             {
                                 if (debug)
                                 {
-                                    LOG("2 - %s\n", is_down ? "down" : "up");
+                                    win32_log("2 - %s\n",
+                                        is_down ? "down" : "up");
                                 }
                                 win32_input_process(&new_input.weapon_slot_2,
                                     is_down);
@@ -790,7 +798,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             {
                                 if (debug)
                                 {
-                                    LOG("3 - %s\n", is_down ? "down" : "up");
+                                    win32_log("3 - %s\n",
+                                        is_down ? "down" : "up");
                                 }
                                 win32_input_process(&new_input.weapon_slot_3,
                                     is_down);
@@ -799,7 +808,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             {
                                 if (debug)
                                 {
-                                    LOG("4 - %s\n", is_down ? "down" : "up");
+                                    win32_log("4 - %s\n",
+                                        is_down ? "down" : "up");
                                 }
                                 win32_input_process(&new_input.weapon_slot_4,
                                     is_down);
@@ -808,7 +818,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             {
                                 if (debug)
                                 {
-                                    LOG("5 - %s\n", is_down ? "down" : "up");
+                                    win32_log("5 - %s\n",
+                                        is_down ? "down" : "up");
                                 }
                                 win32_input_process(&new_input.weapon_slot_5,
                                     is_down);
@@ -817,7 +828,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             {
                                 if (debug)
                                 {
-                                    LOG("E - %s\n", is_down ? "down" : "up");
+                                    win32_log("E - %s\n",
+                                        is_down ? "down" : "up");
                                 }
                                 win32_input_process(&new_input.weapon_pick,
                                     is_down);
@@ -826,7 +838,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             {
                                 if (debug)
                                 {
-                                    LOG("I - %s\n", is_down ? "down" : "up");
+                                    win32_log("I - %s\n",
+                                        is_down ? "down" : "up");
                                 }
                                 win32_input_process(&new_input.physics_advance,
                                     is_down);
@@ -835,7 +848,8 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             {
                                 if (debug)
                                 {
-                                    LOG("O - %s\n", is_down ? "down" : "up");
+                                    win32_log("O - %s\n",
+                                        is_down ? "down" : "up");
                                 }
                                 win32_input_process(
                                     &new_input.physics_advance_step, is_down);
@@ -879,7 +893,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                 inputs_playback.current = 0;
                 CopyMemory(memory.base, memory_recorded, memory.size);
 
-                LOG("Playback: restart\n");
+                win32_log("Playback: restart\n");
             }
 
             new_input = inputs_playback.inputs[inputs_playback.current++];
@@ -893,7 +907,7 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
             if (inputs_recorded.count == RECORDED_INPUTS_MAX)
             {
-                LOG("Record: stop, input limit reached\n");
+                win32_log("Record: stop, input limit reached\n");
                 recording = false;
             }
         }
