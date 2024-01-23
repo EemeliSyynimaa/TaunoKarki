@@ -1,5 +1,6 @@
 #include "tk_platform.h"
 #include "tk_camera.c"
+#include "tk_memory.h"
 
 // Todo: possibly move this to tk_game.h
 struct game_state
@@ -7,13 +8,16 @@ struct game_state
     b32 initialized;
     f32 accumulator;
 
+    struct memory_block stack_permanent;
+    struct memory_block stack_temporary;
+
     struct camera camera;
     struct api api;
 };
 
 void game_init(struct game_memory* memory, struct game_init* init)
 {
-    struct game_state* state = (struct game_state*)memory;
+    struct game_state* state = (struct game_state*)memory->base;
 
     struct api api = state->api = init->api;
 
@@ -67,15 +71,25 @@ void game_init(struct game_memory* memory, struct game_init* init)
         api.gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         state->initialized = true;
 
+        // Init camera
         // Todo: test multiple cameras!
         state->camera.width = (f32)init->screen_width;
         state->camera.height = (f32)init->screen_height;
+
+        // Init permanent stack allocator
+        state->stack_permanent = stack_init(
+            (u8*)state + sizeof(struct game_state), MEGABYTES(512));
+
+        // Init temporary stack allocator (from the permanent stack)
+        state->stack_temporary = stack_init(
+            stack_alloc(&state->stack_permanent, MEGABYTES(256)),
+            MEGABYTES(256));
     }
 }
 
 void game_update(struct game_memory* memory, struct game_input* input)
 {
-    struct game_state* state = (struct game_state*)memory;
+    struct game_state* state = (struct game_state*)memory->base;
 
     f32 step = 1.0f / 120.0f;
 

@@ -141,7 +141,6 @@ u64 win32_ticks_frequency_get()
 // Todo: global for now
 u64 win32_ticks_frequency = 0;
 
-
 // Todo: in nanoseconds, eh
 u64 win32_ticks_get()
 {

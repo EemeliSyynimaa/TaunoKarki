@@ -1,9 +1,13 @@
-#if 0
+#ifndef __TK_MEMORY_H__
+#define __TK_MEMORY_H__
+
+#include "tk_platform.h"
+
 struct memory_block
 {
     u64 size;
-    s8* base;
-    s8* current;
+    u8* base;
+    u8* current;
 };
 
 struct object_pool
@@ -14,31 +18,40 @@ struct object_pool
     u32 next;
 };
 
-void* stack_alloc(struct memory_block* block, u64 size)
+static struct memory_block stack_init(u8* base_address, u64 size)
+{
+    struct memory_block result = { 0 };
+
+    result.base = base_address;
+    result.current = result.base;
+    result.size = size;
+
+    return result;
+}
+
+static void* stack_alloc(struct memory_block* block, u64 size)
 {
     // Todo: add alignment
     u64 bytes_left = (block->base + block->size) - block->current;
     u64 bytes_needed = size + sizeof(u64);
 
-    if (bytes_needed > bytes_left)
+    u8* result = 0;
+
+    if (bytes_needed <= bytes_left)
     {
-        LOG("Not enough memory\n");
+        result = block->current;
 
-        return 0;
+        block->current += size;
+
+        *((u64*)block->current) = size;
+
+        block->current += sizeof(u64);
     }
-
-    s8* result = block->current;
-
-    block->current += size;
-
-    *((u64*)block->current) = size;
-
-    block->current += sizeof(u64);
 
     return result;
 }
 
-void* stack_free(struct memory_block* block)
+static void* stack_free(struct memory_block* block)
 {
     if (block->current > block->base)
     {
@@ -48,15 +61,11 @@ void* stack_free(struct memory_block* block)
 
         block->current -= size;
     }
-    else
-    {
-        LOG("Nothing to free in memory\n");
-    }
 
     return block->current;
 }
 
-void memory_set(void* data, u64 size, u8 value)
+static void memory_set(void* data, u64 size, u8 value)
 {
     for (u32 i = 0; i < size; i++)
     {
@@ -64,7 +73,7 @@ void memory_set(void* data, u64 size, u8 value)
     }
 }
 
-void memory_copy(void* src, void* dest, u64 size)
+static void memory_copy(void* src, void* dest, u64 size)
 {
     for (u32 i = 0; i < size; i++)
     {
@@ -72,7 +81,7 @@ void memory_copy(void* src, void* dest, u64 size)
     }
 }
 
-void object_pool_init(struct object_pool* pool, u32 object_size,
+static void object_pool_init(struct object_pool* pool, u32 object_size,
     u32 object_count, struct memory_block* block)
 {
     pool->size = object_size;
@@ -81,13 +90,13 @@ void object_pool_init(struct object_pool* pool, u32 object_size,
     pool->data = stack_alloc(block, object_size * object_count);
 }
 
-void object_pool_reset(struct object_pool* pool)
+static void object_pool_reset(struct object_pool* pool)
 {
     memory_set(pool->data, pool->size * pool->count, 0);
     pool->next = 0;
 }
 
-void* object_pool_get_next(struct object_pool* pool)
+static void* object_pool_get_next(struct object_pool* pool)
 {
     void* result = 0;
 
@@ -103,4 +112,5 @@ void* object_pool_get_next(struct object_pool* pool)
 
     return result;
 }
+
 #endif
