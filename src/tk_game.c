@@ -1,17 +1,20 @@
 #include "tk_platform.h"
 #include "tk_camera.c"
 #include "tk_memory.h"
+#include "tk_random.h"
 
 // Todo: possibly move this to tk_game.h
 struct game_state
 {
     b32 initialized;
+
     f32 accumulator;
 
     struct memory_block stack_permanent;
     struct memory_block stack_temporary;
 
     struct camera camera;
+    struct random_number_generator rng;
     struct api api;
 };
 
@@ -84,6 +87,9 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->stack_temporary = stack_init(
             stack_alloc(&state->stack_permanent, MEGABYTES(256)),
             MEGABYTES(256));
+
+        // Init random seed
+        state->rng.seed = init->init_time;
     }
 }
 
