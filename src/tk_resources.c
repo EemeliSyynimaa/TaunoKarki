@@ -1,36 +1,40 @@
-#if 0
-bool gl_check_error(char* t)
-{
-    bool result = true;
+#include "tk_platform.h"
+#include "tk_memory.h"
+#include "tk_math.h"
+#include "tk_mesh.h"
 
-    GLenum error = api.gl.glGetError();
+b32 gl_log_error(struct api* api, char* t)
+{
+    b32 result = true;
+
+    GLenum error = api->gl.glGetError();
 
     switch (error)
     {
         case GL_NO_ERROR:
-            // LOG("glGetError(): NO ERRORS (%s)\n", t);
+            // api->log("glGetError(): NO ERRORS (%s)\n", t);
             result = false;
             break;
         case GL_INVALID_ENUM:
-            LOG("glGetError(): INVALID ENUM (%s)\n", t);
+            api->log("glGetError(): INVALID ENUM (%s)\n", t);
             break;
         case GL_INVALID_VALUE:
-            LOG("glGetError(): INVALID VALUE (%s)\n", t);
+            api->log("glGetError(): INVALID VALUE (%s)\n", t);
             break;
         case GL_INVALID_OPERATION:
-            LOG("glGetError(): INVALID OPERATION (%s)\n", t);
+            api->log("glGetError(): INVALID OPERATION (%s)\n", t);
             break;
         case GL_STACK_OVERFLOW:
-            LOG("glGetError(): STACK OVERFLOW (%s)\n", t);
+            api->log("glGetError(): STACK OVERFLOW (%s)\n", t);
             break;
         case GL_STACK_UNDERFLOW:
-            LOG("glGetError(): STACK UNDERFLOW (%s)\n", t);
+            api->log("glGetError(): STACK UNDERFLOW (%s)\n", t);
             break;
         case GL_OUT_OF_MEMORY:
-            LOG("glGetError(): OUT OF MEMORY (%s)\n", t);
+            api->log("glGetError(): OUT OF MEMORY (%s)\n", t);
             break;
         default:
-            LOG("glGetError(): UNKNOWN ERROR (%s)\n", t);
+            api->log("glGetError(): UNKNOWN ERROR (%s)\n", t);
             break;
     };
 
@@ -81,7 +85,7 @@ void tga_decode(s8* input, u64 out_size, s8* output, u32* width, u32* height)
     *height = i_spec->height;
 }
 
-u32 texture_create(struct memory_block* block, char* path)
+u32 texture_create(struct memory_block* block, struct api* api, char* path)
 {
     u64 read_bytes = 0;
     u32 target = GL_TEXTURE_2D;
@@ -94,36 +98,36 @@ u32 texture_create(struct memory_block* block, char* path)
     s8* file_data = 0;
     s8* pixel_data = 0;
 
-    api.file.file_open(&file, path, true);
-    api.file.file_size_get(&file, &file_size);
+    api->file_open(&file, path, true);
+    api->file_size_get(&file, &file_size);
 
     file_data = stack_alloc(block, file_size);
     pixel_data = stack_alloc(block, file_size);
 
-    api.file.file_read(&file, file_data, file_size, &read_bytes);
-    api.file.file_close(&file);
+    api->file_read(&file, file_data, file_size, &read_bytes);
+    api->file_close(&file);
 
     tga_decode(file_data, read_bytes, pixel_data, &width, &height);
 
-    api.gl.glGenTextures(1, &id);
-    api.gl.glBindTexture(target, id);
+    api->gl.glGenTextures(1, &id);
+    api->gl.glBindTexture(target, id);
 
-    api.gl.glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    api.gl.glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    api->gl.glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    api->gl.glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-    api.gl.glTexImage2D(target, 0, GL_RGBA, width, height, 0, GL_RGBA,
+    api->gl.glTexImage2D(target, 0, GL_RGBA, width, height, 0, GL_RGBA,
         GL_UNSIGNED_BYTE, pixel_data);
 
     stack_free(block);
     stack_free(block);
 
-    gl_check_error("texture_create");
+    gl_log_error(api, "texture_create");
 
     return id;
 }
 
-u32 texture_array_create(struct memory_block* block, char* path, u32 rows,
-    u32 cols)
+u32 texture_array_create(struct memory_block* block, struct api* api,
+    char* path, u32 rows, u32 cols)
 {
     file_handle file;
     u64 read_bytes = 0;
@@ -132,14 +136,14 @@ u32 texture_array_create(struct memory_block* block, char* path, u32 rows,
     s8* pixel_data = 0;
     s8* tile_data = 0;
 
-    api.file.file_open(&file, path, true);
-    api.file.file_size_get(&file, &file_size);
+    api->file_open(&file, path, true);
+    api->file_size_get(&file, &file_size);
 
     file_data = stack_alloc(block, file_size);
     pixel_data = stack_alloc(block, file_size);
 
-    api.file.file_read(&file, file_data, file_size, &read_bytes);
-    api.file.file_close(&file);
+    api->file_read(&file, file_data, file_size, &read_bytes);
+    api->file_close(&file);
 
     u32 image_width = 0;
     u32 image_height = 0;
@@ -151,15 +155,15 @@ u32 texture_array_create(struct memory_block* block, char* path, u32 rows,
     s32 depth = rows * cols;
 
     u32 id = 0;
-    api.gl.glGenTextures(1, &id);
-    api.gl.glBindTexture(GL_TEXTURE_2D_ARRAY, id);
+    api->gl.glGenTextures(1, &id);
+    api->gl.glBindTexture(GL_TEXTURE_2D_ARRAY, id);
 
-    api.gl.glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER,
+    api->gl.glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER,
         GL_LINEAR);
-    api.gl.glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER,
+    api->gl.glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER,
         GL_LINEAR);
 
-    api.gl.glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, tile_width,
+    api->gl.glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA, tile_width,
         tile_height, depth, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
 
     u32 channels = 4;
@@ -189,7 +193,7 @@ u32 texture_array_create(struct memory_block* block, char* path, u32 rows,
             }
 
             u32 i = y * cols + x;
-            api.gl.glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, tile_width,
+            api->gl.glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, i, tile_width,
                 tile_height, 1, GL_RGBA, GL_UNSIGNED_BYTE, tile_data);
         }
     }
@@ -198,7 +202,7 @@ u32 texture_array_create(struct memory_block* block, char* path, u32 rows,
     stack_free(block);
     stack_free(block);
 
-    gl_check_error("texture_array_create");
+    gl_log_error(api, "texture_array_create");
 
     return id;
 }
@@ -390,7 +394,8 @@ u64 string_read(char* data, char* str, u64 max_size)
     return bytes_read;
 }
 
-void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
+void mesh_create(struct memory_block* block, struct api* api, char* path,
+    struct mesh* mesh)
 {
     // Todo: remove statics
     static struct v3 in_vertices[4096];
@@ -421,8 +426,8 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
     s8* file_data = 0;
 
     file_handle file;
-    api.file.file_open(&file, path, true);
-    api.file.file_size_get(&file, &file_size);
+    api->file_open(&file, path, true);
+    api->file_size_get(&file, &file_size);
 
     // Todo: haxy way, but +1 for the ending \0, otherwise following loops may
     // fail if there's already something in the memory. Fix the loop to not go
@@ -430,8 +435,8 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
     file_data = stack_alloc(block, file_size + 1);
     *(file_data + file_size) = '\0';
 
-    api.file.file_read(&file, file_data, file_size, &read_bytes);
-    api.file.file_close(&file);
+    api->file_read(&file, file_data, file_size, &read_bytes);
+    api->file_close(&file);
 
     char* data = (char*)file_data;
     char str[255] = {0};
@@ -444,63 +449,63 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
         {
             struct v3* v = &in_vertices[num_in_vertices++];
 
-            // LOG("v");
+            // api->log("v");
 
             data += str_size;
             str_size = string_read(data, str, 255);
             v->x = f32_parse(str, NULL);
-            // LOG(" %f", v->x);
+            // api->log(" %f", v->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
             v->y = f32_parse(str, NULL);
-            // LOG(" %f", v->y);
+            // api->log(" %f", v->y);
 
             data += str_size;
             str_size = string_read(data, str, 255);
             v->z = f32_parse(str, NULL);
-            // LOG(" %f\n", v->z);
+            // api->log(" %f\n", v->z);
         }
         else if (str_compare(str, "vt"))
         {
             struct v2* uv = &in_uvs[num_in_uvs++];
 
-            // LOG("vt");
+            // api->log("vt");
 
             data += str_size;
             str_size = string_read(data, str, 255);
             uv->x = f32_parse(str, NULL);
-            // LOG(" %f", uv->x);
+            // api->log(" %f", uv->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
             uv->y = f32_parse(str, NULL);
-            // LOG(" %f\n", uv->y);
+            // api->log(" %f\n", uv->y);
         }
         else if (str_compare(str, "vn"))
         {
             struct v3* n = &in_normals[num_in_normals++];
 
-            // LOG("vn");
+            // api->log("vn");
 
             data += str_size;
             str_size = string_read(data, str, 255);
             n->x = f32_parse(str, NULL);
-            // LOG(" %f", n->x);
+            // api->log(" %f", n->x);
 
             data += str_size;
             str_size = string_read(data, str, 255);
             n->y = f32_parse(str, NULL);
-            // LOG(" %f", n->y);
+            // api->log(" %f", n->y);
 
             data += str_size;
             str_size = string_read(data, str, 255);
             n->z = f32_parse(str, NULL);
-            // LOG(" %f\n", n->z);
+            // api->log(" %f\n", n->z);
         }
         else if (str_compare(str, "f"))
         {
-            // LOG("f");
+            // api->log("f");
 
             for (u32 i = 0; i < 3; i++)
             {
@@ -513,20 +518,20 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
 
                 u64 bytes_read = 0;
                 face[0] = s32_parse(s, &bytes_read);
-                // LOG(" %d", face[0]);
+                // api->log(" %d", face[0]);
                 s += bytes_read + 1;
-                // LOG("%c", *s++);
+                // api->log("%c", *s++);
                 face[1] = s32_parse(s, &bytes_read);
-                // LOG("%d", face[1]);
+                // api->log("%d", face[1]);
                 s += bytes_read + 1;
-                // LOG("%c", *s++);
+                // api->log("%c", *s++);
                 face[2] = s32_parse(s, &bytes_read);
-                // LOG("%d", face[2]);
+                // api->log("%d", face[2]);
 
                 num_in_faces += 3;
             }
 
-            // LOG("\n");
+            // api->log("\n");
         }
         else
         {
@@ -574,49 +579,49 @@ void mesh_create(struct memory_block* block, char* path, struct mesh* mesh)
 
     stack_free(block);
 
-    LOG("Vertices: %d Indices: %d\n", num_vertices, mesh->num_indices);
-    api.gl.glGenVertexArrays(1, &mesh->vao);
-    api.gl.glBindVertexArray(mesh->vao);
+    api->log("Vertices: %d Indices: %d\n", num_vertices, mesh->num_indices);
+    api->gl.glGenVertexArrays(1, &mesh->vao);
+    api->gl.glBindVertexArray(mesh->vao);
 
-    api.gl.glGenBuffers(1, &mesh->vbo);
-    api.gl.glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-    api.gl.glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct vertex),
+    api->gl.glGenBuffers(1, &mesh->vbo);
+    api->gl.glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+    api->gl.glBufferData(GL_ARRAY_BUFFER, num_vertices * sizeof(struct vertex),
         vertices, GL_DYNAMIC_DRAW);
 
-    api.gl.glGenBuffers(1, &mesh->ibo);
-    api.gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
-    api.gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+    api->gl.glGenBuffers(1, &mesh->ibo);
+    api->gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->ibo);
+    api->gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER,
         mesh->num_indices * sizeof(u32), indices, GL_DYNAMIC_DRAW);
 
-    api.gl.glEnableVertexAttribArray(0);
-    api.gl.glEnableVertexAttribArray(1);
-    api.gl.glEnableVertexAttribArray(2);
-    api.gl.glEnableVertexAttribArray(3);
+    api->gl.glEnableVertexAttribArray(0);
+    api->gl.glEnableVertexAttribArray(1);
+    api->gl.glEnableVertexAttribArray(2);
+    api->gl.glEnableVertexAttribArray(3);
 
     // Todo: implement offsetof
-    api.gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
+    api->gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
         sizeof(struct vertex), (void*)0);
-    api.gl.glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
+    api->gl.glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
         sizeof(struct vertex), (void*)12);
-    api.gl.glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
+    api->gl.glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
         sizeof(struct vertex), (void*)20);
-    api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
+    api->gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
         sizeof(struct vertex), (void*)32);
 
-    gl_check_error("mesh_create");
+    gl_log_error(api, "mesh_create");
 }
 
-u32 program_create(struct memory_block* block, char* vertex_shader_path,
-    char* fragment_shader_path)
+u32 program_create(struct memory_block* block, struct api* api,
+    char* vertex_shader_path, char* fragment_shader_path)
 {
     u64 read_bytes = 0;
     u64 file_size = 0;
     s8* file_data = 0;
 
     u32 result = 0;
-    u32 program = api.gl.glCreateProgram();
-    u32 vertex_shader = api.gl.glCreateShader(GL_VERTEX_SHADER);
-    u32 fragment_shader = api.gl.glCreateShader(GL_FRAGMENT_SHADER);
+    u32 program = api->gl.glCreateProgram();
+    u32 vertex_shader = api->gl.glCreateShader(GL_VERTEX_SHADER);
+    u32 fragment_shader = api->gl.glCreateShader(GL_FRAGMENT_SHADER);
 
     // Todo: implement assert
     // assert(program);
@@ -628,56 +633,55 @@ u32 program_create(struct memory_block* block, char* vertex_shader_path,
     // These should be replaced with 0.
     file_handle file;
 
-    api.file.file_open(&file, vertex_shader_path, true);
-    api.file.file_size_get(&file, &file_size);
+    api->file_open(&file, vertex_shader_path, true);
+    api->file_size_get(&file, &file_size);
 
     // Reserve space for 0 at the end of shader data.
     file_data = stack_alloc(block, file_size + 1);
     *(file_data + file_size) = 0;
 
-    api.file.file_read(&file, file_data, file_size, &read_bytes);
-    api.file.file_close(&file);
+    api->file_read(&file, file_data, file_size, &read_bytes);
+    api->file_close(&file);
 
     const GLchar* temp = (const GLchar*)file_data;
 
-    api.gl.glShaderSource(vertex_shader, 1, &temp, 0);
-    api.gl.glCompileShader(vertex_shader);
-    api.gl.glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, (GLint*)&result);
+    api->gl.glShaderSource(vertex_shader, 1, &temp, 0);
+    api->gl.glCompileShader(vertex_shader);
+    api->gl.glGetShaderiv(vertex_shader, GL_COMPILE_STATUS, (GLint*)&result);
     // assert(result);
 
     stack_free(block);
 
-    api.file.file_open(&file, fragment_shader_path, true);
-    api.file.file_size_get(&file, &file_size);
+    api->file_open(&file, fragment_shader_path, true);
+    api->file_size_get(&file, &file_size);
 
     // Reserve space for 0 at the end of shader data.
     file_data = stack_alloc(block, file_size + 1);
     *(file_data + file_size) = 0;
 
-    api.file.file_read(&file, file_data, file_size, &read_bytes);
-    api.file.file_close(&file);
+    api->file_read(&file, file_data, file_size, &read_bytes);
+    api->file_close(&file);
 
     temp = (const GLchar*)file_data;
 
-    api.gl.glShaderSource(fragment_shader, 1, &temp, 0);
-    api.gl.glCompileShader(fragment_shader);
-    api.gl.glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, (GLint*)&result);
+    api->gl.glShaderSource(fragment_shader, 1, &temp, 0);
+    api->gl.glCompileShader(fragment_shader);
+    api->gl.glGetShaderiv(fragment_shader, GL_COMPILE_STATUS, (GLint*)&result);
     // assert(result);
 
     stack_free(block);
 
-    api.gl.glAttachShader(program, vertex_shader);
-    api.gl.glAttachShader(program, fragment_shader);
+    api->gl.glAttachShader(program, vertex_shader);
+    api->gl.glAttachShader(program, fragment_shader);
 
-    api.gl.glLinkProgram(program);
-    api.gl.glGetProgramiv(program, GL_LINK_STATUS, (GLint*)&result);
+    api->gl.glLinkProgram(program);
+    api->gl.glGetProgramiv(program, GL_LINK_STATUS, (GLint*)&result);
     // assert(result);
 
-    api.gl.glDeleteShader(vertex_shader);
-    api.gl.glDeleteShader(fragment_shader);
+    api->gl.glDeleteShader(vertex_shader);
+    api->gl.glDeleteShader(fragment_shader);
 
-    gl_check_error("shader_create");
+    gl_log_error(api, "shader_create");
 
     return program;
 }
-#endif

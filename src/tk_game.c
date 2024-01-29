@@ -1,21 +1,27 @@
 #include "tk_platform.h"
-#include "tk_camera.c"
 #include "tk_memory.h"
 #include "tk_random.h"
 
-// Todo: possibly move this to tk_game.h
+#include "tk_camera.c"
+#include "tk_resources.c"
+
 struct game_state
 {
-    b32 initialized;
-
-    f32 accumulator;
-
     struct memory_block stack_permanent;
     struct memory_block stack_temporary;
 
     struct camera camera;
     struct random_number_generator rng;
     struct api api;
+
+    b32 initialized;
+    f32 accumulator;
+
+    u32 shader;
+    u32 shader_simple;
+    u32 shader_cube;
+    u32 shader_sprite;
+    u32 shader_particle;
 };
 
 void game_init(struct game_memory* memory, struct game_init* init)
@@ -90,6 +96,27 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         // Init random seed
         state->rng.seed = init->init_time;
+
+        // Init resources
+        state->shader = program_create(&state->stack_temporary, &api,
+            "assets/shaders/vertex.glsl",
+            "assets/shaders/fragment.glsl");
+
+        state->shader_simple = program_create(&state->stack_temporary, &api,
+            "assets/shaders/vertex.glsl",
+            "assets/shaders/fragment_simple.glsl");
+
+        state->shader_cube = program_create(&state->stack_temporary, &api,
+            "assets/shaders/vertex_cube.glsl",
+            "assets/shaders/fragment_cube.glsl");
+
+        state->shader_sprite = program_create(&state->stack_temporary, &api,
+            "assets/shaders/vertex_sprite.glsl",
+            "assets/shaders/fragment_sprite.glsl");
+
+        state->shader_particle = program_create(&state->stack_temporary, &api,
+            "assets/shaders/vertex_particle.glsl",
+            "assets/shaders/fragment_particle.glsl");
     }
 }
 
