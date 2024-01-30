@@ -5,6 +5,9 @@
 #include "tk_camera.c"
 #include "tk_resources.c"
 
+#include "tk_scene_interface.h"
+#include "tk_scene_physics.c"
+
 struct game_state
 {
     struct memory_block stack_permanent;
@@ -27,6 +30,9 @@ struct game_state
     struct mesh mesh_wall;
     struct mesh mesh_floor;
     struct mesh mesh_triangle;
+
+    struct scene_interface scene_physics;
+    struct scene_interface* scene_current;
 };
 
 void game_init(struct game_memory* memory, struct game_init* init)
@@ -131,6 +137,11 @@ void game_init(struct game_memory* memory, struct game_init* init)
         mesh_create(&state->stack_temporary, &api,
             "assets/meshes/triangle.mesh", &state->mesh_triangle);
 
+        state->scene_physics = scene_physics_create(&state->stack_permanent);
+
+        state->scene_current = &state->scene_physics;
+        state->scene_current->init(state->scene_current->data);
+
         state->initialized = true;
     }
 }
@@ -147,7 +158,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
     {
         state->accumulator -= step;
 
-        // Todo: update current state
+        state->scene_current->update(state->scene_current->data, input, step);
 
         u32 num_keys = sizeof(input->keys)/sizeof(input->keys[0]);
 
@@ -159,5 +170,5 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
     state->api.gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Todo: render current state
+    state->scene_current->render(state->scene_current->data);
 }
