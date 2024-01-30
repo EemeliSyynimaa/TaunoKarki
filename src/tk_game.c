@@ -17,11 +17,16 @@ struct game_state
     b32 initialized;
     f32 accumulator;
 
-    u32 shader;
+    u32 shader_basic;
     u32 shader_simple;
     u32 shader_cube;
     u32 shader_sprite;
     u32 shader_particle;
+
+    struct mesh mesh_sphere;
+    struct mesh mesh_wall;
+    struct mesh mesh_floor;
+    struct mesh mesh_triangle;
 };
 
 void game_init(struct game_memory* memory, struct game_init* init)
@@ -78,7 +83,6 @@ void game_init(struct game_memory* memory, struct game_init* init)
         api.gl.glDepthFunc(GL_LESS);
         api.gl.glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         api.gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        state->initialized = true;
 
         // Init camera
         // Todo: test multiple cameras!
@@ -98,7 +102,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->rng.seed = init->init_time;
 
         // Init resources
-        state->shader = program_create(&state->stack_temporary, &api,
+        state->shader_basic = program_create(&state->stack_temporary, &api,
             "assets/shaders/vertex.glsl",
             "assets/shaders/fragment.glsl");
 
@@ -117,6 +121,17 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->shader_particle = program_create(&state->stack_temporary, &api,
             "assets/shaders/vertex_particle.glsl",
             "assets/shaders/fragment_particle.glsl");
+
+        mesh_create(&state->stack_temporary, &api, "assets/meshes/sphere.mesh",
+            &state->mesh_sphere);
+        mesh_create(&state->stack_temporary, &api, "assets/meshes/wall.mesh",
+            &state->mesh_wall);
+        mesh_create(&state->stack_temporary, &api, "assets/meshes/floor.mesh",
+            &state->mesh_floor);
+        mesh_create(&state->stack_temporary, &api,
+            "assets/meshes/triangle.mesh", &state->mesh_triangle);
+
+        state->initialized = true;
     }
 }
 
