@@ -22,7 +22,7 @@
 #include "tk_enemy.c"
 
 void collision_map_render(struct game_state* state, struct line_segment* cols,
-    u32 num_cols)
+    u32 num_cols, struct camera* camera)
 {
     struct mesh_render_info info = { 0 };
     info.color = colors[RED];
@@ -30,7 +30,7 @@ void collision_map_render(struct game_state* state, struct line_segment* cols,
     info.texture = state->texture_tileset;
     info.shader = state->shader_simple;
 
-    struct m4 vp = m4_mul_m4(state->camera.view, state->camera.perspective);
+    struct m4 vp = m4_mul_m4(camera->view, camera->projection);
 
     for (u32 i = 0; i < num_cols; i++)
     {
@@ -417,8 +417,9 @@ void enemies_update(struct game_state* state, struct game_input* input, f32 dt)
     }
 }
 
-void line_of_sight_render(struct game_state* state, struct v2 position,
-    f32 angle_start, f32 angle_max, struct v4 color, b32 render_lines)
+void line_of_sight_render(struct game_state* state, struct camera* camera,
+    struct v2 position, f32 angle_start, f32 angle_max, struct v4 color,
+    b32 render_lines)
 {
     struct v2 corners[MAX_WALL_CORNERS] = { 0 };
     u32 num_corners = 0;
@@ -472,7 +473,7 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
     info_triangle.color = color;
     info_triangle.shader = state->shader_simple;
 
-    struct m4 vp = m4_mul_m4(state->camera.view, state->camera.perspective);
+    struct m4 vp = m4_mul_m4(camera->view, camera->projection);
 
     for (u32 i = 0; i < num_corners; i++)
     {
@@ -548,7 +549,8 @@ void line_of_sight_render(struct game_state* state, struct v2 position,
     }
 }
 
-void enemies_render(struct game_state* state)
+void enemies_render(struct game_state* state, struct camera* camera_game,
+    struct camera* camera_gui)
 {
     for (u32 i = 0; i < MAX_ENEMIES; i++)
     {
@@ -608,10 +610,13 @@ void enemies_render(struct game_state* state)
             //         true);
             // }
 
-            health_bar_render(&state->render_info_health_bar, &state->camera,
-                body->position, enemy->health, ENEMY_HEALTH_MAX);
-            ammo_bar_render(&state->render_info_ammo_bar, &state->camera,
-                body->position, (f32)enemy->weapon.ammo,
+            struct v2 screen_pos = calculate_screen_pos(body->position.x,
+                body->position.y + 0.5f, 0.5f, camera_game);
+
+            health_bar_render(&state->render_info_health_bar, camera_gui,
+                screen_pos, enemy->health, ENEMY_HEALTH_MAX);
+            ammo_bar_render(&state->render_info_ammo_bar, camera_gui,
+                screen_pos, (f32)enemy->weapon.ammo,
                 (f32)enemy->weapon.ammo_max);
 
 #if 0
@@ -874,7 +879,7 @@ void bullets_update(struct game_state* state, struct game_input* input, f32 dt)
     }
 }
 
-void bullets_render(struct game_state* state)
+void bullets_render(struct game_state* state, struct camera* camera)
 {
     struct mesh_render_info info = { 0 };
     info.color = colors[WHITE];
@@ -900,8 +905,8 @@ void bullets_render(struct game_state* state)
             struct m4 model = m4_mul_m4(scale, rotation);
             model = m4_mul_m4(model, transform);
 
-            struct m4 mvp = m4_mul_m4(model, state->camera.view);
-            mvp = m4_mul_m4(mvp, state->camera.perspective);
+            struct m4 mvp = m4_mul_m4(model, camera->view);
+            mvp = m4_mul_m4(mvp, camera->projection);
 
             mesh_render(&info, &mvp);
         }
@@ -1072,13 +1077,14 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
     }
 }
 
-void player_render(struct game_state* state)
+void player_render(struct game_state* state, struct camera* camera_game,
+    struct camera* camera_gui)
 {
     struct player* player = &state->player;
 
     if (player->alive)
     {
-        struct rigid_body*body = player->header.body;
+        struct rigid_body* body = player->header.body;
 
         struct m4 transform = m4_translate(body->position.x,
             body->position.y, PLAYER_RADIUS);
@@ -1101,7 +1107,7 @@ void player_render(struct game_state* state)
             eye = v2_rotate(eye, body->angle);
             eye = v2_add(eye, body->position);
 
-            line_of_sight_render(state, eye, body->angle,
+            line_of_sight_render(state, camera_game, eye, body->angle,
                 ENEMY_LINE_OF_SIGHT_HALF, color, true);
         }
 
@@ -1163,14 +1169,16 @@ void player_render(struct game_state* state)
                 state->shader_simple, colors[RED]);
         }
 #endif
+        struct v2 screen_pos = calculate_screen_pos(body->position.x,
+            body->position.y + 0.5f, 0.5f, camera_game);
 
         struct weapon* weapon = &player->weapon;
-        health_bar_render(&state->render_info_health_bar, &state->camera,
-            body->position, player->health, PLAYER_HEALTH_MAX);
-        ammo_bar_render(&state->render_info_ammo_bar, &state->camera,
-            body->position, (f32)weapon->ammo, (f32)weapon->ammo_max);
-        weapon_level_bar_render(&state->render_info_weapon_bar, &state->camera,
-            body->position, weapon->level, WEAPON_LEVEL_MAX);
+        health_bar_render(&state->render_info_health_bar, camera_gui,
+            screen_pos, player->health, PLAYER_HEALTH_MAX);
+        ammo_bar_render(&state->render_info_ammo_bar, camera_gui,
+            screen_pos, (f32)weapon->ammo, (f32)weapon->ammo_max);
+        weapon_level_bar_render(&state->render_info_weapon_bar, camera_gui,
+            screen_pos, weapon->level, WEAPON_LEVEL_MAX);
     }
 }
 
@@ -1287,7 +1295,7 @@ void particle_lines_update(struct game_state* state, struct game_input* input,
     }
 }
 
-void particle_lines_render(struct game_state* state)
+void particle_lines_render(struct game_state* state, struct camera* camera)
 {
     // Todo: hax, but this fixes transparent blending
     f32 depth = 0.0f;
@@ -1298,7 +1306,7 @@ void particle_lines_render(struct game_state* state)
     info.texture = state->texture_tileset;
     info.shader = state->shader_simple;
 
-    struct m4 vp = m4_mul_m4(state->camera.view, state->camera.perspective);
+    struct m4 vp = m4_mul_m4(camera->view, camera->projection);
 
     for (u32 i = 0; i < MAX_PARTICLES; i++)
     {
@@ -1418,7 +1426,7 @@ void level_init(struct game_state* state)
 
     state->mouse.world = state->player.header.body->position;
 
-    struct camera* camera = &state->camera;
+    struct camera* camera = &state->camera_game;
     camera->position.xy = state->level.start_pos;
     camera->target.xy = state->level.start_pos;
     camera->target.z = 3.75f;
@@ -1520,8 +1528,10 @@ void game_init(struct game_memory* memory, struct game_init* init)
         api.gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
         // Init screen size
-        state->camera.screen_width = (f32)init->screen_width;
-        state->camera.screen_height = (f32)init->screen_height;
+        state->camera_game.width = (f32)init->screen_width;
+        state->camera_game.height = (f32)init->screen_height;
+        state->camera_gui.width = (f32)init->screen_width;
+        state->camera_gui.height = (f32)init->screen_height;
 
         // Init permanent stack allocator
         state->stack_permanent.base = (s8*)state + sizeof(struct game_state);

@@ -70,13 +70,15 @@ void state_game_init(void* data)
 
     particle_emitter_create(&game->particle_system, &config, true);
 
-    struct camera* camera = &game->camera;
-    camera->perspective = m4_perspective(60.0f,
-        (f32)camera->screen_width / (f32)camera->screen_height, 0.1f, 15.0f);
-    camera->perspective_inverse = m4_inverse(camera->perspective);
-    camera->ortho = m4_orthographic(0.0f, camera->screen_width, 0.0f,
-        camera->screen_height, 0.0f, 1.0f);
-    camera->ortho_inverse = m4_inverse(camera->ortho);
+    struct camera* camera = &game->camera_game;
+    camera->projection = m4_perspective(60.0f,
+        (f32)camera->width / (f32)camera->height, 0.1f, 15.0f);
+    camera->projection_inverse = m4_inverse(camera->projection);
+
+    camera = &game->camera_gui;
+    camera->projection = m4_orthographic(0.0f, camera->width, 0.0f,
+        camera->height, 0.0f, 1.0f);
+    camera->projection_inverse = m4_inverse(camera->projection);
 
     game->render_debug = false;
 
@@ -126,7 +128,7 @@ void state_game_update(void* data, struct game_input* input, f32 step)
         plr_pos.x < start_max.x && plr_pos.y > start_min.y &&
         plr_pos.y < start_max.y;
 
-    struct camera* camera = &game->camera;
+    struct camera* camera = &game->camera_game;
     struct mouse* mouse = &game->mouse;
 
     if (game->level_clear_notify > 0.0f)
@@ -204,7 +206,8 @@ void state_game_render(void* data)
 {
     struct state_game_data* state = (struct state_game_data*)data;
     struct game_state* game = state->base;
-    struct camera* camera = &game->camera;
+    struct camera* camera_game = &game->camera_game;
+    struct camera* camera_gui = &game->camera_gui;
 
     if (game->level_cleared)
     {
@@ -212,26 +215,27 @@ void state_game_render(void* data)
     }
 
     level_render(&game->level, &game->sprite_renderer, &game->cube_renderer,
-        camera->perspective, camera->view);
-    player_render(game);
-    enemies_render(game);
+        camera_game->projection, camera_game->view);
+    player_render(game, camera_game, camera_gui);
+    enemies_render(game, camera_game, camera_gui);
     items_render(&game->item_pool, &game->cube_renderer);
     particle_system_render(&game->particle_system, &game->particle_renderer);
 
     particle_renderer_sort(&game->particle_renderer);
 
-    cube_renderer_flush(&game->cube_renderer, &camera->view,
-        &camera->perspective);
-    sprite_renderer_flush(&game->sprite_renderer, &camera->view,
-        &camera->perspective);
-    particle_renderer_flush(&game->particle_renderer, &camera->view,
-        &camera->perspective);
+    cube_renderer_flush(&game->cube_renderer, &camera_game->view,
+        &camera_game->projection);
+    sprite_renderer_flush(&game->sprite_renderer, &camera_game->view,
+        &camera_game->projection);
+    particle_renderer_flush(&game->particle_renderer, &camera_game->view,
+        &camera_game->projection);
 
-    particle_lines_render(game);
+    particle_lines_render(game, camera_game);
 
     if (game->render_debug)
     {
-        collision_map_render(game, game->cols.statics, game->cols.num_statics);
+        collision_map_render(game, game->cols.statics, game->cols.num_statics,
+            camera_game);
     }
 }
 

@@ -32,7 +32,8 @@ struct game_state
     struct player player;
     struct enemy enemies[MAX_ENEMIES];
     struct particle_line particle_lines[MAX_PARTICLES];
-    struct camera camera;
+    struct camera camera_game;
+    struct camera camera_gui;
     struct mouse mouse;
     struct mesh sphere;
     struct mesh wall;

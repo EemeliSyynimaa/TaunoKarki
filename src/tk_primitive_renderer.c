@@ -64,14 +64,11 @@ void gui_rect_render(struct mesh_render_info* info, f32 x, f32 y, f32 width,
     mesh_render(info, &mp);
 }
 
-void health_bar_render(struct mesh_render_info* info, struct camera* camera,
-    struct v2 position, f32 health, f32 health_max)
+void health_bar_render(struct mesh_render_info* info,struct camera* camera,
+    struct v2 screen_pos, f32 health, f32 health_max)
 {
     f32 bar_length_max = 70.0f;
     f32 bar_length = health / health_max * bar_length_max;
-
-    struct v2 screen_pos = calculate_screen_pos(position.x, position.y + 0.5f,
-        0.5f, camera);
 
     f32 x = screen_pos.x - bar_length_max * 0.5f;
     f32 y = screen_pos.y + 12.0f;
@@ -79,11 +76,11 @@ void health_bar_render(struct mesh_render_info* info, struct camera* camera,
     f32 height = 10.0f;
     f32 angle = 0.0f;
 
-    gui_rect_render(info, x, y, width, height, angle, camera->ortho);
+    gui_rect_render(info, x, y, width, height, angle, camera->projection);
 }
 
 void ammo_bar_render(struct mesh_render_info* info, struct camera* camera,
-    struct v2 position, f32 ammo, f32 ammo_max)
+    struct v2 screen_pos, f32 ammo, f32 ammo_max)
 {
     f32 bar_max_size = 20;
 
@@ -96,9 +93,6 @@ void ammo_bar_render(struct mesh_render_info* info, struct camera* camera,
     f32 bar_length_max = 70.0f;
     f32 bar_length = bar_length_max / ammo_max;
 
-    struct v2 screen_pos = calculate_screen_pos(position.x, position.y + 0.5f,
-        0.5f, camera);
-
     f32 x = screen_pos.x - bar_length_max * 0.5f;
     f32 y = screen_pos.y;
     f32 width = bar_length - 1.0f;
@@ -107,18 +101,15 @@ void ammo_bar_render(struct mesh_render_info* info, struct camera* camera,
 
     for (u32 i = 0; i < ammo; i++, x += bar_length)
     {
-        gui_rect_render(info, x, y, width, height, angle, camera->ortho);
+        gui_rect_render(info, x, y, width, height, angle, camera->projection);
     }
 }
 
 void weapon_level_bar_render(struct mesh_render_info* info,
-    struct camera* camera, struct v2 position, u32 level, u32 level_max)
+    struct camera* camera, struct v2 screen_pos, u32 level, u32 level_max)
 {
     f32 bar_length_max = 70.0f;
     f32 bar_length = bar_length_max / level_max;
-
-    struct v2 screen_pos = calculate_screen_pos(position.x, position.y + 0.5f,
-        0.5f, camera);
 
     f32 x = screen_pos.x - bar_length_max * 0.5f;
     f32 y = screen_pos.y - 12.0f;
@@ -128,7 +119,7 @@ void weapon_level_bar_render(struct mesh_render_info* info,
 
     for (u32 i = 0; i < level; i++, x += bar_length)
     {
-        gui_rect_render(info, x, y, width, height, angle, camera->ortho);
+        gui_rect_render(info, x, y, width, height, angle, camera->projection);
     }
 }
 
