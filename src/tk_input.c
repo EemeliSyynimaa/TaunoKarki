@@ -1,10 +1,3 @@
-struct mouse
-{
-    struct v2 world;
-    struct v2 screen;
-};
-
-
 u32 key_times_pressed(struct key_state* state)
 {
     u32 result = 0;

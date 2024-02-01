@@ -1,70 +1,5 @@
-#define MAX_CIRCLES 64
-#define MAX_CONTACTS 64
-#define MAX_COLLIDERS 8
-
 struct rigid_body;
 struct entity;
-
-struct collider
-{
-    u32 type;
-
-    u32 tag;
-    u32 collidesWith;
-
-    struct rigid_body* body;
-
-    union
-    {
-        // Circle collider
-        struct
-        {
-            struct v2 position;
-            f32 radius;
-            f32 unused;
-        } circle;
-
-        // Line collider
-        struct
-        {
-            struct v2 a;
-            struct v2 b;
-        } line;
-
-        // Rect collider
-        struct
-        {
-            struct v2 position;
-            f32 half_width;
-            f32 half_height;
-        } rect;
-
-        // No collider
-        struct
-        {
-            u32 unused[4];
-        } none;
-    };
-};
-
-struct contact
-{
-    struct collider* a;
-    struct collider* b;
-    struct v2 position;
-    f32 t;
-
-    b32 active;
-};
-
-enum
-{
-    COLLIDER_NONE,
-    COLLIDER_CIRCLE,
-    COLLIDER_LINE,
-    COLLIDER_RECT,
-    COLLIDER_COUNT
-};
 
 struct circle
 {
@@ -77,30 +12,6 @@ struct circle
     f32 radius;
     f32 mass;
     b32 dynamic;
-};
-
-enum
-{
-    RIGID_BODY_STATIC,
-    RIGID_BODY_DYNAMIC
-};
-
-struct rigid_body
-{
-    struct contact* contact;
-    struct collider colliders[MAX_COLLIDERS];
-    struct v2 position;
-    struct v2 velocity;
-    struct v2 acceleration;
-    struct v2 move_delta;
-    struct entity* owner;
-    u32 type;
-    u32 num_colliders;
-    f32 friction;
-    f32 mass;
-    f32 angle;
-    b32 alive;
-    b32 trigger;
 };
 
 void get_body_rectangle(struct rigid_body* body, f32 width_half,
@@ -168,13 +79,6 @@ void collision_map_dynamic_calculate(struct collision_map* cols,
         }
     }
 }
-
-struct physics_world
-{
-    struct rigid_body bodies[MAX_BODIES];
-    struct contact contacts[MAX_CONTACTS];
-    u32 num_contacts;
-};
 
 struct rigid_body* rigid_body_get(struct physics_world* world)
 {
