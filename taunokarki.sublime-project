@@ -5,8 +5,9 @@
             "path": ".",
             "folder_exclude_patterns":
             [
-                "build"
-            ]
+                "build",
+                "project",
+            ],
         }
     ],
     "settings":
@@ -17,8 +18,15 @@
         ],
         "ClangFormat":
         {
-            "languages": []
-        }
+            "languages": [],
+        },
+        "LSP":
+        {
+            "clangd":
+            {
+                "enabled": false
+            }
+        },
     },
      "build_systems":
     [
@@ -29,14 +37,14 @@
             {
                 "shell_cmd": "./linux_build.sh",
                 "file_regex": "(^.*\\.(?:c|cpp|h)):(\\d+):(\\d+):\\s*(.+)",
-                "line_regex": "^.*\\.(?:c|cpp|h):(\\d+):(\\d+):\\s*(.+)"
+                "line_regex": "^.*\\.(?:c|cpp|h):(\\d+):(\\d+):\\s*(.+)",
             },
             "windows":
             {
                 "shell_cmd": "win32_build",
                 "file_regex": "^(.+)\\((\\d+),(\\d+)\\): (.+$)",
-                "line_regex": "^(.+)\\((\\d+),(\\d+)\\).+$"
-            }
+                "line_regex": "^(.+)\\((\\d+),(\\d+)\\).+$",
+            },
         }
-    ]
+    ],
 }
