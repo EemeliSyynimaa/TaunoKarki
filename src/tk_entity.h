@@ -1,3 +1,5 @@
+#define MAX_BULLET_TRAILS 64
+
 // Todo: player, bullet, item and enemy are entities that have a rigid body
 // Todo: create proper entity system
 struct weapon
@@ -45,6 +47,18 @@ struct player
     f32 health;
     b32 alive;
     u32 item_picked;
+};
+
+struct bullet_trail
+{
+    struct v2 start;
+    struct v2 end;
+    struct v4 color_start;
+    struct v4 color_end;
+    struct v4 color_current;
+    f32 time_start;
+    f32 time_current;
+    b32 alive;
 };
 
 struct bullet

@@ -31,7 +31,7 @@ struct game_state
     struct physics_world world;
     struct player player;
     struct enemy enemies[MAX_ENEMIES];
-    struct particle_line particle_lines[MAX_PARTICLES];
+    struct bullet_trail bullet_trails[MAX_PARTICLES];
     struct camera camera_game;
     struct camera camera_gui;
     struct mouse mouse;
@@ -75,7 +75,7 @@ struct game_state
     u32 texture_cube;
     u32 texture_sprite;
     u32 texture_particle;
-    u32 free_particle_line;
+    u32 free_bullet_trail;
     u32 num_enemies;
     u32 num_wall_corners;
     u32 num_wall_faces;

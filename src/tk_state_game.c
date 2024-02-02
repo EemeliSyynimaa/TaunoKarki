@@ -114,7 +114,7 @@ void state_game_update(void* data, struct game_input* input, f32 step)
         enemies_update(game, input, step);
         bullets_update(game, input, step);
         items_update(&game->item_pool, &game->player, input, step);
-        particle_lines_update(game, input, step);
+        bullet_trails_update(game, input, step);
         particle_system_update(&game->particle_system, step);
 
         world_update(&game->world, step);
@@ -230,7 +230,7 @@ void state_game_render(void* data)
     particle_renderer_flush(&game->particle_renderer, &camera_game->view,
         &camera_game->projection);
 
-    particle_lines_render(game, camera_game);
+    bullet_trails_render(game, camera_game);
 
     if (game->render_debug)
     {
