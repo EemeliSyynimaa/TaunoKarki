@@ -184,8 +184,8 @@ void state_game_update(void* data, struct game_input* input, f32 step)
         camera->view_inverse = m4_inverse(camera->view);
     }
 
-    mouse->world = calculate_world_pos((f32)input->mouse_x,
-        (f32)input->mouse_y, camera);
+    mouse->world = camera_view_to_world_pos(camera, (f32)input->mouse_x,
+        (f32)input->mouse_y);
 
     // Todo: get the bodies
     // collision_map_dynamic_calculate(&game->cols, bodies, num_bodies);

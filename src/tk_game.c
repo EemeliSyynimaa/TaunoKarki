@@ -610,8 +610,8 @@ void enemies_render(struct game_state* state, struct camera* camera_game,
             //         true);
             // }
 
-            struct v2 screen_pos = calculate_screen_pos(body->position.x,
-                body->position.y + 0.5f, 0.5f, camera_game);
+            struct v2 screen_pos = camera_world_to_view_pos(camera_game,
+                body->position.x, body->position.y + 0.5f, 0.5f);
 
             health_bar_render(&state->render_info_health_bar, camera_gui,
                 screen_pos, enemy->health, ENEMY_HEALTH_MAX);
@@ -924,8 +924,7 @@ void player_update(struct game_state* state, struct game_input* input, f32 dt)
         struct rigid_body* body = player->header.body;
         struct v2 direction = { 0.0f };
 
-        struct v2 dir = { state->mouse.world.x - body->position.x,
-            (state->mouse.world.y - PLAYER_RADIUS) - body->position.y };
+        struct v2 dir = v2_sub(state->mouse.world, body->position);
         dir = v2_normalize(dir);
 
         body->angle = f32_atan(dir.y, dir.x);
@@ -1169,8 +1168,8 @@ void player_render(struct game_state* state, struct camera* camera_game,
                 state->shader_simple, colors[RED]);
         }
 #endif
-        struct v2 screen_pos = calculate_screen_pos(body->position.x,
-            body->position.y + 0.5f, 0.5f, camera_game);
+        struct v2 screen_pos = camera_world_to_view_pos(camera_game,
+            body->position.x, body->position.y + 0.5f, 0.5f);
 
         struct weapon* weapon = &player->weapon;
         health_bar_render(&state->render_info_health_bar, camera_gui,

@@ -1,4 +1,4 @@
-struct v2 calculate_world_pos(f32 pos_x, f32 pos_y, struct camera* camera)
+struct v2 camera_view_to_world_pos(struct camera* camera,f32 pos_x, f32 pos_y)
 {
     // Todo: doesn't work with orthographic projection
     struct v2 result = { 0.0f };
@@ -27,8 +27,8 @@ struct v2 calculate_world_pos(f32 pos_x, f32 pos_y, struct camera* camera)
     return result;
 }
 
-struct v2 calculate_screen_pos(f32 pos_x, f32 pos_y, f32 pos_z,
-    struct camera* camera)
+struct v2 camera_world_to_view_pos(struct camera* camera, f32 pos_x, f32 pos_y,
+    f32 pos_z)
 {
     struct v2 result = { 0.0f };
     struct v4 world = { pos_x, pos_y, pos_z, 1.0f };
