@@ -417,3 +417,144 @@ void level_mask_init(struct level* mask)
         data[start_y * width + start_x] = 0;
     }
 }
+
+void level_init(struct game_state* state)
+{
+    // Clear everything
+    object_pool_reset(&state->bullet_pool);
+    object_pool_reset(&state->item_pool);
+
+    memory_set(state->enemies,
+        sizeof(struct enemy) * MAX_ENEMIES, 0);
+    memory_set(state->bullet_trails,
+        sizeof(struct bullet_trail) * MAX_BULLET_TRAILS, 0);
+    memory_set(state->wall_corners,
+        sizeof(struct v2) * MAX_WALL_CORNERS, 0);
+    memory_set(state->wall_faces,
+        sizeof(struct line_segment) * MAX_WALL_FACES, 0);
+    memory_set(&state->cols, sizeof(struct collision_map), 0);
+    memory_set(state->gun_shots,
+        sizeof(struct gun_shot) * MAX_GUN_SHOTS, 0);
+
+    state->num_enemies = 0;
+    state->num_wall_corners = 0;
+    state->num_wall_faces = 0;
+    state->num_gun_shots = 0;
+    state->free_bullet_trail = 0;
+
+    // Inited once per level
+    u32 enemies_min = state->level_current;
+    u32 enemies_max =  MIN(enemies_min * 4, MAX_ENEMIES);
+    state->num_enemies = u32_random(enemies_min, enemies_max);
+    // state->num_enemies = 1;
+
+    LOG("%u enemies\n", state->num_enemies);
+
+    level_generate(&state->stack_temporary, &state->level, &state->level_mask);
+
+    state->level.wall_info.mesh = &state->wall;
+    state->level.wall_info.texture = state->texture_tileset;
+    state->level.wall_info.shader = state->shader;
+    state->level.wall_info.color = colors[WHITE];
+
+    u32 color_enemy = cube_renderer_color_add(&state->cube_renderer,
+        (struct v4){ 0.7f, 0.90f, 0.1f, 1.0f });
+    u32 color_player = cube_renderer_color_add(&state->cube_renderer,
+        (struct v4){ 1.0f, 0.4f, 0.9f, 1.0f });
+
+    world_init(&state->world);
+
+    for (u32 i = 0; i < state->num_enemies; i++)
+    {
+        struct enemy* enemy = &state->enemies[i];
+        struct rigid_body* body = entity_add_body(&enemy->header,
+            &state->world);
+        body->type = RIGID_BODY_DYNAMIC;
+        body->position = tile_random_get(&state->level, TILE_FLOOR);
+        body->friction = FRICTION;
+        enemy->header.type = ENTITY_ENEMY;
+        enemy->alive = true;
+        enemy->health = ENEMY_HEALTH_MAX;
+        enemy->vision_cone_size = 0.2f * i;
+        enemy->shooting = false;
+        enemy->cube.faces[0].texture = 13;
+        enemy->state = u32_random(0, 1) ? ENEMY_STATE_SLEEP :
+            ENEMY_STATE_WANDER_AROUND;
+        body_add_circle_collider(body, v2_zero, PLAYER_RADIUS, COLLISION_ENEMY,
+            (COLLISION_ENEMY | COLLISION_PLAYER | COLLISION_WALL));
+        body_add_rect_collider(body, v2_zero, PLAYER_RADIUS, PLAYER_RADIUS,
+            COLLISION_ENEMY_HITBOX, COLLISION_NONE);
+
+        LOG("Enemy %u is %s\n", i,
+            enemy->state == ENEMY_STATE_SLEEP ? "sleeping" : "wandering");
+
+        cube_data_color_update(&enemy->cube, color_enemy);
+
+        enemy->weapon = weapon_create(u32_random(1, 3));
+        enemy->weapon.projectile_damage *= 0.2f;
+    }
+
+    if (state->level_current == 1)
+    {
+        state->player.weapon = weapon_create(WEAPON_MACHINEGUN);
+    }
+
+    if (!state->player.alive)
+    {
+        struct rigid_body* body = entity_add_body(&state->player.header,
+            &state->world);
+        body->type = RIGID_BODY_DYNAMIC;
+        body->position = state->level.start_pos;
+        body->friction = FRICTION;
+        state->player.header.type = ENTITY_PLAYER;
+        state->player.alive = true;
+        state->player.health = PLAYER_HEALTH_MAX;
+        state->player.cube.faces[0].texture = 11;
+        body_add_circle_collider(body, v2_zero, PLAYER_RADIUS, COLLISION_PLAYER,
+            (COLLISION_ENEMY | COLLISION_ITEM | COLLISION_WALL));
+        body_add_rect_collider(body, v2_zero, PLAYER_RADIUS, PLAYER_RADIUS,
+            COLLISION_PLAYER_HITBOX, COLLISION_NONE);
+    }
+
+    cube_data_color_update(&state->player.cube, color_player);
+
+    state->mouse.world = state->player.header.body->position;
+
+    struct camera* camera = &state->camera_game;
+    camera->position.xy = state->level.start_pos;
+    camera->target.xy = state->level.start_pos;
+    camera->target.z = 3.75f;
+    camera->view = m4_translate(-camera->position.x, -camera->position.y,
+        -camera->position.z);
+    camera->view_inverse = m4_inverse(camera->view);
+
+    collision_map_static_calculate(&state->level, state->cols.statics,
+        MAX_STATICS, &state->cols.num_statics);
+
+    // state->world.walls = state->cols.statics;
+    // state->world.num_walls = state->cols.num_statics;
+
+    world_wall_bodies_create(&state->world, state->cols.statics,
+        state->cols.num_statics);
+
+    LOG("Wall faces: %d/%d\n", state->cols.num_statics, MAX_STATICS);
+
+    get_wall_corners_from_faces(state->wall_corners, MAX_WALL_CORNERS,
+        &state->num_wall_corners, state->cols.statics,
+        state->cols.num_statics);
+
+    LOG("Wall corners: %d/%d\n", state->num_wall_corners, MAX_WALL_CORNERS);
+
+    {
+        struct m4 transform = m4_translate(state->level.start_pos.x,
+            state->level.start_pos.y + 1.5f, 0.5f);
+        struct m4 rotation = m4_rotate_z(0.0f);
+        struct m4 scale = m4_scale_xyz(0.25f, 0.125f, 0.125f);
+        struct m4 model = m4_mul_m4(scale, rotation);
+        model = m4_mul_m4(model, transform);
+
+        state->level.elevator_light.model = model;
+
+        cube_data_color_update(&state->level.elevator_light, RED);
+    }
+}

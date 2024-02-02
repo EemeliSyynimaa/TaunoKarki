@@ -736,6 +736,24 @@ void collision_map_static_calculate(struct level* level,
     }
 }
 
+void collision_map_render(struct game_state* state, struct line_segment* cols,
+    u32 num_cols, struct camera* camera)
+{
+    struct mesh_render_info info = { 0 };
+    info.color = colors[RED];
+    info.mesh = &state->floor;
+    info.texture = state->texture_tileset;
+    info.shader = state->shader_simple;
+
+    struct m4 vp = m4_mul_m4(camera->view, camera->projection);
+
+    for (u32 i = 0; i < num_cols; i++)
+    {
+        line_render(&info, cols[i].start, cols[i].end, WALL_SIZE + 0.01f,
+            0.025f, vp);
+    }
+}
+
 void get_wall_corners_from_faces(struct v2 corners[], u32 max, u32* count,
     struct line_segment faces[], u32 num_faces)
 {
