@@ -15,6 +15,7 @@
 #include "tk_input.h"
 #include "tk_collision.h"
 #include "tk_level.h"
+#include "tk_scenes.h"
 
 // Todo: global for now
 struct api api;
@@ -53,7 +54,7 @@ struct game_state
     struct collision_map cols;
     struct object_pool bullet_pool;
     struct object_pool item_pool;
-    struct state_interface* state_current;
+    struct scene_game scene_game;
 
     struct mesh_render_info render_info_health_bar;
     struct mesh_render_info render_info_ammo_bar;
@@ -83,4 +84,5 @@ struct game_state
     u32 ticks_per_second;
     u32 level_current;
     u32 random_seed;
+    u32 current_scene;
 };

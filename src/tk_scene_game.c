@@ -1,13 +1,7 @@
 // Todo: move data specific for this state from game state to here
-struct state_game_data
+void scene_game_init(struct scene_game* data)
 {
-    struct game_state* base;
-};
-
-void state_game_init(void* data)
-{
-    struct state_game_data* state = (struct state_game_data*)data;
-    struct game_state* game = state->base;
+    struct game_state* game = data->base;
 
     cube_renderer_init(&game->cube_renderer, game->shader_cube,
         game->texture_cube);
@@ -97,10 +91,10 @@ void state_game_init(void* data)
     api.gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
-void state_game_update(void* data, struct game_input* input, f32 step)
+void scene_game_update(struct scene_game* data, struct game_input* input,
+    f32 step)
 {
-    struct state_game_data* state = (struct state_game_data*)data;
-    struct game_state* game = state->base;
+    struct game_state* game = data->base;
 
     game->render_debug = input->enable_debug_rendering;
 
@@ -202,10 +196,9 @@ void state_game_update(void* data, struct game_input* input, f32 step)
     }
 }
 
-void state_game_render(void* data)
+void scene_game_render(struct scene_game* data)
 {
-    struct state_game_data* state = (struct state_game_data*)data;
-    struct game_state* game = state->base;
+    struct game_state* game = data->base;
     struct camera* camera_game = &game->camera_game;
     struct camera* camera_gui = &game->camera_gui;
 
@@ -237,22 +230,4 @@ void state_game_render(void* data)
         collision_map_render(game, game->cols.statics, game->cols.num_statics,
             camera_game);
     }
-}
-
-struct state_interface state_game_create(struct game_state* state)
-{
-    struct state_interface result = { 0 };
-    result.init = state_game_init;
-    result.update = state_game_update;
-    result.render = state_game_render;
-    result.data = stack_alloc(&state->stack_permanent,
-        sizeof(struct state_game_data));
-
-    memory_set(result.data, sizeof(struct state_game_data), 0);
-
-    struct game_state** base = (struct game_state**)result.data;
-
-    *base = state;
-
-    return result;
 }

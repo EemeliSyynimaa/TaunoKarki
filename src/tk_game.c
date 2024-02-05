@@ -22,13 +22,9 @@
 #include "tk_world.c"
 #include "tk_entity.c"
 
-#include "tk_state_game.c"
-// #include "tk_state_physics.c"
+#include "tk_scene_game.c"
 
 b32 PHYSICS_DEBUG = false;
-
-struct state_interface state_physics;
-struct state_interface state_game;
 
 void game_init(struct game_memory* memory, struct game_init* init)
 {
@@ -166,11 +162,8 @@ void game_init(struct game_memory* memory, struct game_init* init)
         object_pool_init(&state->item_pool, sizeof(struct item),
             MAX_ITEMS, &state->stack_permanent);
 
-        // state_physics = state_physics_create(state);
-        state_game = state_game_create(state);
-
-        state->state_current = PHYSICS_DEBUG ? &state_physics : &state_game;
-        state->state_current->init(state->state_current->data);
+        state->scene_game.base = state;
+        scene_game_init(&state->scene_game);
 
         memory->initialized = true;
     }
@@ -194,8 +187,14 @@ void game_update(struct game_memory* memory, struct game_input* input)
         while (state->accumulator >= step)
         {
             state->accumulator -= step;
-            state->state_current->update(state->state_current->data, input,
-                step);
+
+            switch (state->current_scene)
+            {
+                case SCENE_GAME:
+                {
+                    scene_game_update(&state->scene_game, input, step);
+                } break;
+            }
 
             u32 num_keys = sizeof(input->keys)/sizeof(input->keys[0]);
 
@@ -207,7 +206,13 @@ void game_update(struct game_memory* memory, struct game_input* input)
 
         api.gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        state->state_current->render(state->state_current->data);
+        switch (state->current_scene)
+        {
+            case SCENE_GAME:
+            {
+                scene_game_render(&state->scene_game);
+            } break;
+        }
     }
     else
     {
