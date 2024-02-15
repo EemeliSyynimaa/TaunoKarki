@@ -23,8 +23,7 @@
 #include "tk_entity.c"
 
 #include "tk_scene_game.c"
-
-b32 PHYSICS_DEBUG = false;
+#include "tk_scene_physics.c"
 
 void game_init(struct game_memory* memory, struct game_init* init)
 {
@@ -164,6 +163,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         state->scene_game.base = state;
         scene_game_init(&state->scene_game);
+        scene_physics_init(&state->scene_physics);
 
         memory->initialized = true;
     }
@@ -194,6 +194,10 @@ void game_update(struct game_memory* memory, struct game_input* input)
                 {
                     scene_game_update(&state->scene_game, input, step);
                 } break;
+                case SCENE_PHYSICS:
+                {
+                    scene_physics_update(&state->scene_physics, input, step);
+                } break;
             }
 
             u32 num_keys = sizeof(input->keys)/sizeof(input->keys[0]);
@@ -211,6 +215,10 @@ void game_update(struct game_memory* memory, struct game_input* input)
             case SCENE_GAME:
             {
                 scene_game_render(&state->scene_game);
+            } break;
+            case SCENE_PHYSICS:
+            {
+                scene_physics_render(&state->scene_physics);
             } break;
         }
     }

@@ -15,7 +15,14 @@
 #include "tk_input.h"
 #include "tk_collision.h"
 #include "tk_level.h"
-#include "tk_scenes.h"
+#include "tk_scene_game.h"
+#include "tk_scene_physics.h"
+
+enum
+{
+    SCENE_GAME,
+    SCENE_PHYSICS
+};
 
 // Todo: global for now
 struct api api;
@@ -55,6 +62,7 @@ struct game_state
     struct object_pool bullet_pool;
     struct object_pool item_pool;
     struct scene_game scene_game;
+    struct scene_physics scene_physics;
 
     struct mesh_render_info render_info_health_bar;
     struct mesh_render_info render_info_ammo_bar;
