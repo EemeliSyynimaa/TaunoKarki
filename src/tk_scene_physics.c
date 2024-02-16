@@ -5,7 +5,7 @@ struct m4 view_projection = { 0 };
 #define ARRAY_SIZE(a) sizeof(a) / sizeof(a[0])
 #define MAX_VERTICES 128
 
-void render_circle(f32 x, f32 y, f32 radius)
+void render_circle(f32 x, f32 y, f32 radius, struct v4 color)
 {
     // Todo: just experimental code... :-)
     u32 vao;
@@ -16,7 +16,6 @@ void render_circle(f32 x, f32 y, f32 radius)
     u32 num_vertices = num_fans + 1;
     u32 num_indices = num_fans * 3;
 
-    struct v4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
     struct vertex vertices[MAX_VERTICES] = { 0 };
     u32 indices[MAX_VERTICES * 3] = { 0 };
 
@@ -85,7 +84,7 @@ void render_circle(f32 x, f32 y, f32 radius)
     api.gl.glBindVertexArray(0);
 }
 
-void render_aabb(f32 x, f32 y, f32 half_width, f32 half_height)
+void render_aabb(f32 x, f32 y, f32 half_width, f32 half_height, struct v4 color)
 {
     // Todo: just experimental code... :-)
     u32 vao;
@@ -93,7 +92,6 @@ void render_aabb(f32 x, f32 y, f32 half_width, f32 half_height)
     u32 ibo;
     u32 texture = 0;
 
-    struct v4 color = { 1.0f, 1.0f, 1.0f, 1.0f };
     struct vertex vertices[] =
     {
         { { x - half_width, y - half_height, 0 }, v2_zero, v3_zero, color },
@@ -167,6 +165,6 @@ void scene_physics_update(struct scene_physics* data, struct game_input* input,
 
 void scene_physics_render(struct scene_physics* data)
 {
-    render_circle(200.0f, 200.0f, 50.0f);
-    render_aabb(400.0f, 200.0f, 100.0f, 50.0f);
+    render_circle(200.0f, 200.0f, 50.0f, colors[TEAL]);
+    render_aabb(400.0f, 200.0f, 100.0f, 50.0f, colors[OLIVE]);
 }
