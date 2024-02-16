@@ -163,7 +163,13 @@ void game_init(struct game_memory* memory, struct game_init* init)
 
         state->scene_game.base = state;
         scene_game_init(&state->scene_game);
+
+        state->scene_physics.shader = state->shader_simple;
+        state->scene_physics.screen_width = (f32)init->screen_width;
+        state->scene_physics.screen_height = (f32)init->screen_height;
         scene_physics_init(&state->scene_physics);
+
+        state->current_scene = SCENE_PHYSICS;
 
         memory->initialized = true;
     }
