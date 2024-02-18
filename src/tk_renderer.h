@@ -5,4 +5,5 @@ struct renderer
     
     u32 shader;
     struct m4 view_projection;
+    struct gl_api* gl;
 };

@@ -27,7 +27,7 @@ enum
     SCENE_PHYSICS
 };
 
-// Todo: global for now
+// Todo: global for now, get rid of this
 struct api api;
 
 // Todo: where to store these?
