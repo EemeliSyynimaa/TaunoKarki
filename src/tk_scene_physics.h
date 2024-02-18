@@ -2,8 +2,10 @@
 
 enum
 {
-    TK_ENTITY_ALIVE = 1 << 0,
-    TK_ENTITY_RENDERABLE = 1 << 1
+    TK_ENTITY_ALIVE             = 1 << 0,
+    TK_ENTITY_RENDERABLE        = 1 << 1,
+    TK_ENTITY_DYNAMIC           = 1 << 2,
+    TK_ENTITY_PLAYER_CONTROLLED = 1 << 3,
 };
 
 enum
@@ -16,8 +18,11 @@ struct tk_entity
 {
     u64 flags;
 
-    f32 x;
-    f32 y;
+    struct v2 position;
+    struct v2 velocity;
+
+    f32 friction;
+    f32 acceleration;
 
     // Render types
     u32 render_type;

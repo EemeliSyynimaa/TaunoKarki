@@ -170,12 +170,11 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->scene_game.base = state;
         scene_game_init(&state->scene_game);
 
-        state->scene_physics = scene_physics_init(state);
-
-        state->current_scene = SCENE_PHYSICS;
-
         memory->initialized = true;
     }
+
+    state->scene_physics = scene_physics_init(state);
+    state->current_scene = SCENE_PHYSICS;
 
     if (!memory->initialized)
     {
