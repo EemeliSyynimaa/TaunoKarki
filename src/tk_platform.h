@@ -19,10 +19,16 @@ typedef double      f64;
 
 typedef bool        b32;
 
+typedef size_t      usize;
+
 #define KILOBYTES(X) ((X) * 1024)
 #define MEGABYTES(X) (KILOBYTES(X) * 1024)
 #define GIGABYTES(X) (MEGABYTES(X) * 1024)
 #define TERABYTES(X) (GIGABYTES(X) * 1024)
+
+#define ARRAY_SIZE(a) sizeof(a) / sizeof(a[0])
+
+#define OFFSETOF(a, b) (usize)&(((a*)0)->b)
 
 #include "tk_opengl_api.h"
 #include "tk_file_api.h"

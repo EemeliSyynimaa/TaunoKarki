@@ -1,10 +1,9 @@
-// Todo: globals for now
-#define ARRAY_SIZE(a) sizeof(a) / sizeof(a[0])
 #define MAX_VERTICES 128
 
 void render_vertices(struct renderer* renderer, u8* vertices, u32 num_vertices,
     u32 vertex_size, u32* indices, u32 num_indices, struct v4 color)
 {
+    // Todo: use pre-created render buffers and update sub data only
     u32 vao;
     u32 vbo;
     u32 ibo;
@@ -27,15 +26,14 @@ void render_vertices(struct renderer* renderer, u8* vertices, u32 num_vertices,
     api.gl.glEnableVertexAttribArray(2);
     api.gl.glEnableVertexAttribArray(3);
 
-    // Todo: implement offsetof
     api.gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-        sizeof(struct vertex), (void*)0);
+        sizeof(struct vertex), (void*)OFFSETOF(struct vertex, position));
     api.gl.glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
-        sizeof(struct vertex), (void*)12);
+        sizeof(struct vertex), (void*)OFFSETOF(struct vertex, uv));
     api.gl.glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
-        sizeof(struct vertex), (void*)20);
+        sizeof(struct vertex), (void*)OFFSETOF(struct vertex, normal));
     api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
-        sizeof(struct vertex), (void*)32);
+        sizeof(struct vertex), (void*)OFFSETOF(struct vertex, color));
 
     api.gl.glUseProgram(renderer->shader);
 

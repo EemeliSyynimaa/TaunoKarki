@@ -7,4 +7,7 @@ struct renderer
 struct scene_physics
 {
     struct renderer renderer;
+
+    // Todo: create render buffers (vao, vbo, ibo) for primitives
+    // (circle, aabb etc.)
 };
