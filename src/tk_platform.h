@@ -28,7 +28,7 @@ typedef size_t      usize;
 
 #define ARRAY_SIZE(a) sizeof(a) / sizeof(a[0])
 
-#define OFFSETOF(a, b) (usize)&(((a*)0)->b)
+#define OFFSET_OF(a, b) (usize)&(((a*)0)->b)
 
 #include "tk_opengl_api.h"
 #include "tk_file_api.h"

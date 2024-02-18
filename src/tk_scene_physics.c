@@ -27,13 +27,13 @@ void render_vertices(struct renderer* renderer, u8* vertices, u32 num_vertices,
     api.gl.glEnableVertexAttribArray(3);
 
     api.gl.glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE,
-        sizeof(struct vertex), (void*)OFFSETOF(struct vertex, position));
+        sizeof(struct vertex), (void*)OFFSET_OF(struct vertex, position));
     api.gl.glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE,
-        sizeof(struct vertex), (void*)OFFSETOF(struct vertex, uv));
+        sizeof(struct vertex), (void*)OFFSET_OF(struct vertex, uv));
     api.gl.glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE,
-        sizeof(struct vertex), (void*)OFFSETOF(struct vertex, normal));
+        sizeof(struct vertex), (void*)OFFSET_OF(struct vertex, normal));
     api.gl.glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE,
-        sizeof(struct vertex), (void*)OFFSETOF(struct vertex, color));
+        sizeof(struct vertex), (void*)OFFSET_OF(struct vertex, color));
 
     api.gl.glUseProgram(renderer->shader);
 
