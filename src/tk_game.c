@@ -80,10 +80,14 @@ void game_init(struct game_memory* memory, struct game_init* init)
         api.gl.glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
         // Init screen size
-        state->camera_game.width = (f32)init->screen_width;
-        state->camera_game.height = (f32)init->screen_height;
-        state->camera_gui.width = (f32)init->screen_width;
-        state->camera_gui.height = (f32)init->screen_height;
+        state->screen_width = (f32)init->screen_width;
+        state->screen_height = (f32)init->screen_height;
+
+        // Init cameras
+        state->camera_game.width = state->screen_width;
+        state->camera_game.height = state->screen_height;
+        state->camera_gui.width = state->screen_width;
+        state->camera_gui.height = state->screen_height;
 
         // Init permanent stack allocator
         state->stack_permanent.base = (s8*)state + sizeof(struct game_state);
@@ -164,10 +168,7 @@ void game_init(struct game_memory* memory, struct game_init* init)
         state->scene_game.base = state;
         scene_game_init(&state->scene_game);
 
-        state->scene_physics.shader = state->shader_simple;
-        state->scene_physics.screen_width = (f32)init->screen_width;
-        state->scene_physics.screen_height = (f32)init->screen_height;
-        scene_physics_init(&state->scene_physics);
+        state->scene_physics = scene_physics_init(state);
 
         state->current_scene = SCENE_PHYSICS;
 

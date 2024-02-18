@@ -1,8 +1,10 @@
-struct scene_physics
+struct renderer
 {
     u32 shader;
-    f32 circle_x;
-    f32 circle_y;
-    f32 screen_width;
-    f32 screen_height;
+    struct m4 view_projection;
+};
+
+struct scene_physics
+{
+    struct renderer renderer;
 };

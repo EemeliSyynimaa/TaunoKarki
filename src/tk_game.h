@@ -73,6 +73,8 @@ struct game_state
     b32 level_cleared;
     b32 player_in_start_room;
     f32 accumulator;
+    f32 screen_width;
+    f32 screen_height;
     f32 level_clear_notify;
     u32 shader;
     u32 shader_simple;
