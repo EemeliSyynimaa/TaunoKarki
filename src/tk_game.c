@@ -22,6 +22,8 @@
 #include "tk_world.c"
 #include "tk_entity.c"
 
+#include "tk_renderer.c"
+
 #include "tk_scene_game.c"
 #include "tk_scene_physics.c"
 

@@ -15,6 +15,9 @@
 #include "tk_input.h"
 #include "tk_collision.h"
 #include "tk_level.h"
+
+#include "tk_renderer.h"
+
 #include "tk_scene_game.h"
 #include "tk_scene_physics.h"
 
