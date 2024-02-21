@@ -1,11 +1,32 @@
+struct tk_entity* tk_entity_get_free(struct tk_entity* entities, u32 num_entities)
+{
+    struct tk_entity* result = NULL;
+
+    for (u32 i = 0; i < num_entities; i++)
+    {
+        if (!entities[i].flags & TK_ENTITY_ALIVE)
+        {
+            result = &entities[i];
+            *result = (struct tk_entity){ 0 };
+            result->flags |= TK_ENTITY_ALIVE;
+
+            break;
+        }
+    }
+
+    return result;
+}
+
 struct scene_physics scene_physics_init(struct game_state* game)
 {
     struct scene_physics result = { 0 };
 
     result.renderer = renderer_init(game->shader_simple, m4_orthographic(0.0f,
         10.0f, 0.0f, 10.0f, 0.0f, 1.0f), &api.gl);
+    result.num_entities = ARRAY_SIZE(result.entities);
 
-    struct tk_entity* circle = &result.entities[result.num_entities++];
+    struct tk_entity* circle = tk_entity_get_free(result.entities,
+        result.num_entities);
     circle->position.x = 2.0f;
     circle->position.y = 2.0f;
     circle->radius = 0.5f;
@@ -17,7 +38,8 @@ struct scene_physics scene_physics_init(struct game_state* game)
     circle->friction = 10.0f;
     circle->acceleration = 40.0f;
 
-    struct tk_entity* aabb = &result.entities[result.num_entities++];
+    struct tk_entity* aabb = tk_entity_get_free(result.entities,
+        result.num_entities);
     aabb->position.x = 4.0f;
     aabb->position.y = 2.0f;
     aabb->half_width = 1.0f;
