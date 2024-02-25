@@ -1,4 +1,4 @@
-// Todo: these structs are temporarily named to avoid conflicts
+// Todo: some structs etc. are temporarily prefixed with tk_ to avoid conflicts
 
 enum
 {
@@ -38,12 +38,25 @@ struct tk_entity
     f32 half_height;
 };
 
-#define TK_MAX_ENTITIES 256
+#define TK_MAX_ENTITIES 32
+
+#define MAX_PHYSICS_FRAMES 3600
+
+struct physics_frame
+{
+    struct tk_entity entities[TK_MAX_ENTITIES];
+    u32 num_entities;
+    u32 id;
+};
 
 struct scene_physics
 {
     struct renderer renderer;
 
-    struct tk_entity entities[TK_MAX_ENTITIES];
-    u32 num_entities;
+    // For debugging physics
+    struct physics_frame frames[MAX_PHYSICS_FRAMES];
+    b32 paused;
+    u32 frame_current;
+    u32 frame_max;
+    u32 frame_min;
 };
