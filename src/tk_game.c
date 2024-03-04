@@ -188,7 +188,7 @@ void game_update(struct game_memory* memory, struct game_input* input)
     {
         struct game_state* state = (struct game_state*)memory->base;
 
-        f32 step = 1.0f / 120.0f;
+        f32 step = 1.0f / 60.0f;
 
         state->accumulator += input->delta_time;
 

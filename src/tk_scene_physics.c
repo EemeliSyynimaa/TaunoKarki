@@ -79,13 +79,11 @@ void physics_advance(struct scene_physics* data, struct game_input* input,
             acceleration.x -= entity->velocity.x * entity->friction;
             acceleration.y -= entity->velocity.y * entity->friction;
 
-            entity->position.x += (entity->velocity.x + 0.5f *
-                acceleration.x * dt) * dt;
-            entity->position.y += (entity->velocity.y + 0.5f *
-                acceleration.y * dt) * dt;
-
             entity->velocity.x += acceleration.x * dt;
             entity->velocity.y += acceleration.y * dt;
+
+            entity->position.x += entity->velocity.x * dt;
+            entity->position.y += entity->velocity.y * dt;
         }
     }
 
@@ -185,13 +183,13 @@ void scene_physics_init(struct game_state* game, struct scene_physics* data)
     circle = tk_entity_get_free(frame->entities, frame->num_entities);
     circle->position.x = 6.0f;
     circle->position.y = 2.0f;
-    // circle->velocity.x = -10.0f;
+    circle->velocity.x = -10.0f;
     circle->radius = 0.5f;
     circle->color = colors[AQUA];
     circle->flags = TK_ENTITY_ALIVE | TK_ENTITY_RENDERABLE | TK_ENTITY_DYNAMIC;
     circle->render_type = TK_RENDER_TYPE_CIRCLE;
     circle->num_fans = 32;
-    circle->friction = 10.0f;
+    circle->friction = 2.0f;
     circle->acceleration = 0.0f;
 
     struct tk_entity* aabb = tk_entity_get_free(frame->entities,
