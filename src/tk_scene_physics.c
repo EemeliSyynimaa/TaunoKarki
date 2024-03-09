@@ -18,6 +18,12 @@ struct tk_entity* tk_entity_get_free(struct tk_entity* entities,
     return result;
 }
 
+void tk_entity_apply_force(struct tk_entity* entity, struct v2 force)
+{
+    entity->force.x += force.x;
+    entity->force.y += force.y;
+}
+
 void physics_advance(struct scene_physics* data, struct game_input* input,
     f32 dt)
 {
@@ -71,19 +77,31 @@ void physics_advance(struct scene_physics* data, struct game_input* input,
 
             dir = v2_normalize(dir);
 
-            acceleration = v2_mul_f32(dir, entity->acceleration);
+            tk_entity_apply_force(entity,
+                v2_mul_f32(dir, entity->acceleration));
         }
 
         if (entity->flags & TK_ENTITY_DYNAMIC)
         {
-            acceleration.x -= entity->velocity.x * entity->friction;
-            acceleration.y -= entity->velocity.y * entity->friction;
+            if (entity->mass > 0.0f)
+            {
+                struct v2 acceleration =
+                {
+                    entity->force.x / entity->mass,
+                    entity->force.y / entity->mass
+                };
 
-            entity->velocity.x += acceleration.x * dt;
-            entity->velocity.y += acceleration.y * dt;
+                acceleration.x -= entity->velocity.x * entity->friction;
+                acceleration.y -= entity->velocity.y * entity->friction;
 
-            entity->position.x += entity->velocity.x * dt;
-            entity->position.y += entity->velocity.y * dt;
+                entity->velocity.x += acceleration.x * dt;
+                entity->velocity.y += acceleration.y * dt;
+
+                entity->position.x += entity->velocity.x * dt;
+                entity->position.y += entity->velocity.y * dt;
+            }
+
+            entity->force = v2_zero;
         }
     }
 
@@ -179,6 +197,7 @@ void scene_physics_init(struct game_state* game, struct scene_physics* data)
     circle->num_fans = 32;
     circle->friction = 10.0f;
     circle->acceleration = 40.0f;
+    circle->mass = 1.0f;
 
     circle = tk_entity_get_free(frame->entities, frame->num_entities);
     circle->position.x = 6.0f;
@@ -191,6 +210,7 @@ void scene_physics_init(struct game_state* game, struct scene_physics* data)
     circle->num_fans = 32;
     circle->friction = 2.0f;
     circle->acceleration = 0.0f;
+    circle->mass = 1.0f;
 
     struct tk_entity* aabb = tk_entity_get_free(frame->entities,
         frame->num_entities);
@@ -206,7 +226,10 @@ void scene_physics_init(struct game_state* game, struct scene_physics* data)
 void scene_physics_update(struct scene_physics* data, struct game_input* input,
     f32 dt)
 {
-    data->paused = !input->pause;
+    if (key_times_pressed(&input->physics_pause))
+    {
+        data->paused = !data->paused;
+    }
 
     if (!data->paused)
     {

@@ -21,8 +21,11 @@ struct tk_entity
     struct v2 position;
     struct v2 velocity;
 
+    struct v2 force;
+
     f32 friction;
     f32 acceleration;
+    f32 mass;
 
     // Render types
     u32 render_type;

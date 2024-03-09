@@ -604,7 +604,6 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
         }
 
         new_input.enable_debug_rendering = old_input.enable_debug_rendering;
-        new_input.pause = old_input.pause;
 
         MSG msg;
 
@@ -648,10 +647,6 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                             LOG("Enable debug rendering: %s\n",
                                 new_input.enable_debug_rendering ? "yes" :
                                     "no");
-                        }
-                        else if (msg.wParam == 0x50 && !was_down)
-                        {
-                            new_input.pause = !new_input.pause;
                         }
                         else if (msg.wParam == VK_F5 && was_down)
                         {
@@ -709,14 +704,6 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                     inputs_recorded.current = 0;
                                 }   
                             }
-                        }
-                        else if (msg.wParam == VK_F11 && !was_down)
-                        {
-                            new_input.advance_physics = true;
-                        }
-                        else if (msg.wParam == VK_F12 && !was_down)
-                        {
-                            new_input.advance_physics = true;
                         }
                         else if (!playing)
                         {
@@ -839,6 +826,15 @@ s32 CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
                                 }
                                 win32_input_process(
                                     &new_input.physics_advance_step, is_down);
+                            }
+                            else if (msg.wParam == 0x50)
+                            {
+                                if (debug)
+                                {
+                                    LOG("P - %s\n", is_down ? "down" : "up");
+                                }
+                                win32_input_process(&new_input.physics_pause,
+                                    is_down);
                             }
                         }
                     }
