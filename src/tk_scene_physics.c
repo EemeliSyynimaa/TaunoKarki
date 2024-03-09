@@ -85,14 +85,14 @@ void physics_advance(struct scene_physics* data, struct game_input* input,
         {
             if (entity->mass > 0.0f)
             {
+                tk_entity_apply_force(entity,
+                    v2_mul_f32(v2_negate(entity->velocity), entity->friction));
+
                 struct v2 acceleration =
                 {
                     entity->force.x / entity->mass,
                     entity->force.y / entity->mass
                 };
-
-                acceleration.x -= entity->velocity.x * entity->friction;
-                acceleration.y -= entity->velocity.y * entity->friction;
 
                 entity->velocity.x += acceleration.x * dt;
                 entity->velocity.y += acceleration.y * dt;
