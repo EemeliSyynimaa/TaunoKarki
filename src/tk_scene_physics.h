@@ -14,14 +14,30 @@ enum
     TK_RENDER_TYPE_AABB
 };
 
+struct tk_contact
+{
+    struct v2 position;
+    f32 time_delta;
+    b32 active;
+};
+
+#define TK_ENTITY_NAME_MAX 256
+
 struct tk_entity
 {
     u64 flags;
 
-    struct v2 position;
-    struct v2 velocity;
+    char name[TK_ENTITY_NAME_MAX];
 
+    struct v2 position;
+
+    // Physics
+    struct v2 velocity;
+    struct v2 move_delta;
     struct v2 force;
+
+    // Todo: testing only
+    b32 in_contact;
 
     f32 friction;
     f32 acceleration;
