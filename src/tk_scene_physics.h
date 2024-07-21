@@ -16,9 +16,10 @@ enum
 
 struct tk_contact
 {
+    struct tk_entity* entity_a;
+    struct tk_entity* entity_b;
     struct v2 position;
     f32 time_delta;
-    b32 active;
 };
 
 #define TK_ENTITY_NAME_MAX 256
@@ -58,13 +59,16 @@ struct tk_entity
 };
 
 #define TK_MAX_ENTITIES 32
+#define TK_MAX_CONTACTS 1024
 
 #define MAX_PHYSICS_FRAMES 3600
 
 struct physics_frame
 {
     struct tk_entity entities[TK_MAX_ENTITIES];
+    struct tk_contact contacts[TK_MAX_CONTACTS];
     u32 num_entities;
+    u32 num_contacts;
     u32 id;
 };
 

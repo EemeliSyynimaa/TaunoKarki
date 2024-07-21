@@ -93,6 +93,147 @@ b32 tk_collision_detect_circle_circle(
     return result;
 }
 
+void physics_update_velocities(struct tk_entity* entities, u32 num_entities,
+    f32 dt)
+{
+    for (u32 i = 0; i < num_entities; i++)
+    {
+        struct tk_entity* entity = &entities[i];
+
+        if (!(entity->flags & TK_ENTITY_ALIVE))
+        {
+            continue;
+        }
+
+        if (entity->flags & TK_ENTITY_DYNAMIC)
+        {
+            if (entity->mass > 0.0f)
+            {
+                tk_entity_apply_force(entity,
+                    v2_mul_f32(v2_negate(entity->velocity), entity->friction));
+
+                struct v2 acceleration =
+                {
+                    entity->force.x / entity->mass,
+                    entity->force.y / entity->mass
+                };
+
+                entity->velocity.x += acceleration.x * dt;
+                entity->velocity.y += acceleration.y * dt;
+
+                entity->move_delta.x = entity->velocity.x * dt;
+                entity->move_delta.y = entity->velocity.y * dt;
+            }
+
+            entity->force = v2_zero;
+        }
+    }
+}
+
+u32 physics_check_contacts(struct tk_entity* entities, u32 num_entities,
+    struct tk_contact* contacts, u32 max_contacts, u32 id)
+{
+    u32 num_contacts = 0;
+
+    for (u32 i = 0; i < num_entities - 1; i++)
+    {
+        struct tk_entity* a = &entities[i];
+
+        if (!(a->flags & TK_ENTITY_ALIVE) || !(a->flags & TK_ENTITY_DYNAMIC))
+        {
+            continue;
+        }
+
+        for (u32 j = i + 1; j < num_entities; j++)
+        {
+            struct tk_entity* b = &entities[j];
+
+            if (!(b->flags & TK_ENTITY_ALIVE) || !b->flags & TK_ENTITY_DYNAMIC)
+            {
+                continue;
+            }
+
+            struct tk_contact contact = { 0 };
+            b32 result = tk_collision_detect_circle_circle(a->position,
+                a->move_delta, a->radius, b->position, b->move_delta,
+                b->radius, &contact);
+
+            if (result && num_contacts < max_contacts)
+            {
+                contact.entity_a = a;
+                contact.entity_b = b;
+
+                contacts[num_contacts++] = contact;
+
+                LOG("[%u] contact: %s -> %s\n", id, a->name, b->name);
+            }
+        }
+    }
+
+    return num_contacts;
+}
+
+void physics_resolve_contacts(struct tk_contact* contacts, u32 num_contacts,
+    f32 dt)
+{
+    f32 t = 1.0f;
+
+    for (u32 i = 0; i < num_contacts; i++)
+    {
+        t = MIN(t, contacts[i].time_delta);
+    }
+
+    LOG("Time delta is %f\n", t);
+
+    for (u32 i = 0; i < num_contacts; i++)
+    {
+        struct tk_contact* contact = &contacts[i];
+        struct tk_entity* a = contact->entity_a;
+        struct tk_entity* b = contact->entity_b;
+
+        f32 t_remaining = 1.0f - MAX(t, contact->time_delta);
+
+        struct v2 n = v2_normalize(v2_direction(b->position, a->position));
+
+        f32 a1 = v2_dot(a->velocity, n);
+        f32 a2 = v2_dot(b->velocity, n);
+
+        f32 p = (2.0f * (a1 - a2)) / (a->mass + b->mass);
+
+        a->velocity.x = a->velocity.x - p * b->mass * n.x;
+        a->velocity.y = a->velocity.y - p * b->mass * n.y;
+
+        b->velocity.x = b->velocity.x + p * a->mass * n.x;
+        b->velocity.y = b->velocity.y + p * a->mass * n.y;
+
+        a->move_delta = v2_mul_f32(a->move_delta, contact->time_delta);
+        a->position = v2_add(a->position, a->move_delta);
+        a->move_delta = v2_mul_f32(a->velocity, t_remaining * dt);
+
+        b->move_delta = v2_mul_f32(b->move_delta, contact->time_delta);
+        b->position = v2_add(b->position, b->move_delta);
+        b->move_delta = v2_mul_f32(b->velocity, t_remaining * dt);
+    }
+}
+
+void physics_move_entities(struct tk_entity* entities, u32 num_entities)
+{
+    for (u32 i = 0; i < num_entities; i++)
+    {
+        struct tk_entity* entity = &entities[i];
+
+        if (!(entity->flags & TK_ENTITY_ALIVE))
+        {
+            continue;
+        }
+
+        if (entity->flags & TK_ENTITY_DYNAMIC)
+        {
+            entity->position.x += entity->move_delta.x;
+            entity->position.y += entity->move_delta.y;
+        }
+    }
+}
 
 void physics_advance(struct scene_physics* data, struct game_input* input,
     f32 dt)
@@ -157,134 +298,24 @@ void physics_advance(struct scene_physics* data, struct game_input* input,
         }
     }
 
-    // Calculate velocities and movement deltas
-    for (u32 i = 0; i < frame->num_entities; i++)
+    physics_update_velocities(frame->entities, frame->num_entities, dt);
+
+    u32 max_iterations = 100;
+
+    for (u32 i = 0; i < max_iterations; i++)
     {
-        struct tk_entity* entity = &frame->entities[i];
+        frame->num_contacts = physics_check_contacts(frame->entities,
+            frame->num_entities, frame->contacts, TK_MAX_CONTACTS, frame->id);
 
-        if (!(entity->flags & TK_ENTITY_ALIVE))
+        if (frame->num_contacts > 0)
         {
-            continue;
-        }
+            LOG("[%u] %u iteration\n", frame->id, i + 1);
 
-        if (entity->flags & TK_ENTITY_DYNAMIC)
-        {
-            if (entity->mass > 0.0f)
-            {
-                tk_entity_apply_force(entity,
-                    v2_mul_f32(v2_negate(entity->velocity), entity->friction));
-
-                struct v2 acceleration =
-                {
-                    entity->force.x / entity->mass,
-                    entity->force.y / entity->mass
-                };
-
-                entity->velocity.x += acceleration.x * dt;
-                entity->velocity.y += acceleration.y * dt;
-
-                entity->move_delta.x = entity->velocity.x * dt;
-                entity->move_delta.y = entity->velocity.y * dt;
-            }
-
-            entity->force = v2_zero;
+            physics_resolve_contacts(frame->contacts, frame->num_contacts, dt);
         }
     }
 
-    // Check collisions
-    for (u32 i = 0; i < frame->num_entities - 1; i++)
-    {
-        struct tk_entity* a = &frame->entities[i];
-
-        if (!(a->flags & TK_ENTITY_ALIVE))
-        {
-            continue;
-        }
-
-        if (a->flags & TK_ENTITY_DYNAMIC)
-        {
-            for (u32 j = i + 1; j < frame->num_entities; j++)
-            {
-                struct tk_entity* b = &frame->entities[j];
-
-                if (!(b->flags & TK_ENTITY_ALIVE))
-                {
-                    continue;
-                }
-
-                if (b->flags & TK_ENTITY_DYNAMIC)
-                {
-                    struct tk_contact contact = { 0 };
-                    b32 result = tk_collision_detect_circle_circle(a->position,
-                        a->move_delta, a->radius, b->position, b->move_delta,
-                        b->radius, &contact);
-
-                    a->in_contact = result;
-                    b->in_contact = result;
-
-                    if (result)
-                    {
-                        LOG("[%d] contact: %s -> %s\n", frame->id, a->name,
-                            b->name);
-                    }
-                }
-            }
-        }
-    }
-
-    // Solve colisions
-
-    // Move entities
-    for (u32 i = 0; i < frame->num_entities; i++)
-    {
-        struct tk_entity* entity = &frame->entities[i];
-
-        if (!(entity->flags & TK_ENTITY_ALIVE))
-        {
-            continue;
-        }
-
-        if (entity->flags & TK_ENTITY_DYNAMIC)
-        {
-            entity->position.x += entity->move_delta.x;
-            entity->position.y += entity->move_delta.y;
-        }
-    }
-
-    // circles_velocities_update(frame->circles, frame->num_circles, input,
-    //     step);
-
-    // f32 max_iterations = 10;
-
-    // for (u32 i = 0; i < max_iterations; i++)
-    // {
-    //     LOG("Checking collisions, iteration %d\n", i + 1);
-
-    //     // Todo: sometimes, for some reasons, a collision
-    //     // between two objects happens again in the following
-    //     // iteration. This shouldn't occur as the collision
-    //     // is already resolved and the velocities and positions
-    //     // are updated! Investigate
-
-    //     // Todo: sometimes collisions are handled poorly
-    //     // when multiple circles are touching...?
-
-    //     u32 num_contacts = circles_collisions_check(frame->circles,
-    //         frame->num_circles, frame->contacts, frame->lines,
-    //         frame->num_lines);
-
-    //     if (num_contacts)
-    //     {
-    //         circles_collisions_resolve(frame->contacts, num_contacts, step);
-    //     }
-    //     else
-    //     {
-    //         LOG("No contacts!\n");
-    //         break;
-    //     }
-    // }
-
-    // circles_positions_update(frame->circles, frame->num_circles);
+    physics_move_entities(frame->entities, frame->num_entities);
 
     // Todo: frame_min should be updated as well
     data->frame_max = data->frame_current;
@@ -352,6 +383,26 @@ void scene_physics_init(struct game_state* game, struct scene_physics* data)
     circle->friction = 10.0f;
     circle->acceleration = 40.0f;
     circle->mass = 1.0f;
+
+    for (u32 y = 0; y < 4; y++)
+    {
+        for (u32 x = 0; x < 6; x++)
+        {
+            circle = tk_entity_get_free(frame->entities, frame->num_entities);
+            text_copy("", circle->name);
+            circle->position.x = 1.0f + 0.5f * x;
+            circle->position.y = 5.0f + 0.5f * y;
+            circle->radius = 0.25f;
+            circle->color = colors[AQUA];
+            circle->flags = TK_ENTITY_ALIVE | TK_ENTITY_RENDERABLE |
+                TK_ENTITY_DYNAMIC;
+            circle->render_type = TK_RENDER_TYPE_CIRCLE;
+            circle->num_fans = 32;
+            circle->friction = 2.0f;
+            circle->acceleration = 0.0f;
+            circle->mass = 5.0f;
+        }
+    }
 
     circle = tk_entity_get_free(frame->entities, frame->num_entities);
     text_copy("B", circle->name);
